@@ -6,4 +6,5 @@
 
 ### 自媒体账号
 
-小红书：[安卓屏连](https://www.xiaohongshu.com/user/profile/602cc4c0000000000100be64)
+* 小红书：[安卓屏连](https://www.xiaohongshu.com/user/profile/602cc4c0000000000100be64)
+* bilibili: [安卓屏连](https://space.bilibili.com/494726825)
