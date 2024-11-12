@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Media Projection Spike"
+rootProject.name = "Connect Screen"
 include(":app")
  
