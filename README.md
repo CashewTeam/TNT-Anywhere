@@ -17,8 +17,18 @@
 
 ### TODO
 
-* [ ] usb2 手机通过 displaylink 双屏镜像
-* [ ] usb2 手机通过 displaylink 双屏异显 
+* [ ] usb2 手机通过 displaylink 接显示器双屏镜像
+* [ ] usb2 手机通过 displaylink 接显示器双屏异显
+* [ ] usb3 手机通过 typec 接显示器双屏镜像
+* [ ] usb3 手机通过 typec 接显示器双屏异显
+* [ ] usb3 手机通过 typec 接ar眼镜
+* [ ] 手机通过 scrcpy 有线投屏到pc
+* [ ] 手机通过 scrcpy 无线投屏到pc
+* [ ] 手机通过 scrcpy 有线投屏到安卓平板
+* [ ] 手机通过 scrcpy 无线投屏到安卓平板
+* [ ] 手机通过 scrcpy 无线投屏到ipad
+* [ ] 手机通过有线串流投屏到浏览器
+* [ ] 手机通过无线串流投屏到浏览器
 
 ### 本应用不是 DisplayLink 官方应用
 
