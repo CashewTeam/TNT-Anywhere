@@ -17,8 +17,8 @@
 
 ### TODO
 
-*[] usb2 手机通过 displaylink 双屏镜像
-*[] usb2 手机通过 displaylink 双屏异显 
+*[ ] usb2 手机通过 displaylink 双屏镜像
+*[ ] usb2 手机通过 displaylink 双屏异显 
 
 ### 本应用不是 DisplayLink 官方应用
 
