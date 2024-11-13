@@ -15,7 +15,12 @@
 
 通过 QQ 加入群聊 577902537 获取 android apk 安装包
 
-### 本应用不是 Displaylink 官方应用
+### TODO
+
+*[] usb2 手机通过 displaylink 双屏镜像
+*[] usb2 手机通过 displaylink 双屏异显 
+
+### 本应用不是 DisplayLink 官方应用
 
 本应用使用了DisplayLink®的驱动程序(.so文件)用于支持DisplayLink®设备的连接功能。DisplayLink®是Synaptics Incorporated的注册商标。我们仅将其驱动程序用于实现与DisplayLink®设备的兼容性，未对驱动程序进行任何修改。
 
