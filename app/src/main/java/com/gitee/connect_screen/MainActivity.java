@@ -18,22 +18,22 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout breadcrumb;
     private LinearLayout buttonGroup;
     private FrameLayout fragmentContainer;
-    private ProjectionManager projectionManager;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        projectionManager = ProjectionManager.getInstance(this);
-        
+
         setContentView(R.layout.main);
         
         breadcrumb = findViewById(R.id.breadcrumb);
         buttonGroup = findViewById(R.id.buttonGroup);
         fragmentContainer = findViewById(R.id.fragmentContainer);
         Button virtualScreenBtn = findViewById(R.id.virtualScreenBtn);
-        
-        // 启动投屏流程
-        startProjectionFlow();
+
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, new VirtualScreenFragment())
+                .addToBackStack(null)
+                .commit();
         
         virtualScreenBtn.setOnClickListener(v -> {
             // 更新面包屑
@@ -51,34 +51,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     
-    private void startProjectionFlow() {
-        projectionManager.startProjection(this, new ProjectionManager.ProjectionCallback() {
-            @Override
-            public void onProjectionReady() {
-                // 投屏准备就绪，可以切换到VirtualScreenFragment
-                getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragmentContainer, new VirtualScreenFragment())
-                    .addToBackStack(null)
-                    .commit();
-            }
-
-            @Override
-            public void onProjectionError(String error) {
-                Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-    
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        projectionManager.handleActivityResult(requestCode, resultCode, data);
     }
     
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        projectionManager.release();
     }
     
     private void updateBreadcrumb(String newPath) {
