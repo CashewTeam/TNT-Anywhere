@@ -23,6 +23,7 @@ public class UsbFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_usb, container, false);
         
+        UsbManager usbManager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
         usbDeviceList = view.findViewById(R.id.usbDeviceList);
         usbDeviceList.setLayoutManager(new LinearLayoutManager(getContext()));
         
@@ -39,7 +40,7 @@ public class UsbFragment extends Fragment {
                 .replace(R.id.fragmentContainer, detailFragment)
                 .addToBackStack(null)
                 .commit();
-        });
+        }, usbManager);
         
         usbDeviceList.setAdapter(adapter);
         

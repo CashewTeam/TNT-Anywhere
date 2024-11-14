@@ -2,6 +2,7 @@ package com.gitee.connect_screen;
 
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbConstants;
+import android.hardware.usb.UsbManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,14 +13,16 @@ import java.util.List;
 public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.ViewHolder> {
     private List<UsbDevice> devices;
     private OnDeviceClickListener listener;
+    private UsbManager usbManager;
 
     public interface OnDeviceClickListener {
         void onDeviceClick(UsbDevice device);
     }
 
-    public UsbDeviceAdapter(List<UsbDevice> devices, OnDeviceClickListener listener) {
+    public UsbDeviceAdapter(List<UsbDevice> devices, OnDeviceClickListener listener, UsbManager usbManager) {
         this.devices = devices;
         this.listener = listener;
+        this.usbManager = usbManager;
     }
 
     @Override
@@ -39,7 +42,10 @@ public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.View
             String.valueOf(device.getVendorId());
         
         String deviceType = getDeviceTypeName(device.getDeviceClass());
-        holder.deviceId.setText(deviceType + " - VID: " + vendorInfo + " PID: " + device.getProductId());
+        String authStatus = usbManager.hasPermission(device) ? "已授权" : "未授权";
+        
+        holder.deviceId.setText(deviceType + " - VID: " + vendorInfo + 
+            " PID: " + device.getProductId() + " - " + authStatus);
         
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
