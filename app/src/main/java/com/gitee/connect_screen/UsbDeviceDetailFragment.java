@@ -30,8 +30,9 @@ public class UsbDeviceDetailFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        TextView textView = new TextView(getContext());
-        textView.setPadding(16, 16, 16, 16);
+        View view = inflater.inflate(R.layout.fragment_usb_device_detail, container, false);
+        
+        TextView detailContent = view.findViewById(R.id.detailContent);
         
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
@@ -39,9 +40,10 @@ public class UsbDeviceDetailFragment extends Fragment {
         sb.append("产品ID: ").append(device.getProductId()).append("\n");
         sb.append("设备类: ").append(device.getDeviceClass()).append("\n");
         sb.append("设备子类: ").append(device.getDeviceSubclass()).append("\n");
-        sb.append("协议: ").append(device.getDeviceProtocol()).append("\n");
+        sb.append("协议: ").append(device.getDeviceProtocol());
         
-        textView.setText(sb.toString());
-        return textView;
+        detailContent.setText(sb.toString());
+        
+        return view;
     }
 } 
