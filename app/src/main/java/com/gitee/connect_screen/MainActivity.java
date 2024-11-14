@@ -13,11 +13,15 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
     private LinearLayout breadcrumb;
     private LinearLayout buttonGroup;
     private FrameLayout fragmentContainer;
+    private List<String> navigationPath = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,14 +41,9 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
         
         virtualScreenBtn.setOnClickListener(v -> {
-            // 更新面包屑
-            updateBreadcrumb("虚拟屏幕");
-            
-            // 隐藏按钮组，显示Fragment容器
+            pushBreadcrumb("虚拟屏幕");
             buttonGroup.setVisibility(View.GONE);
             fragmentContainer.setVisibility(View.VISIBLE);
-            
-            // 切换到虚拟屏幕Fragment
             getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, new VirtualScreenFragment())
                 .addToBackStack(null)
@@ -52,14 +51,9 @@ public class MainActivity extends AppCompatActivity {
         });
         
         usbDeviceBtn.setOnClickListener(v -> {
-            // 更新面包屑
-            updateBreadcrumb("USB设备");
-            
-            // 隐藏按钮组，显示Fragment容器
+            pushBreadcrumb("USB设备");
             buttonGroup.setVisibility(View.GONE);
             fragmentContainer.setVisibility(View.VISIBLE);
-            
-            // 切换到USB Fragment
             getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, new UsbFragment())
                 .addToBackStack(null)
@@ -75,37 +69,64 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        navigationPath.clear();
     }
     
-    private void updateBreadcrumb(String newPath) {
-        // 清除除首页外的所有面包屑
-        int childCount = breadcrumb.getChildCount();
-        if (childCount > 1) {
-            breadcrumb.removeViews(1, childCount - 1);
+    public void pushBreadcrumb(String newPath) {
+        if (!newPath.isEmpty() && !navigationPath.contains(newPath)) {
+            navigationPath.add(newPath);
         }
-        
-        // 添加分隔符
-        TextView separator = new TextView(this);
-        separator.setText(" > ");
-        breadcrumb.addView(separator);
-        
-        // 添加新路径
-        TextView pathView = new TextView(this);
-        pathView.setText(newPath);
-        breadcrumb.addView(pathView);
+        updateBreadcrumbView();
     }
     
-    // 处理返回事件
+    public void popBreadcrumb() {
+        if (!navigationPath.isEmpty()) {
+            navigationPath.remove(navigationPath.size() - 1);
+        }
+        updateBreadcrumbView();
+    }
+    
+    private void updateBreadcrumbView() {
+        breadcrumb.removeAllViews();
+        
+        TextView homeView = new TextView(this);
+        homeView.setText("首页");
+        homeView.setClickable(true);
+        homeView.setOnClickListener(v -> {
+            navigationPath.clear();
+            buttonGroup.setVisibility(View.VISIBLE);
+            fragmentContainer.setVisibility(View.GONE);
+            breadcrumb.removeAllViews();
+            breadcrumb.addView(homeView);
+        });
+        breadcrumb.addView(homeView);
+        
+        for (int i = 0; i < navigationPath.size(); i++) {
+            TextView separator = new TextView(this);
+            separator.setText(" > ");
+            breadcrumb.addView(separator);
+            
+            TextView pathView = new TextView(this);
+            pathView.setText(navigationPath.get(i));
+            final int index = i;
+            pathView.setClickable(true);
+            pathView.setOnClickListener(v -> {
+                while (navigationPath.size() > index + 1) {
+                    navigationPath.remove(navigationPath.size() - 1);
+                }
+                updateBreadcrumbView();
+            });
+            breadcrumb.addView(pathView);
+        }
+    }
+    
     @Override
     public void onBackPressed() {
         if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-            // 如果Fragment栈中有内容，执行返回
             getSupportFragmentManager().popBackStack();
-            // 显示按钮组，隐藏Fragment容器
             buttonGroup.setVisibility(View.VISIBLE);
             fragmentContainer.setVisibility(View.GONE);
-            // 更新面包屑回到首页状态
-            updateBreadcrumb("");
+            popBreadcrumb();
         } else {
             super.onBackPressed();
         }
