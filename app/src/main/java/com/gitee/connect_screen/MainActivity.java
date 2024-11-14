@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
         buttonGroup = findViewById(R.id.buttonGroup);
         fragmentContainer = findViewById(R.id.fragmentContainer);
         Button virtualScreenBtn = findViewById(R.id.virtualScreenBtn);
+        Button usbDeviceBtn = findViewById(R.id.usbDeviceBtn);
 
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, new VirtualScreenFragment())
@@ -46,6 +47,21 @@ public class MainActivity extends AppCompatActivity {
             // 切换到虚拟屏幕Fragment
             getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, new VirtualScreenFragment())
+                .addToBackStack(null)
+                .commit();
+        });
+        
+        usbDeviceBtn.setOnClickListener(v -> {
+            // 更新面包屑
+            updateBreadcrumb("USB设备");
+            
+            // 隐藏按钮组，显示Fragment容器
+            buttonGroup.setVisibility(View.GONE);
+            fragmentContainer.setVisibility(View.VISIBLE);
+            
+            // 切换到USB Fragment
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, new UsbFragment())
                 .addToBackStack(null)
                 .commit();
         });
