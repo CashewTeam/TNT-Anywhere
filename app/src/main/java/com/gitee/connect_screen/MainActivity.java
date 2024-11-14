@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,10 +36,8 @@ public class MainActivity extends AppCompatActivity {
         Button virtualScreenBtn = findViewById(R.id.virtualScreenBtn);
         Button usbDeviceBtn = findViewById(R.id.usbDeviceBtn);
 
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragmentContainer, new VirtualScreenFragment())
-                .addToBackStack(null)
-                .commit();
+        buttonGroup.setVisibility(View.VISIBLE);
+        fragmentContainer.setVisibility(View.GONE);
         
         virtualScreenBtn.setOnClickListener(v -> {
             pushBreadcrumb("虚拟屏幕");
@@ -92,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         TextView homeView = new TextView(this);
         homeView.setText("首页");
         homeView.setClickable(true);
+        homeView.setTextColor(getResources().getColor(R.color.blue));
         homeView.setOnClickListener(v -> {
             navigationPath.clear();
             buttonGroup.setVisibility(View.VISIBLE);
@@ -108,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
             
             TextView pathView = new TextView(this);
             pathView.setText(navigationPath.get(i));
+            pathView.setTextColor(getResources().getColor(R.color.blue));
             final int index = i;
             pathView.setClickable(true);
             pathView.setOnClickListener(v -> {
@@ -122,11 +123,15 @@ public class MainActivity extends AppCompatActivity {
     
     @Override
     public void onBackPressed() {
-        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+        if (getSupportFragmentManager().getBackStackEntryCount() > 1) {
             getSupportFragmentManager().popBackStack();
+            popBreadcrumb();
+        } else if (getSupportFragmentManager().getBackStackEntryCount() == 1) {
+            getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
             buttonGroup.setVisibility(View.VISIBLE);
             fragmentContainer.setVisibility(View.GONE);
-            popBreadcrumb();
+            navigationPath.clear();
+            updateBreadcrumbView();
         } else {
             super.onBackPressed();
         }
