@@ -5,8 +5,16 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
+import android.content.Context;
+import android.hardware.usb.UsbManager;
+import android.content.Intent;
+import android.provider.Settings;
+
+import com.gitee.connect_screen.job.RequestUsbPermission;
+import com.gitee.connect_screen.State;
 
 public class UsbDeviceDetailFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
@@ -33,6 +41,7 @@ public class UsbDeviceDetailFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_usb_device_detail, container, false);
         
         TextView detailContent = view.findViewById(R.id.detailContent);
+        Button requestPermissionButton = view.findViewById(R.id.requestPermissionButton);
         
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
@@ -43,6 +52,10 @@ public class UsbDeviceDetailFragment extends Fragment {
         sb.append("协议: ").append(device.getDeviceProtocol());
         
         detailContent.setText(sb.toString());
+        
+        requestPermissionButton.setOnClickListener(v -> {
+            State.startNewJob(new RequestUsbPermission(device));
+        });
         
         return view;
     }

@@ -1,6 +1,9 @@
 package com.gitee.connect_screen;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -14,15 +17,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class MainActivity extends AppCompatActivity {
+    public static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
+
     private LinearLayout breadcrumb;
     private LinearLayout buttonGroup;
     private FrameLayout fragmentContainer;
     private List<String> navigationPath = new ArrayList<>();
+    private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
+            String action = intent.getAction();
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                State.resumeJob();
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,17 +73,25 @@ public class MainActivity extends AppCompatActivity {
                 .addToBackStack(null)
                 .commit();
         });
-    }
-    
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+
+        // 设置 State.currentActivity 为当前的 MainActivity 实例
+        State.currentActivity = new WeakReference<>(this);
+
+        // 注册 USB 权限广播接收器
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(usbPermissionReceiver, filter, null, null, Context.RECEIVER_EXPORTED);
+        android.util.Log.d("MainActivity", "MainActivity created, registered usbPermissionReceiver");
     }
     
     @Override
     protected void onDestroy() {
         super.onDestroy();
         navigationPath.clear();
+        // 清除弱引用
+        State.currentActivity = null;
+
+        // 注销 USB 权限广播接收器
+        unregisterReceiver(usbPermissionReceiver);
     }
     
     public void pushBreadcrumb(String newPath) {
