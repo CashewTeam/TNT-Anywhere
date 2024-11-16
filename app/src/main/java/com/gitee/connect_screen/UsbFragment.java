@@ -31,15 +31,9 @@ public class UsbFragment extends Fragment {
             // 更新面包屑
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb(device.getDeviceName());
+                UsbDeviceDetailFragment detailFragment = UsbDeviceDetailFragment.newInstance(device);
+                activity.pushBreadcrumb(device.getDeviceName(), detailFragment);
             }
-            
-            // 处理设备点击事件，显示详情
-            UsbDeviceDetailFragment detailFragment = UsbDeviceDetailFragment.newInstance(device);
-            getParentFragmentManager().beginTransaction()
-                .replace(R.id.fragmentContainer, detailFragment)
-                .addToBackStack(null)
-                .commit();
         }, usbManager);
         
         usbDeviceList.setAdapter(adapter);
