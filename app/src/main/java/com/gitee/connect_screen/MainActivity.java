@@ -60,6 +60,22 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    // 添加一个新的广播接收器来处理 USB 设备连接
+    private final BroadcastReceiver usbAttachedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
+            String action = intent.getAction();
+            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    State.log("USB 设备已连接: " + device.getDeviceName());
+                    State.startNewJob(new MirrorViaDisplaylink(device));
+                }
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +116,10 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
 
+        // 注册 USB 设备连接广播接收器
+        IntentFilter attachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
+
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
         logAdapter = new LogAdapter(State.logs);
@@ -123,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
         State.currentActivity = null;
         unregisterReceiver(usbPermissionReceiver);
         unregisterReceiver(usbDetachedReceiver);
+        unregisterReceiver(usbAttachedReceiver);
     }
     
     @Override

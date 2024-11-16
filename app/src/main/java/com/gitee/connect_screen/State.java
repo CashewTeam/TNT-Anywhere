@@ -21,6 +21,10 @@ public class State {
     public static Map<String, UsbState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
 
+    public static boolean isJobRunning() {
+        return currentJob != null;
+    }   
+
     public static void startNewJob(Job job) {
         if (currentJob != null) {
             if (currentActivity != null && currentActivity.get() != null) {
