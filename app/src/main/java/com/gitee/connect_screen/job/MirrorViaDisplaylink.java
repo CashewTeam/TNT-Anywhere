@@ -14,7 +14,8 @@ import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 
 public class MirrorViaDisplaylink implements Job {
-    private boolean requested = false;
+    private boolean usbRequested = false;
+    private boolean mediaProjectionRequested = false;
     private final String deviceName;
 
     public MirrorViaDisplaylink(UsbDevice device) {
@@ -36,11 +37,11 @@ public class MirrorViaDisplaylink implements Job {
 
         if (usbManager.hasPermission(device)) {
             State.log("已经拥有USB设备权限: " + device.getDeviceName());
-        } else if (requested) {
-            State.log("未授予USB设备权限: " + device.getDeviceName());
+        } else if (usbRequested) {
+            State.log("因为未授予USB设备权限: " + device.getDeviceName() + "，跳过任务");
             return;
         } else {
-            requested = true;
+            usbRequested = true;
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
             usbManager.requestPermission(device, pendingIntent);
             throw new YieldException("等待用户USB授权");
@@ -86,13 +87,22 @@ public class MirrorViaDisplaylink implements Job {
         }
 
         // 请求投屏权限
-        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        if (mediaProjectionManager != null) {
+        if (State.mediaProjection == null) {
+            if (mediaProjectionRequested) { 
+                State.log("因为未授予投屏权限，跳过任务");
+                return;
+            }
+            mediaProjectionRequested = true;
+            MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            if (mediaProjectionManager != null) {
             Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-            State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-            throw new YieldException("等待用户投屏授权");
+                State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+                throw new YieldException("等待用户投屏授权");
+            } else {
+                State.log("无法获取 MediaProjectionManager 服务");
+            }
         } else {
-            State.log("无法获取 MediaProjectionManager 服务");
+            State.log("MediaProjection 已经存在，跳过重复请求");
         }
 
         State.log("ready go: " + usbState.monitorInfo.toString());

@@ -118,10 +118,19 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
+                // 启动投屏服务
+                startMediaProjectionService(data);
             } else {
                 State.log("用户拒绝了投屏权限");
+                State.resumeJob();
             }
         }
+    }
+
+    private void startMediaProjectionService(Intent data) {
+        Intent serviceIntent = new Intent(this, MediaProjectionService.class);
+        serviceIntent.putExtra("mediaProjectionData", data);
+        startService(serviceIntent);
     }
 
     public void pushBreadcrumb(String newPath, Fragment fragment) {

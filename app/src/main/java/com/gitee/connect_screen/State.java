@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.hardware.usb.UsbDevice;
+import android.media.projection.MediaProjection;
 import android.util.Log;
 
 import com.gitee.connect_screen.job.Job;
@@ -18,6 +19,7 @@ public class State {
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static Map<String, UsbState> usbStates = new HashMap<>();
+    public static MediaProjection mediaProjection;
 
     public static void startNewJob(Job job) {
         if (currentJob != null) {
