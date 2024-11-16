@@ -51,6 +51,7 @@ public class MediaProjectionService extends Service {
                 public void onStop() {
                     super.onStop();
                     State.log("MediaProjection 停止");
+                    State.mediaProjection = null;
                 }
             }, null);
             State.resumeJob();

@@ -139,7 +139,7 @@ public class MirrorViaDisplaylink implements Job {
         usbState.handlerThread.start();
         usbState.handler = new Handler(usbState.handlerThread.getLooper());
 
-        usbState.imageReader.setOnImageAvailableListener(new ListenAndPostFrame(), usbState.handler);
+        usbState.imageReader.setOnImageAvailableListener(new ListenAndPostFrame(usbState), usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
 
         MediaProjection mediaProjection = State.mediaProjection;
