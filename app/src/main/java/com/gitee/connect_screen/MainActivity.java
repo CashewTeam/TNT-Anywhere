@@ -105,6 +105,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // 设置 State.currentActivity 为当前的 MainActivity 实例
+        State.currentActivity = new WeakReference<>(this);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         State.currentActivity = null;

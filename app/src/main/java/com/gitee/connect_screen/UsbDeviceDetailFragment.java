@@ -2,6 +2,8 @@ package com.gitee.connect_screen;
 
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +13,8 @@ import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 import com.gitee.connect_screen.UsbState;
+
+import java.util.Arrays;
 
 public class UsbDeviceDetailFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
@@ -52,8 +56,22 @@ public class UsbDeviceDetailFragment extends Fragment {
         boolean isDisplaylinkDevice = device.getVendorId() == 6121;
         if (isDisplaylinkDevice) {
             // 获取 native driver 和 monitor 的详情
-            sb.append("Native Driver: ").append(usbState != null && usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
-            sb.append("Monitor: ").append(usbState != null && usbState.monitorInfo != null ? usbState.monitorInfo.toString() : "未连接").append("\n");
+            if (usbState != null) {
+                sb.append("Native Driver: ").append( usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
+                sb.append("物理显示器: ").append(usbState.monitorInfo != null ? usbState.monitorInfo.toString() : "未连接").append("\n");
+                if (usbState.virtualDisplay != null) {
+                    Display display = usbState.virtualDisplay.getDisplay();
+                    // 获取显示器的度量信息
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    display.getRealMetrics(metrics);
+                    // 打印显示器的宽度和高度
+                    sb.append("虚拟显示器: ").append(display.getDisplayId()).append(", 宽: ").append(metrics.widthPixels).append(", 高: ").append(metrics.heightPixels).append("\n");
+                } else {
+                    sb.append("虚拟显示器: ").append("未连接").append("\n");
+                }
+                sb.append("总发送帧数: ").append(usbState.frameCounter).append("\n");
+                sb.append("最近发送帧状态码: ").append(Arrays.toString(usbState.recentPostFrameResultCodes)).append("\n");
+            }
             mirrorViaDisplaylinkButton.setVisibility(View.VISIBLE);
         } else {
             mirrorViaDisplaylinkButton.setVisibility(View.GONE);

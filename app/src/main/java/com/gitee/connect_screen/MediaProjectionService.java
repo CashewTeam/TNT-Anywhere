@@ -6,9 +6,13 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.display.DisplayManager;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Binder;
@@ -23,6 +27,22 @@ public class MediaProjectionService extends Service {
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "MediaProjectionServiceChannel";
 
+    private final BroadcastReceiver usbDetachedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            android.util.Log.d("MediaProjectionService", "received action: " + intent.getAction());
+            String action = intent.getAction();
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    State.log("USB 设备已断开: " + device.getDeviceName());
+                    State.removeUsbState(device.getDeviceName());
+                    State.resumeJob();
+                }
+            }
+        }
+    };
+
     public class LocalBinder extends Binder {
         MediaProjectionService getService() {
             return MediaProjectionService.this;
@@ -35,6 +55,10 @@ public class MediaProjectionService extends Service {
         State.log("MediaProjectionService onCreate");
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
+
+        // 注册 USB 设备断开广播接收器
+        IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
     }
 
     @Override
@@ -63,6 +87,7 @@ public class MediaProjectionService extends Service {
     public void onDestroy() {
         super.onDestroy();
         State.log("MediaProjectionService onDestroy");
+        unregisterReceiver(usbDetachedReceiver);
     }
 
     @Override

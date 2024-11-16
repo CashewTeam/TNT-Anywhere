@@ -25,6 +25,8 @@ public class UsbState {
     public VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
+    public volatile int frameCounter = 0;
+    public volatile int[] recentPostFrameResultCodes = new int[8];
 
     public void destroy() {
         if (handlerThread != null) {

@@ -22,6 +22,8 @@ public class HomeFragment extends Fragment {
         Button usbDeviceBtn = view.findViewById(R.id.usbDeviceBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
+        // 暂时还不需要独立创建虚拟显示器
+        virtualScreenBtn.setVisibility(View.GONE);
         virtualScreenBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {

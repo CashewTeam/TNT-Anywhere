@@ -12,6 +12,8 @@ import android.media.projection.MediaProjectionManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.Surface;
+import android.view.WindowManager;
+import android.view.WindowMetrics;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
@@ -32,6 +34,10 @@ public class MirrorViaDisplaylink implements Job {
 
     public void start() throws YieldException {
         Context context = State.currentActivity.get();
+        if (context == null) {
+            State.log("Activity 不存在，跳过任务");
+            return;
+        }
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
         UsbState usbState = State.getUsbState(deviceName);
 
@@ -44,9 +50,7 @@ public class MirrorViaDisplaylink implements Job {
         openUsbConnection(context, usbManager, usbState);
         initializeNativeDriver(context, usbState);
         requestMediaProjectionPermission(context);
-        createVirtualDisplay(usbState);
-
-        State.log("ready go: " + usbState.monitorInfo.toString());
+        createVirtualDisplay(context, usbState);
     }
 
     private void requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
@@ -95,7 +99,7 @@ public class MirrorViaDisplaylink implements Job {
                 State.log("附加USB设备成功");
             }
         } else {
-            State.log("NativeDriver 已经存在，跳过重复���建");
+            State.log("NativeDriver 已经存在，跳过重复创建");
         }
 
         if (usbState.monitorInfo == null) {
@@ -124,7 +128,7 @@ public class MirrorViaDisplaylink implements Job {
         }
     }
 
-    private void createVirtualDisplay(UsbState usbState) {
+    private void createVirtualDisplay(Context context, UsbState usbState) {
         if (usbState.virtualDisplay != null) {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
@@ -134,7 +138,15 @@ public class MirrorViaDisplaylink implements Job {
         int height = displayMode.height;
         int dpi = 160;
 
-        usbState.imageReader = ImageReader.newInstance(width, height, 1, 2);
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
+
+        int pxHeight = windowMetrics.getBounds().height();
+        int pxWidth = windowMetrics.getBounds().width();
+
+        int targetWidth = 1080 * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
+
+        usbState.imageReader = ImageReader.newInstance(targetWidth, height, 1, 2);
         usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
         usbState.handlerThread.start();
         usbState.handler = new Handler(usbState.handlerThread.getLooper());
@@ -142,11 +154,11 @@ public class MirrorViaDisplaylink implements Job {
         usbState.imageReader.setOnImageAvailableListener(new ListenAndPostFrame(usbState), usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
 
-        MediaProjection mediaProjection = State.mediaProjection;
-        usbState.virtualDisplay = mediaProjection.createVirtualDisplay("DisplayLink",
-                width, height, dpi,
+        usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
+                targetWidth, height, dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 surface, null, null);
+        State.mediaProjection = null;
         State.log("虚拟显示已创建");
     }
 }
