@@ -1,8 +1,11 @@
 package com.gitee.connect_screen;
 
+import android.hardware.usb.UsbDeviceConnection;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.displaylink.manager.NativeDriver;
+import com.displaylink.manager.NativeDriverListener;
 import com.gitee.connect_screen.job.Job;
 
 import java.lang.ref.WeakReference;
@@ -14,6 +17,9 @@ public class State {
     public static WeakReference<MainActivity> currentActivity;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
+    public static NativeDriver nativeDriver;
+    public static NativeDriverListener nativeDriverListener;
+    public static UsbDeviceConnection usbConnection;
 
     public static void startNewJob(Job job) {
         if (currentJob != null) {

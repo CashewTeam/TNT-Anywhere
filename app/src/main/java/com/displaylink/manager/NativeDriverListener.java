@@ -4,30 +4,33 @@ import android.content.Context;
 import android.util.Log;
 
 import com.displaylink.manager.display.MonitorInfo;
+import com.gitee.connect_screen.State;
 
 
 public class NativeDriverListener {
-    public Context context;
-
-    public NativeDriverListener(Context context) {
-    }
-
     public void onDisplayConnected(long encoderId) {
         Log.i("displaylink", "onDisplayConnected");
+        State.currentActivity.get().runOnUiThread(() -> {
+            State.log("Display已连接, Encoder ID: " + encoderId);
+        });
     }
 
     public void onDisplayDisconnected(long encoderId) {
-        Log.i("displaylink", "onDisplayDisconnected");
+        State.log("onDisplayDisconnected");
     }
 
     public void onError(int i) {
-        Log.i("displaylink", "onError");
+        State.log("onError");
     }
 
     public void onFirmwareUpdateInfo(boolean z) {
-        Log.i("displaylink", "onFirmwareUpdateInfo");
+        State.log("onFirmwareUpdateInfo");
     }
 
     public void onUpdateMonitorInfo(long encoderId, MonitorInfo monitorInfo) {
+        Log.i("displaylink", "onUpdateMonitorInfo");
+        State.currentActivity.get().runOnUiThread(() -> {
+            State.log("onUpdateMonitorInfo, Encoder ID: " + encoderId);
+        });
     }
 }
