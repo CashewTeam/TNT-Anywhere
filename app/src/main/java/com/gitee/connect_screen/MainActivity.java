@@ -7,15 +7,12 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -48,14 +45,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        
+        // 移除默认的 ActionBar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+        
         setContentView(R.layout.main);
         
         breadcrumb = findViewById(R.id.breadcrumb);
         fragmentContainer = findViewById(R.id.fragmentContainer);
         
-        // 添加 ButtonGroupFragment
-        pushBreadcrumb("首页", new ButtonGroupFragment());
+        pushBreadcrumb("首页", new HomeFragment());
         
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
@@ -113,8 +114,7 @@ public class MainActivity extends AppCompatActivity {
         if (navigationPath.size() > 1) {
             navigationPath.remove(navigationPath.size() - 1);
         } else {
-            // 首页不可移除
-            return;
+            finish();
         }
         updateBreadcrumbView();
         // 回退 Fragment

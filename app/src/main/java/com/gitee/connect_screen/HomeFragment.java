@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-public class ButtonGroupFragment extends Fragment {
+public class HomeFragment extends Fragment {
 
     @Nullable
     @Override
