@@ -26,15 +26,22 @@ public class MirrorViaDisplaylink implements Job {
     public void start() throws YieldException {
         Context context = State.currentActivity.get();
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-
         UsbState usbState = State.getUsbState(deviceName);
 
         if (usbState == null) {
-            State.log("USB 设备状态不存在，跳过任务");
+            State.log("USB 设备 " + deviceName + " 状态不存在，跳过任务");
             return;
         }
-        UsbDevice device = usbState.device;
 
+        requestUsbPermission(context, usbManager, usbState.device);
+        openUsbConnection(context, usbManager, usbState);
+        initializeNativeDriver(context, usbState);
+        requestMediaProjectionPermission(context);
+
+        State.log("ready go: " + usbState.monitorInfo.toString());
+    }
+
+    private void requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
         if (usbManager.hasPermission(device)) {
             State.log("已经拥有USB设备权限: " + device.getDeviceName());
         } else if (usbRequested) {
@@ -46,9 +53,11 @@ public class MirrorViaDisplaylink implements Job {
             usbManager.requestPermission(device, pendingIntent);
             throw new YieldException("等待用户USB授权");
         }
+    }
 
+    private void openUsbConnection(Context context, UsbManager usbManager, UsbState usbState) {
         if (usbState.usbConnection == null) {
-            usbState.usbConnection = usbManager.openDevice(device);
+            usbState.usbConnection = usbManager.openDevice(usbState.device);
             if (usbState.usbConnection == null) {
                 throw new RuntimeException("无法打开 USB 设备连接");
             } else {
@@ -57,10 +66,9 @@ public class MirrorViaDisplaylink implements Job {
         } else {
             State.log("USB 设备连接已存在");
         }
-        int fileDescriptor = usbState.usbConnection.getFileDescriptor();
-        byte[] rawDescriptors = usbState.usbConnection.getRawDescriptors();
-        String deviceName = device.getDeviceName();
+    }
 
+    private void initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
         if (usbState.nativeDriver == null) {
             usbState.nativeDriver = new NativeDriver();
             usbState.nativeDriverListener = new NativeDriverListener(deviceName);
@@ -72,7 +80,7 @@ public class MirrorViaDisplaylink implements Job {
                 State.log("创建NativeDriver成功");
             }
             usbState.nativeDriver.usbDeviceDetached(deviceName);
-            resultCode = usbState.nativeDriver.usbDeviceAttached(deviceName, fileDescriptor, rawDescriptors, rawDescriptors.length);
+            resultCode = usbState.nativeDriver.usbDeviceAttached(deviceName, usbState.usbConnection.getFileDescriptor(), usbState.usbConnection.getRawDescriptors(), usbState.usbConnection.getRawDescriptors().length);
             if (resultCode != 0) {
                 throw new RuntimeException("附加USB设备失败: " + resultCode);
             } else {
@@ -85,26 +93,26 @@ public class MirrorViaDisplaylink implements Job {
         if (usbState.monitorInfo == null) {
             throw new YieldException("未找到显示器信息, 等待连接ing");
         }
+    }
 
-        // 请求投屏权限
+    private void requestMediaProjectionPermission(Context context) throws YieldException {
         if (State.mediaProjection == null) {
-            if (mediaProjectionRequested) { 
+            if (mediaProjectionRequested) {
                 State.log("因为未授予投屏权限，跳过任务");
                 return;
             }
             mediaProjectionRequested = true;
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             if (mediaProjectionManager != null) {
-            Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+                Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
                 State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
                 throw new YieldException("等待用户投屏授权");
             } else {
                 State.log("无法获取 MediaProjectionManager 服务");
+                return;
             }
         } else {
             State.log("MediaProjection 已经存在，跳过重复请求");
         }
-
-        State.log("ready go: " + usbState.monitorInfo.toString());
     }
 }
