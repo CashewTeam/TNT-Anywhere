@@ -1,11 +1,14 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
@@ -102,6 +105,9 @@ public class MainActivity extends AppCompatActivity {
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
+
+        Intent serviceIntent = new Intent(this, MediaProjectionService.class);
+        startService(serviceIntent);
     }
 
     @Override
@@ -125,8 +131,17 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
-                // 启动投屏服务
-                startMediaProjectionService(data);
+                MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
+                State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+                    @Override
+                    public void onStop() {
+                        super.onStop();
+                        State.log("MediaProjection 停止");
+                        State.mediaProjection = null;
+                    }
+                }, null);
+                State.resumeJob();
             } else {
                 State.log("用户拒绝了投屏权限");
                 State.resumeJob();
@@ -134,10 +149,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void startMediaProjectionService(Intent data) {
-        Intent serviceIntent = new Intent(this, MediaProjectionService.class);
-        serviceIntent.putExtra("mediaProjectionData", data);
-        startService(serviceIntent);
+    // 添加一个方法来检查服务是否在运行
+    private boolean isServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void pushBreadcrumb(String newPath, Fragment fragment) {

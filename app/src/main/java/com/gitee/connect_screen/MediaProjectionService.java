@@ -64,22 +64,6 @@ public class MediaProjectionService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         State.log("MediaProjectionService onStartCommand");
-        Intent mediaProjectionData = intent.getParcelableExtra("mediaProjectionData");
-        if (mediaProjectionData == null) {
-            State.log("mediaProjectionData 为空");
-        } else {
-            MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-            State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, mediaProjectionData);
-            State.mediaProjection.registerCallback(new MediaProjection.Callback() {
-                @Override
-                public void onStop() {
-                    super.onStop();
-                    State.log("MediaProjection 停止");
-                    State.mediaProjection = null;
-                }
-            }, null);
-            State.resumeJob();
-        }
         return START_NOT_STICKY;
     }
 

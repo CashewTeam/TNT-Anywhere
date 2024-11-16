@@ -28,7 +28,7 @@ public class UsbState {
     public volatile int frameCounter = 0;
     public volatile int[] recentPostFrameResultCodes = new int[8];
 
-    public void destroy() {
+    public void stopHandlerThread() {
         if (handlerThread != null) {
             handlerThread.quitSafely();
             try {
@@ -37,12 +37,28 @@ public class UsbState {
                 // ignore
             }
         }
+        handler = null;
+        handlerThread = null;
+    }
+
+    public void stopImageReader() {
         if (imageReader != null) {
             imageReader.close();
+            imageReader = null;
         }
+    }
+
+    public void stopVirtualDisplay() {
         if (virtualDisplay != null) {
             virtualDisplay.release();
+            virtualDisplay = null;
         }
+    }
+
+    public void destroy() {
+        stopHandlerThread();
+        stopImageReader();
+        stopVirtualDisplay();
         if (nativeDriver != null) { 
             nativeDriver.destroy();
         }

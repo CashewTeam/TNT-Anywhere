@@ -33,6 +33,9 @@ public class NativeDriverListener {
             if (usbState != null) {
                 usbState.encoderId = 0;
                 usbState.monitorInfo = null;
+                usbState.stopHandlerThread();
+                usbState.stopImageReader();
+                usbState.stopVirtualDisplay();
                 State.resumeJob();
             }
         });

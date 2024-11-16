@@ -85,7 +85,7 @@ public class State {
         UsbState usbState = usbStates.get(deviceName);
         if (usbState != null) {
             usbState.destroy();
+            usbStates.remove(deviceName);
         }
-        usbStates.remove(deviceName);
     }
 }

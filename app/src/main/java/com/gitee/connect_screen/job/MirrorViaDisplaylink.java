@@ -49,7 +49,7 @@ public class MirrorViaDisplaylink implements Job {
         requestUsbPermission(context, usbManager, usbState.device);
         openUsbConnection(context, usbManager, usbState);
         initializeNativeDriver(context, usbState);
-        requestMediaProjectionPermission(context);
+        requestMediaProjectionPermission(context, usbState);
         createVirtualDisplay(context, usbState);
     }
 
@@ -107,24 +107,26 @@ public class MirrorViaDisplaylink implements Job {
         }
     }
 
-    private void requestMediaProjectionPermission(Context context) throws YieldException {
-        if (State.mediaProjection == null) {
-            if (mediaProjectionRequested) {
-                State.log("因为未授予投屏权限，跳过任务");
-                return;
-            }
-            mediaProjectionRequested = true;
-            MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-            if (mediaProjectionManager != null) {
-                Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-                State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-                throw new YieldException("等待用户投屏授权");
-            } else {
-                State.log("无法获取 MediaProjectionManager 服务");
-                return;
-            }
-        } else {
+    private void requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
+        if (State.mediaProjection != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
+            return;
+        }
+        if (mediaProjectionRequested) {
+            State.log("因为未授予投屏权限，跳过任务");
+            return;
+        }
+        usbState.stopHandlerThread();
+        usbState.stopImageReader();
+        usbState.stopVirtualDisplay();
+        mediaProjectionRequested = true;
+        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (mediaProjectionManager != null) {
+            Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            throw new YieldException("等待用户投屏授权");
+        } else {
+            throw new RuntimeException("无法获取 MediaProjectionManager 服务");
         }
     }
 
@@ -134,7 +136,6 @@ public class MirrorViaDisplaylink implements Job {
             return;
         }
         DisplayMode displayMode = usbState.monitorInfo.a[0];
-        int width = displayMode.width;
         int height = displayMode.height;
         int dpi = 160;
 
