@@ -10,12 +10,13 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -39,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private RecyclerView logRecyclerView;
+    private LogAdapter logAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentContainer = findViewById(R.id.fragmentContainer);
         Button virtualScreenBtn = findViewById(R.id.virtualScreenBtn);
         Button usbDeviceBtn = findViewById(R.id.usbDeviceBtn);
-
+        
         buttonGroup.setVisibility(View.VISIBLE);
         fragmentContainer.setVisibility(View.GONE);
         
@@ -80,7 +84,13 @@ public class MainActivity extends AppCompatActivity {
         // 注册 USB 权限广播接收器
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(usbPermissionReceiver, filter, null, null, Context.RECEIVER_EXPORTED);
-        android.util.Log.d("MainActivity", "MainActivity created, registered usbPermissionReceiver");
+        State.log("MainActivity created");
+
+        // 初始化日志列表
+        logRecyclerView = findViewById(R.id.logRecyclerView);
+        logAdapter = new LogAdapter(State.logs);
+        logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        logRecyclerView.setAdapter(logAdapter);
     }
     
     @Override
@@ -157,6 +167,13 @@ public class MainActivity extends AppCompatActivity {
             updateBreadcrumbView();
         } else {
             super.onBackPressed();
+        }
+    }
+
+    // 更新日志列表的方法
+    public void updateLogs() {
+        if (logAdapter != null) {
+            logAdapter.notifyDataSetChanged();
         }
     }
 } 

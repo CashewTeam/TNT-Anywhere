@@ -8,13 +8,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
-import android.content.Context;
-import android.hardware.usb.UsbManager;
-import android.content.Intent;
-import android.provider.Settings;
 
-import com.gitee.connect_screen.job.RequestUsbPermission;
-import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 public class UsbDeviceDetailFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
@@ -41,7 +36,7 @@ public class UsbDeviceDetailFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_usb_device_detail, container, false);
         
         TextView detailContent = view.findViewById(R.id.detailContent);
-        Button requestPermissionButton = view.findViewById(R.id.requestPermissionButton);
+        Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
         
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
@@ -53,8 +48,14 @@ public class UsbDeviceDetailFragment extends Fragment {
         
         detailContent.setText(sb.toString());
         
-        requestPermissionButton.setOnClickListener(v -> {
-            State.startNewJob(new RequestUsbPermission(device));
+        if (device.getVendorId() == 6121) {
+            mirrorViaDisplaylinkButton.setVisibility(View.VISIBLE);
+        } else {
+            mirrorViaDisplaylinkButton.setVisibility(View.GONE);
+        }
+        
+        mirrorViaDisplaylinkButton.setOnClickListener(v -> {
+            State.startNewJob(new MirrorViaDisplaylink(device));
         });
         
         return view;

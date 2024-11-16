@@ -22,10 +22,10 @@
         android:textSize="16sp"/>
 
     <Button
-        android:id="@+id/requestPermissionButton"
+        android:id="@+id/mirrorViaDisplaylinkButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="获取权限"/>
+        android:text="通过DisplayLink镜像"/>
 
 </LinearLayout> 
