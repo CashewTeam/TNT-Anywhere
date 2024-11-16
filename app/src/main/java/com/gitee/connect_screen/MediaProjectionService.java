@@ -46,6 +46,13 @@ public class MediaProjectionService extends Service {
         } else {
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, mediaProjectionData);
+            State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+                @Override
+                public void onStop() {
+                    super.onStop();
+                    State.log("MediaProjection 停止");
+                }
+            }, null);
             State.resumeJob();
         }
         return START_NOT_STICKY;

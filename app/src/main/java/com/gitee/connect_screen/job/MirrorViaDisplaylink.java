@@ -3,12 +3,19 @@ package com.gitee.connect_screen.job;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.ImageReader;
+import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.view.Surface;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
+import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
@@ -37,6 +44,7 @@ public class MirrorViaDisplaylink implements Job {
         openUsbConnection(context, usbManager, usbState);
         initializeNativeDriver(context, usbState);
         requestMediaProjectionPermission(context);
+        createVirtualDisplay(usbState);
 
         State.log("ready go: " + usbState.monitorInfo.toString());
     }
@@ -87,7 +95,7 @@ public class MirrorViaDisplaylink implements Job {
                 State.log("附加USB设备成功");
             }
         } else {
-            State.log("NativeDriver 已经存在，跳过重复创建");
+            State.log("NativeDriver 已经存在，跳过重复���建");
         }
 
         if (usbState.monitorInfo == null) {
@@ -114,5 +122,31 @@ public class MirrorViaDisplaylink implements Job {
         } else {
             State.log("MediaProjection 已经存在，跳过重复请求");
         }
+    }
+
+    private void createVirtualDisplay(UsbState usbState) {
+        if (usbState.virtualDisplay != null) {
+            State.log("虚拟显示已存在，跳过重复创建");
+            return;
+        }
+        DisplayMode displayMode = usbState.monitorInfo.a[0];
+        int width = displayMode.width;
+        int height = displayMode.height;
+        int dpi = 160;
+
+        usbState.imageReader = ImageReader.newInstance(width, height, 1, 2);
+        usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
+        usbState.handlerThread.start();
+        usbState.handler = new Handler(usbState.handlerThread.getLooper());
+
+        usbState.imageReader.setOnImageAvailableListener(new ListenAndPostFrame(), usbState.handler);
+        Surface surface = usbState.imageReader.getSurface();
+
+        MediaProjection mediaProjection = State.mediaProjection;
+        usbState.virtualDisplay = mediaProjection.createVirtualDisplay("DisplayLink",
+                width, height, dpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                surface, null, null);
+        State.log("虚拟显示已创建");
     }
 }
