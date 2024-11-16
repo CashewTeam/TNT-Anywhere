@@ -8,9 +8,8 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-
+import android.widget.HorizontalScrollView;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,10 +23,13 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     public static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
+    public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
 
-    private LinearLayout breadcrumb;
     private FrameLayout fragmentContainer;
-    private List<String> navigationPath = new ArrayList<>();
+    private BreadcrumbManager breadcrumbManager;
+    private RecyclerView logRecyclerView;
+    private LogAdapter logAdapter;
+
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -55,33 +57,28 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private RecyclerView logRecyclerView;
-    private LogAdapter logAdapter;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // 移除默认的 ActionBar
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
-        
+
         setContentView(R.layout.main);
-        
-        breadcrumb = findViewById(R.id.breadcrumb);
-        fragmentContainer = findViewById(R.id.fragmentContainer);
-        
-        pushBreadcrumb("首页", new HomeFragment());
-        
+
+        breadcrumbManager = new BreadcrumbManager(this, getSupportFragmentManager(), findViewById(R.id.breadcrumb));
+        breadcrumbManager.pushBreadcrumb("首页", new HomeFragment());
+
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
-        
+
         // 获取启动 Intent 并打印其 Action 到日志
         Intent intent = getIntent();
         String action = intent.getAction();
         State.log("MainActivity created with action: " + action);
-        
+
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
             UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
@@ -91,85 +88,49 @@ public class MainActivity extends AppCompatActivity {
                 State.startNewJob(new MirrorViaDisplaylink(device));
             }
         }
-        
+
         // 注册 USB 权限广播接收器
         IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
-        
+
         // 注册 USB 设备断开广播接收器
         IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
-        
+
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
     }
-    
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        navigationPath.clear();
-        // 清除弱引用
         State.currentActivity = null;
-
-        // 注销 USB 权限广播接收器
         unregisterReceiver(usbPermissionReceiver);
-        
-        // 注销 USB 设备断开广播接收器
         unregisterReceiver(usbDetachedReceiver);
     }
     
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
+            if (resultCode == RESULT_OK && data != null) {
+                State.log("用户授予了投屏权限");
+            } else {
+                State.log("用户拒绝了投屏权限");
+            }
+        }
+    }
+
     public void pushBreadcrumb(String newPath, Fragment fragment) {
-        if (!newPath.isEmpty() && !navigationPath.contains(newPath)) {
-            navigationPath.add(newPath);
-        }
-        updateBreadcrumbView();
-        // 替换 Fragment
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragmentContainer, fragment)
-                .addToBackStack(null)
-                .commit();
-    }
-    
-    public void popBreadcrumb() {
-        if (navigationPath.size() > 1) {
-            navigationPath.remove(navigationPath.size() - 1);
-        } else {
-            finish();
-        }
-        updateBreadcrumbView();
-        // 回退 Fragment
-        getSupportFragmentManager().popBackStack();
-    }
-    
-    private void updateBreadcrumbView() {
-        breadcrumb.removeAllViews();
-        
-        for (int i = 0; i < navigationPath.size(); i++) {
-            TextView separator = new TextView(this);
-            separator.setText(" > ");
-            breadcrumb.addView(separator);
-            
-            TextView pathView = new TextView(this);
-            pathView.setText(navigationPath.get(i));
-            pathView.setTextColor(getResources().getColor(R.color.blue));
-            final int index = i;
-            pathView.setClickable(true);
-            pathView.setOnClickListener(v -> {
-                // 清空导航路径直到点击的路径项
-                while (navigationPath.size() > index + 1) {
-                    popBreadcrumb();
-                }
-            });
-            breadcrumb.addView(pathView);
-        }
+        breadcrumbManager.pushBreadcrumb(newPath, fragment);
     }
     
     @Override
     public void onBackPressed() {
-        popBreadcrumb();
+        breadcrumbManager.popBreadcrumb();
     }
     
     // 更新日志列表的方法

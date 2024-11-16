@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.projection.MediaProjectionManager;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
@@ -83,6 +84,17 @@ public class MirrorViaDisplaylink implements Job {
         if (usbState.monitorInfo == null) {
             throw new YieldException("未找到显示器信息, 等待连接ing");
         }
+
+        // 请求投屏权限
+        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (mediaProjectionManager != null) {
+            Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            throw new YieldException("等待用户投屏授权");
+        } else {
+            State.log("无法获取 MediaProjectionManager 服务");
+        }
+
         State.log("ready go: " + usbState.monitorInfo.toString());
     }
 }
