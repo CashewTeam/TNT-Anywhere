@@ -129,9 +129,18 @@ public class MainActivity extends AppCompatActivity {
             separator.setText(" > ");
             breadcrumb.addView(separator);
             
-            TextView pathItem = new TextView(this);
-            pathItem.setText(navigationPath.get(i));
-            breadcrumb.addView(pathItem);
+            TextView pathView = new TextView(this);
+            pathView.setText(navigationPath.get(i));
+            pathView.setTextColor(getResources().getColor(R.color.blue));
+            final int index = i;
+            pathView.setClickable(true);
+            pathView.setOnClickListener(v -> {
+                // 清空导航路径直到点击的路径项
+                while (navigationPath.size() > index + 1) {
+                    popBreadcrumb();
+                }
+            });
+            breadcrumb.addView(pathView);
         }
     }
     

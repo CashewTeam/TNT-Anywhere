@@ -22,7 +22,7 @@ public class MirrorViaDisplaylink implements Job {
         this.key = device.getDeviceName();
     }
 
-    public void start() {
+    public void start() throws YieldException {
         // 请求USB权限
         Context context = State.currentActivity.get();
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
@@ -39,7 +39,7 @@ public class MirrorViaDisplaylink implements Job {
             requested = true;
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
             usbManager.requestPermission(device, pendingIntent);
-            return;
+            throw new YieldException();
         }
 
         if (usbState.usbConnection == null) {

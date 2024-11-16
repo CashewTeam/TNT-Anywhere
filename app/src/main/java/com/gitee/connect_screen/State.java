@@ -8,6 +8,7 @@ import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.job.Job;
+import com.gitee.connect_screen.job.YieldException;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -33,6 +34,10 @@ public class State {
         try {
             State.log("开始任务 " + job.getClass().getSimpleName());
             currentJob.start();
+            State.log("任务 " + job.getClass().getSimpleName() + " 完成");
+            currentJob = null;
+        } catch (YieldException e) {
+            State.log("任务 " + job.getClass().getSimpleName() + " 暂停");
         } catch (RuntimeException e) {
             currentJob = null;
             State.log("任务 " + job.getClass().getSimpleName() + " 启动失败");
@@ -51,6 +56,10 @@ public class State {
             try {
                 State.log("恢复任务 " + currentJob.getClass().getSimpleName());
                 currentJob.start();
+                State.log("任务 " + currentJob.getClass().getSimpleName() + " 完成");
+                currentJob = null;
+            } catch (YieldException e) {
+                State.log("任务 " + currentJob.getClass().getSimpleName() + " 暂停");
             } catch (RuntimeException e) {
                 currentJob = null;
                 State.log("任务 " + currentJob.getClass().getSimpleName() + " 恢复失败");
@@ -67,17 +76,14 @@ public class State {
         }
     }
 
-    // 新增方法：获取或创建 UsbState
     public static UsbState getOrCreateUsbState(String key) {
         return usbStates.computeIfAbsent(key, k -> new UsbState());
     }
 
-    // 新增方法：获取 UsbState
     public static UsbState getUsbState(String key) {
         return usbStates.get(key);
     }
 
-    // 新增方法：移除 UsbState
     public static void removeUsbState(String key) {
         usbStates.remove(key);
     }
