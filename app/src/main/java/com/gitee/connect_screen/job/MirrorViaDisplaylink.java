@@ -13,13 +13,12 @@ import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 
 public class MirrorViaDisplaylink implements Job {
-    private final UsbDevice device;
     private boolean requested = false;
-    private final String key;
+    private final String deviceName;
 
     public MirrorViaDisplaylink(UsbDevice device) {
-        this.device = device;
-        this.key = device.getDeviceName();
+        this.deviceName = device.getDeviceName();
+        State.getOrCreateUsbState(device);
     }
 
     public void start() throws YieldException {
@@ -28,7 +27,13 @@ public class MirrorViaDisplaylink implements Job {
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 
         // 获取或创建 UsbState
-        UsbState usbState = State.getOrCreateUsbState(key);
+        UsbState usbState = State.getUsbState(deviceName);
+
+        if (usbState == null) {
+            State.log("USB 设备状态不存在，跳过任务");
+            return;
+        }
+        UsbDevice device = usbState.device;
 
         // 检查是否已经有权限
         if (usbManager.hasPermission(device)) {

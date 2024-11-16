@@ -1,12 +1,8 @@
 package com.gitee.connect_screen;
 
-import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbDevice;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.displaylink.manager.NativeDriver;
-import com.displaylink.manager.NativeDriverListener;
-import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.job.Job;
 import com.gitee.connect_screen.job.YieldException;
 
@@ -76,8 +72,10 @@ public class State {
         }
     }
 
-    public static UsbState getOrCreateUsbState(String key) {
-        return usbStates.computeIfAbsent(key, k -> new UsbState());
+    public static UsbState getOrCreateUsbState(UsbDevice device) {
+        UsbState usbState = usbStates.computeIfAbsent(device.getDeviceName(), k -> new UsbState());
+        usbState.device = device;
+        return usbState;
     }
 
     public static UsbState getUsbState(String key) {

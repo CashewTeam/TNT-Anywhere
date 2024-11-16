@@ -30,7 +30,7 @@ public class UsbDeviceDetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             device = getArguments().getParcelable(ARG_DEVICE);
-            usbState = State.getUsbState(device.getDeviceName());
+            usbState = State.getOrCreateUsbState(device);
         }
     }
 
