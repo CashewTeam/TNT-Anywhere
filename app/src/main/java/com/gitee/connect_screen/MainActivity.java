@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +19,8 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -81,10 +85,24 @@ public class MainActivity extends AppCompatActivity {
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
 
+        // 获取启动 Intent 并打印其 Action 到日志
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        State.log("MainActivity created with action: " + action);
+
+        // 检查是否是 USB 设备连接的 Intent
+        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+            UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            if (device != null) {
+                // 处理 USB 设备连接的逻辑
+                State.log("USB 设备已连接: " + device.getDeviceName());
+                State.startNewJob(new MirrorViaDisplaylink(device));
+            }
+        }
+
         // 注册 USB 权限广播接收器
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(usbPermissionReceiver, filter, null, null, Context.RECEIVER_EXPORTED);
-        State.log("MainActivity created");
 
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
@@ -174,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
     public void updateLogs() {
         if (logAdapter != null) {
             logAdapter.notifyDataSetChanged();
+            logRecyclerView.scrollToPosition(logAdapter.getItemCount() - 1);
         }
     }
 } 

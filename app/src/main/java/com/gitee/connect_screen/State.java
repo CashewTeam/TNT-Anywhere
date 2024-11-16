@@ -24,6 +24,7 @@ public class State {
         }
         currentJob = job;
         try {
+            State.log("开始任务 " + job.getClass().getSimpleName());
             currentJob.start();
         } catch (RuntimeException e) {
             currentJob = null;
@@ -41,6 +42,7 @@ public class State {
     public static void resumeJob() {
         if (currentJob != null) {
             try {
+                State.log("恢复任务 " + currentJob.getClass().getSimpleName());
                 currentJob.start();
             } catch (RuntimeException e) {
                 currentJob = null;
