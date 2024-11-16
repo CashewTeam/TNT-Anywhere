@@ -1,5 +1,7 @@
 package com.displaylink.manager.display;
 
+import java.util.Arrays;
+
 public class MonitorInfo {
     public final DisplayMode[] a; /* DisplayMode[] */
     public final String b; /* MonitorName */
@@ -21,5 +23,9 @@ public class MonitorInfo {
         this.g = z;
         this.h = z2;
         this.i = z3;
+    }
+
+    public String toString() {
+        return Arrays.toString(a);
     }
 }

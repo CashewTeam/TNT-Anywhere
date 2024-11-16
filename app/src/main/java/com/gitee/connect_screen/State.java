@@ -6,20 +6,21 @@ import android.widget.Toast;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
+import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.job.Job;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<MainActivity> currentActivity;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
-    public static NativeDriver nativeDriver;
-    public static NativeDriverListener nativeDriverListener;
-    public static UsbDeviceConnection usbConnection;
+    public static Map<String, UsbState> usbStates = new HashMap<>();
 
     public static void startNewJob(Job job) {
         if (currentJob != null) {
@@ -65,4 +66,19 @@ public class State {
             currentActivity.get().updateLogs();
         }
     }
-};
+
+    // 新增方法：获取或创建 UsbState
+    public static UsbState getOrCreateUsbState(String key) {
+        return usbStates.computeIfAbsent(key, k -> new UsbState());
+    }
+
+    // 新增方法：获取 UsbState
+    public static UsbState getUsbState(String key) {
+        return usbStates.get(key);
+    }
+
+    // 新增方法：移除 UsbState
+    public static void removeUsbState(String key) {
+        usbStates.remove(key);
+    }
+}

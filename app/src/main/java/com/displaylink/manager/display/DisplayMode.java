@@ -10,4 +10,12 @@ public class DisplayMode {
         this.height = i2;
         this.refreshRate = i3;
     }
+
+    public String toString() {
+        return "DisplayMode{" +
+                "width=" + width +
+                ", height=" + height +
+                ", refreshRate=" + refreshRate +
+                '}';
+    }
 }

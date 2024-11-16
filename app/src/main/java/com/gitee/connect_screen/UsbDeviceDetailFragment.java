@@ -10,10 +10,12 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
+import com.gitee.connect_screen.UsbState;
 
 public class UsbDeviceDetailFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
     private UsbDevice device;
+    private UsbState usbState;
 
     public static UsbDeviceDetailFragment newInstance(UsbDevice device) {
         UsbDeviceDetailFragment fragment = new UsbDeviceDetailFragment();
@@ -28,6 +30,7 @@ public class UsbDeviceDetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             device = getArguments().getParcelable(ARG_DEVICE);
+            usbState = State.getUsbState(device.getDeviceName());
         }
     }
 
@@ -44,15 +47,18 @@ public class UsbDeviceDetailFragment extends Fragment {
         sb.append("产品ID: ").append(device.getProductId()).append("\n");
         sb.append("设备类: ").append(device.getDeviceClass()).append("\n");
         sb.append("设备子类: ").append(device.getDeviceSubclass()).append("\n");
-        sb.append("协议: ").append(device.getDeviceProtocol());
+        sb.append("协议: ").append(device.getDeviceProtocol()).append("\n");
         
-        detailContent.setText(sb.toString());
-        
-        if (device.getVendorId() == 6121) {
+        boolean isDisplaylinkDevice = device.getVendorId() == 6121;
+        if (isDisplaylinkDevice) {
+            // 获取 native driver 和 monitor 的详情
+            sb.append("Native Driver: ").append(usbState != null && usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
+            sb.append("Monitor: ").append(usbState != null && usbState.monitorInfo != null ? usbState.monitorInfo.toString() : "未连接").append("\n");
             mirrorViaDisplaylinkButton.setVisibility(View.VISIBLE);
         } else {
             mirrorViaDisplaylinkButton.setVisibility(View.GONE);
         }
+        detailContent.setText(sb.toString());
         
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
             State.startNewJob(new MirrorViaDisplaylink(device));

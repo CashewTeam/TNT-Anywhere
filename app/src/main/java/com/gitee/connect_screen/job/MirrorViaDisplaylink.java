@@ -10,19 +10,25 @@ import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.UsbState;
 
 public class MirrorViaDisplaylink implements Job {
     private final UsbDevice device;
     private boolean requested = false;
+    private final String key;
 
     public MirrorViaDisplaylink(UsbDevice device) {
         this.device = device;
+        this.key = device.getDeviceName();
     }
 
     public void start() {
         // 请求USB权限
         Context context = State.currentActivity.get();
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+
+        // 获取或创建 UsbState
+        UsbState usbState = State.getOrCreateUsbState(key);
 
         // 检查是否已经有权限
         if (usbManager.hasPermission(device)) {
@@ -35,10 +41,10 @@ public class MirrorViaDisplaylink implements Job {
             usbManager.requestPermission(device, pendingIntent);
             return;
         }
-        
-        if (State.usbConnection == null) {
-            State.usbConnection = usbManager.openDevice(device);
-            if (State.usbConnection == null) {
+
+        if (usbState.usbConnection == null) {
+            usbState.usbConnection = usbManager.openDevice(device);
+            if (usbState.usbConnection == null) {
                 throw new RuntimeException("无法打开 USB 设备连接");
             } else {
                 State.log("成功打开 USB 设备连接");
@@ -46,14 +52,15 @@ public class MirrorViaDisplaylink implements Job {
         } else {
             State.log("USB 设备连接已存在");
         }
-        int fileDescriptor = State.usbConnection.getFileDescriptor();
-        byte[] rawDescriptors = State.usbConnection.getRawDescriptors();
+        int fileDescriptor = usbState.usbConnection.getFileDescriptor();
+        byte[] rawDescriptors = usbState.usbConnection.getRawDescriptors();
         String deviceName = device.getDeviceName();
-       
-        if (State.nativeDriver == null) {
-            State.nativeDriver = new NativeDriver();
-            State.nativeDriverListener = new NativeDriverListener();
-            int resultCode = State.nativeDriver.create(State.nativeDriverListener, context.getFilesDir().toString(), false);
+
+        if (usbState.nativeDriver == null) {
+            usbState.nativeDriver = new NativeDriver();
+            usbState.nativeDriverListener = new NativeDriverListener(deviceName);
+            usbState.nativeDriver.destroy();
+            int resultCode = usbState.nativeDriver.create(usbState.nativeDriverListener, context.getFilesDir().toString(), false);
             if (resultCode != 0) {
                 throw new RuntimeException("创建NativeDriver失败: " + resultCode);
             } else {
@@ -62,13 +69,12 @@ public class MirrorViaDisplaylink implements Job {
         } else {
             State.log("NativeDriver 已经存在，跳过重复创建");
         }
-        State.nativeDriver.usbDeviceDetached(deviceName);
-        int resultCode = State.nativeDriver.usbDeviceAttached(deviceName, fileDescriptor, rawDescriptors, rawDescriptors.length);
+        usbState.nativeDriver.usbDeviceDetached(deviceName);
+        int resultCode = usbState.nativeDriver.usbDeviceAttached(deviceName, fileDescriptor, rawDescriptors, rawDescriptors.length);
         if (resultCode != 0) {
-            throw new RuntimeException("usbDeviceAttached 失败: " + resultCode);
+            throw new RuntimeException("附加USB设备失败: " + resultCode);
         } else {
-            State.log("usbDeviceAttached 成功");
+            State.log("附加USB设备成功");
         }
-        State.onJobFinished(this);
     }
 }
