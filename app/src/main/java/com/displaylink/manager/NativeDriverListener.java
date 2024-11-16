@@ -33,6 +33,7 @@ public class NativeDriverListener {
             if (usbState != null) {
                 usbState.encoderId = 0;
                 usbState.monitorInfo = null;
+                State.resumeJob();
             }
         });
     }
@@ -53,6 +54,7 @@ public class NativeDriverListener {
             if (usbState != null) {
                 usbState.encoderId = encoderId;
                 usbState.monitorInfo = monitorInfo;
+                State.resumeJob();
             }
         });
     }

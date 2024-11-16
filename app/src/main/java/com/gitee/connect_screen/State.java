@@ -33,34 +33,31 @@ public class State {
             State.log("任务 " + job.getClass().getSimpleName() + " 完成");
             currentJob = null;
         } catch (YieldException e) {
-            State.log("任务 " + job.getClass().getSimpleName() + " 暂停");
+            State.log("任务 " + job.getClass().getSimpleName() + " 暂停, " + e.getMessage());
         } catch (RuntimeException e) {
-            currentJob = null;
             State.log("任务 " + job.getClass().getSimpleName() + " 启动失败");
-            throw e;
-        }
-    }
-
-    public static void onJobFinished(Job job) {
-        if (currentJob == job) {
+            String stackTrace = android.util.Log.getStackTraceString(e);
+            State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
     }
 
     public static void resumeJob() {
-        if (currentJob != null) {
-            try {
-                State.log("恢复任务 " + currentJob.getClass().getSimpleName());
-                currentJob.start();
-                State.log("任务 " + currentJob.getClass().getSimpleName() + " 完成");
-                currentJob = null;
-            } catch (YieldException e) {
-                State.log("任务 " + currentJob.getClass().getSimpleName() + " 暂停");
-            } catch (RuntimeException e) {
-                currentJob = null;
-                State.log("任务 " + currentJob.getClass().getSimpleName() + " 恢复失败");
-                throw e;
-            }
+        if (currentJob == null) {
+            return;
+        }
+        try {
+            State.log("恢复任务 " + currentJob.getClass().getSimpleName());
+            currentJob.start();
+            State.log("任务 " + currentJob.getClass().getSimpleName() + " 完成");
+            currentJob = null;
+        } catch (YieldException e) {
+            State.log("任务 " + currentJob.getClass().getSimpleName() + " 暂停, " + e.getMessage());
+        } catch (RuntimeException e) {
+            State.log("任务 " + currentJob.getClass().getSimpleName() + " 恢复失败");
+            String stackTrace = android.util.Log.getStackTraceString(e);
+            State.log("堆栈跟踪: " + stackTrace);
+            currentJob = null;
         }
     }
 
@@ -78,11 +75,15 @@ public class State {
         return usbState;
     }
 
-    public static UsbState getUsbState(String key) {
-        return usbStates.get(key);
+    public static UsbState getUsbState(String deviceName) {
+        return usbStates.get(deviceName);
     }
 
-    public static void removeUsbState(String key) {
-        usbStates.remove(key);
+    public static void removeUsbState(String deviceName) {
+        UsbState usbState = usbStates.get(deviceName);
+        if (usbState != null) {
+            usbState.destroy();
+        }
+        usbStates.remove(deviceName);
     }
 }

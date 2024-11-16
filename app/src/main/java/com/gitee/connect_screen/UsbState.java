@@ -14,4 +14,13 @@ public class UsbState {
     public UsbDeviceConnection usbConnection;
     public long encoderId = 0;
     public MonitorInfo monitorInfo;
+
+    public void destroy() {
+        if (nativeDriver != null) { 
+            nativeDriver.destroy();
+        }
+        if (usbConnection != null) {
+            usbConnection.close();
+        }
+    }
 }

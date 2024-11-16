@@ -39,6 +39,22 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final BroadcastReceiver usbDetachedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
+            String action = intent.getAction();
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    State.log("USB 设备已断开: " + device.getDeviceName());
+                    State.removeUsbState(device.getDeviceName());
+                    State.resumeJob();
+                }
+            }
+        }
+    };
+
     private RecyclerView logRecyclerView;
     private LogAdapter logAdapter;
 
@@ -77,8 +93,12 @@ public class MainActivity extends AppCompatActivity {
         }
         
         // 注册 USB 权限广播接收器
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(usbPermissionReceiver, filter, null, null, Context.RECEIVER_EXPORTED);
+        IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
+        
+        // 注册 USB 设备断开广播接收器
+        IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
         
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
@@ -96,6 +116,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 注销 USB 权限广播接收器
         unregisterReceiver(usbPermissionReceiver);
+        
+        // 注销 USB 设备断开广播接收器
+        unregisterReceiver(usbDetachedReceiver);
     }
     
     public void pushBreadcrumb(String newPath, Fragment fragment) {
