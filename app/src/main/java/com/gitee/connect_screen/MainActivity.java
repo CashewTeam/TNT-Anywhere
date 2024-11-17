@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null) {
+                if (device != null && State.getUsbState(device.getDeviceName()) != null) {
                     State.log("USB 设备已断开: " + device.getDeviceName());
                     State.removeUsbState(device.getDeviceName());
                     State.resumeJob();
@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null) {
+                if (device != null && device.getVendorId() == 6121) {
                     State.log("USB 设备已连接: " + device.getDeviceName());
                     State.startNewJob(new MirrorViaDisplaylink(device));
                 }

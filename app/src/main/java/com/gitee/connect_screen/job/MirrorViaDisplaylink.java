@@ -46,25 +46,30 @@ public class MirrorViaDisplaylink implements Job {
             return;
         }
 
-        requestUsbPermission(context, usbManager, usbState.device);
+        if (!requestUsbPermission(context, usbManager, usbState.device)) {
+            return;
+        }
         openUsbConnection(context, usbManager, usbState);
         initializeNativeDriver(context, usbState);
-        requestMediaProjectionPermission(context, usbState);
+        if (!requestMediaProjectionPermission(context, usbState)) {
+            return;
+        }
         createVirtualDisplay(context, usbState);
     }
 
-    private void requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
+    private boolean requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
         if (usbManager.hasPermission(device)) {
             State.log("已经拥有USB设备权限: " + device.getDeviceName());
         } else if (usbRequested) {
             State.log("因为未授予USB设备权限: " + device.getDeviceName() + "，跳过任务");
-            return;
+            return false;
         } else {
             usbRequested = true;
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
             usbManager.requestPermission(device, pendingIntent);
             throw new YieldException("等待用户USB授权");
         }
+        return true;
     }
 
     private void openUsbConnection(Context context, UsbManager usbManager, UsbState usbState) {
@@ -107,14 +112,14 @@ public class MirrorViaDisplaylink implements Job {
         }
     }
 
-    private void requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
+    private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
         if (State.mediaProjection != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
-            return;
+            return true;
         }
         if (mediaProjectionRequested) {
             State.log("因为未授予投屏权限，跳过任务");
-            return;
+            return false;
         }
         usbState.stopHandlerThread();
         usbState.stopImageReader();

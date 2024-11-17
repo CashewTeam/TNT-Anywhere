@@ -19,19 +19,17 @@ public class NativeDriverListener {
         Log.i("displaylink", "onDisplayConnected");
         State.currentActivity.get().runOnUiThread(() -> {
             State.log("Display已连接, Encoder ID: " + encoderId);
-            UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState != null) {
-                usbState.encoderId = encoderId;
-            }
         });
     }
 
     public void onDisplayDisconnected(long encoderId) {
         Log.i("displaylink", "onDisplayDisconnected");
         State.currentActivity.get().runOnUiThread(() -> {
-            State.log("Display已断开, Encoder ID: " + encoderId);
             UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState != null) {
+            if (usbState == null) {
+                State.log("Display已断开, 但找不到 USB 设备");
+            } else {
+                State.log("Display已断开, 关闭 usb 对应的状态");
                 usbState.encoderId = 0;
                 usbState.monitorInfo = null;
                 usbState.stopHandlerThread();
