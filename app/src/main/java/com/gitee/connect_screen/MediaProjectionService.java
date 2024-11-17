@@ -52,6 +52,7 @@ public class MediaProjectionService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        State.hasService = true;
         State.log("MediaProjectionService onCreate");
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
@@ -64,12 +65,27 @@ public class MediaProjectionService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         State.log("MediaProjectionService onStartCommand");
+        if (intent != null && intent.hasExtra("data")) {
+            MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            Intent data = intent.getParcelableExtra("data");
+            State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
+            State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+                @Override
+                public void onStop() {
+                    super.onStop();
+                    State.log("MediaProjection 停止");
+                    State.mediaProjection = null;
+                }
+            }, null);
+            State.resumeJob();
+        }
         return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        State.hasService = false;
         State.log("MediaProjectionService onDestroy");
         unregisterReceiver(usbDetachedReceiver);
     }

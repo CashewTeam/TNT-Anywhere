@@ -16,6 +16,7 @@ import java.util.Map;
 public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<MainActivity> currentActivity;
+    public static boolean hasService = false;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static Map<String, UsbState> usbStates = new HashMap<>();

@@ -125,9 +125,6 @@ public class MainActivity extends AppCompatActivity {
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
-
-        Intent serviceIntent = new Intent(this, MediaProjectionService.class);
-        startService(serviceIntent);
     }
 
     @Override
@@ -152,17 +149,23 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
-                MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-                State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
-                State.mediaProjection.registerCallback(new MediaProjection.Callback() {
-                    @Override
-                    public void onStop() {
-                        super.onStop();
-                        State.log("MediaProjection 停止");
-                        State.mediaProjection = null;
-                    }
-                }, null);
-                State.resumeJob();
+                if (State.hasService) {
+                    MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                    State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
+                    State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+                        @Override
+                        public void onStop() {
+                            super.onStop();
+                            State.log("MediaProjection 停止");
+                            State.mediaProjection = null;
+                        }
+                    }, null);
+                    State.resumeJob();
+                } else {
+                    Intent serviceIntent = new Intent(this, MediaProjectionService.class);
+                    serviceIntent.putExtra("data", data);
+                    startService(serviceIntent);
+                }
             } else {
                 State.log("用户拒绝了投屏权限");
                 State.resumeJob();
