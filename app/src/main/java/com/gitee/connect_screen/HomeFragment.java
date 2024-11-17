@@ -40,7 +40,10 @@ public class HomeFragment extends Fragment {
 
         aboutBtn.setOnClickListener(v -> {
             // 处理关于按钮的点击事件
-            Toast.makeText(getContext(), "关于屏连", Toast.LENGTH_SHORT).show();
+            MainActivity activity = (MainActivity) getActivity();
+            if (activity != null) {
+                activity.pushBreadcrumb("关于", new AboutFragment());
+            }
         });
 
         return view;
