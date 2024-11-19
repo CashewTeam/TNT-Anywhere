@@ -1,8 +1,6 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
@@ -15,18 +13,22 @@ public class BreadcrumbManager {
     private LinearLayout breadcrumb;
     private List<String> navigationPath = new ArrayList<>();
     private FragmentManager fragmentManager;
+    private FragmentFactory currentFragmentFactory;
 
     public BreadcrumbManager(Context context, FragmentManager fragmentManager, LinearLayout breadcrumb) {
         this.breadcrumb = breadcrumb;
         this.fragmentManager = fragmentManager;
     }
 
-    public void pushBreadcrumb(String newPath, Fragment fragment) {
+    public void pushBreadcrumb(String newPath, FragmentFactory fragmentFactory) {
         if (!newPath.isEmpty() && !navigationPath.contains(newPath)) {
             navigationPath.add(newPath);
         }
         updateBreadcrumbView();
-        // 替换 Fragment
+        // 保存当前的 FragmentFactory
+        this.currentFragmentFactory = fragmentFactory;
+        // 使用工厂方法创建 Fragment 并替换
+        Fragment fragment = fragmentFactory.createFragment();
         fragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
                 .addToBackStack(null)
@@ -69,5 +71,24 @@ public class BreadcrumbManager {
 
     public LinearLayout getBreadcrumbView() {
         return breadcrumb;
+    }
+
+    // 添加 FragmentFactory 接口
+    public interface FragmentFactory {
+        Fragment createFragment();
+    }
+
+    // 添加 refreshCurrentFragment 方法
+    public void refreshCurrentFragment() {
+        if (currentFragmentFactory != null) {
+            // 回退一层
+            fragmentManager.popBackStack();
+            
+            Fragment fragment = currentFragmentFactory.createFragment();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.fragmentContainer, fragment)
+                    .addToBackStack(null)
+                    .commit();
+        }
     }
 }

@@ -16,6 +16,7 @@ import java.util.Map;
 public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<MainActivity> currentActivity;
+    public static BreadcrumbManager breadcrumbManager;
     public static boolean hasService = false;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
@@ -47,10 +48,12 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
+        breadcrumbManager.refreshCurrentFragment();
     }
 
     public static void resumeJob() {
         if (currentJob == null) {
+            breadcrumbManager.refreshCurrentFragment();
             return;
         }
         try {
@@ -66,6 +69,7 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
+        breadcrumbManager.refreshCurrentFragment();
     }
 
     public static void log(String message) {

@@ -31,8 +31,7 @@ public class UsbFragment extends Fragment {
             // 更新面包屑
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                UsbDeviceDetailFragment detailFragment = UsbDeviceDetailFragment.newInstance(device);
-                activity.pushBreadcrumb(device.getDeviceName(), detailFragment);
+                activity.pushBreadcrumb(device.getDeviceName(), () -> UsbDeviceDetailFragment.newInstance(device));
             }
         }, usbManager);
         

@@ -27,14 +27,14 @@ public class HomeFragment extends Fragment {
         virtualScreenBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb("虚拟屏幕", new VirtualScreenFragment());
+                activity.pushBreadcrumb("虚拟屏幕", () -> new VirtualScreenFragment());
             }
         });
 
         usbDeviceBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb("USB设备", new UsbFragment());
+                activity.pushBreadcrumb("USB设备", () -> new UsbFragment());
             }
         });
 
@@ -42,7 +42,7 @@ public class HomeFragment extends Fragment {
             // 处理关于按钮的点击事件
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb("关于", new AboutFragment());
+                activity.pushBreadcrumb("关于", () -> new AboutFragment());
             }
         });
 

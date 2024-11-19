@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
@@ -44,6 +45,14 @@ public class UsbDeviceDetailFragment extends Fragment {
         
         TextView detailContent = view.findViewById(R.id.detailContent);
         Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
+        EditText displayWidthInput = view.findViewById(R.id.displayWidthInput);
+        EditText displayHeightInput = view.findViewById(R.id.displayHeightInput);
+        
+        if (device == null) {
+            detailContent.setText("USB 设备未找到");
+            mirrorViaDisplaylinkButton.setVisibility(View.GONE);
+            return view;
+        }
         
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
@@ -57,8 +66,16 @@ public class UsbDeviceDetailFragment extends Fragment {
         if (isDisplaylinkDevice) {
             // 获取 native driver 和 monitor 的详情
             if (usbState != null) {
-                sb.append("Native Driver: ").append( usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
-                sb.append("物理显示器: ").append(usbState.monitorInfo != null ? usbState.monitorInfo.toString() : "未连接").append("\n");
+                sb.append("Native Driver: ").append(usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
+                if (usbState.monitorInfo != null) {
+                    int width = usbState.overrideMonitorWidth != 0 ? usbState.overrideMonitorWidth : usbState.monitorInfo.a[0].width;
+                    int height = usbState.overrideMonitorHeight != 0 ? usbState.overrideMonitorHeight : usbState.monitorInfo.a[0].height;
+                    displayWidthInput.setText(String.valueOf(width));
+                    displayHeightInput.setText(String.valueOf(height));
+                } else {
+                    displayWidthInput.setText("未连接");
+                    displayHeightInput.setText("未连接");
+                }
                 if (usbState.virtualDisplay != null) {
                     Display display = usbState.virtualDisplay.getDisplay();
                     // 获取显示器的度量信息
@@ -79,6 +96,12 @@ public class UsbDeviceDetailFragment extends Fragment {
         detailContent.setText(sb.toString());
         
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
+            try {
+                usbState.overrideMonitorWidth = Integer.parseInt(displayWidthInput.getText().toString());
+                usbState.overrideMonitorHeight = Integer.parseInt(displayHeightInput.getText().toString());
+            } catch (NumberFormatException e) {
+                // ignore
+            }
             State.startNewJob(new MirrorViaDisplaylink(device));
         });
         

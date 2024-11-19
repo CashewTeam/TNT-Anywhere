@@ -118,6 +118,9 @@ public class MirrorViaDisplaylink implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
+            if (!State.hasService) {
+                throw new YieldException("等待服务启动");
+            }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
@@ -140,8 +143,7 @@ public class MirrorViaDisplaylink implements Job {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }
-        DisplayMode displayMode = usbState.monitorInfo.a[0];
-        int height = displayMode.height;
+        int height = usbState.getMonitorHeight();
         int dpi = 160;
 
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
@@ -150,7 +152,7 @@ public class MirrorViaDisplaylink implements Job {
         int pxHeight = windowMetrics.getBounds().height();
         int pxWidth = windowMetrics.getBounds().width();
 
-        int targetWidth = 1080 * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
+        int targetWidth = height * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
 
         usbState.imageReader = ImageReader.newInstance(targetWidth, height, 1, 2);
         usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");

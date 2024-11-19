@@ -88,7 +88,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.main);
 
         breadcrumbManager = new BreadcrumbManager(this, getSupportFragmentManager(), findViewById(R.id.breadcrumb));
-        breadcrumbManager.pushBreadcrumb("首页", new HomeFragment());
+        State.breadcrumbManager = breadcrumbManager;
+        breadcrumbManager.pushBreadcrumb("首页", () -> new HomeFragment());
 
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
@@ -132,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
+        State.resumeJob();
     }
 
     @Override
@@ -184,8 +186,8 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    public void pushBreadcrumb(String newPath, Fragment fragment) {
-        breadcrumbManager.pushBreadcrumb(newPath, fragment);
+    public void pushBreadcrumb(String newPath, BreadcrumbManager.FragmentFactory fragmentFactory) {
+        breadcrumbManager.pushBreadcrumb(newPath, fragmentFactory);
     }
     
     @Override

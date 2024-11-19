@@ -27,6 +27,23 @@ public class UsbState {
     public Handler handler;
     public volatile int frameCounter = 0;
     public volatile int[] recentPostFrameResultCodes = new int[8];
+    public int overrideMonitorWidth;
+    public int overrideMonitorHeight;
+
+    public int getMonitorWidth() {
+        return overrideMonitorWidth != 0 ? overrideMonitorWidth : monitorInfo.a[0].width;
+    }
+
+    public int getMonitorHeight() {
+        return overrideMonitorHeight != 0 ? overrideMonitorHeight : monitorInfo.a[0].height;
+    }   
+
+    public DisplayMode getDisplayMode() {
+        if (overrideMonitorWidth != 0 && overrideMonitorHeight != 0) {
+            return new DisplayMode(overrideMonitorWidth, overrideMonitorHeight, monitorInfo.a[0].refreshRate);
+        }   
+        return monitorInfo.a[0];
+    }
 
     public void stopHandlerThread() {
         if (handlerThread != null) {

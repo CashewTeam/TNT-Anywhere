@@ -17,9 +17,13 @@ public class ListenAndPostFrame implements ImageReader.OnImageAvailableListener 
     private static int startX;
     private static int rowStride;
     private static int pixelStride;
+    private int monitorWidth;
+    private int monitorHeight;
 
     public ListenAndPostFrame(UsbState usbState) {
         this.usbState = usbState;
+        this.monitorWidth = usbState.getMonitorWidth();
+        this.monitorHeight = usbState.getMonitorHeight();
     }
 
     @Override
@@ -29,20 +33,20 @@ public class ListenAndPostFrame implements ImageReader.OnImageAvailableListener 
         Image.Plane plane = thisImage.getPlanes()[0];
         if (!hasSetMode) {
             hasSetMode = true;
-            usbState.nativeDriver.setMode(usbState.encoderId, usbState.monitorInfo.a[0], plane.getRowStride(), 1);
+            usbState.nativeDriver.setMode(usbState.encoderId, usbState.getDisplayMode(), plane.getRowStride(), 1);
             Log.i("FixAspectRatio", "cropImageTo1080p: " + thisImage.getWidth() + "x" + thisImage.getHeight() + " pixelStride: " + plane.getPixelStride() + " rowStride: " + plane.getRowStride());
             ByteBuffer buffer = plane.getBuffer();
             Log.i("FixAspectRatio", "Buffer info - capacity: " + buffer.capacity() + " position: " + buffer.position() + " limit: " + buffer.limit() + " remaining: " + buffer.remaining());
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();
-            startX = ((imageWidth - 1920) / 2) * pixelStride;
-            rowDatas = new byte[1920 * pixelStride];
+            startX = ((imageWidth - monitorWidth) / 2) * pixelStride;
+            rowDatas = new byte[monitorWidth * pixelStride];
         }
         ByteBuffer buffer = plane.getBuffer();
-        for (int row = 0; row < 1080; row++) {
+        for (int row = 0; row < monitorHeight; row++) {
             buffer.position(row * rowStride + startX);
-            buffer.get(rowDatas, 0, 1920 * pixelStride);
+            buffer.get(rowDatas, 0, monitorWidth * pixelStride);
             buffer.position(row * rowStride);
             buffer.put(rowDatas);
         }
