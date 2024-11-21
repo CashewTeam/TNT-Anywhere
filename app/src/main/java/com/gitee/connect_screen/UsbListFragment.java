@@ -14,14 +14,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class UsbFragment extends Fragment {
+public class UsbListFragment extends Fragment {
     private RecyclerView usbDeviceList;
     private UsbDeviceAdapter adapter;
     private List<UsbDevice> devices = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_usb, container, false);
+        View view = inflater.inflate(R.layout.fragment_usb_list, container, false);
         
         UsbManager usbManager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
         usbDeviceList = view.findViewById(R.id.usbDeviceList);
