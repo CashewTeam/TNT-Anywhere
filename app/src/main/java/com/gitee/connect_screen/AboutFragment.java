@@ -1,5 +1,7 @@
 package com.gitee.connect_screen;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +20,24 @@ public class AboutFragment extends Fragment {
                 "- 用户在使用DisplayLink®相关功能时应遵守Synaptics Incorporated的相关许可条款\n" +
                 "- 本应用与Synaptics Incorporated没有任何官方关联，不代表或暗示与Synaptics Incorporated存在任何合作关系\n\n" +
                 "如有任何与DisplayLink®相关的法律问题，请直接联系Synaptics Incorporated：www.synaptics.com");
+
+        TextView xiaohongshuLink = view.findViewById(R.id.xiaohongshuLink);
+        xiaohongshuLink.setOnClickListener(v -> openUrl("https://www.xiaohongshu.com/user/profile/602cc4c0000000000100be64"));
+
+        TextView bilibiliLink = view.findViewById(R.id.bilibiliLink);
+        bilibiliLink.setOnClickListener(v -> openUrl("https://space.bilibili.com/494726825"));
+
+        TextView douyinLink = view.findViewById(R.id.douyinLink);
+        douyinLink.setOnClickListener(v -> openUrl("https://www.douyin.com/user/MS4wLjABAAAAolJRQWuFI6KZwaBUvPfzDejygnorK2K-CY_6b1OuWQM"));
+
+        TextView youtubeLink = view.findViewById(R.id.youtubeLink);
+        youtubeLink.setOnClickListener(v -> openUrl("https://www.youtube.com/@connect-screen"));
+
         return view;
+    }
+
+    private void openUrl(String url) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(intent);
     }
 } 

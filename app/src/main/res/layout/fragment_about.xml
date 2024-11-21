@@ -6,8 +6,65 @@
     android:padding="16dp">
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="软件使用方法请查看短视频平台介绍"
+        android:textSize="16sp"
+        android:textColor="@color/black"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/xiaohongshuLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="小红书：安卓屏连"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:autoLink="web"/>
+
+    <TextView
+        android:id="@+id/bilibiliLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="b站：安卓屏连"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="8dp"
+        android:clickable="true"
+        android:autoLink="web"/>
+
+    <TextView
+        android:id="@+id/douyinLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="抖音：安卓屏连"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="8dp"
+        android:clickable="true"
+        android:autoLink="web"/>
+
+    <TextView
+        android:id="@+id/youtubeLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Youtube: 安卓屏连"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="8dp"
+        android:clickable="true"
+        android:autoLink="web"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="16dp"/>
+
+    <TextView
         android:id="@+id/aboutContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="16sp"/>
+
 </LinearLayout> 
