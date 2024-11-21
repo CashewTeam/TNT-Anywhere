@@ -28,10 +28,13 @@ public class UsbListFragment extends Fragment {
         usbDeviceList.setLayoutManager(new LinearLayoutManager(getContext()));
         
         adapter = new UsbDeviceAdapter(devices, device -> {
-            // 更新面包屑
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb(device.getDeviceName(), () -> UsbDeviceDetailFragment.newInstance(device));
+                if (device.getVendorId() == 6121) {
+                    activity.pushBreadcrumb(device.getDeviceName(), () -> DisplaylinkFragment.newInstance(device));
+                } else {
+                    activity.pushBreadcrumb(device.getDeviceName(), () -> UsbDeviceDetailFragment.newInstance(device));
+                }
             }
         }, usbManager);
         
