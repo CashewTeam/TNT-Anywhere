@@ -134,7 +134,7 @@ public class MirrorViaDisplaylink implements Job {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }
-        ListenImageReaderAndPostFrame.start(usbState);
+        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
         State.mediaProjection = null;
         State.log("虚拟显示已创建");
     }
