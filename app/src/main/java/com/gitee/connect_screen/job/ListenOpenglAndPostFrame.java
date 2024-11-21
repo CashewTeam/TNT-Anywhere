@@ -144,6 +144,8 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             buffers = new ByteBuffer[] {
                     ByteBuffer.allocateDirect(targetWidth * height * 4),
                     ByteBuffer.allocateDirect(targetWidth * height * 4),
+                    ByteBuffer.allocateDirect(targetWidth * height * 4),
+                    ByteBuffer.allocateDirect(targetWidth * height * 4),
             };
             surfaceTexture.setOnFrameAvailableListener(this);
             this.surface = new Surface(surfaceTexture);
@@ -261,7 +263,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
         // 获取MVP矩阵uniform位置
         mvpMatrixHandle = GLES20.glGetUniformLocation(programHandle, "uMVPMatrix");
 
-        // 修改顶点坐标和纹理坐标以实现裁切
+        // 修改顶点坐标以保持原有输入
         List<Float> vertices = Arrays.asList(
                 asFloat(-1), asFloat(-1), // 左下
                 asFloat(1), asFloat(-1), // 右下
@@ -269,12 +271,12 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
                 asFloat(1), asFloat(1) // 右上
         );
 
-        // 修改纹理坐标以从 2400*2400 裁切中间部分 1080x2400
+        // 修改纹理坐标以保持原有输入
         List<Float> textureCoords = Arrays.asList(
-                divide(660, 2400), asFloat(0),    // 左下
-                divide(1740, 2400), asFloat(0),   // 右下
-                divide(660, 2400), asFloat(1),   // 左上
-                divide(1740, 2400), asFloat(1)   // 右上
+                asFloat(0), asFloat(0),    // 左下
+                asFloat(1), asFloat(0),   // 右下
+                asFloat(0), asFloat(1),   // 左上
+                asFloat(1), asFloat(1)   // 右上
         );
 
         // 转换为ByteBuffer的代码
@@ -349,18 +351,9 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
             GLES20.glUniform1i(textureHandle, 0);
 
-            // 计算MVP矩阵
+            // 设置MVP矩阵为单位矩阵
             float[] mvpMatrix = new float[16];
             Matrix.setIdentityM(mvpMatrix, 0);
-            // 向左旋转90度
-            Matrix.rotateM(mvpMatrix, 0, asFloat(-90), 0, 0, asFloat(1));
-            
-            // 分别计算X和Y的缩放比例
-            float scaleX = divide(1920, 2400);  // 0.8 - 宽度缩放比例
-            float scaleY = divide(1080, 1080);  // 1.0 - 高度缩放比例
-            Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, asFloat(1));
-            
-            // 设置MVP矩阵
             GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
 
             // 绘制
