@@ -3,21 +3,12 @@ package com.gitee.connect_screen.job;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
-import android.media.ImageReader;
-import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.view.Surface;
-import android.view.WindowManager;
-import android.view.WindowMetrics;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
-import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
@@ -143,29 +134,7 @@ public class MirrorViaDisplaylink implements Job {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }
-        int height = usbState.getMonitorHeight();
-        int dpi = 160;
-
-        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
-
-        int pxHeight = windowMetrics.getBounds().height();
-        int pxWidth = windowMetrics.getBounds().width();
-
-        int targetWidth = height * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
-
-        usbState.imageReader = ImageReader.newInstance(targetWidth, height, 1, 2);
-        usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
-        usbState.handlerThread.start();
-        usbState.handler = new Handler(usbState.handlerThread.getLooper());
-
-        usbState.imageReader.setOnImageAvailableListener(new ListenAndPostFrame(usbState), usbState.handler);
-        Surface surface = usbState.imageReader.getSurface();
-
-        usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
-                targetWidth, height, dpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                surface, null, null);
+        ListenImageReaderAndPostFrame.start(usbState);
         State.mediaProjection = null;
         State.log("虚拟显示已创建");
     }
