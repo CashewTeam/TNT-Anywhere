@@ -145,7 +145,6 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
                     ByteBuffer.allocateDirect(targetWidth * height * 4),
                     ByteBuffer.allocateDirect(targetWidth * height * 4),
                     ByteBuffer.allocateDirect(targetWidth * height * 4),
-                    ByteBuffer.allocateDirect(targetWidth * height * 4),
             };
             surfaceTexture.setOnFrameAvailableListener(this);
             this.surface = new Surface(surfaceTexture);
@@ -363,7 +362,6 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
 
             // 读取像素数据到buffer
             ByteBuffer buffer = buffers[buffersIndex];
-            buffersIndex = (buffersIndex + 1) % buffers.length;
             buffer.position(0);
             GLES20.glReadPixels(0, 0, 1920, 1080, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
             buffer.rewind();
@@ -371,6 +369,10 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             usbState.recentPostFrameResultCodes[usbState.frameCounter % usbState.recentPostFrameResultCodes.length] = resultCode;
             if (resultCode < 0) {
                 Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
+            }
+            boolean buffered = resultCode != 1 && resultCode != -2;
+            if (buffered) {
+                buffersIndex = (buffersIndex + 1) % buffers.length;
             }
         } catch (Exception e) {
             State.log("渲染帧时发生异常: " + e.getMessage());
