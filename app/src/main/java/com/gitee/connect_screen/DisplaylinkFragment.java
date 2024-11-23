@@ -83,6 +83,7 @@ public class DisplaylinkFragment extends Fragment {
             try {
                 usbState.overrideMonitorWidth = Integer.parseInt(displayWidthInput.getText().toString());
                 usbState.overrideMonitorHeight = Integer.parseInt(displayHeightInput.getText().toString());
+                State.log("用户设置的显示器宽度: " + usbState.overrideMonitorWidth + ", 高度: " + usbState.overrideMonitorHeight);
             } catch (NumberFormatException e) {
                 // ignore
             }

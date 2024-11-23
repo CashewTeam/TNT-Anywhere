@@ -17,7 +17,7 @@ import com.gitee.connect_screen.UsbState;
 import java.nio.ByteBuffer;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
-    private final UsbState usbState;
+    private UsbState usbState;
     private boolean hasSetMode = false;
     private Image lastImage;
     private static byte[] rowDatas;
@@ -27,7 +27,10 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private int monitorWidth;
     private int monitorHeight;
 
-    public static void start(UsbState usbState) {
+    public void startVirtualDisplay(UsbState usbState) {
+        this.usbState = usbState;
+        this.monitorWidth = usbState.getMonitorWidth();
+        this.monitorHeight = usbState.getMonitorHeight();
         int height = usbState.getMonitorHeight();
         int dpi = 160;
 
@@ -44,19 +47,13 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         usbState.handlerThread.start();
         usbState.handler = new Handler(usbState.handlerThread.getLooper());
 
-        usbState.imageReader.setOnImageAvailableListener(new ListenImageReaderAndPostFrame(usbState), usbState.handler);
+        usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
 
         usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
                 targetWidth, height, dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 surface, null, null);
-    }
-
-    public ListenImageReaderAndPostFrame(UsbState usbState) {
-        this.usbState = usbState;
-        this.monitorWidth = usbState.getMonitorWidth();
-        this.monitorHeight = usbState.getMonitorHeight();
     }
 
     @Override
