@@ -18,16 +18,14 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_button_group, container, false);
 
-        Button virtualScreenBtn = view.findViewById(R.id.virtualScreenBtn);
+        Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
         Button usbDeviceBtn = view.findViewById(R.id.usbDeviceBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
-        // 暂时还不需要独立创建虚拟显示器
-        virtualScreenBtn.setVisibility(View.GONE);
-        virtualScreenBtn.setOnClickListener(v -> {
+        displayDeviceBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb("虚拟屏幕", () -> new VirtualScreenFragment());
+                activity.pushBreadcrumb("屏幕", () -> new DisplayListFragment());
             }
         });
 
