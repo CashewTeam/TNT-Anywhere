@@ -37,6 +37,10 @@
         
         <activity
             android:name=".DemoActivity"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="false" />
         
         <service

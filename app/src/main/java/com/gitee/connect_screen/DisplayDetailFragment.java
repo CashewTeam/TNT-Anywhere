@@ -62,6 +62,8 @@ public class DisplayDetailFragment extends Fragment {
         Button launchButton = view.findViewById(R.id.launch_demo_button);
         launchButton.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), DemoActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            
             ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(displayId);
             getContext().startActivity(intent, options.toBundle());
