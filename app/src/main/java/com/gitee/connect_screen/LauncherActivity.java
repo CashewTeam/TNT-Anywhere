@@ -9,11 +9,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import java.util.List;
 
-public class DemoActivity extends AppCompatActivity {
+public class LauncherActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_demo);
+        setContentView(R.layout.activity_launcher);
         
         TextView textView = findViewById(R.id.demo_text);
         textView.setText("已安装的应用列表");
