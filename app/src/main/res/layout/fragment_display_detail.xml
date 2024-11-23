@@ -16,11 +16,25 @@
             android:textSize="16sp"
             android:lineSpacingExtra="8dp"/>
 
+        <TextView
+            android:id="@+id/shizuku_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textSize="16sp"/>
+
+        <Button
+            android:id="@+id/request_shizuku_permission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="获取Shizuku权限"/>
+
         <Button
             android:id="@+id/start_launcher_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:text="投屏单个应用"/>
 
     </LinearLayout>

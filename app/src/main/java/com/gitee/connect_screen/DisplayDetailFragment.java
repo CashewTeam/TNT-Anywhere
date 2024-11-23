@@ -13,13 +13,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.R;
+import rikka.shizuku.Shizuku;
+import android.os.UserHandle;
+import android.content.pm.PackageManager;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
+    private static final int SHIZUKU_PERMISSION_REQUEST_CODE = 1001;
+    
+    private TextView shizukuStatusText;
     
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -44,6 +51,53 @@ public class DisplayDetailFragment extends Fragment {
         }
         
         return flagsStr.length() > 0 ? flagsStr.toString() : "无";
+    }
+    
+    private boolean checkShizukuPermission() {
+        try {
+            // 检查是否已经有权限
+            if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            }
+            
+            // 请求权限
+            Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
+            return false;
+        } catch (Exception e) {
+            showToast("Shizuku 权限检查失败");
+            State.log("Shizuku 权限检查失败: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    }
+    
+    private void onRequestPermissionsResult(int requestCode, int grantResult) {
+        if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                showToast("已获得 Shizuku 权限");
+            } else {
+                showToast("Shizuku 权限被拒绝");
+            }
+            updateShizukuStatus();
+        }
+    }
+
+    private final Shizuku.OnRequestPermissionResultListener REQUEST_PERMISSION_RESULT_LISTENER = 
+        this::onRequestPermissionsResult;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
     }
     
     @Override
@@ -91,17 +145,42 @@ public class DisplayDetailFragment extends Fragment {
             cutoutInfo
         );
         detailText.setText(details);
+
+        shizukuStatusText = view.findViewById(R.id.shizuku_status);
+        updateShizukuStatus();
         
+        Button requestPermissionButton = view.findViewById(R.id.request_shizuku_permission);
+        requestPermissionButton.setOnClickListener(v -> {
+            try {
+                if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+                    showToast("已经获得 Shizuku 权限");
+                } else {
+                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
+                }
+            } catch (Exception e) {
+                showToast("请求 Shizuku 权限失败");
+                State.log("请求 Shizuku 权限失败: " + e.getMessage());
+            }
+        });
+
         Button launchButton = view.findViewById(R.id.start_launcher_button);
         launchButton.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), LauncherActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-
-            ActivityOptions options = ActivityOptions.makeBasic();
-            getContext().startActivity(intent, options.toBundle());
+            getContext().startActivity(intent);
         });
 
         return view;
+    }
+
+    private void updateShizukuStatus() {
+        try {
+            boolean hasPermission = Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
+            shizukuStatusText.setText("Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权"));
+        } catch(Exception e) {
+            shizukuStatusText.setText("Shizuku权限状态: 未授权");
+            State.log("获取 Shizuku 权限失败：" + e.getMessage());
+        }
     }
 }
