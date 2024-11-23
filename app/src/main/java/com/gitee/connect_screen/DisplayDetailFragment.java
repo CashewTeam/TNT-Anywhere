@@ -1,6 +1,8 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityOptions;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -8,6 +10,7 @@ import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
@@ -55,6 +58,14 @@ public class DisplayDetailFragment extends Fragment {
             display.isHdr() ? "是" : "否"
         );
         detailText.setText(details);
+        
+        Button launchButton = view.findViewById(R.id.launch_demo_button);
+        launchButton.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), DemoActivity.class);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(displayId);
+            getContext().startActivity(intent, options.toBundle());
+        });
         
         return view;
     }

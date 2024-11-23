@@ -35,6 +35,10 @@
                 android:resource="@xml/device_filter"/>
         </activity>
         
+        <activity
+            android:name=".DemoActivity"
+            android:exported="false" />
+        
         <service
             android:name=".MediaProjectionService"
             android:foregroundServiceType="mediaProjection"
