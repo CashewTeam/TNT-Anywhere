@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         }
 
-        setContentView(R.layout.main);
+        setContentView(R.layout.activity_main);
 
         breadcrumbManager = new BreadcrumbManager(this, getSupportFragmentManager(), findViewById(R.id.breadcrumb));
         State.breadcrumbManager = breadcrumbManager;
