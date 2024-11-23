@@ -52,7 +52,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
                 targetWidth, height, dpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                 surface, null, null);
     }
 

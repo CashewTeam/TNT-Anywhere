@@ -28,6 +28,23 @@ public class DisplayDetailFragment extends Fragment {
         return fragment;
     }
     
+    private String getDisplayFlags(Display display) {
+        int flags = display.getFlags();
+        StringBuilder flagsStr = new StringBuilder();
+        
+        if ((flags & Display.FLAG_SECURE) != 0) flagsStr.append("FLAG_SECURE, ");
+        if ((flags & Display.FLAG_SUPPORTS_PROTECTED_BUFFERS) != 0) flagsStr.append("FLAG_SUPPORTS_PROTECTED_BUFFERS, ");
+        if ((flags & Display.FLAG_PRIVATE) != 0) flagsStr.append("FLAG_PRIVATE, ");
+        if ((flags & Display.FLAG_PRESENTATION) != 0) flagsStr.append("FLAG_PRESENTATION, ");
+        if ((flags & Display.FLAG_ROUND) != 0) flagsStr.append("FLAG_ROUND, ");
+
+        if (flagsStr.length() > 0) {
+            flagsStr.setLength(flagsStr.length() - 2);
+        }
+        
+        return flagsStr.length() > 0 ? flagsStr.toString() : "无";
+    }
+    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_display_detail, container, false);
@@ -47,7 +64,8 @@ public class DisplayDetailFragment extends Fragment {
             "刷新率: %.1f Hz\n" +
             "DPI: %d\n" +
             "状态: %s\n" +
-            "HDR支持: %s",
+            "HDR支持: %s\n" +
+            "显示器标志: %s",
             display.getDisplayId(),
             display.getName(),
             display.getWidth(),
@@ -55,7 +73,8 @@ public class DisplayDetailFragment extends Fragment {
             display.getRefreshRate(),
             metrics.densityDpi,
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
-            display.isHdr() ? "是" : "否"
+            display.isHdr() ? "是" : "否",
+            getDisplayFlags(display)
         );
         detailText.setText(details);
         

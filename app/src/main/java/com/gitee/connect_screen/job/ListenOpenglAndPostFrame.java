@@ -150,7 +150,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             this.surface = new Surface(surfaceTexture);
             usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
                     targetWidth, height, dpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null); // 使用 surfaceTexture 而不是 surface
         } catch (Exception e) {
             // 清理资源
