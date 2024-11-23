@@ -7,6 +7,7 @@ import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
+import android.view.DisplayCutout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,6 +53,17 @@ public class DisplayDetailFragment extends Fragment {
         int displayId = getArguments().getInt(ARG_DISPLAY_ID);
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
         Display display = displayManager.getDisplay(displayId);
+
+        DisplayCutout cutout = display.getCutout();
+        String cutoutInfo = "无凹口";
+        if (cutout != null) {
+            StringBuilder cutoutDetails = new StringBuilder("凹口边界:\n");
+            for (android.graphics.Rect rect : cutout.getBoundingRects()) {
+                cutoutDetails.append(String.format("左:%d 上:%d 右:%d 下:%d\n",
+                    rect.left, rect.top, rect.right, rect.bottom));
+            }
+            cutoutInfo = cutoutDetails.toString();
+        }
         
         DisplayMetrics metrics = new DisplayMetrics();
         display.getMetrics(metrics);
@@ -65,7 +77,8 @@ public class DisplayDetailFragment extends Fragment {
             "DPI: %d\n" +
             "状态: %s\n" +
             "HDR支持: %s\n" +
-            "显示器标志: %s",
+            "显示器标志: %s\n" +
+            "凹口信息: %s",
             display.getDisplayId(),
             display.getName(),
             display.getWidth(),
@@ -74,17 +87,19 @@ public class DisplayDetailFragment extends Fragment {
             metrics.densityDpi,
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
             display.isHdr() ? "是" : "否",
-            getDisplayFlags(display)
+            getDisplayFlags(display),
+            cutoutInfo
         );
         detailText.setText(details);
         
-        Button launchButton = view.findViewById(R.id.launch_demo_button);
+        Button launchButton = view.findViewById(R.id.start_launcher_button);
         launchButton.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), LauncherActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
             
             ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(displayId);
+            // options.setLaunchDisplayId(displayId);
             getContext().startActivity(intent, options.toBundle());
         });
         

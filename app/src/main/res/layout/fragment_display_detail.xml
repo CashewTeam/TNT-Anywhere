@@ -17,11 +17,11 @@
             android:lineSpacingExtra="8dp"/>
 
         <Button
-            android:id="@+id/launch_demo_button"
+            android:id="@+id/start_launcher_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="在此显示器上启动演示"/>
+            android:text="投屏单个应用"/>
 
     </LinearLayout>
 </ScrollView>

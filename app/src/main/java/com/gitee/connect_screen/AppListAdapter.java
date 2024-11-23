@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -16,10 +17,12 @@ import java.util.List;
 public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHolder> {
     private List<ApplicationInfo> appList;
     private PackageManager packageManager;
+    private int targetDisplayId;
 
-    public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager) {
+    public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId) {
         this.appList = appList;
         this.packageManager = packageManager;
+        this.targetDisplayId = targetDisplayId;
     }
 
     @Override
@@ -38,7 +41,11 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.btnLaunch.setOnClickListener(v -> {
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);
             if (launchIntent != null) {
-                v.getContext().startActivity(launchIntent);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setLaunchDisplayId(targetDisplayId);
+                v.getContext().startActivity(launchIntent, options.toBundle());
             }
         });
     }

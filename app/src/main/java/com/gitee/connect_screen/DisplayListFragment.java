@@ -41,7 +41,7 @@ public class DisplayListFragment extends Fragment {
     private void onDisplayItemClick(Display display) {
         if (getActivity() instanceof MainActivity) {
             MainActivity activity = (MainActivity) getActivity();
-            activity.pushBreadcrumb("屏幕", () -> DisplayDetailFragment.newInstance(display.getDisplayId()));
+            activity.pushBreadcrumb("屏幕 " + display.getDisplayId(), () -> DisplayDetailFragment.newInstance(display.getDisplayId()));
         }
     }
 

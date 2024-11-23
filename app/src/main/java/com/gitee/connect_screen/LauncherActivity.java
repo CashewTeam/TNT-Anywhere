@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.os.Bundle;
+import android.view.Display;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.pm.ApplicationInfo;
@@ -18,9 +19,17 @@ import android.util.DisplayMetrics;
 import java.util.stream.Collectors;
 
 public class LauncherActivity extends AppCompatActivity {
+    // 添加常量定义
+    public static final String EXTRA_TARGET_DISPLAY_ID = "target_display_id";
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // 获取目标显示器ID
+        int targetDisplayId = getIntent().getIntExtra(EXTRA_TARGET_DISPLAY_ID, Display.DEFAULT_DISPLAY);
+        
+        
         getSupportActionBar().hide();
         
         getWindow().setDecorFitsSystemWindows(false);
@@ -48,8 +57,8 @@ public class LauncherActivity extends AppCompatActivity {
             .filter(app -> (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
             .collect(Collectors.toList());
         
-        // 创建适配器（需要另外实现）
-        AppListAdapter adapter = new AppListAdapter(userApps, pm);
+        // 创建适配器时传入目标显示器ID
+        AppListAdapter adapter = new AppListAdapter(userApps, pm, targetDisplayId);
         recyclerView.setAdapter(adapter);
         
         // 添加设置 DPI 的代码
