@@ -32,17 +32,33 @@ public class DisplayListFragment extends Fragment {
         // 设置RecyclerView
         RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(new DisplayAdapter(Arrays.asList(displays)));
+        recyclerView.setAdapter(new DisplayAdapter(Arrays.asList(displays), this::onDisplayItemClick));
 
         return view;
     }
 
-    // 创建一个简单的适配器
+    // 新增：处理显示器项的点击事件
+    private void onDisplayItemClick(Display display) {
+        if (getActivity() instanceof MainActivity) {
+            MainActivity activity = (MainActivity) getActivity();
+            activity.pushBreadcrumb("屏幕", () -> DisplayDetailFragment.newInstance(display.getDisplayId()));
+        }
+    }
+
+    // 修改适配器类
     private static class DisplayAdapter extends RecyclerView.Adapter<DisplayAdapter.ViewHolder> {
         private final List<Display> displayList;
+        private final OnDisplayClickListener clickListener;
 
-        public DisplayAdapter(List<Display> displayList) {
+        // 新增接口
+        interface OnDisplayClickListener {
+            void onDisplayClick(Display display);
+        }
+
+        // 修改构造函数
+        public DisplayAdapter(List<Display> displayList, OnDisplayClickListener listener) {
             this.displayList = displayList;
+            this.clickListener = listener;
         }
 
         @Override
@@ -60,6 +76,9 @@ public class DisplayListFragment extends Fragment {
                 display.getHeight());
             holder.displayId.setText(displayInfo);
             holder.displayName.setText("显示器名称: " + display.getName());
+
+            // 简化的点击监听器设置
+            holder.itemView.setOnClickListener(v -> clickListener.onDisplayClick(display));
         }
 
         @Override
