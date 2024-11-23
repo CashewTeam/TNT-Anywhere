@@ -7,8 +7,11 @@ import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
@@ -45,6 +48,42 @@ public class DisplaylinkFragment extends Fragment {
         Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
         EditText displayWidthInput = view.findViewById(R.id.displayWidthInput);
         EditText displayHeightInput = view.findViewById(R.id.displayHeightInput);
+
+        Spinner projectionModeSpinner = view.findViewById(R.id.projectionModeSpinner);
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            Arrays.stream(ProjectionMode.values())
+                  .map(mode -> {
+                      switch(mode) {
+                          case MIRROR: return "普通镜像";
+                          case MIRROR_AND_CROP_16_9: return "16:9裁剪";
+                          case SINGLE_APP: return "单个应用";
+                          default: return mode.name();
+                      }
+                  })
+                  .toArray(String[]::new)
+        );
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        projectionModeSpinner.setAdapter(spinnerAdapter);
+        
+        if (usbState != null && usbState.projectionMode != null) {
+            projectionModeSpinner.setSelection(usbState.projectionMode.ordinal());
+        }
+        
+        projectionModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (usbState != null) {
+                    usbState.projectionMode = ProjectionMode.values()[position];
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
+        });
 
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");

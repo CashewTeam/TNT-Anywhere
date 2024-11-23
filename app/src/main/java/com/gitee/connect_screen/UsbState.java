@@ -29,6 +29,7 @@ public class UsbState {
     public volatile int[] recentPostFrameResultCodes = new int[8];
     public int overrideMonitorWidth;
     public int overrideMonitorHeight;
+    public ProjectionMode projectionMode;
 
     public int getMonitorWidth() {
         return overrideMonitorWidth != 0 ? overrideMonitorWidth : monitorInfo.a[0].width;
