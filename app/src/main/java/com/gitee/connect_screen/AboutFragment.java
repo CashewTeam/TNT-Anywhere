@@ -33,6 +33,9 @@ public class AboutFragment extends Fragment {
         TextView youtubeLink = view.findViewById(R.id.youtubeLink);
         youtubeLink.setOnClickListener(v -> openUrl("https://www.youtube.com/@connect-screen"));
 
+        TextView qqLink = view.findViewById(R.id.qqLink);
+        qqLink.setOnClickListener(v -> joinQQGroup("577902537"));
+
         return view;
     }
 
@@ -40,4 +43,10 @@ public class AboutFragment extends Fragment {
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         startActivity(intent);
     }
+
+    private void joinQQGroup(String groupId) {
+        Uri uri = Uri.parse("https://qm.qq.com/cgi-bin/qm/qr?k=" + groupId + "&jump_from=webapi");
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
+}
 } 

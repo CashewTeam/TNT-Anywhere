@@ -2,8 +2,10 @@ package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,16 +15,38 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHolder> {
+    private static final String LAUNCH_TIME_PREFIX = "launch_time_";
     private List<ApplicationInfo> appList;
     private PackageManager packageManager;
     private int targetDisplayId;
+    private SharedPreferences sharedPreferences;
 
-    public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId) {
+    public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId, SharedPreferences sharedPreferences) {
         this.appList = appList;
         this.packageManager = packageManager;
         this.targetDisplayId = targetDisplayId;
+        this.sharedPreferences = sharedPreferences;
+        sortAppList();
+    }
+
+    private void sortAppList() {
+        Collections.sort(appList, (app1, app2) -> {
+            Long time1 = sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app1.packageName, 0L);
+            Long time2 = sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app2.packageName, 0L);
+            
+            if (time1.equals(time2)) {
+                return app1.loadLabel(packageManager)
+                    .toString()
+                    .compareToIgnoreCase(app2.loadLabel(packageManager).toString());
+            }
+            return time2.compareTo(time1);
+        });
     }
 
     @Override
@@ -41,10 +65,23 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.btnLaunch.setOnClickListener(v -> {
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);
             if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                sharedPreferences.edit()
+                    .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
+                    .apply();
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
                 ActivityOptions options = ActivityOptions.makeBasic();
                 options.setLaunchDisplayId(targetDisplayId);
+                v.getContext().startActivity(launchIntent, options.toBundle());
+            }
+        });
+        holder.btnLaunchToDefaultDisplay.setOnClickListener(v -> {
+            Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);
+            if (launchIntent != null) {
+                sharedPreferences.edit()
+                    .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
+                    .apply();
+                ActivityOptions options = ActivityOptions.makeBasic();
                 v.getContext().startActivity(launchIntent, options.toBundle());
             }
         });
@@ -59,12 +96,14 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         TextView text1;
         TextView text2;
         Button btnLaunch;
+        Button btnLaunchToDefaultDisplay;
 
         ViewHolder(View view) {
             super(view);
             text1 = view.findViewById(R.id.text1);
             text2 = view.findViewById(R.id.text2);
             btnLaunch = view.findViewById(R.id.btn_launch);
+            btnLaunchToDefaultDisplay = view.findViewById(R.id.btn_launch_to_default_display);
         }
     }
 }

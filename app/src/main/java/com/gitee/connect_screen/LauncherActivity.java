@@ -48,8 +48,13 @@ public class LauncherActivity extends AppCompatActivity {
             .filter(app -> (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
             .collect(Collectors.toList());
         
-        // 创建适配器时传入目标显示器ID
-        AppListAdapter adapter = new AppListAdapter(userApps, pm, targetDisplayId);
+        // 创建适配器时传入目标显示器ID和 SharedPreferences
+        AppListAdapter adapter = new AppListAdapter(
+            userApps, 
+            pm, 
+            targetDisplayId,
+            getSharedPreferences("app_preferences", MODE_PRIVATE)
+        );
         recyclerView.setAdapter(adapter);
         
         // 添加设置 DPI 的代码

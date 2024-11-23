@@ -13,6 +13,18 @@
         android:textColor="@color/black"
         android:layout_marginBottom="16dp"/>
 
+        
+    <TextView
+        android:id="@+id/qqLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="最新版本：从QQ群 577902537 获取"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:autoLink="web"/>
+
     <TextView
         android:id="@+id/xiaohongshuLink"
         android:layout_width="match_parent"
