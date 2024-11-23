@@ -39,9 +39,6 @@
         <activity
             android:name=".LauncherActivity"
             android:launchMode="singleTask"
-            android:resizeableActivity="true"
-            android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="false" />
         
         <service

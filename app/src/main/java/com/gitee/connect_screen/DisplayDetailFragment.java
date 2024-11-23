@@ -93,16 +93,17 @@ public class DisplayDetailFragment extends Fragment {
         detailText.setText(details);
         
         Button launchButton = view.findViewById(R.id.start_launcher_button);
+        launchButton.setVisibility(View.VISIBLE);
         launchButton.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), LauncherActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-            
+
             ActivityOptions options = ActivityOptions.makeBasic();
             // options.setLaunchDisplayId(displayId);
             getContext().startActivity(intent, options.toBundle());
         });
-        
+
         return view;
     }
 }

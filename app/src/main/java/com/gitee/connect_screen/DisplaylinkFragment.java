@@ -58,7 +58,6 @@ public class DisplaylinkFragment extends Fragment {
                       switch(mode) {
                           case MIRROR: return "普通镜像";
                           case MIRROR_AND_CROP_16_9: return "16:9裁剪";
-                          case SINGLE_APP: return "单个应用";
                           default: return mode.name();
                       }
                   })

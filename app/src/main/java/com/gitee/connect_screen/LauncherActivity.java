@@ -29,17 +29,8 @@ public class LauncherActivity extends AppCompatActivity {
         // 获取目标显示器ID
         int targetDisplayId = getIntent().getIntExtra(EXTRA_TARGET_DISPLAY_ID, Display.DEFAULT_DISPLAY);
         
-        
         getSupportActionBar().hide();
-        
-        getWindow().setDecorFitsSystemWindows(false);
-        
-        WindowManager.LayoutParams lp = getWindow().getAttributes();
-        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-        getWindow().setAttributes(lp);
-        
-        getWindow().getInsetsController().hide(WindowInsets.Type.statusBars());
-        
+
         setContentView(R.layout.activity_launcher);
         
         TextView textView = findViewById(R.id.demo_text);

@@ -11,6 +11,7 @@ import android.view.Surface;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 
+import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 
@@ -40,7 +41,10 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         int pxHeight = windowMetrics.getBounds().height();
         int pxWidth = windowMetrics.getBounds().width();
 
-        int targetWidth = height * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
+        int targetWidth = usbState.getMonitorWidth();
+        if (usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
+            targetWidth = height * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
+        }
 
         usbState.imageReader = ImageReader.newInstance(targetWidth, height, 1, 2);
         usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
@@ -64,9 +68,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         if (!hasSetMode) {
             hasSetMode = true;
             usbState.nativeDriver.setMode(usbState.encoderId, usbState.getDisplayMode(), plane.getRowStride(), 1);
-            Log.i("FixAspectRatio", "cropImageTo1080p: " + thisImage.getWidth() + "x" + thisImage.getHeight() + " pixelStride: " + plane.getPixelStride() + " rowStride: " + plane.getRowStride());
             ByteBuffer buffer = plane.getBuffer();
-            Log.i("FixAspectRatio", "Buffer info - capacity: " + buffer.capacity() + " position: " + buffer.position() + " limit: " + buffer.limit() + " remaining: " + buffer.remaining());
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();
@@ -74,13 +76,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             rowDatas = new byte[monitorWidth * pixelStride];
         }
         ByteBuffer buffer = plane.getBuffer();
-        for (int row = 0; row < monitorHeight; row++) {
-            buffer.position(row * rowStride + startX);
-            buffer.get(rowDatas, 0, monitorWidth * pixelStride);
-            buffer.position(row * rowStride);
-            buffer.put(rowDatas);
+        if (usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
+            for (int row = 0; row < monitorHeight; row++) {
+                buffer.position(row * rowStride + startX);
+                buffer.get(rowDatas, 0, monitorWidth * pixelStride);
+                buffer.position(row * rowStride);
+                buffer.put(rowDatas);
+            }
+            buffer.rewind();
         }
-        buffer.rewind();
         int resultCode = usbState.nativeDriver.postFrame(usbState.encoderId, buffer);
         usbState.recentPostFrameResultCodes[usbState.frameCounter % usbState.recentPostFrameResultCodes.length] = resultCode;
         if (resultCode < 0) {
