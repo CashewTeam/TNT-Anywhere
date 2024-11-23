@@ -8,11 +8,25 @@ import android.content.pm.PackageManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import java.util.List;
+import android.view.WindowManager;
+import android.os.Build;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 
 public class LauncherActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getSupportActionBar().hide();
+        
+        getWindow().setDecorFitsSystemWindows(false);
+        
+        WindowManager.LayoutParams lp = getWindow().getAttributes();
+        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        getWindow().setAttributes(lp);
+        
+        getWindow().getInsetsController().hide(WindowInsets.Type.statusBars());
+        
         setContentView(R.layout.activity_launcher);
         
         TextView textView = findViewById(R.id.demo_text);
