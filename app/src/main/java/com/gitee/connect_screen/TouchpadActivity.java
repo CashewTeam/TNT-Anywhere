@@ -1,10 +1,13 @@
 package com.gitee.connect_screen;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -27,6 +30,12 @@ public class TouchpadActivity extends AppCompatActivity {
     private float cursorX = 0;
     private float cursorY = 0;
     private WindowManager.LayoutParams cursorParams;
+    private static final long CLICK_TIME_THRESHOLD = 200; // 毫秒
+    private long touchDownTime;
+    private boolean isMoved = false;
+    private float halfWidth;
+    private float halfHeight;
+    private TouchpadAccessibilityService accessibilityService;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +44,16 @@ public class TouchpadActivity extends AppCompatActivity {
         
         // 获取目标显示器ID
         displayId = getIntent().getIntExtra("display_id", Display.DEFAULT_DISPLAY);
+        
+        // 计算屏幕尺寸
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display targetDisplay = displayManager.getDisplay(displayId);
+        android.graphics.Point size = new android.graphics.Point();
+        targetDisplay.getSize(size);
+        
+        // 计算屏幕边界（以屏幕中心为原点）
+        halfWidth = size.x / 2.0f;
+        halfHeight = size.y / 2.0f;
         
         // 显示光标
         showMouseCursor();
@@ -47,9 +66,10 @@ public class TouchpadActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        touchDownTime = System.currentTimeMillis();
+                        isMoved = false;
                         lastX = event.getX();
                         lastY = event.getY();
-                        Log.d(TAG, "触控板: 手指按下，坐标 (" + lastX + ", " + lastY + ")");
                         return true;
                         
                     case MotionEvent.ACTION_MOVE:
@@ -58,17 +78,21 @@ public class TouchpadActivity extends AppCompatActivity {
                         float deltaX = currentX - lastX;
                         float deltaY = currentY - lastY;
                         
-                        // 计算移动距离并更新光标位置
+                        // 如果移动距离超过阈值，标记为已移动
                         if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+                            isMoved = true;
                             updateCursorPosition(deltaX, deltaY);
-                            Log.d(TAG, "触控板: 移动，距离 (x:" + deltaX + ", y:" + deltaY + ")");
                             lastX = currentX;
                             lastY = currentY;
                         }
                         return true;
                         
                     case MotionEvent.ACTION_UP:
-                        Log.d(TAG, "触控板: 手指抬起");
+                        long touchUpTime = System.currentTimeMillis();
+                        // 检测快速点击（短时间内按下抬起且没有明显移动）
+                        if (!isMoved && (touchUpTime - touchDownTime) < CLICK_TIME_THRESHOLD) {
+                            performClick();
+                        }
                         return true;
                         
                     case MotionEvent.ACTION_POINTER_DOWN:
@@ -81,31 +105,7 @@ public class TouchpadActivity extends AppCompatActivity {
             }
         });
         
-        // 设置底部按钮点击事件
-        ImageButton button1 = findViewById(R.id.button1);
-        ImageButton button2 = findViewById(R.id.button2);
-        ImageButton button3 = findViewById(R.id.button3);
-        
-        button1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "触控板: 点击左键");
-            }
-        });
-        
-        button2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "触控板: 点击中键");
-            }
-        });
-        
-        button3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "触控板: 点击右键");
-            }
-        });
+        accessibilityService = TouchpadAccessibilityService.getInstance();
     }
 
     // 新增显示光标方法
@@ -142,19 +142,8 @@ public class TouchpadActivity extends AppCompatActivity {
 
     // 添加更新光标位置的方法
     private void updateCursorPosition(float deltaX, float deltaY) {
-        // 更新光标坐标
         cursorX += deltaX * 1.5f;
         cursorY += deltaY * 1.5f;
-        
-        // 获取目标显示器的尺寸
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        Display targetDisplay = displayManager.getDisplay(displayId);
-        android.graphics.Point size = new android.graphics.Point();
-        targetDisplay.getSize(size);
-        
-        // 计算屏幕边界（以屏幕中心为原点）
-        float halfWidth = size.x / 2.0f;
-        float halfHeight = size.y / 2.0f;
         
         // 检查并记录是否超出边界
         if (cursorX < -halfWidth || cursorX > halfWidth || 
@@ -166,7 +155,6 @@ public class TouchpadActivity extends AppCompatActivity {
         cursorX = Math.max(-halfWidth, Math.min(cursorX, halfWidth));
         cursorY = Math.max(-halfHeight, Math.min(cursorY, halfHeight));
         
-        // 更新光标视图位置（转换回屏幕坐标系）
         if (cursorView != null && cursorParams != null) {
             cursorParams.x = (int) cursorX;
             cursorParams.y = (int) cursorY;
@@ -176,6 +164,19 @@ public class TouchpadActivity extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e(TAG, "更新光标位置失败: " + e.getMessage());
             }
+        }
+    }
+
+    // 添加执行点击的方法
+    private void performClick() {
+        accessibilityService = TouchpadAccessibilityService.getInstance();
+        if (accessibilityService != null) {
+            float x = cursorX + halfWidth;
+            float y = cursorY + halfHeight; 
+            Log.d(TAG, "执行点击操作 - 光标位置: (" + x + ", " + y + ")");
+            accessibilityService.performClick(displayId, x, y);
+        } else {
+            Log.e(TAG, "无法执行点击操作 - AccessibilityService 未连接");
         }
     }
 

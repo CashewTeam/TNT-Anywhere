@@ -189,6 +189,7 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void checkOverlayPermission() {
+        // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(getContext())) {
             Intent intent = new Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -196,10 +197,41 @@ public class DisplayDetailFragment extends Fragment {
             );
             startActivity(intent);
             showToast("请授予悬浮窗权限");
-        } else {
+            return;
+        }
+        
+        // 检查无障碍服务权限并尝试启动服务
+        if (!isAccessibilityServiceEnabled()) {
+            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+            startActivity(intent);
+            showToast("请开启无障碍服务权限");
+            return;
+        }
+        
+        // 启动无障碍服务
+        Intent serviceIntent = new Intent(getContext(), TouchpadAccessibilityService.class);
+        getContext().startService(serviceIntent);
+        
+        // 等待短暂时间确保服务启动
+        new android.os.Handler().postDelayed(() -> {
+            // 权限都具备且服务启动后启动触控板
             Intent touchpadIntent = new Intent(getContext(), TouchpadActivity.class);
             touchpadIntent.putExtra("display_id", getArguments().getInt(ARG_DISPLAY_ID));
             startActivity(touchpadIntent);
+        }, 500); // 延迟500毫秒
+    }
+
+    // 检查无障碍服务是否启用
+    private boolean isAccessibilityServiceEnabled() {
+        String serviceName = getContext().getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(
+            getContext().getContentResolver(),
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+        
+        if (enabledServices != null) {
+            return enabledServices.contains(serviceName);
         }
+        return false;
     }
 }
