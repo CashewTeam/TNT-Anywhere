@@ -21,6 +21,8 @@ import com.gitee.connect_screen.R;
 import rikka.shizuku.Shizuku;
 import android.os.UserHandle;
 import android.content.pm.PackageManager;
+import android.provider.Settings;
+import android.net.Uri;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -171,6 +173,11 @@ public class DisplayDetailFragment extends Fragment {
             getContext().startActivity(intent);
         });
 
+        Button touchpadButton = view.findViewById(R.id.touchpad_button);
+        touchpadButton.setOnClickListener(v -> {
+            checkOverlayPermission();
+        });
+
         return view;
     }
 
@@ -181,6 +188,21 @@ public class DisplayDetailFragment extends Fragment {
         } catch(Exception e) {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
+        }
+    }
+
+    private void checkOverlayPermission() {
+        if (!Settings.canDrawOverlays(getContext())) {
+            // 如果没有悬浮窗权限，请求权限
+            Intent intent = new Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getContext().getPackageName())
+            );
+            startActivity(intent);
+            showToast("请授予悬浮窗权限");
+        } else {
+            // TODO: 已有权限，启动触控板
+            showToast("已获得悬浮窗权限");
         }
     }
 }
