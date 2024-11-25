@@ -24,6 +24,9 @@ public class TouchpadActivity extends AppCompatActivity {
     private int displayId;
     private float lastX, lastY;
     private static final String TAG = "TouchpadActivity";
+    private float cursorX = 0;
+    private float cursorY = 0;
+    private WindowManager.LayoutParams cursorParams;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +58,9 @@ public class TouchpadActivity extends AppCompatActivity {
                         float deltaX = currentX - lastX;
                         float deltaY = currentY - lastY;
                         
-                        // 计算移动距离
+                        // 计算移动距离并更新光标位置
                         if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+                            updateCursorPosition(deltaX, deltaY);
                             Log.d(TAG, "触控板: 移动，距离 (x:" + deltaX + ", y:" + deltaY + ")");
                             lastX = currentX;
                             lastY = currentY;
@@ -106,7 +110,7 @@ public class TouchpadActivity extends AppCompatActivity {
 
     // 新增显示光标方法
     private void showMouseCursor() {
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+        cursorParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -116,8 +120,8 @@ public class TouchpadActivity extends AppCompatActivity {
             PixelFormat.TRANSLUCENT
         );
         
-        params.x = 0;
-        params.y = 0;
+        cursorParams.x = 0;
+        cursorParams.y = 0;
         
         cursorView = new ImageView(this);
         cursorView.setImageResource(R.drawable.mouse_cursor);
@@ -129,10 +133,49 @@ public class TouchpadActivity extends AppCompatActivity {
         WindowManager windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
         
         try {
-            windowManager.addView(cursorView, params);
+            windowManager.addView(cursorView, cursorParams);
         } catch (Exception e) {
             Toast.makeText(this, "显示鼠标光标失败", Toast.LENGTH_SHORT).show();
             Log.e(TAG, "显示鼠标光标失败: " + e.getMessage());
+        }
+    }
+
+    // 添加更新光标位置的方法
+    private void updateCursorPosition(float deltaX, float deltaY) {
+        // 更新光标坐标
+        cursorX += deltaX * 1.5f;
+        cursorY += deltaY * 1.5f;
+        
+        // 获取目标显示器的尺寸
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display targetDisplay = displayManager.getDisplay(displayId);
+        android.graphics.Point size = new android.graphics.Point();
+        targetDisplay.getSize(size);
+        
+        // 计算屏幕边界（以屏幕中心为原点）
+        float halfWidth = size.x / 2.0f;
+        float halfHeight = size.y / 2.0f;
+        
+        // 检查并记录是否超出边界
+        if (cursorX < -halfWidth || cursorX > halfWidth || 
+            cursorY < -halfHeight || cursorY > halfHeight) {
+            Log.w(TAG, "光标位置超出边界 - 原始位置: (" + cursorX + ", " + cursorY + ")");
+        }
+        
+        // 确保光标不会超出屏幕边界
+        cursorX = Math.max(-halfWidth, Math.min(cursorX, halfWidth));
+        cursorY = Math.max(-halfHeight, Math.min(cursorY, halfHeight));
+        
+        // 更新光标视图位置（转换回屏幕坐标系）
+        if (cursorView != null && cursorParams != null) {
+            cursorParams.x = (int) cursorX;
+            cursorParams.y = (int) cursorY;
+            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            try {
+                windowManager.updateViewLayout(cursorView, cursorParams);
+            } catch (Exception e) {
+                Log.e(TAG, "更新光标位置失败: " + e.getMessage());
+            }
         }
     }
 
