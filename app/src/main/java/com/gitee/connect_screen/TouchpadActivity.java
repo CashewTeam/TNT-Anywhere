@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,6 +22,8 @@ public class TouchpadActivity extends AppCompatActivity {
     private View touchpadArea;
     private ImageView cursorView;
     private int displayId;
+    private float lastX, lastY;
+    private static final String TAG = "TouchpadActivity";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,15 +44,31 @@ public class TouchpadActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        // 处理按下事件
+                        lastX = event.getX();
+                        lastY = event.getY();
+                        Log.d(TAG, "触控板: 手指按下，坐标 (" + lastX + ", " + lastY + ")");
                         return true;
                         
                     case MotionEvent.ACTION_MOVE:
-                        // 处理移动事件
+                        float currentX = event.getX();
+                        float currentY = event.getY();
+                        float deltaX = currentX - lastX;
+                        float deltaY = currentY - lastY;
+                        
+                        // 计算移动距离
+                        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+                            Log.d(TAG, "触控板: 移动，距离 (x:" + deltaX + ", y:" + deltaY + ")");
+                            lastX = currentX;
+                            lastY = currentY;
+                        }
                         return true;
                         
                     case MotionEvent.ACTION_UP:
-                        // 处理抬起事件
+                        Log.d(TAG, "触控板: 手指抬起");
+                        return true;
+                        
+                    case MotionEvent.ACTION_POINTER_DOWN:
+                        Log.d(TAG, "触控板: 多指触摸，手指数: " + event.getPointerCount());
                         return true;
                         
                     default:
@@ -66,21 +85,21 @@ public class TouchpadActivity extends AppCompatActivity {
         button1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 功能1
+                Log.d(TAG, "触控板: 点击左键");
             }
         });
         
         button2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 功能2
+                Log.d(TAG, "触控板: 点击中键");
             }
         });
         
         button3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 功能3
+                Log.d(TAG, "触控板: 点击右键");
             }
         });
     }
@@ -113,7 +132,7 @@ public class TouchpadActivity extends AppCompatActivity {
             windowManager.addView(cursorView, params);
         } catch (Exception e) {
             Toast.makeText(this, "显示鼠标光标失败", Toast.LENGTH_SHORT).show();
-            State.log("显示鼠标光标失败: " + e.getMessage());
+            Log.e(TAG, "显示鼠标光标失败: " + e.getMessage());
         }
     }
 
