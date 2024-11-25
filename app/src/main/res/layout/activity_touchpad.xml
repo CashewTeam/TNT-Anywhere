@@ -43,5 +43,14 @@
             android:layout_margin="8dp"
             android:background="?attr/selectableItemBackgroundBorderless" />
 
+        <ImageButton
+            android:id="@+id/goDarkButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_dark_mode"
+            android:contentDescription="@string/go_dark_button"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
     </LinearLayout>
 </LinearLayout>

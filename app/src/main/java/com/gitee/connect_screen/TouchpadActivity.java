@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
@@ -36,6 +37,7 @@ public class TouchpadActivity extends AppCompatActivity {
     private float halfWidth;
     private float halfHeight;
     private TouchpadAccessibilityService accessibilityService;
+    private View darkOverlay;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +108,12 @@ public class TouchpadActivity extends AppCompatActivity {
         });
         
         accessibilityService = TouchpadAccessibilityService.getInstance();
+        
+        // 修改暗色模式按钮点击事件
+        ImageButton goDarkButton = findViewById(R.id.goDarkButton);
+        goDarkButton.setOnClickListener(v -> {
+            initDarkOverlay();
+        });
     }
 
     // 新增显示光标方法
@@ -180,6 +188,36 @@ public class TouchpadActivity extends AppCompatActivity {
         }
     }
 
+    // 修改暗色遮罩的创建和初始化
+    private void initDarkOverlay() {
+        darkOverlay = new View(this);
+        darkOverlay.setBackgroundColor(Color.BLACK);
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        );
+        
+        darkOverlay.setOnClickListener(v -> {
+            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            try {
+                windowManager.removeView(darkOverlay);
+            } catch (Exception e) {
+                Log.e(TAG, "移除暗色遮罩失败: " + e.getMessage());
+            }
+        });
+        
+        WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        try {
+            windowManager.addView(darkOverlay, params);
+        } catch (Exception e) {
+            Log.e(TAG, "添加暗色遮罩失败: " + e.getMessage());
+            Toast.makeText(this, "无法启用暗色模式", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -187,6 +225,12 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null && cursorView.getWindowToken() != null) {
             WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
             windowManager.removeView(cursorView);
+        }
+        
+        // 确保移除暗色遮罩
+        if (darkOverlay != null && darkOverlay.getWindowToken() != null) {
+            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            windowManager.removeView(darkOverlay);
         }
     }
 }
