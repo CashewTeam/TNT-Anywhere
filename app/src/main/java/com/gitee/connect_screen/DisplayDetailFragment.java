@@ -1,10 +1,12 @@
 package com.gitee.connect_screen;
 
-import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
@@ -14,19 +16,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.view.WindowManager;
-import android.view.WindowManager.LayoutParams;
-import android.graphics.PixelFormat;
-import android.widget.ImageView;
 
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.R;
 import rikka.shizuku.Shizuku;
-import android.os.UserHandle;
-import android.content.pm.PackageManager;
-import android.provider.Settings;
-import android.net.Uri;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -197,7 +190,6 @@ public class DisplayDetailFragment extends Fragment {
 
     private void checkOverlayPermission() {
         if (!Settings.canDrawOverlays(getContext())) {
-            // 如果没有悬浮窗权限请求权限
             Intent intent = new Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + getContext().getPackageName())
@@ -205,44 +197,9 @@ public class DisplayDetailFragment extends Fragment {
             startActivity(intent);
             showToast("请授予悬浮窗权限");
         } else {
-            showMouseCursor();
-            // 启动触控板活动
             Intent touchpadIntent = new Intent(getContext(), TouchpadActivity.class);
             touchpadIntent.putExtra("display_id", getArguments().getInt(ARG_DISPLAY_ID));
             startActivity(touchpadIntent);
-        }
-    }
-
-    private void showMouseCursor() {
-        int displayId = getArguments().getInt(ARG_DISPLAY_ID);
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        );
-        
-        params.x = 0;
-        params.y = 0;
-        
-        ImageView cursorView = new ImageView(getContext());
-        cursorView.setImageResource(R.drawable.mouse_cursor);
-        
-        DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
-        Display targetDisplay = displayManager.getDisplay(displayId);
-        
-        Context displayContext = getContext().createDisplayContext(targetDisplay);
-        WindowManager windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
-        
-        try {
-            windowManager.addView(cursorView, params);
-            showToast("已显示鼠标光标");
-        } catch (Exception e) {
-            showToast("显示鼠标光标失败");
-            State.log("显示鼠标光标失败: " + e.getMessage());
         }
     }
 }
