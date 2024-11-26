@@ -58,3 +58,10 @@
 - 本应用与Synaptics Incorporated没有任何官方关联，不代表或暗示与Synaptics Incorporated存在任何合作关系
 
 如有任何与DisplayLink®相关的法律问题，请直接联系Synaptics Incorporated：www.synaptics.com
+
+### 类似项目
+
+* https://github.com/timschneeb/awesome-shizuku
+* https://github.com/eiyooooo/Easycontrol_For_Car
+* https://github.com/AkiChase/scrcpy-mask/blob/master/README-zh.md
+* https://github.com/dkrivoruchko/ScreenStream

@@ -107,6 +107,10 @@ public class DisplayDetailFragment extends Fragment {
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
         Display display = displayManager.getDisplay(displayId);
 
+        if(display == null) {
+            return view;
+        }
+
         DisplayCutout cutout = display.getCutout();
         String cutoutInfo = "无凹口";
         if (cutout != null) {
