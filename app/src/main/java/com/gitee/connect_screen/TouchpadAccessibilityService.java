@@ -56,23 +56,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }, null);
     }
 
-    // 模拟滑动事件
-    public void performSwipe(int displayId, float startX, float startY, float endX, float endY, long duration) {
-        Path swipePath = new Path();
-        swipePath.moveTo(startX, startY);
-        swipePath.lineTo(endX, endY);
-        
-        GestureDescription.Builder builder = new GestureDescription.Builder();
-        builder.addStroke(new GestureDescription.StrokeDescription(swipePath, 0, duration));
-        
-        // 设置目标显示器
-        builder.setDisplayId(displayId);
-        
-        dispatchGesture(builder.build(), new GestureResultCallback() {
-            @Override
-            public void onCompleted(GestureDescription gestureDescription) {
-                super.onCompleted(gestureDescription);
-            }
-        }, null);
+    // 模拟返回手势
+    public void performBackGesture(int displayId) {
+        performClick(displayId, 0, 0);
+        performGlobalAction(GLOBAL_ACTION_BACK);
     }
 }

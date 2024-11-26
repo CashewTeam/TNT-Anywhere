@@ -1,5 +1,7 @@
 package com.gitee.connect_screen;
 
+import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -114,6 +116,12 @@ public class TouchpadActivity extends AppCompatActivity {
         goDarkButton.setOnClickListener(v -> {
             initDarkOverlay();
         });
+        
+        // 添加返回按钮的点击监听器
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> {
+            performBackGesture();
+        });
     }
 
     // 新增显示光标方法
@@ -216,6 +224,11 @@ public class TouchpadActivity extends AppCompatActivity {
             Log.e(TAG, "添加暗色遮罩失败: " + e.getMessage());
             Toast.makeText(this, "无法启用暗色模式", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // 添加执行返回手势的方法
+    private void performBackGesture() {
+        accessibilityService.performBackGesture(displayId);
     }
 
     @Override

@@ -44,6 +44,15 @@
             android:background="?attr/selectableItemBackgroundBorderless" />
 
         <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/back_button"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <ImageButton
             android:id="@+id/goDarkButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
