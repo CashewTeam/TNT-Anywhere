@@ -46,7 +46,9 @@
             android:layout_weight="1"
             android:layout_margin="16dp"
             android:padding="16dp"
-            android:background="@drawable/touchpad_background" />
+            android:background="@drawable/touchpad_background"
+            android:clickable="true"
+            android:focusable="true" />
 
         <!-- 底部功能按钮区域 -->
         <LinearLayout

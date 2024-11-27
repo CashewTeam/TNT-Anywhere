@@ -12,9 +12,27 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.LinkedList;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
+    
+    private final Queue<ScrollRequest> scrollQueue = new LinkedList<>();
+    private boolean isScrolling = false;
+    private static final int SCROLL_DURATION = 50;
+
+    private static class ScrollRequest {
+        final int displayId;
+        final float x;
+        final float deltaY;
+
+        ScrollRequest(int displayId, float x, float deltaY) {
+            this.displayId = displayId;
+            this.x = x;
+            this.deltaY = deltaY;
+        }
+    }
     
     @Override
     protected void onServiceConnected() {
@@ -146,5 +164,65 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         } else {
             android.util.Log.d("AccessibilityService", "未找到显示器 " + displayId + " 上的窗口");
         }
+    }
+
+    // 修改后的滚动方法，接收增量值
+    public void performScroll(int displayId, float x, float deltaY) {
+        android.util.Log.d("AccessibilityService", 
+            String.format("添加滚动请求 - x: %.1f, deltaY: %.1f", x, deltaY));
+        
+        scrollQueue.offer(new ScrollRequest(displayId, x, deltaY));
+        
+        if (!isScrolling) {
+            processNextScroll();
+        }
+    }
+
+    private void processNextScroll() {
+        ScrollRequest request = scrollQueue.poll();
+        if (request == null) {
+            isScrolling = false;
+            return;
+        }
+
+        isScrolling = true;
+        float startY = 500; // 固定起始点在屏幕中间位置
+        float endY = startY + request.deltaY;
+
+        Path scrollPath = new Path();
+        scrollPath.moveTo(request.x, startY);
+        scrollPath.lineTo(request.x, endY);
+
+        GestureDescription.Builder builder = new GestureDescription.Builder();
+        // 修改手势描述，使用较长的按压时间
+        builder.addStroke(new GestureDescription.StrokeDescription(
+            scrollPath, 
+            0,                    // 开始时间
+            SCROLL_DURATION,      // 持续时间
+            true                  // 按压结束时不立即松开
+        ));
+        builder.setDisplayId(request.displayId);
+
+        dispatchGesture(builder.build(), new GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                super.onCompleted(gestureDescription);
+                android.util.Log.d("AccessibilityService", "滚动手势执行完成");
+                processNextScroll(); // 处理队列中的下一个滚动请求
+            }
+
+            @Override
+            public void onCancelled(GestureDescription gestureDescription) {
+                super.onCancelled(gestureDescription);
+                android.util.Log.d("AccessibilityService", "滚动手势被取消");
+                isScrolling = false;
+            }
+        }, null);
+    }
+
+    public void cancelScroll() {
+        android.util.Log.d("AccessibilityService", "取消所有滚动请求");
+        scrollQueue.clear();
+        isScrolling = false;
     }
 }

@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Display;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -43,6 +44,7 @@ public class TouchpadActivity extends AppCompatActivity {
     private TouchpadAccessibilityService accessibilityService;
     private ImageView darkOverlayImage;
     private boolean isDarkMode = false;
+    private GestureDetector gestureDetector;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,49 +92,51 @@ public class TouchpadActivity extends AppCompatActivity {
         
         touchpadArea = findViewById(R.id.touchpad_area);
         
-        // 设置触控板的触摸事件监听
-        touchpadArea.setOnTouchListener(new View.OnTouchListener() {
+        // 初始化手势检测器
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchDownTime = System.currentTimeMillis();
-                        isMoved = false;
-                        lastX = event.getX();
-                        lastY = event.getY();
-                        return true;
-                        
-                    case MotionEvent.ACTION_MOVE:
-                        float currentX = event.getX();
-                        float currentY = event.getY();
-                        float deltaX = currentX - lastX;
-                        float deltaY = currentY - lastY;
-                        
-                        // 如果移动距离超过阈值，标记为已移动
-                        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-                            isMoved = true;
-                            updateCursorPosition(deltaX, deltaY);
-                            lastX = currentX;
-                            lastY = currentY;
-                        }
-                        return true;
-                        
-                    case MotionEvent.ACTION_UP:
-                        long touchUpTime = System.currentTimeMillis();
-                        // 检测快速点击（短时间内按下抬起且没有明显移动）
-                        if (!isMoved && (touchUpTime - touchDownTime) < CLICK_TIME_THRESHOLD) {
-                            performClick();
-                        }
-                        return true;
-                        
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        Log.d(TAG, "触控板: 多指触摸，手指数: " + event.getPointerCount());
-                        return true;
-                        
-                    default:
-                        return false;
+            public boolean onSingleTapUp(MotionEvent e) {
+                Log.d(TAG, "检测到单击手势");
+                performClick();
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                Log.d(TAG, "检测到滑动手势 - 手指数量: " + e2.getPointerCount() + 
+                    ", 距离: (" + distanceX + ", " + distanceY + ")");
+                
+                if (e2.getPointerCount() == 2) {
+                    // 双指滚动，直接传递增量值
+                    if (Math.abs(distanceY) > 5) {
+                        accessibilityService.performScroll(
+                            displayId,
+                            cursorX + halfWidth,  // 当前光标X坐标
+                            -distanceY * 2        // Y方向的增量
+                        );
+                    }
+                } else {
+                    // 单指移动光标
+                    Log.d(TAG, "移动光标 - 偏移量: (" + (-distanceX) + ", " + (-distanceY) + ")");
+                    updateCursorPosition(-distanceX, -distanceY);
+                }
+                return true;
+            }
+        });
+
+        // 替换触控板的触摸事件监听
+        touchpadArea.setOnTouchListener((v, event) -> {
+            boolean handled = gestureDetector.onTouchEvent(event);
+            
+            // 处理手势结束
+            if (event.getAction() == MotionEvent.ACTION_UP || 
+                event.getAction() == MotionEvent.ACTION_CANCEL) {
+                Log.d(TAG, "触摸事件结束");
+                if (accessibilityService != null) {
+                    accessibilityService.cancelScroll();
                 }
             }
+            return handled;
         });
         
         accessibilityService = TouchpadAccessibilityService.getInstance();
