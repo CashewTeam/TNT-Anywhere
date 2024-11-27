@@ -12,6 +12,7 @@
 
 ### 自媒体账号
 
+* 用户手册：[https://connect-screen.com/](https://connect-screen.com/)
 * 小红书：[安卓屏连](https://www.xiaohongshu.com/user/profile/602cc4c0000000000100be64)
 * b站：[安卓屏连](https://space.bilibili.com/494726825)
 * 抖音：[安卓屏连](https://www.douyin.com/user/MS4wLjABAAAAolJRQWuFI6KZwaBUvPfzDejygnorK2K-CY_6b1OuWQM)
@@ -20,33 +21,6 @@
 ### 安装方式
 
 通过 QQ 加入群聊 577902537 获取 android apk 安装包
-
-### TODO
-
-* [ ] usb2 手机通过 displaylink 接显示器双屏镜像
-  * [x] 基础的双屏镜像
-  * [x] 横屏裁切到 16:9
-  * [ ] 手机竖屏，显示器旋转成横屏
-  * [ ] 检测到横屏左右黑边，自动裁切
-  * [ ] 触摸屏通过无障碍api转发
-* [ ] usb2 手机通过 displaylink 接显示器双屏异显
-  * [ ] 悬浮到应用上，提供按钮推到显示器
-  * [ ] 推过的应用保存到启动器列表
-  * [ ] 竖屏应用旋转成横屏展示
-  * [ ] 触摸屏通过adb转发
-  * [ ] 手柄通过adb转发
-  * [ ] 键盘通过adb转发
-  * [ ] 鼠标通过adb转发
-* [x] usb3 手机通过 typec 接显示器双屏镜像：镜像模式没有什么可以做的
-* [ ] usb3 手机通过 typec 接显示器双屏异显
-* [ ] usb3 手机通过 typec 接ar眼镜
-* [ ] 手机通过 scrcpy 有线投屏到pc
-* [ ] 手机通过 scrcpy 无线投屏到pc
-* [ ] 手机通过 scrcpy 有线投屏到安卓平板
-* [ ] 手机通过 scrcpy 无线投屏到安卓平板
-* [ ] 手机通过 scrcpy 无线投屏到ipad
-* [ ] 手机通过有线串流投屏到浏览器
-* [ ] 手机通过无线串流投屏到浏览器
 
 ### 本应用不是 DisplayLink 官方应用
 
