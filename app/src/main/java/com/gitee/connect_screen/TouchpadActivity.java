@@ -165,6 +165,16 @@ public class TouchpadActivity extends AppCompatActivity {
                 v.getContext().startActivity(launchIntent, options.toBundle());
             }
         });
+
+        // 添加退出按钮的点击监听器
+        findViewById(R.id.exitButton).setOnClickListener(v -> {
+            finish(); // 结束当前Activity，返回上一级
+        });
+
+        // 添加帮助按钮的点击监听器
+        findViewById(R.id.helpButton).setOnClickListener(v -> {
+            showHelpDialog();
+        });
     }
 
     // 新增显示光标方法
@@ -247,6 +257,23 @@ public class TouchpadActivity extends AppCompatActivity {
     private void toggleDarkMode() {
         isDarkMode = !isDarkMode;
         darkOverlayImage.setVisibility(isDarkMode ? View.VISIBLE : View.GONE);
+    }
+
+    // 添加显示帮助对话框的方法
+    private void showHelpDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("触控板使用帮助")
+            .setMessage(
+                "• 单指轻触 - 点击\n" +
+                "• 单指滑动 - 移动光标\n" +
+                "• 双指滑动 - 滚动页面\n" +
+                "• 返回按钮 - 在目标屏幕上按返回\n" +
+                "• 主页按钮 - 再次打开列表中选择的应用\n" +
+                "• 暗色按钮 - 纯黑色屏幕省电\n" +
+                "• 退出按钮 - 退出触控板"
+            )
+            .setPositiveButton("知道了", null)
+            .show();
     }
 
     @Override
