@@ -60,49 +60,84 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }, null);
     }
 
-    // 修改返回手势方法
-    public void performBackGesture(int displayId) {
-        // 打印所有显示器上的窗口信息
-        SparseArray<List<AccessibilityWindowInfo>> windows = getWindowsOnAllDisplays();
-        android.util.Log.d("AccessibilityService", "Total windows found: " + windows.size());
-
-        for (int i = 0; i < windows.size(); i++) {
-            List<AccessibilityWindowInfo> windowsList = windows.valueAt(i);
-            for (AccessibilityWindowInfo window : windowsList) {
-                android.util.Log.d("AccessibilityService", 
-                    "Window Info - Display ID: " + window.getDisplayId() + 
-                    ", Type: " + window.getType() + 
-                    ", Layer: " + window.getLayer());
+    // 添加新的辅助方法来查找可获取焦点的节点
+    private AccessibilityNodeInfo findFocusableNode(AccessibilityNodeInfo root) {
+        if (root == null) return null;
+        
+        // 检查当前节点是否可以获取焦点
+        if (root.isFocusable()) {
+            return root;
+        }
+        
+        // 递归检查子节点
+        for (int i = 0; i < root.getChildCount(); i++) {
+            AccessibilityNodeInfo child = root.getChild(i);
+            if (child != null) {
+                AccessibilityNodeInfo focusableNode = findFocusableNode(child);
+                if (focusableNode != null) {
+                    child.recycle();
+                    return focusableNode;
+                }
+                child.recycle();
             }
         }
+        
+        return null;
+    }
 
-        // 使用 getRootInActiveWindow() 获取活动窗口
-        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
-        if (rootInActiveWindow != null) {
-            try {
-                // 记录当前窗口信息
-                android.util.Log.d("AccessibilityService", 
-                    "Active Window - Package: " + rootInActiveWindow.getPackageName() + 
-                    " Class: " + rootInActiveWindow.getClassName());
+    // 修改 performBackGesture 方法中的相关部分
+    public void performBackGesture(int displayId) {
+        android.util.Log.d("AccessibilityService", "开始执行返回手势，显示器ID: " + displayId);
+        
+        // 获取指定显示器上的窗口
+        SparseArray<List<AccessibilityWindowInfo>> windows = getWindowsOnAllDisplays();
+        List<AccessibilityWindowInfo> targetDisplayWindows = windows.get(displayId);
+        android.util.Log.d("AccessibilityService", "获取到窗口列表: " + (targetDisplayWindows != null ? targetDisplayWindows.size() : 0) + "个窗口");
+        
+        if (targetDisplayWindows != null && !targetDisplayWindows.isEmpty()) {
+            // 找到目标显示器上最上层的窗口
+            AccessibilityWindowInfo topWindow = null;
+            int topLayer = -1;
+            
+            for (AccessibilityWindowInfo window : targetDisplayWindows) {
+                if (window.getLayer() > topLayer) {
+                    topLayer = window.getLayer();
+                    topWindow = window;
+                }
+            }
+            android.util.Log.d("AccessibilityService", "找到最上层窗口，层级: " + topLayer);
+            
+            if (topWindow != null) {
+                // 获取并聚焦窗口的根节点
+                AccessibilityNodeInfo rootNode = topWindow.getRoot();
+                android.util.Log.d("AccessibilityService", "获取根节点: " + (rootNode != null ? "成功" : "失败"));
                 
-                // 尝试查找可聚焦的节点
-                List<AccessibilityNodeInfo> focusableNodes = rootInActiveWindow.findAccessibilityNodeInfosByViewId("android:id/content");
-                for (AccessibilityNodeInfo node : focusableNodes) {
-                    if (node.isFocusable()) {
-                        // 尝试设置焦点
-                        boolean focusResult = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                        android.util.Log.d("AccessibilityService", "Focus attempt result: " + focusResult);
-                        node.recycle();
+                if (rootNode != null) {
+                    try {
+                        // 查找可获取焦点的节点
+                        AccessibilityNodeInfo focusableNode = findFocusableNode(rootNode);
+                        android.util.Log.d("AccessibilityService", "查找可获取焦点的节点: " + 
+                            (focusableNode != null ? "成功" : "失败"));
+                        
+                        if (focusableNode != null) {
+                            boolean focusResult = focusableNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                            android.util.Log.d("AccessibilityService", "设置焦点: " + 
+                                (focusResult ? "成功" : "失败"));
+                            focusableNode.recycle();
+                        }
+                        
+                        // 执行返回操作
+                        boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
+                        android.util.Log.d("AccessibilityService", "执行返回操作: " + 
+                            (backResult ? "成功" : "失败"));
+                    } finally {
+                        rootNode.recycle();
+                        android.util.Log.d("AccessibilityService", "回收根节点");
                     }
                 }
-                
-                // 执行返回操作
-                performGlobalAction(GLOBAL_ACTION_BACK);
-            } finally {
-                rootInActiveWindow.recycle();
             }
         } else {
-            android.util.Log.d("AccessibilityService", "No active window found");
+            android.util.Log.d("AccessibilityService", "未找到显示器 " + displayId + " 上的窗口");
         }
     }
 }
