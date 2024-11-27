@@ -22,6 +22,7 @@ public class State {
     public static List<String> logs = new ArrayList<>();
     public static Map<String, UsbState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
+    public static String lastPackageName;
 
     public static boolean isJobRunning() {
         return currentJob != null;

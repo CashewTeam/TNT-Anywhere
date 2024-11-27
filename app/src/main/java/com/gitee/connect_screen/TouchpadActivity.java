@@ -2,10 +2,12 @@ package com.gitee.connect_screen;
 
 import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK;
 
+import android.app.ActivityOptions;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
@@ -146,6 +148,22 @@ public class TouchpadActivity extends AppCompatActivity {
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> {
             performBackGesture();
+        });
+
+        // 添加Home按钮的点击监听器
+        ImageButton homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(v -> {
+            if (State.lastPackageName == null) {
+                return;
+            }
+            PackageManager pm = getPackageManager();
+            Intent launchIntent = pm.getLaunchIntentForPackage(State.lastPackageName);
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setLaunchDisplayId(displayId);
+                v.getContext().startActivity(launchIntent, options.toBundle());
+            }
         });
     }
 

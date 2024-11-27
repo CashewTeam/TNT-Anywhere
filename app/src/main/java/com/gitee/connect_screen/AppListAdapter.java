@@ -63,13 +63,13 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.text2.setText(app.packageName);
         
         holder.btnLaunch.setOnClickListener(v -> {
+            State.lastPackageName = app.packageName;
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);
             if (launchIntent != null) {
                 sharedPreferences.edit()
                     .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                     .apply();
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
                 ActivityOptions options = ActivityOptions.makeBasic();
                 options.setLaunchDisplayId(targetDisplayId);
                 v.getContext().startActivity(launchIntent, options.toBundle());
