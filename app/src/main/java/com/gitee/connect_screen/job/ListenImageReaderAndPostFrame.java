@@ -54,10 +54,12 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
 
-        usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
+        usbState.createdVirtualDisplay(
+            State.mediaProjection.createVirtualDisplay("DisplayLink",
                 targetWidth, height, dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                surface, null, null);
+                surface, null, null)
+        );
     }
 
     @Override

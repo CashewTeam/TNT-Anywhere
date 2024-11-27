@@ -20,12 +20,15 @@ import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 
 import rikka.shizuku.Shizuku;
+import android.graphics.Color;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
     private static final int SHIZUKU_PERMISSION_REQUEST_CODE = 1001;
     
     private TextView shizukuStatusText;
+    private Button launchButton;
+    private int displayId;
     
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -80,7 +83,10 @@ public class DisplayDetailFragment extends Fragment {
             } else {
                 showToast("Shizuku 权限被拒绝");
             }
-            updateShizukuStatus();
+            // 只在Fragment附加到Activity且View已创建时更新状态
+            if (isAdded() && getView() != null) {
+                updateShizukuStatus();
+            }
         }
     }
 
@@ -103,7 +109,7 @@ public class DisplayDetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_display_detail, container, false);
         
-        int displayId = getArguments().getInt(ARG_DISPLAY_ID);
+        displayId = getArguments().getInt(ARG_DISPLAY_ID);
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
         Display display = displayManager.getDisplay(displayId);
 
@@ -150,7 +156,6 @@ public class DisplayDetailFragment extends Fragment {
         detailText.setText(details);
 
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
-        updateShizukuStatus();
         
         Button requestPermissionButton = view.findViewById(R.id.request_shizuku_permission);
         requestPermissionButton.setOnClickListener(v -> {
@@ -166,8 +171,12 @@ public class DisplayDetailFragment extends Fragment {
             }
         });
 
-        Button launchButton = view.findViewById(R.id.start_launcher_button);
+        launchButton = view.findViewById(R.id.start_launcher_button);
         launchButton.setOnClickListener(v -> {
+            if (isVirtualDisplay() && !hasShizukuPermission()) {
+                showToast("请先获取Shizuku权限");
+                return;
+            }
             Intent intent = new Intent(getContext(), LauncherActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
@@ -179,10 +188,16 @@ public class DisplayDetailFragment extends Fragment {
             checkOverlayPermission();
         });
 
+        updateShizukuStatus();
         return view;
     }
 
     private void updateShizukuStatus() {
+        // 添加空值检查
+        if (shizukuStatusText == null) {
+            return;
+        }
+        
         try {
             boolean hasPermission = Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
             shizukuStatusText.setText("Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权"));
@@ -190,6 +205,7 @@ public class DisplayDetailFragment extends Fragment {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
         }
+        updateLaunchButtonState();
     }
 
     private void checkOverlayPermission() {
@@ -237,5 +253,30 @@ public class DisplayDetailFragment extends Fragment {
             return enabledServices.contains(serviceName);
         }
         return false;
+    }
+
+    private void updateLaunchButtonState() {
+        // 添加空值检查
+        if (launchButton == null) {
+            return;
+        }
+
+        if (isVirtualDisplay() && !hasShizukuPermission()) {
+            launchButton.setText("投屏单个应用（需要先shizuku授权）");
+            launchButton.setEnabled(false);
+            launchButton.setTextColor(Color.GRAY);
+        } else {
+            launchButton.setText("投屏单个应用");
+            launchButton.setEnabled(true);
+            launchButton.setTextColor(Color.BLACK);
+        }
+    }
+
+    private boolean isVirtualDisplay() {
+        return State.virtualDisplayIds.contains(displayId);
+    }
+
+    private boolean hasShizukuPermission() {
+        return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
     }
 }

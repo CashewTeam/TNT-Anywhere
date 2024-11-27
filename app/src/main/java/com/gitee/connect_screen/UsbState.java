@@ -22,7 +22,7 @@ public class UsbState {
     public long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
-    public VirtualDisplay virtualDisplay;
+    private VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
     public volatile int frameCounter = 0;
@@ -66,7 +66,21 @@ public class UsbState {
         }
     }
 
+    public void createdVirtualDisplay(VirtualDisplay virtualDisplay) {
+        this.virtualDisplay = virtualDisplay;
+        State.virtualDisplayIds.add(virtualDisplay.getDisplay().getDisplayId());
+    }   
+
+    public VirtualDisplay getVirtualDisplay() {
+        return virtualDisplay;
+    }   
+
     public void stopVirtualDisplay() {
+        if (virtualDisplay != null) {
+            State.virtualDisplayIds.remove(virtualDisplay.getDisplay().getDisplayId());
+        }
+        stopHandlerThread();
+        stopImageReader();
         if (virtualDisplay != null) {
             virtualDisplay.release();
             virtualDisplay = null;
@@ -74,8 +88,6 @@ public class UsbState {
     }
 
     public void destroy() {
-        stopHandlerThread();
-        stopImageReader();
         stopVirtualDisplay();
         if (nativeDriver != null) { 
             nativeDriver.destroy();

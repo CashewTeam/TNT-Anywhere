@@ -115,8 +115,6 @@ public class MirrorViaDisplaylink implements Job {
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
-        usbState.stopHandlerThread();
-        usbState.stopImageReader();
         usbState.stopVirtualDisplay();
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -130,7 +128,7 @@ public class MirrorViaDisplaylink implements Job {
     }
 
     private void createVirtualDisplay(Context context, UsbState usbState) {
-        if (usbState.virtualDisplay != null) {
+        if (usbState.getVirtualDisplay() != null) {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }

@@ -10,8 +10,10 @@ import com.gitee.connect_screen.job.YieldException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
@@ -23,6 +25,7 @@ public class State {
     public static Map<String, UsbState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
     public static String lastPackageName;
+    public static Set<Integer> virtualDisplayIds = new HashSet<>();
 
     public static boolean isJobRunning() {
         return currentJob != null;

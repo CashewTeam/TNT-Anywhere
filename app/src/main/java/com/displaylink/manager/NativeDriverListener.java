@@ -32,8 +32,6 @@ public class NativeDriverListener {
                 State.log("Display已断开, 关闭 usb 对应的状态");
                 usbState.encoderId = 0;
                 usbState.monitorInfo = null;
-                usbState.stopHandlerThread();
-                usbState.stopImageReader();
                 usbState.stopVirtualDisplay();
                 State.resumeJob();
             }
@@ -53,7 +51,7 @@ public class NativeDriverListener {
         State.currentActivity.get().runOnUiThread(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
             UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState != null && usbState.virtualDisplay == null) {
+            if (usbState != null && usbState.getVirtualDisplay() == null) {
                 usbState.encoderId = encoderId;
                 usbState.monitorInfo = monitorInfo;
                 if (State.isJobRunning()) {

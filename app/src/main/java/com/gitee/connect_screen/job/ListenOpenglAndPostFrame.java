@@ -148,10 +148,12 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             };
             surfaceTexture.setOnFrameAvailableListener(this);
             this.surface = new Surface(surfaceTexture);
-            usbState.virtualDisplay = State.mediaProjection.createVirtualDisplay("DisplayLink",
+            usbState.createdVirtualDisplay(
+                State.mediaProjection.createVirtualDisplay("DisplayLink",
                     targetWidth, height, dpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                    surface, null, null); // 使用 surfaceTexture 而不是 surface
+                    surface, null, null)
+            );
         } catch (Exception e) {
             // 清理资源
             if (eglSurface != null && eglSurface != EGL10.EGL_NO_SURFACE) {

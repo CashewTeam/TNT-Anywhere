@@ -103,8 +103,8 @@ public class DisplaylinkFragment extends Fragment {
                 displayWidthInput.setText("未连接");
                 displayHeightInput.setText("未连接");
             }
-            if (usbState.virtualDisplay != null) {
-                Display display = usbState.virtualDisplay.getDisplay();
+            if (usbState.getVirtualDisplay() != null) {
+                Display display = usbState.getVirtualDisplay().getDisplay();
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);
                 sb.append("虚拟显示器: ").append(display.getDisplayId()).append(", 宽: ").append(metrics.widthPixels).append(", 高: ").append(metrics.heightPixels).append("\n");
