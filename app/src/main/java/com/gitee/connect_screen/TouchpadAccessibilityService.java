@@ -10,6 +10,7 @@ import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.accessibility.AccessibilityNodeInfo;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
@@ -60,29 +61,23 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }, null);
     }
 
-    // 添加新的辅助方法来查找可获取焦点的节点
-    private AccessibilityNodeInfo findFocusableNode(AccessibilityNodeInfo root) {
-        if (root == null) return null;
+    // 修改 findFocusableNode 方法，返回所有可获取焦点的节点列表
+    private List<AccessibilityNodeInfo> findFocusableNodes(AccessibilityNodeInfo root, List<AccessibilityNodeInfo> results) {
+        if (root == null) return results;
         
-        // 检查当前节点是否可以获取焦点
         if (root.isFocusable()) {
-            return root;
+            results.add(root);
         }
         
-        // 递归检查子节点
         for (int i = 0; i < root.getChildCount(); i++) {
             AccessibilityNodeInfo child = root.getChild(i);
             if (child != null) {
-                AccessibilityNodeInfo focusableNode = findFocusableNode(child);
-                if (focusableNode != null) {
-                    child.recycle();
-                    return focusableNode;
-                }
+                findFocusableNodes(child, results);
                 child.recycle();
             }
         }
         
-        return null;
+        return results;
     }
 
     // 修改 performBackGesture 方法中的相关部分
@@ -114,22 +109,34 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 
                 if (rootNode != null) {
                     try {
-                        // 查找可获取焦点的节点
-                        AccessibilityNodeInfo focusableNode = findFocusableNode(rootNode);
-                        android.util.Log.d("AccessibilityService", "查找可获取焦点的节点: " + 
-                            (focusableNode != null ? "成功" : "失败"));
+                        // 获取所有可获取焦点的节点
+                        List<AccessibilityNodeInfo> focusableNodes = findFocusableNodes(rootNode, new ArrayList<>());
+                        android.util.Log.d("AccessibilityService", "找到 " + focusableNodes.size() + " 个可获取焦点的节点");
                         
-                        if (focusableNode != null) {
-                            boolean focusResult = focusableNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                            android.util.Log.d("AccessibilityService", "设置焦点: " + 
-                                (focusResult ? "成功" : "失败"));
-                            focusableNode.recycle();
+                        boolean focusSuccess = false;
+                        // 遍历所有可获取焦点的节点，直到成功设置焦点
+                        for (AccessibilityNodeInfo node : focusableNodes) {
+                            boolean focusResult = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                            android.util.Log.d("AccessibilityService", "尝试设置焦点: " + (focusResult ? "成功" : "失败"));
+                            
+                            if (focusResult) {
+                                focusSuccess = true;
+                                break;
+                            }
                         }
                         
-                        // 执行返回操作
-                        boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
-                        android.util.Log.d("AccessibilityService", "执行返回操作: " + 
-                            (backResult ? "成功" : "失败"));
+                        // 回收所有节点
+                        for (AccessibilityNodeInfo node : focusableNodes) {
+                            node.recycle();
+                        }
+                        
+                        if (focusSuccess) {
+                            // 执行返回操作
+                            boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
+                            android.util.Log.d("AccessibilityService", "执行返回操作: " + (backResult ? "成功" : "失败"));
+                        } else {
+                            android.util.Log.d("AccessibilityService", "所有节点都无法获取焦点");
+                        }
                     } finally {
                         rootNode.recycle();
                         android.util.Log.d("AccessibilityService", "回收根节点");
