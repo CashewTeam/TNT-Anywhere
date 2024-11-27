@@ -39,11 +39,35 @@ public class TouchpadActivity extends AppCompatActivity {
     private float halfWidth;
     private float halfHeight;
     private TouchpadAccessibilityService accessibilityService;
-    private View darkOverlay;
+    private ImageView darkOverlayImage;
+    private boolean isDarkMode = false;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+        
+        getWindow().setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        );
+        
+        Window window = getWindow();
+        window.setDecorFitsSystemWindows(false);
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams layoutParams = window.getAttributes();
+            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+            window.setAttributes(layoutParams);
+        }
+        
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+        
+        // 4. 最后设置内容视图
         setContentView(R.layout.activity_touchpad);
         
         // 获取目标显示器ID
@@ -111,11 +135,12 @@ public class TouchpadActivity extends AppCompatActivity {
         
         accessibilityService = TouchpadAccessibilityService.getInstance();
         
+        darkOverlayImage = findViewById(R.id.darkOverlayImage);
+        darkOverlayImage.setOnClickListener(v -> toggleDarkMode());
+        
         // 修改暗色模式按钮点击事件
         ImageButton goDarkButton = findViewById(R.id.goDarkButton);
-        goDarkButton.setOnClickListener(v -> {
-            initDarkOverlay();
-        });
+        goDarkButton.setOnClickListener(v -> toggleDarkMode());
         
         // 添加返回按钮的点击监听器
         ImageButton backButton = findViewById(R.id.backButton);
@@ -196,39 +221,14 @@ public class TouchpadActivity extends AppCompatActivity {
         }
     }
 
-    // 修改暗色遮罩的创建和初始化
-    private void initDarkOverlay() {
-        darkOverlay = new View(this);
-        darkOverlay.setBackgroundColor(Color.BLACK);
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        );
-        
-        darkOverlay.setOnClickListener(v -> {
-            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-            try {
-                windowManager.removeView(darkOverlay);
-            } catch (Exception e) {
-                Log.e(TAG, "移除暗色遮罩失败: " + e.getMessage());
-            }
-        });
-        
-        WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        try {
-            windowManager.addView(darkOverlay, params);
-        } catch (Exception e) {
-            Log.e(TAG, "添加暗色遮罩失败: " + e.getMessage());
-            Toast.makeText(this, "无法启用暗色模式", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     // 添加执行返回手势的方法
     private void performBackGesture() {
         accessibilityService.performBackGesture(displayId);
+    }
+
+    private void toggleDarkMode() {
+        isDarkMode = !isDarkMode;
+        darkOverlayImage.setVisibility(isDarkMode ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -238,12 +238,6 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null && cursorView.getWindowToken() != null) {
             WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
             windowManager.removeView(cursorView);
-        }
-        
-        // 确保移除暗色遮罩
-        if (darkOverlay != null && darkOverlay.getWindowToken() != null) {
-            WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-            windowManager.removeView(darkOverlay);
         }
     }
 }
