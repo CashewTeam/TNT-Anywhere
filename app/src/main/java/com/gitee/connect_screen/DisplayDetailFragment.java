@@ -205,12 +205,12 @@ public class DisplayDetailFragment extends Fragment {
         }
         
         // 检查无障碍服务权限并尝试启动服务
-        if (!isAccessibilityServiceEnabled()) {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            startActivity(intent);
-            showToast("请开启无障碍服务权限");
-            return;
-        }
+        // if (!isAccessibilityServiceEnabled()) {
+        //     Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        //     startActivity(intent);
+        //     showToast("请开启无障碍服务权限");
+        //     return;
+        // }
         
         // 启动无障碍服务
         Intent serviceIntent = new Intent(getContext(), TouchpadAccessibilityService.class);

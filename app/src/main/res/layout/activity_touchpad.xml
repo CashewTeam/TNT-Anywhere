@@ -20,42 +20,33 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:orientation="horizontal"
-        android:gravity="center">
-
-        <ImageButton
-            android:id="@+id/button1"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless" />
-
-        <ImageButton
-            android:id="@+id/button2"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless" />
-
-        <ImageButton
-            android:id="@+id/button3"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless" />
+        android:weightSum="3">
 
         <ImageButton
             android:id="@+id/backButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_weight="1"
             android:layout_margin="8dp"
             android:src="@drawable/ic_back"
             android:contentDescription="@string/back_button"
             android:background="?attr/selectableItemBackgroundBorderless" />
 
         <ImageButton
+            android:id="@+id/homeButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_home"
+            android:contentDescription="@string/home_button"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <ImageButton
             android:id="@+id/goDarkButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_weight="1"
             android:layout_margin="8dp"
             android:src="@drawable/ic_dark_mode"
             android:contentDescription="@string/go_dark_button"
