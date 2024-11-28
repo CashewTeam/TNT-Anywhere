@@ -1,5 +1,7 @@
 package com.gitee.connect_screen;
 
+import static com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher.SHIZUKU_PERMISSION_REQUEST_CODE;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -22,9 +24,10 @@ import androidx.fragment.app.Fragment;
 import rikka.shizuku.Shizuku;
 import android.graphics.Color;
 
+import com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher;
+
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
-    private static final int SHIZUKU_PERMISSION_REQUEST_CODE = 1001;
     
     private TextView shizukuStatusText;
     private Button launchButton;
@@ -54,23 +57,6 @@ public class DisplayDetailFragment extends Fragment {
         
         return flagsStr.length() > 0 ? flagsStr.toString() : "无";
     }
-    
-    private boolean checkShizukuPermission() {
-        try {
-            // 检查是否已经有权限
-            if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-                return true;
-            }
-            
-            // 请求权限
-            Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
-            return false;
-        } catch (Exception e) {
-            showToast("Shizuku 权限检查失败");
-            State.log("Shizuku 权限检查失败: " + e.getMessage());
-            return false;
-        }
-    }
 
     private void showToast(String message) {
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
@@ -78,15 +64,14 @@ public class DisplayDetailFragment extends Fragment {
     
     private void onRequestPermissionsResult(int requestCode, int grantResult) {
         if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
-            if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                showToast("已获得 Shizuku 权限");
-            } else {
-                showToast("Shizuku 权限被拒绝");
-            }
+            State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
             // 只在Fragment附加到Activity且View已创建时更新状态
             if (isAdded() && getView() != null) {
                 updateShizukuStatus();
+                State.resumeJob();
             }
+        } else {
+            State.log("未知 Shizuku 请求代码: " + requestCode);
         }
     }
 
@@ -156,31 +141,13 @@ public class DisplayDetailFragment extends Fragment {
         detailText.setText(details);
 
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
-        
-        Button requestPermissionButton = view.findViewById(R.id.request_shizuku_permission);
-        requestPermissionButton.setOnClickListener(v -> {
-            try {
-                if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-                    showToast("已经获得 Shizuku 权限");
-                } else {
-                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
-                }
-            } catch (Exception e) {
-                showToast("请求 Shizuku 权限失败");
-                State.log("请求 Shizuku 权限失败: " + e.getMessage());
-            }
-        });
 
         launchButton = view.findViewById(R.id.start_launcher_button);
+        if (isVirtualDisplay()) {
+            launchButton.setText("投屏单个应用（需要shizuku授权）");
+        }
         launchButton.setOnClickListener(v -> {
-            if (isVirtualDisplay() && !hasShizukuPermission()) {
-                showToast("请先获取Shizuku权限");
-                return;
-            }
-            Intent intent = new Intent(getContext(), LauncherActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-            getContext().startActivity(intent);
+            State.startNewJob(new AcquireShizukuAndStartLauncher(displayId));
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
@@ -197,7 +164,6 @@ public class DisplayDetailFragment extends Fragment {
         if (shizukuStatusText == null) {
             return;
         }
-        
         try {
             boolean hasPermission = Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
             shizukuStatusText.setText("Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权"));
@@ -205,7 +171,6 @@ public class DisplayDetailFragment extends Fragment {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
         }
-        updateLaunchButtonState();
     }
 
     private void checkOverlayPermission() {
@@ -253,23 +218,6 @@ public class DisplayDetailFragment extends Fragment {
             return enabledServices.contains(serviceName);
         }
         return false;
-    }
-
-    private void updateLaunchButtonState() {
-        // 添加空值检查
-        if (launchButton == null) {
-            return;
-        }
-
-        if (isVirtualDisplay() && !hasShizukuPermission()) {
-            launchButton.setText("投屏单个应用（需要先shizuku授权）");
-            launchButton.setEnabled(false);
-            launchButton.setTextColor(Color.GRAY);
-        } else {
-            launchButton.setText("投屏单个应用");
-            launchButton.setEnabled(true);
-            launchButton.setTextColor(Color.BLACK);
-        }
     }
 
     private boolean isVirtualDisplay() {
