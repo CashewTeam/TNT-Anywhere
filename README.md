@@ -33,9 +33,13 @@
 
 如有任何与DisplayLink®相关的法律问题，请直接联系Synaptics Incorporated：www.synaptics.com
 
-### 类似项目
+### 参考资料
 
 * https://github.com/timschneeb/awesome-shizuku
 * https://github.com/eiyooooo/Easycontrol_For_Car
 * https://github.com/AkiChase/scrcpy-mask/blob/master/README-zh.md
 * https://github.com/dkrivoruchko/ScreenStream
+* https://github.com/sdex/ActivityManager
+* https://github.com/farmerbb/SecondScreen
+* https://github.com/jiuqianyuan/gkd/blob/main/app/src/main/kotlin/li/songe/gkd/shizuku/UserService.kt
+* https://github.com/Live-Block/Flyme-FreeForm/blob/flyme/app/src/main/java/com/sunshine/freeform/ui/freeform/FreeformService.kt

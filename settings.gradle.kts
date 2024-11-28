@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Connect Screen"
 include(":app")
- 
+include(":hidden-api-stub")

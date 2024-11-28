@@ -10,8 +10,10 @@ import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
+import android.os.Build;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -21,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,6 +78,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                HiddenApiBypass.addHiddenApiExemptions("");
+                android.util.Log.i("MainActivity", "成功添加隐藏API豁免");
+            } catch (Exception e) {
+                android.util.Log.e("MainActivity", "添加隐藏API豁免失败: " + e.getMessage());
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -1,18 +1,19 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("dev.rikka.tools.refine")
 }
 
 android {
     namespace = "com.gitee.connect_screen"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.gitee.connect_screen"
         minSdk = 30
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 5
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,11 +57,14 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation(libs.androidx.window)
+    compileOnly(project(":hidden-api-stub"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("dev.rikka.tools.refine:runtime:4.4.0")
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
 }
 
 tasks.withType<JavaCompile> {
