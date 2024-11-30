@@ -180,10 +180,10 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void startTouchpad() {
-        if (ShizukuUtils.hasShizukuStarted()) {
-            State.startNewJob(new AcquireShizukuAndTouchPad());
-            return;
-        }
+        // if (ShizukuUtils.hasShizukuStarted()) {
+        //     State.startNewJob(new AcquireShizukuAndTouchPad());
+        //     return;
+        // }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(getContext())) {
             Intent intent = new Intent(

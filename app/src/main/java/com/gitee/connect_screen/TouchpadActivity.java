@@ -28,6 +28,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class TouchpadActivity extends AppCompatActivity {
     
+    public static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
+    public static final int INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT = 1;
+    public static final int INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH = 2;
     private View touchpadArea;
     private ImageView cursorView;
     private int displayId;

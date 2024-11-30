@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
+import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.view.WindowManager;
 import android.view.IWindowManager;
@@ -29,12 +30,14 @@ public class ServiceUtils {
     private static IActivityTaskManager activityTaskManager;
     private static IWindowManager windowManager;
     private static IDisplayManager displayManager;
+    private static IInputManager inputManager;
 
     public static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
         activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.ACTIVITY_SERVICE)));
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
         displayManager = IDisplayManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE)));
+        inputManager = IInputManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.INPUT_SERVICE)));
     }
 
     /**
@@ -111,5 +114,12 @@ public class ServiceUtils {
             initWithShizuku();
         }
         return displayManager;
+    }
+
+    public static IInputManager getInputManager() {
+        if (inputManager == null) {
+            initWithShizuku();
+        }
+        return inputManager;
     }
 }
