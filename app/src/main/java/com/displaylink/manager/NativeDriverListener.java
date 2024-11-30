@@ -51,14 +51,9 @@ public class NativeDriverListener {
         State.currentActivity.get().runOnUiThread(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
             UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState != null && usbState.getVirtualDisplay() == null) {
+            if (usbState != null) {
                 usbState.encoderId = encoderId;
                 usbState.monitorInfo = monitorInfo;
-                if (State.isJobRunning()) {
-                    State.resumeJob();
-                } else {
-                    State.startNewJob(new MirrorViaDisplaylink(usbState.device));
-                }
             }
         });
     }

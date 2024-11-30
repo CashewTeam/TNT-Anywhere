@@ -53,7 +53,9 @@ public class MirrorViaDisplaylink implements Job {
             return;
         }
         openUsbConnection(context, usbManager, usbState);
-        initializeNativeDriver(context, usbState);
+        if (!initializeNativeDriver(context, usbState)) {
+            return;
+        }
         if (!requestMediaProjectionPermission(context, usbState)) {
             return;
         }
@@ -88,7 +90,7 @@ public class MirrorViaDisplaylink implements Job {
         }
     }
 
-    private void initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
+    private boolean initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
         if (usbState.nativeDriver == null) {
             usbState.nativeDriver = new NativeDriver();
             usbState.nativeDriverListener = new NativeDriverListener(deviceName);
@@ -111,8 +113,10 @@ public class MirrorViaDisplaylink implements Job {
         }
 
         if (usbState.monitorInfo == null) {
-            throw new YieldException("未找到显示器信息, 等待连接ing");
+            State.log("未找到显示器信息, 请连接显示器之后重试");
+            return false;
         }
+        return true;
     }
 
     private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
