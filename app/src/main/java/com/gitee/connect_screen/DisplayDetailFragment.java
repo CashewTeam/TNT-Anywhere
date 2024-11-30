@@ -123,9 +123,6 @@ public class DisplayDetailFragment extends Fragment {
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
 
         launchButton = view.findViewById(R.id.start_launcher_button);
-        if (isVirtualDisplay()) {
-            launchButton.setText("投屏单个应用（需要shizuku授权）");
-        }
         launchButton.setOnClickListener(v -> {
             Context context = State.currentActivity.get();
             Intent intent = new Intent(context, LauncherActivity.class);
@@ -180,10 +177,10 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void startTouchpad() {
-        // if (ShizukuUtils.hasShizukuStarted()) {
-        //     State.startNewJob(new AcquireShizukuAndTouchPad());
-        //     return;
-        // }
+        if (ShizukuUtils.hasShizukuStarted()) {
+            State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
+            return;
+        }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(getContext())) {
             Intent intent = new Intent(
@@ -225,10 +222,6 @@ public class DisplayDetailFragment extends Fragment {
             return enabledServices.contains(serviceName);
         }
         return false;
-    }
-
-    private boolean isVirtualDisplay() {
-        return State.virtualDisplayIds.contains(displayId);
     }
 
     private void showResolutionDialog(int currentWidth, int currentHeight) {

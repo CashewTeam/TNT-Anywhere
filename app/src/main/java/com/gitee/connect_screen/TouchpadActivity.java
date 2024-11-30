@@ -10,13 +10,21 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.IInputManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
+import android.view.InputDevice;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
+import android.view.KeyEventHidden;
 import android.view.MotionEvent;
+import android.view.MotionEventHidden;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -25,6 +33,11 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
+
+import dev.rikka.tools.refine.Refine;
 
 public class TouchpadActivity extends AppCompatActivity {
     
@@ -48,6 +61,7 @@ public class TouchpadActivity extends AppCompatActivity {
     private ImageView darkOverlayImage;
     private boolean isDarkMode = false;
     private GestureDetector gestureDetector;
+    private IInputManager inputManager;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,19 +94,23 @@ public class TouchpadActivity extends AppCompatActivity {
         // 获取目标显示器ID
         displayId = getIntent().getIntExtra("display_id", Display.DEFAULT_DISPLAY);
         
-        // 计算屏幕尺寸
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        Display targetDisplay = displayManager.getDisplay(displayId);
-        android.graphics.Point size = new android.graphics.Point();
-        targetDisplay.getSize(size);
-        
-        // 计算屏幕边界（以屏幕中心为原点）
-        halfWidth = size.x / 2.0f;
-        halfHeight = size.y / 2.0f;
-        
-        // 显示光标
-        showMouseCursor();
-        
+        if (ShizukuUtils.hasPermission()) {
+            inputManager = ServiceUtils.getInputManager();
+        } else {
+            // 计算屏幕尺寸
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            Display targetDisplay = displayManager.getDisplay(displayId);
+            android.graphics.Point size = new android.graphics.Point();
+            targetDisplay.getSize(size);
+
+            // 计算屏幕边界（以屏幕中心为原点）
+            halfWidth = size.x / 2.0f;
+            halfHeight = size.y / 2.0f;
+
+            // 显示光标
+            showMouseCursor();
+        }
+
         touchpadArea = findViewById(R.id.touchpad_area);
         
         // 初始化手势检测器
@@ -129,6 +147,13 @@ public class TouchpadActivity extends AppCompatActivity {
 
         // 替换触控板的触摸事件监听
         touchpadArea.setOnTouchListener((v, event) -> {
+            if (inputManager != null) {
+                event = translateMotionEvent(event);
+                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+                motionEventHidden.setDisplayId(displayId);
+                 inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
+                return true;
+            }
             boolean handled = gestureDetector.onTouchEvent(event);
             
             // 处理手势结束
@@ -154,6 +179,11 @@ public class TouchpadActivity extends AppCompatActivity {
         // 添加返回按钮的点击监听器
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> {
+            if (inputManager != null) {
+                injectKeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
+                injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
+                return;
+            }
             performBackGesture();
         });
 
@@ -182,6 +212,63 @@ public class TouchpadActivity extends AppCompatActivity {
         findViewById(R.id.helpButton).setOnClickListener(v -> {
             showHelpDialog();
         });
+    }
+
+    private void injectKeyEvent(int action, int keyCode, int repeat, int metaState, int injectMode) {
+        long now = SystemClock.uptimeMillis();
+        KeyEvent event = new KeyEvent(now, now, action, keyCode, repeat, metaState, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+                InputDevice.SOURCE_KEYBOARD);
+        KeyEventHidden eventHidden = Refine.unsafeCast(event);
+        eventHidden.setDisplayId(displayId);
+        inputManager.injectInputEvent(event, injectMode);
+    }
+
+    private MotionEvent translateMotionEvent(MotionEvent event) {
+        long now = android.os.SystemClock.uptimeMillis();
+        
+        // 根据原始事件的动作类型确定新的动作
+        int action = event.getAction();
+        int source = InputDevice.SOURCE_MOUSE | InputDevice.SOURCE_TOUCHSCREEN;
+        
+        // 创建鼠标事件的属性
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[1];
+        properties[0] = new MotionEvent.PointerProperties();
+        properties[0].id = 0;
+        properties[0].toolType = MotionEvent.TOOL_TYPE_MOUSE;
+        
+        // 创建鼠标事件的坐标
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[1];
+        coords[0] = new MotionEvent.PointerCoords();
+        
+        // 使用绝对坐标而不是相对坐标
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display display = displayManager.getDisplay(displayId);
+        Point size = new Point();
+        display.getRealSize(size);
+        
+        coords[0].x = event.getX() * size.x / touchpadArea.getWidth();
+        coords[0].y = event.getY() * size.y / touchpadArea.getHeight();
+        coords[0].pressure = 1.0f;
+        coords[0].size = 1.0f;
+        
+        // 设置鼠标按钮状态和标志
+        int buttonState = MotionEvent.BUTTON_PRIMARY; // 始终保持主按钮状态
+
+        return MotionEvent.obtain(
+            now, now,
+            action,
+            1,
+            properties,
+            coords,
+            0,
+            buttonState,
+            1.0f,
+            1.0f,
+            0,
+            0,
+            source,
+            0
+        );
     }
 
     // 新增显示光标方法
