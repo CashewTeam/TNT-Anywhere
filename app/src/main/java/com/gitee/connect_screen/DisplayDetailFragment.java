@@ -117,10 +117,15 @@ public class DisplayDetailFragment extends Fragment {
         display.getMetrics(metrics);
         
         TextView detailText = view.findViewById(R.id.detail_text);
+        TextView resolutionText = view.findViewById(R.id.resolution_text);
+        
+        // 设置分辨率文本
+        String resolution = String.format("分辨率: %dx%d", display.getWidth(), display.getHeight());
+        resolutionText.setText(resolution);
+        
         String details = String.format(
             "显示器 ID: %d\n" +
             "名称: %s\n" +
-            "分辨率: %dx%d\n" +
             "刷新率: %.1f Hz\n" +
             "DPI: %d\n" +
             "状态: %s\n" +
@@ -129,8 +134,6 @@ public class DisplayDetailFragment extends Fragment {
             "凹口信息: %s",
             display.getDisplayId(),
             display.getName(),
-            display.getWidth(),
-            display.getHeight(),
             display.getRefreshRate(),
             metrics.densityDpi,
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
@@ -153,6 +156,12 @@ public class DisplayDetailFragment extends Fragment {
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
         touchpadButton.setOnClickListener(v -> {
             checkOverlayPermission();
+        });
+
+        // 添加修改按钮点击事件
+        Button editResolutionButton = view.findViewById(R.id.edit_resolution_button);
+        editResolutionButton.setOnClickListener(v -> {
+            // TODO: 在这里添加修改分辨率的逻辑
         });
 
         updateShizukuStatus();

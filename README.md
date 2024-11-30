@@ -35,11 +35,19 @@
 
 ### 参考资料
 
-* https://github.com/timschneeb/awesome-shizuku
+* http://blog.nightmare.press:8080/
+* https://github.com/eiyooooo/Easycontrol
 * https://github.com/eiyooooo/Easycontrol_For_Car
+* https://github.com/timschneeb/awesome-shizuku
 * https://github.com/AkiChase/scrcpy-mask/blob/master/README-zh.md
 * https://github.com/dkrivoruchko/ScreenStream
 * https://github.com/sdex/ActivityManager
 * https://github.com/farmerbb/SecondScreen
 * https://github.com/jiuqianyuan/gkd/blob/main/app/src/main/kotlin/li/songe/gkd/shizuku/UserService.kt
 * https://github.com/Live-Block/Flyme-FreeForm/blob/flyme/app/src/main/java/com/sunshine/freeform/ui/freeform/FreeformService.kt
+* https://github.com/MagicianGuo/Android-SettingTools
+* https://github.com/jiesou/Android-Screener
+* https://www.reddit.com/r/AndroidQuestions/comments/xra3hu/is_there_a_technical_reason_there_are_no_miracast/
+* http://nightmare.press/
+* https://www.cnblogs.com/zuojie
+* https://github.com/itzuo/SceenLive/blob/master/app/src/main/java/com/zxj/screenlive/VideoCodec.java
