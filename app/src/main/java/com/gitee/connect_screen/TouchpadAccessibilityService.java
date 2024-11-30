@@ -38,11 +38,13 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        State.log("TouchpadAccessibilityService 已连接");
     }
     
     @Override
     public boolean onUnbind(Intent intent) {
         instance = null;
+        State.log("TouchpadAccessibilityService 已断开");
         return super.onUnbind(intent);
     }
     
@@ -98,10 +100,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         return results;
     }
 
-    // 修改 performBackGesture 方法中的相关部分
-    public void performBackGesture(int displayId) {
-        android.util.Log.d("AccessibilityService", "开始执行返回手势，显示器ID: " + displayId);
-        
+    public boolean setFocus(int displayId) {
         // 获取指定显示器上的窗口
         SparseArray<List<AccessibilityWindowInfo>> windows = getWindowsOnAllDisplays();
         List<AccessibilityWindowInfo> targetDisplayWindows = windows.get(displayId);
@@ -149,9 +148,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                         }
                         
                         if (focusSuccess) {
-                            // 执行返回操作
-                            boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
-                            android.util.Log.d("AccessibilityService", "执行返回操作: " + (backResult ? "成功" : "失败"));
+                            return true;
                         } else {
                             android.util.Log.d("AccessibilityService", "所有节点都无法获取焦点");
                         }
@@ -164,13 +161,23 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         } else {
             android.util.Log.d("AccessibilityService", "未找到显示器 " + displayId + " 上的窗口");
         }
+        return false;
+    }
+
+    // 修改 performBackGesture 方法中的相关部分
+    public void performBackGesture(int displayId) {
+        android.util.Log.d("AccessibilityService", "开始执行返回手势，显示器ID: " + displayId);
+        if (setFocus(displayId)) {
+            // 执行返回操作
+            boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
+            android.util.Log.d("AccessibilityService", "执行返回操作: " + (backResult ? "成功" : "失败"));
+        }
     }
 
     // 修改后的滚动方法，接收增量值
     public void performScroll(int displayId, float x, float deltaY) {
         android.util.Log.d("AccessibilityService", 
             String.format("添加滚动请求 - x: %.1f, deltaY: %.1f", x, deltaY));
-        
         scrollQueue.offer(new ScrollRequest(displayId, x, deltaY));
         
         if (!isScrolling) {
@@ -187,7 +194,17 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
         isScrolling = true;
         float startY = 500; // 固定起始点在屏幕中间位置
-        float endY = startY + request.deltaY;
+        float endY;
+        
+        // 确保路径始终是从上到下
+        if (request.deltaY > 0) {
+            // 向下滚动
+            endY = startY + request.deltaY;
+        } else {
+            // 向上滚动：交换起点和终点
+            endY = startY;
+            startY = endY - request.deltaY; // 减去负值相当于加上其绝对值
+        }
 
         Path scrollPath = new Path();
         scrollPath.moveTo(request.x, startY);

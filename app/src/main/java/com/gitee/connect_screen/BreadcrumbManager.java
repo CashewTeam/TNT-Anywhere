@@ -80,6 +80,9 @@ public class BreadcrumbManager {
 
     // 添加 refreshCurrentFragment 方法
     public void refreshCurrentFragment() {
+        if (State.currentActivity.get() == null) {
+            return;
+        }
         if (currentFragmentFactory != null) {
             // 回退一层
             fragmentManager.popBackStack();

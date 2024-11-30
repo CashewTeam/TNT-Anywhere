@@ -261,6 +261,10 @@ public class TouchpadActivity extends AppCompatActivity {
     private void toggleDarkMode() {
         isDarkMode = !isDarkMode;
         darkOverlayImage.setVisibility(isDarkMode ? View.VISIBLE : View.GONE);
+        if (cursorView != null) {
+            cursorView.setVisibility(isDarkMode ? View.GONE : View.VISIBLE);
+        }
+        accessibilityService.setFocus(displayId);
     }
 
     // 添加显示帮助对话框的方法

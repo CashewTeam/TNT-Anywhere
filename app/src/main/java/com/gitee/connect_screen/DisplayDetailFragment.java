@@ -207,13 +207,10 @@ public class DisplayDetailFragment extends Fragment {
         Intent serviceIntent = new Intent(getContext(), TouchpadAccessibilityService.class);
         getContext().startService(serviceIntent);
         
-        // 等待短暂时间确保服务启动
-        new android.os.Handler().postDelayed(() -> {
-            // 权限都具备且服务启动后启动触控板
-            Intent touchpadIntent = new Intent(getContext(), TouchpadActivity.class);
-            touchpadIntent.putExtra("display_id", getArguments().getInt(ARG_DISPLAY_ID));
-            startActivity(touchpadIntent);
-        }, 500); // 延迟500毫秒
+        // 权限都具备且服务启动后启动触控板
+        Intent touchpadIntent = new Intent(getContext(), TouchpadActivity.class);
+        touchpadIntent.putExtra("display_id", getArguments().getInt(ARG_DISPLAY_ID));
+        startActivity(touchpadIntent);
     }
 
     // 检查无障碍服务是否启用
