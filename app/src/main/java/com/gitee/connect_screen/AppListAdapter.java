@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.List;
 import java.util.HashMap;
@@ -75,7 +76,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
             sharedPreferences.edit()
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();
-            if (hasShizukuPermission()) {
+            if (ShizukuUtils.hasPermission()) {
                 launchAppWithShizuku(app.packageName, v.getContext());
             } else {
                 launchAppNormally(app.packageName, v.getContext());
@@ -96,10 +97,6 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
     @Override
     public int getItemCount() {
         return appList.size();
-    }
-
-    private boolean hasShizukuPermission() {
-        return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
     }
 
     private void launchAppWithShizuku(String packageName, Context context) {

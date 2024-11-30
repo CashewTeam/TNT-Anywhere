@@ -11,6 +11,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.IDisplayManager;
 import android.os.Build;
 import android.view.WindowManager;
 import android.view.IWindowManager;
@@ -23,19 +24,17 @@ import rikka.shizuku.SystemServiceHelper;
 
 import java.util.List;
 
-/**
- * @date 2021/2/1
- * 服务相关工具类
- */
 public class ServiceUtils {
     private static IActivityManager activityManager;
     private static IActivityTaskManager activityTaskManager;
     private static IWindowManager windowManager;
+    private static IDisplayManager displayManager;
 
     public static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
-        activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity")));
+        activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.ACTIVITY_SERVICE)));
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
+        displayManager = IDisplayManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE)));
     }
 
     /**
@@ -105,5 +104,12 @@ public class ServiceUtils {
             throw new IllegalStateException("ServiceUtils 未初始化，请先调用 initWithShizuku()");
         }
         return windowManager;
+    }
+
+    public static IDisplayManager getDisplayManager() {
+        if (displayManager == null) {
+            initWithShizuku();
+        }
+        return displayManager;
     }
 }

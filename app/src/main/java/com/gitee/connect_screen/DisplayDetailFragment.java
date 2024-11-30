@@ -254,10 +254,6 @@ public class DisplayDetailFragment extends Fragment {
         return State.virtualDisplayIds.contains(displayId);
     }
 
-    private boolean hasShizukuPermission() {
-        return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
-    }
-
     private void showResolutionDialog(int currentWidth, int currentHeight) {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_resolution, null);
         EditText widthInput = dialogView.findViewById(R.id.width_input);
