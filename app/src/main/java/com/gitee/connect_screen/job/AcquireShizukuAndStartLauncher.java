@@ -20,6 +20,7 @@ public class AcquireShizukuAndStartLauncher implements Job {
         this.displayId = displayId;
     }
 
+    @Override
     public void start() throws YieldException {
         if (State.virtualDisplayIds.contains(displayId)) {
             if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {

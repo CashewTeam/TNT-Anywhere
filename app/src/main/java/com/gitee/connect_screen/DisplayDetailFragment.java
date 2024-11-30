@@ -16,15 +16,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import rikka.shizuku.Shizuku;
 import android.graphics.Color;
 
 import com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher;
+import com.gitee.connect_screen.job.ChangeResolution;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -161,7 +164,7 @@ public class DisplayDetailFragment extends Fragment {
         // 添加修改按钮点击事件
         Button editResolutionButton = view.findViewById(R.id.edit_resolution_button);
         editResolutionButton.setOnClickListener(v -> {
-            // TODO: 在这里添加修改分辨率的逻辑
+            showResolutionDialog(display.getWidth(), display.getHeight());
         });
 
         updateShizukuStatus();
@@ -235,5 +238,35 @@ public class DisplayDetailFragment extends Fragment {
 
     private boolean hasShizukuPermission() {
         return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void showResolutionDialog(int currentWidth, int currentHeight) {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_resolution, null);
+        EditText widthInput = dialogView.findViewById(R.id.width_input);
+        EditText heightInput = dialogView.findViewById(R.id.height_input);
+        
+        // 设置当前分辨率作为默认值
+        widthInput.setText(String.valueOf(currentWidth));
+        heightInput.setText(String.valueOf(currentHeight));
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("修改分辨率")
+                .setView(dialogView)
+                .setPositiveButton("确定", (dialog, which) -> {
+                    try {
+                        int newWidth = Integer.parseInt(widthInput.getText().toString());
+                        int newHeight = Integer.parseInt(heightInput.getText().toString());
+                        
+                        if (newWidth <= 0 || newHeight <= 0) {
+                            showToast("请输入有效的分辨率");
+                            return;
+                        }
+                        State.startNewJob(new ChangeResolution(displayId, newWidth, newHeight));
+                    } catch (NumberFormatException e) {
+                        showToast("请输入有效的数字");
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 }
