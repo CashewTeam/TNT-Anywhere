@@ -10,10 +10,13 @@ import android.media.projection.MediaProjectionManager;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class MirrorViaDisplaylink implements Job {
+    private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean usbRequested = false;
     private boolean mediaProjectionRequested = false;
     private final String deviceName;
@@ -35,6 +38,15 @@ public class MirrorViaDisplaylink implements Job {
         if (usbState == null) {
             State.log("USB 设备 " + deviceName + " 状态不存在，跳过任务");
             return;
+        }
+
+        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            if (!ShizukuUtils.hasPermission()) {
+                acquireShizuku.start();
+                if (!acquireShizuku.acquired) {
+                    return;
+                }
+            }
         }
 
         if (!requestUsbPermission(context, usbManager, usbState.device)) {
@@ -104,28 +116,31 @@ public class MirrorViaDisplaylink implements Job {
     }
 
     private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
-        return true;
-        // if (State.mediaProjection != null) {
-        //     State.log("MediaProjection 已经存在，跳过重复请求");
-        //     return true;
-        // }
-        // if (mediaProjectionRequested) {
-        //     if (!State.hasService) {
-        //         throw new YieldException("等待服务启动");
-        //     }
-        //     State.log("因为未授予投屏权限，跳过任务");
-        //     return false;
-        // }
-        // usbState.stopVirtualDisplay();
-        // mediaProjectionRequested = true;
-        // MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        // if (mediaProjectionManager != null) {
-        //     Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-        //     State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-        //     throw new YieldException("等待用户投屏授权");
-        // } else {
-        //     throw new RuntimeException("无法获取 MediaProjectionManager 服务");
-        // }
+        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            usbState.stopVirtualDisplay();
+            return true;
+        }
+        if (State.mediaProjection != null) {
+            State.log("MediaProjection 已经存在，跳过重复请求");
+            return true;
+        }
+        if (mediaProjectionRequested) {
+            if (!State.hasService) {
+                throw new YieldException("等待服务启动");
+            }
+            State.log("因为未授予投屏权限，跳过任务");
+            return false;
+        }
+        usbState.stopVirtualDisplay();
+        mediaProjectionRequested = true;
+        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (mediaProjectionManager != null) {
+            Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            throw new YieldException("等待用户投屏授权");
+        } else {
+            throw new RuntimeException("无法获取 MediaProjectionManager 服务");
+        }
     }
 
     private void createVirtualDisplay(Context context, UsbState usbState) {

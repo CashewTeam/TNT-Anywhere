@@ -79,43 +79,48 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
-        IDisplayManager displayManager = ServiceUtils.getDisplayManager();
-        int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
-        | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
-        | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT
-        | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
-if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
-    flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
-            | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
-            | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
-            | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
-    if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
-        flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
-                | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
-    }
-}
-        VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
-            "DisplayLink",
-            targetWidth, height, dpi)
-            .setSurface(surface)
-            .setFlags(flags)
-            .build();
-        IVirtualDisplayCallback callback = new VirtualDisplayCallback();
-        int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
-        State.log("创建虚拟显示成功，displayId: " + displayId);
-        VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
-        usbState.createdVirtualDisplay(
-            virtualDisplay
-            // State.mediaProjection.createVirtualDisplay("DisplayLink",
-            //     targetWidth, height, dpi,
-            //     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-            //     surface, null, null)
-        );
-        Context context = State.currentActivity.get();
-        Intent intent = new Intent(context, LauncherActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-        context.startActivity(intent);
+        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            IDisplayManager displayManager = ServiceUtils.getDisplayManager();
+            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
+            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
+            | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT
+            | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
+            if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
+                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
+                        | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
+                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
+                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
+                if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+                    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
+                            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
+                }
+            }
+            VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
+                "DisplayLink",
+                targetWidth, height, dpi)
+                .setSurface(surface)
+                .setFlags(flags)
+                .build();
+            IVirtualDisplayCallback callback = new VirtualDisplayCallback();
+            int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
+            State.log("创建虚拟显示成功，displayId: " + displayId);
+            VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
+            usbState.createdVirtualDisplay(
+                virtualDisplay
+            );
+            Context context = State.currentActivity.get();
+            Intent intent = new Intent(context, LauncherActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+            context.startActivity(intent);
+        } else {
+            usbState.createdVirtualDisplay(
+                State.mediaProjection.createVirtualDisplay("DisplayLink",
+                    targetWidth, height, dpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                    surface, null, null)
+            );
+        }
     }
 
     @Override
