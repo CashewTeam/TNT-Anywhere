@@ -20,6 +20,7 @@ import android.view.Surface;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 
+import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
@@ -100,9 +101,9 @@ if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
             .setFlags(flags)
             .build();
         IVirtualDisplayCallback callback = new VirtualDisplayCallback();
-        int newDisplayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
-        State.log("创建虚拟显示成功，displayId: " + newDisplayId);
-        VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, newDisplayId);
+        int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
+        State.log("创建虚拟显示成功，displayId: " + displayId);
+        VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
         usbState.createdVirtualDisplay(
             virtualDisplay
             // State.mediaProjection.createVirtualDisplay("DisplayLink",
@@ -110,14 +111,11 @@ if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
             //     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
             //     surface, null, null)
         );
-        PackageManager packageManager = State.currentActivity.get().getPackageManager();
-        Intent launchIntent = packageManager.getLaunchIntentForPackage("com.microsoft.launcher");
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(newDisplayId);
-            State.currentActivity.get().startActivity(launchIntent, options.toBundle());
-        };
+        Context context = State.currentActivity.get();
+        Intent intent = new Intent(context, LauncherActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+        context.startActivity(intent);
     }
 
     @Override

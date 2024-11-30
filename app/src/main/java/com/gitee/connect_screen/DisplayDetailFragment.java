@@ -26,7 +26,6 @@ import rikka.shizuku.Shizuku;
 import android.graphics.Color;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
-import com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -155,7 +154,11 @@ public class DisplayDetailFragment extends Fragment {
             launchButton.setText("投屏单个应用（需要shizuku授权）");
         }
         launchButton.setOnClickListener(v -> {
-            State.startNewJob(new AcquireShizukuAndStartLauncher(displayId));
+            Context context = State.currentActivity.get();
+            Intent intent = new Intent(context, LauncherActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+            context.startActivity(intent);
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
