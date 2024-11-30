@@ -16,6 +16,14 @@
             android:textSize="16sp"
             android:lineSpacingExtra="8dp"/>
 
+        <TextView
+            android:id="@+id/shizuku_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textSize="16sp"/>
+            
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -35,13 +43,6 @@
                 android:layout_height="wrap_content"
                 android:text="修改"/>
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/shizuku_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textSize="16sp"/>
 
         <Button
             android:id="@+id/start_launcher_button"

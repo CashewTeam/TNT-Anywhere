@@ -104,7 +104,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
 
     private void launchAppWithShizuku(String packageName, Context context) {
         try {
-            ServiceUtils.initWithShizuku(context);
+            ServiceUtils.initWithShizuku();
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);

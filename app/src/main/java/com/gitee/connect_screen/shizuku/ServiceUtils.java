@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.view.WindowManager;
+import android.view.IWindowManager;
 
 import com.gitee.connect_screen.State;
 
@@ -29,18 +30,12 @@ import java.util.List;
 public class ServiceUtils {
     private static IActivityManager activityManager;
     private static IActivityTaskManager activityTaskManager;
-    private static DisplayManager displayManager;
-    private static WindowManager windowManager;
-    private static int currentUserId;
+    private static IWindowManager windowManager;
 
-    public static void initWithShizuku(Context context) {
+    public static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
         activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity")));
-        displayManager = context.getSystemService(DisplayManager.class);
-        windowManager = context.getSystemService(WindowManager.class);
-        ContextHidden contextHidden = Refine.unsafeCast(context);
-        currentUserId = contextHidden.getUserId();
-        State.log("currentUserId: " + currentUserId);
+        windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
     }
 
     /**
@@ -77,7 +72,7 @@ public class ServiceUtils {
             return activityManager.startActivityAsUserWithFeature(
                 null, "com.android.shell", null, intent,
                 intent.getType(), null, null, 0, 0,
-                null, options.toBundle(), currentUserId
+                null, options.toBundle(), 0
             );
         } catch (Exception e) {            
             State.log("failed to start activity: " + e.getMessage());
@@ -105,10 +100,10 @@ public class ServiceUtils {
         }
     }
 
-    public static int getCurrentUserId() {
-        if (activityManager == null) {
+    public static IWindowManager getWindowManager() {
+        if (windowManager == null) {
             throw new IllegalStateException("ServiceUtils 未初始化，请先调用 initWithShizuku()");
         }
-        return currentUserId;
+        return windowManager;
     }
 }

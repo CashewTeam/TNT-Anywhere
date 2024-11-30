@@ -1,10 +1,9 @@
 package com.gitee.connect_screen;
 
-import static com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher.SHIZUKU_PERMISSION_REQUEST_CODE;
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,8 +25,10 @@ import androidx.fragment.app.Fragment;
 import rikka.shizuku.Shizuku;
 import android.graphics.Color;
 
+import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher;
 import com.gitee.connect_screen.job.ChangeResolution;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -66,7 +67,7 @@ public class DisplayDetailFragment extends Fragment {
     }
     
     private void onRequestPermissionsResult(int requestCode, int grantResult) {
-        if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
+        if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
             State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
             // 只在Fragment附加到Activity且View已创建时更新状态
             if (isAdded() && getView() != null) {
@@ -178,7 +179,17 @@ public class DisplayDetailFragment extends Fragment {
         }
         try {
             boolean hasPermission = Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
-            shizukuStatusText.setText("Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权"));
+            String statusText = "Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权");
+            if (hasPermission) {
+                ServiceUtils.initWithShizuku();
+                Point baseSize = new Point();
+                ServiceUtils.getWindowManager().getBaseDisplaySize(displayId, baseSize);
+                statusText += String.format("\nOverride size: %dx%d", baseSize.x, baseSize.y);
+                Point initialSize = new Point();
+                ServiceUtils.getWindowManager().getInitialDisplaySize(displayId, initialSize);
+                statusText += String.format("\nPhysical size: %dx%d", initialSize.x, initialSize.y);
+            }
+            shizukuStatusText.setText(statusText);
         } catch(Exception e) {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
