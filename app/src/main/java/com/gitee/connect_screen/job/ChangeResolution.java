@@ -97,13 +97,4 @@ public class ChangeResolution implements Job {
         }
     }
 
-    public void cleanup() {
-        if (dialog != null && dialog.isShowing()) {
-            dialog.dismiss();
-        }
-        if (timeoutThread != null) {
-            timeoutThread.interrupt();
-        }
-    }
-
 }

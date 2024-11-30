@@ -26,6 +26,7 @@ import rikka.shizuku.Shizuku;
 import android.graphics.Color;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
+import com.gitee.connect_screen.job.AcquireShizukuAndTouchPad;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -65,35 +66,7 @@ public class DisplayDetailFragment extends Fragment {
     private void showToast(String message) {
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
     }
-    
-    private void onRequestPermissionsResult(int requestCode, int grantResult) {
-        if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
-            State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
-            // 只在Fragment附加到Activity且View已创建时更新状态
-            if (isAdded() && getView() != null) {
-                updateShizukuStatus();
-                State.resumeJob();
-            }
-        } else {
-            State.log("未知 Shizuku 请求代码: " + requestCode);
-        }
-    }
 
-    private final Shizuku.OnRequestPermissionResultListener REQUEST_PERMISSION_RESULT_LISTENER = 
-        this::onRequestPermissionsResult;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-    }
-    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_display_detail, container, false);
@@ -163,7 +136,7 @@ public class DisplayDetailFragment extends Fragment {
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
         touchpadButton.setOnClickListener(v -> {
-            checkOverlayPermission();
+            startTouchpad();
         });
 
         // 添加修改按钮点击事件
@@ -206,7 +179,11 @@ public class DisplayDetailFragment extends Fragment {
         }
     }
 
-    private void checkOverlayPermission() {
+    private void startTouchpad() {
+        if (ShizukuUtils.hasShizukuStarted()) {
+            State.startNewJob(new AcquireShizukuAndTouchPad());
+            return;
+        }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(getContext())) {
             Intent intent = new Intent(

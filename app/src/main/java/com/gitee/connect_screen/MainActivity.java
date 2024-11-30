@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
@@ -20,12 +21,15 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+
+import rikka.shizuku.Shizuku;
 
 public class MainActivity extends AppCompatActivity {
     public static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
@@ -79,6 +83,19 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    
+    private void onRequestPermissionsResult(int requestCode, int grantResult) {
+        if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
+            State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
+            State.resumeJob();
+        } else {
+            State.log("未知 Shizuku 请求代码: " + requestCode);
+        }
+    }
+
+    private final Shizuku.OnRequestPermissionResultListener REQUEST_PERMISSION_RESULT_LISTENER =
+        this::onRequestPermissionsResult;
+
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
@@ -95,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+
 
         // 移除默认的 ActionBar
         if (getSupportActionBar() != null) {
@@ -155,6 +174,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+
         State.currentActivity = null;
         unregisterReceiver(usbPermissionReceiver);
         unregisterReceiver(usbDetachedReceiver);
