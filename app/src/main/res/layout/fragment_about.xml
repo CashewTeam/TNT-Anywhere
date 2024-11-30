@@ -8,22 +8,30 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="软件使用方法请查看短视频平台介绍"
+        android:text="软件使用方法请查看短视频平台介绍或访问 connect-screen.com"
         android:textSize="16sp"
         android:textColor="@color/black"
         android:layout_marginBottom="16dp"/>
 
-        
     <TextView
         android:id="@+id/qqLink"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="最新版本：从QQ群 577902537 获取"
+        android:text="最新版本：从QQ群 “安卓屏连” 获取"
         android:textSize="16sp"
         android:textColor="@color/blue"
         android:layout_marginTop="16dp"
-        android:clickable="true"
-        android:autoLink="web"/>
+        android:clickable="true"/>
+
+    <TextView
+        android:id="@+id/websiteLink"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="官网：connect-screen.com"
+        android:textSize="16sp"
+        android:textColor="@color/blue"
+        android:layout_marginTop="16dp"
+        android:clickable="true"/>
 
     <TextView
         android:id="@+id/xiaohongshuLink"
@@ -68,6 +76,7 @@
         android:layout_marginTop="8dp"
         android:clickable="true"
         android:autoLink="web"/>
+
 
     <View
         android:layout_width="match_parent"

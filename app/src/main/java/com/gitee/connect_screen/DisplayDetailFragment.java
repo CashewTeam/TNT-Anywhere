@@ -29,6 +29,7 @@ import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.AcquireShizukuAndStartLauncher;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -164,21 +165,27 @@ public class DisplayDetailFragment extends Fragment {
 
         // 添加修改按钮点击事件
         Button editResolutionButton = view.findViewById(R.id.edit_resolution_button);
-        editResolutionButton.setOnClickListener(v -> {
-            showResolutionDialog(display.getWidth(), display.getHeight());
-        });
+        if(ShizukuUtils.hasShizukuStarted()) {
+            editResolutionButton.setVisibility(View.VISIBLE);
+            editResolutionButton.setOnClickListener(v -> {
+                showResolutionDialog(display.getWidth(), display.getHeight());
+            });
+        }
 
         updateShizukuStatus();
         return view;
     }
 
     private void updateShizukuStatus() {
-        // 添加空值检查
         if (shizukuStatusText == null) {
             return;
         }
+        if (!ShizukuUtils.hasShizukuStarted()) {
+            shizukuStatusText.setText("Shizuku权限状态: 未启动");
+            return;
+        }
         try {
-            boolean hasPermission = Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
+            boolean hasPermission = ShizukuUtils.hasPermission();
             String statusText = "Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权");
             if (hasPermission) {
                 ServiceUtils.initWithShizuku();

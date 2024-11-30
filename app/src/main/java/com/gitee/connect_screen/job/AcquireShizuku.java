@@ -3,6 +3,7 @@ package com.gitee.connect_screen.job;
 import android.content.pm.PackageManager;
 
 import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 
@@ -13,7 +14,10 @@ public class AcquireShizuku implements Job {
 
     @Override
     public void start() throws YieldException {
-        if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+        if (!ShizukuUtils.hasShizukuStarted()) {
+            return;
+        }
+        if (ShizukuUtils.hasPermission()) {
             State.log("已经获得 Shizuku 权限");
             acquired = true;
         } else {

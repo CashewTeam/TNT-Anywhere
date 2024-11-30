@@ -36,6 +36,9 @@ public class AboutFragment extends Fragment {
         TextView qqLink = view.findViewById(R.id.qqLink);
         qqLink.setOnClickListener(v -> joinQQGroup("577902537"));
 
+        TextView websiteLink = view.findViewById(R.id.websiteLink);
+        websiteLink.setOnClickListener(v -> openUrl("https://connect-screen.com"));
+
         return view;
     }
 
