@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK;
 
 import android.app.ActivityOptions;
+import android.app.IActivityTaskManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -37,6 +38,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import dev.rikka.tools.refine.Refine;
 
 public class TouchpadActivity extends AppCompatActivity {
@@ -47,14 +51,11 @@ public class TouchpadActivity extends AppCompatActivity {
     private View touchpadArea;
     private ImageView cursorView;
     private int displayId;
-    private float lastX, lastY;
     private static final String TAG = "TouchpadActivity";
     private float cursorX = 0;
     private float cursorY = 0;
     private WindowManager.LayoutParams cursorParams;
     private static final long CLICK_TIME_THRESHOLD = 200; // 毫秒
-    private long touchDownTime;
-    private boolean isMoved = false;
     private float halfWidth;
     private float halfHeight;
     private TouchpadAccessibilityService accessibilityService;
@@ -62,6 +63,16 @@ public class TouchpadActivity extends AppCompatActivity {
     private boolean isDarkMode = false;
     private GestureDetector gestureDetector;
     private IInputManager inputManager;
+    private GestureState gestureState = new GestureState();
+
+    private static class GestureState {
+        boolean isGestureInProgress = false;
+        boolean isMoveGesture = false;
+        List<MotionEvent> allMotionEvents = new ArrayList<>();
+        int lastReplayed = 0;
+        float initialTouchX = 0;
+        float initialTouchY = 0;
+    }
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,20 +107,19 @@ public class TouchpadActivity extends AppCompatActivity {
         
         if (ShizukuUtils.hasPermission()) {
             inputManager = ServiceUtils.getInputManager();
-        } else {
-            // 计算屏幕尺寸
-            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-            Display targetDisplay = displayManager.getDisplay(displayId);
-            android.graphics.Point size = new android.graphics.Point();
-            targetDisplay.getSize(size);
-
-            // 计算屏幕边界（以屏幕中心为原点）
-            halfWidth = size.x / 2.0f;
-            halfHeight = size.y / 2.0f;
-
-            // 显示光标
-            showMouseCursor();
         }
+        // 计算屏幕尺寸
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display targetDisplay = displayManager.getDisplay(displayId);
+        android.graphics.Point size = new android.graphics.Point();
+        targetDisplay.getSize(size);
+
+        // 计算屏幕边界（以屏幕中心为原点）
+        halfWidth = size.x / 2.0f;
+        halfHeight = size.y / 2.0f;
+
+        // 显示光标
+        showMouseCursor();
 
         touchpadArea = findViewById(R.id.touchpad_area);
         
@@ -117,16 +127,26 @@ public class TouchpadActivity extends AppCompatActivity {
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                Log.d(TAG, "检测到单击手势");
-                performClick();
-                return true;
+                if (inputManager == null) {
+                    Log.d(TAG, "检测到单击手势");
+                    performClick();
+                    return true;
+                }
+                return false;
             }
 
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                Log.d(TAG, "检测到滑动手势 - 手指数量: " + e2.getPointerCount() + 
-                    ", 距离: (" + distanceX + ", " + distanceY + ")");
-                
+                if (e2.getPointerCount() == 1) {
+                    // 单指移动光标
+                    gestureState.isMoveGesture = true;
+                    Log.d(TAG, "移动光标 - 偏移量: (" + (-distanceX) + ", " + (-distanceY) + ")");
+                    updateCursorPosition(-distanceX, -distanceY);
+                    return true;
+                }
+                if (inputManager != null) {
+                    return false;
+                }
                 if (e2.getPointerCount() == 2) {
                     // 双指滚动，直接传递增量值
                     if (Math.abs(distanceY) > 5) {
@@ -135,26 +155,23 @@ public class TouchpadActivity extends AppCompatActivity {
                             cursorX + halfWidth,  // 当前光标X坐标
                             -distanceY * 2        // Y方向的增量
                         );
+                        return true;
+                    } else {
+                        return false;
                     }
-                } else {
-                    // 单指移动光标
-                    Log.d(TAG, "移动光标 - 偏移量: (" + (-distanceX) + ", " + (-distanceY) + ")");
-                    updateCursorPosition(-distanceX, -distanceY);
                 }
-                return true;
+                return false;
             }
         });
 
         // 替换触控板的触摸事件监听
         touchpadArea.setOnTouchListener((v, event) -> {
-            if (inputManager != null) {
-                event = translateMotionEvent(event);
-                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-                motionEventHidden.setDisplayId(displayId);
-                 inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
-                return true;
-            }
+            gestureState.isGestureInProgress = true;
+            gestureState.allMotionEvents.add(event);
             boolean handled = gestureDetector.onTouchEvent(event);
+            if (!gestureState.isMoveGesture && gestureState.allMotionEvents.size() > 2) {
+                replayBufferedEvents();
+            }
             
             // 处理手势结束
             if (event.getAction() == MotionEvent.ACTION_UP || 
@@ -163,6 +180,13 @@ public class TouchpadActivity extends AppCompatActivity {
                 if (accessibilityService != null) {
                     accessibilityService.cancelScroll();
                 }
+                if (!gestureState.isMoveGesture) {
+                    replayBufferedEvents();
+                }
+                gestureState.lastReplayed = 0;
+                gestureState.isGestureInProgress = false;
+                gestureState.isMoveGesture = false;
+                gestureState.allMotionEvents.clear();
             }
             return handled;
         });
@@ -214,7 +238,73 @@ public class TouchpadActivity extends AppCompatActivity {
         });
     }
 
+    private void replayBufferedEvents() {
+        if (inputManager == null) {
+            return;
+        }
+        if (gestureState.allMotionEvents.isEmpty()) {
+            Log.d(TAG, "没有需要重放的事件");
+            return;
+        }
+
+        // 获取初始触摸事件的坐标
+        MotionEvent firstEvent = gestureState.allMotionEvents.get(0);
+        if (gestureState.lastReplayed == 0) {
+            gestureState.initialTouchX = firstEvent.getX();
+            gestureState.initialTouchY = firstEvent.getY();
+            Log.d(TAG, "初始触摸点坐标: (" + gestureState.initialTouchX + ", " + gestureState.initialTouchY + ")");
+        }
+
+        // 从上次重放的位置开始，重放所有未处理的事件
+        for (int i = gestureState.lastReplayed; i < gestureState.allMotionEvents.size(); i++) {
+            MotionEvent event = gestureState.allMotionEvents.get(i);
+            
+            // 计算相对于初始触摸点的偏移
+            float relativeX = event.getX() - gestureState.initialTouchX;
+            float relativeY = event.getY() - gestureState.initialTouchY;
+
+            float absoluteX = cursorX + halfWidth + relativeX;
+            float absoluteY = cursorY + halfHeight + relativeY;
+
+            float offsetX = absoluteX - event.getX();
+            float offsetY = absoluteY - event.getY();
+            
+            // 将相对偏移应用到光标位置
+            MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event,
+                offsetX,
+                offsetY
+            );
+            
+            Log.d(TAG, String.format(
+                "重放事件 #%d [显示ID=%d]: " +
+                "初始触摸点=(%.2f, %.2f), 当前事件点=(%.2f, %.2f), " +
+                "相对偏移=(%.2f, %.2f), 绝对位置=(%.2f, %.2f), 最终偏移=(%.2f, %.2f), " +
+                "复制后坐标=(%.2f, %.2f)", 
+                i, displayId,
+                gestureState.initialTouchX, gestureState.initialTouchY,
+                event.getX(), event.getY(),
+                relativeX, relativeY, 
+                absoluteX, absoluteY, 
+                offsetX, offsetY,
+                copiedEventWithOffset.getX(), copiedEventWithOffset.getY()));
+            
+            
+            MotionEventHidden eventHidden = Refine.unsafeCast(copiedEventWithOffset);
+            eventHidden.setDisplayId(displayId);
+            IActivityTaskManager activityTaskManager = ServiceUtils.getActivityTaskManager();
+            activityTaskManager.focusTopTask(displayId);
+            boolean success = inputManager.injectInputEvent(copiedEventWithOffset, INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT);
+            if (!success) {
+                Log.e(TAG, "重放事件失败");
+            }
+        }
+        
+        gestureState.lastReplayed = gestureState.allMotionEvents.size();
+    }
+
     private void injectKeyEvent(int action, int keyCode, int repeat, int metaState, int injectMode) {
+        IActivityTaskManager activityTaskManager = ServiceUtils.getActivityTaskManager();
+        activityTaskManager.focusTopTask(displayId);
         long now = SystemClock.uptimeMillis();
         KeyEvent event = new KeyEvent(now, now, action, keyCode, repeat, metaState, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                 InputDevice.SOURCE_KEYBOARD);
@@ -223,55 +313,6 @@ public class TouchpadActivity extends AppCompatActivity {
         inputManager.injectInputEvent(event, injectMode);
     }
 
-    private MotionEvent translateMotionEvent(MotionEvent event) {
-        long now = android.os.SystemClock.uptimeMillis();
-        
-        // 根据原始事件的动作类型确定新的动作
-        int action = event.getAction();
-        int source = InputDevice.SOURCE_MOUSE | InputDevice.SOURCE_TOUCHSCREEN;
-        
-        // 创建鼠标事件的属性
-        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[1];
-        properties[0] = new MotionEvent.PointerProperties();
-        properties[0].id = 0;
-        properties[0].toolType = MotionEvent.TOOL_TYPE_MOUSE;
-        
-        // 创建鼠标事件的坐标
-        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[1];
-        coords[0] = new MotionEvent.PointerCoords();
-        
-        // 使用绝对坐标而不是相对坐标
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        Display display = displayManager.getDisplay(displayId);
-        Point size = new Point();
-        display.getRealSize(size);
-        
-        coords[0].x = event.getX() * size.x / touchpadArea.getWidth();
-        coords[0].y = event.getY() * size.y / touchpadArea.getHeight();
-        coords[0].pressure = 1.0f;
-        coords[0].size = 1.0f;
-        
-        // 设置鼠标按钮状态和标志
-        int buttonState = MotionEvent.BUTTON_PRIMARY; // 始终保持主按钮状态
-
-        return MotionEvent.obtain(
-            now, now,
-            action,
-            1,
-            properties,
-            coords,
-            0,
-            buttonState,
-            1.0f,
-            1.0f,
-            0,
-            0,
-            source,
-            0
-        );
-    }
-
-    // 新增显示光标方法
     private void showMouseCursor() {
         cursorParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -382,5 +423,46 @@ public class TouchpadActivity extends AppCompatActivity {
             WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
             windowManager.removeView(cursorView);
         }
+    }
+
+    // 添加新的辅助方法
+    private MotionEvent obtainMotionEventWithOffset(MotionEvent source, float offsetX, float offsetY) {
+        int pointerCount = source.getPointerCount();
+        
+        // 准备所有触点的属性和坐标数组
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+        
+        // 复制每个触点的信息
+        for (int i = 0; i < pointerCount; i++) {
+            // 复制触点属性
+            properties[i] = new MotionEvent.PointerProperties();
+            source.getPointerProperties(i, properties[i]);
+            
+            // 复制并修改触点坐标
+            coords[i] = new MotionEvent.PointerCoords();
+            source.getPointerCoords(i, coords[i]);
+            coords[i].x += offsetX;
+            coords[i].y += offsetY;
+        }
+        
+        // 创建新的MotionEvent
+        int DEFAULT_DEVICE_ID = 0;
+        return MotionEvent.obtain(
+            source.getDownTime(),
+            source.getEventTime(),
+            source.getAction(),
+            pointerCount,
+            properties,
+            coords,
+            source.getMetaState(),
+            source.getButtonState(),
+            source.getXPrecision(),
+            source.getYPrecision(),
+            DEFAULT_DEVICE_ID,
+            source.getEdgeFlags(),
+            source.getSource(),
+            source.getFlags()
+        );
     }
 }

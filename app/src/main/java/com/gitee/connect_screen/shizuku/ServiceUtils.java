@@ -122,4 +122,11 @@ public class ServiceUtils {
         }
         return inputManager;
     }
+
+    public static IActivityTaskManager getActivityTaskManager() {
+        if (activityTaskManager == null) {
+            initWithShizuku();
+        }
+        return activityTaskManager;
+    }
 }

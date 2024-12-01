@@ -19,4 +19,6 @@ public interface IActivityTaskManager extends IInterface {
     void registerTaskStackListener(ITaskStackListener iTaskStackListener);
 
     void unregisterTaskStackListener(ITaskStackListener iTaskStackListener);
+    
+    void focusTopTask(int displayId);
 }
