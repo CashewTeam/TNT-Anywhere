@@ -77,7 +77,15 @@ public class MainActivity extends AppCompatActivity {
                 UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && device.getVendorId() == 6121) {
                     State.log("USB 设备已连接: " + device.getDeviceName());
-                    State.startNewJob(new MirrorViaDisplaylink(device));
+                    if (State.displaylinkDeviceName == null) {
+                        State.displaylinkDeviceName = device.getDeviceName();
+                    }
+                    if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
+                        State.log("识别为 Displaylink: " + device.getDeviceName());
+                        State.startNewJob(new MirrorViaDisplaylink(device));
+                    } else {
+                        State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
+                    }
                 }
             }
         }

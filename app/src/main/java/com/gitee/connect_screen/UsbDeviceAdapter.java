@@ -39,7 +39,10 @@ public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.View
         UsbDevice device = devices.get(position);
         holder.deviceName.setText(device.getDeviceName());
         
-        String vendorInfo = device.getVendorId() == 6121 ? 
+        if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
+            State.displaylinkDeviceName = device.getDeviceName();
+        }
+        String vendorInfo = device.getDeviceName().equals(State.displaylinkDeviceName) ? 
             "DisplayLink (6121)" : 
             String.valueOf(device.getVendorId());
         

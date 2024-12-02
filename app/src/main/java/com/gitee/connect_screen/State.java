@@ -26,6 +26,7 @@ public class State {
     public static MediaProjection mediaProjection;
     public static String lastPackageName;
     public static Set<Integer> virtualDisplayIds = new HashSet<>();
+    public static String displaylinkDeviceName;
 
     public static boolean isJobRunning() {
         return currentJob != null;
@@ -99,6 +100,9 @@ public class State {
         if (usbState != null) {
             usbState.destroy();
             usbStates.remove(deviceName);
+        }
+        if (deviceName.equals(displaylinkDeviceName)) {
+            displaylinkDeviceName = null;
         }
     }
 }

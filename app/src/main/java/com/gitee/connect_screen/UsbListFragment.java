@@ -30,7 +30,10 @@ public class UsbListFragment extends Fragment {
         adapter = new UsbDeviceAdapter(devices, device -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                if (device.getVendorId() == 6121) {
+                if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
+                    State.displaylinkDeviceName = device.getDeviceName();
+                }
+                if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                     activity.pushBreadcrumb(device.getDeviceName(), () -> DisplaylinkFragment.newInstance(device));
                 } else {
                     activity.pushBreadcrumb(device.getDeviceName(), () -> UsbDeviceDetailFragment.newInstance(device));
