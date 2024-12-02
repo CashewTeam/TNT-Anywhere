@@ -18,6 +18,7 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 public class MirrorViaDisplaylink implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean usbRequested = false;
+    private boolean device2UsbRequested = false;
     private boolean mediaProjectionRequested = false;
     private final String deviceName;
 
@@ -90,6 +91,33 @@ public class MirrorViaDisplaylink implements Job {
         }
     }
 
+    private boolean requestDevice2UsbPermission(Context context, UsbManager usbManager, UsbState usbState) throws YieldException {
+        if (usbState.displaylinkDevice2 == null) {
+            for (UsbDevice device : usbManager.getDeviceList().values()) {
+                if (device.getDeviceName().equals(usbState.device.getDeviceName())) {
+                    continue;
+                }
+                if (device.getVendorId() == 6121) {
+                    usbState.displaylinkDevice2 = device;
+                    break;
+                }
+            }
+        }
+        if (usbState.displaylinkDevice2 == null) {
+            return true;
+        }
+        if (usbManager.hasPermission(usbState.displaylinkDevice2)) {
+            State.log("已经拥有第二个 USB 设备权限: " + usbState.displaylinkDevice2.getDeviceName());
+            return true;
+        } else if (device2UsbRequested) {
+            State.log("因为未授予第二个 USB 设备权限: " + usbState.displaylinkDevice2.getDeviceName() + "，跳过任务");
+            return false;
+        }
+        device2UsbRequested = true;
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+        usbManager.requestPermission(usbState.displaylinkDevice2, pendingIntent);
+        throw new YieldException("等待用户第二个 USB 授权");
+    }
     private boolean initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
         if (usbState.nativeDriver == null) {
             usbState.nativeDriver = new NativeDriver();

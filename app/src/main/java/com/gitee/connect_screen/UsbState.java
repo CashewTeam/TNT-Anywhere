@@ -16,9 +16,11 @@ import com.displaylink.manager.display.DisplayMode;
 
 public class UsbState {
     public UsbDevice device;
+    public UsbDeviceConnection usbConnection;
+    public UsbDevice displaylinkDevice2;
+    public UsbDeviceConnection displaylinkConnection2;
     public NativeDriver nativeDriver;
     public NativeDriverListener nativeDriverListener;
-    public UsbDeviceConnection usbConnection;
     public long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
@@ -94,6 +96,9 @@ public class UsbState {
         }
         if (usbConnection != null) {
             usbConnection.close();
+        }
+        if (displaylinkConnection2 != null) {
+            displaylinkConnection2.close();
         }
     }
 }
