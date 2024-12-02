@@ -125,13 +125,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     @Override
     public void onImageAvailable(ImageReader reader) {
+        if (usbState.getVirtualDisplay() == null) {
+            return;
+        }
         usbState.frameCounter++;
         Image thisImage = usbState.imageReader.acquireNextImage();
         Image.Plane plane = thisImage.getPlanes()[0];
         if (!hasSetMode) {
             hasSetMode = true;
             usbState.nativeDriver.setMode(usbState.encoderId, usbState.getDisplayMode(), plane.getRowStride(), 1);
-            ByteBuffer buffer = plane.getBuffer();
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();

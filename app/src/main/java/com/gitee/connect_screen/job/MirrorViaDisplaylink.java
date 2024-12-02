@@ -50,7 +50,14 @@ public class MirrorViaDisplaylink implements Job {
             }
         }
 
+        if (usbState.displaylinkDevice2 != null && usbState.getVirtualDisplay() != null) {
+            usbState.destroy();
+        }
+
         if (!requestUsbPermission(context, usbManager, usbState.device)) {
+            return;
+        }
+        if (!requestDevice2UsbPermission(context, usbManager, usbState)) {
             return;
         }
         openUsbConnection(context, usbManager, usbState);
@@ -79,15 +86,40 @@ public class MirrorViaDisplaylink implements Job {
     }
 
     private void openUsbConnection(Context context, UsbManager usbManager, UsbState usbState) {
-        if (usbState.usbConnection == null) {
-            usbState.usbConnection = usbManager.openDevice(usbState.device);
+        if (usbState.displaylinkDevice2 == null) {
             if (usbState.usbConnection == null) {
-                throw new RuntimeException("无法打开 USB 设备连接");
+                usbState.usbConnection = usbManager.openDevice(usbState.device);
+                if (usbState.usbConnection == null) {
+                    throw new RuntimeException("无法打开 USB 设备连接");
+                } else {
+                    State.log("成功打开 USB 设备连接");
+                }
             } else {
-                State.log("成功打开 USB 设备连接");
+                State.log("USB 设备连接已存在");
             }
         } else {
-            State.log("USB 设备连接已存在");
+            if (usbState.displaylinkConnection2 == null || usbState.usbConnection == null || usbState.usbConnection.getRawDescriptors() == null) {
+                if (usbState.usbConnection != null) {
+                    usbState.usbConnection.close();
+                }
+                usbState.usbConnection = usbManager.openDevice(usbState.device);
+                if (usbState.usbConnection == null) {
+                    throw new RuntimeException("无法打开 USB 设备连接");
+                } else {
+                    State.log("成功打开 USB 设备连接");
+                }
+                usbState.displaylinkConnection2 = usbManager.openDevice(usbState.displaylinkDevice2);
+                if (usbState.displaylinkConnection2 == null) {
+                    throw new RuntimeException("无法打开第二个 USB 设备连接");
+                } else {
+                    State.log("成功打开第二个 USB 设备连接");
+                }
+            } else {
+                State.log("第二个 USB 设备连接已存在");
+            }
+        }
+        if (usbState.usbConnection.getRawDescriptors() == null) {
+            throw new RuntimeException("USB 连接无法获得 raw descriptors");
         }
     }
 
@@ -119,6 +151,12 @@ public class MirrorViaDisplaylink implements Job {
         throw new YieldException("等待用户第二个 USB 授权");
     }
     private boolean initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
+        if (usbState.displaylinkDevice2 != null && usbState.monitorInfo == null) {
+            if (usbState.nativeDriver != null) {
+                usbState.nativeDriver.destroy();
+                usbState.nativeDriver = null;
+            }
+        }
         if (usbState.nativeDriver == null) {
             usbState.nativeDriver = new NativeDriver();
             usbState.nativeDriverListener = new NativeDriverListener(deviceName);
@@ -130,11 +168,22 @@ public class MirrorViaDisplaylink implements Job {
                 State.log("创建NativeDriver成功");
             }
             usbState.nativeDriver.usbDeviceDetached(deviceName);
+            if (usbState.displaylinkDevice2 != null) {
+                usbState.nativeDriver.usbDeviceDetached(usbState.displaylinkDevice2.getDeviceName());
+            }
             resultCode = usbState.nativeDriver.usbDeviceAttached(deviceName, usbState.usbConnection.getFileDescriptor(), usbState.usbConnection.getRawDescriptors(), usbState.usbConnection.getRawDescriptors().length);
             if (resultCode != 0) {
                 throw new RuntimeException("附加USB设备失败: " + resultCode);
             } else {
                 State.log("附加USB设备成功");
+            }
+            if (usbState.displaylinkDevice2 != null) {
+                resultCode = usbState.nativeDriver.usbDeviceAttached(usbState.displaylinkDevice2.getDeviceName(), usbState.displaylinkConnection2.getFileDescriptor(), usbState.displaylinkConnection2.getRawDescriptors(), usbState.displaylinkConnection2.getRawDescriptors().length);
+                if (resultCode != 0) {
+                    throw new RuntimeException("附加第二个USB设备失败: " + resultCode);
+                } else {
+                    State.log("附加第二个USB设备成功");
+                }
             }
         } else {
             State.log("NativeDriver 已经存在，跳过重复创建");
