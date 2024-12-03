@@ -28,28 +28,6 @@ import rikka.shizuku.Shizuku;
 
 public class AboutFragment extends Fragment {
 
-    private final ServiceConnection userServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            IUserService service = IUserService.Stub.asInterface(binder);
-            try {
-                Log.i("About", service.fetchLogs());
-            } catch (RemoteException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-        }
-    };
-
-    private final Shizuku.UserServiceArgs userServiceArgs =
-    new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
-            .daemon(false)
-            .processNameSuffix("service")
-            .debuggable(BuildConfig.DEBUG)
-            .version(BuildConfig.VERSION_CODE);
             
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -84,16 +62,29 @@ public class AboutFragment extends Fragment {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 if (!ShizukuUtils.hasShizukuStarted()) {
+                    State.log("shizuku not started");
                     return false;
                 }
                 if (!ShizukuUtils.hasPermission()) {
+                    State.log("ask shizuku permission");
                     Toast.makeText(getContext(), "导出故障日志需要 shizuku 权限", Toast.LENGTH_SHORT).show();
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
                     return false;
                 }
-                int serviceVersion = Shizuku.peekUserService(userServiceArgs, userServiceConnection);
-                if (serviceVersion == -1) {
-                    Shizuku.bindUserService(userServiceArgs, userServiceConnection);
+                if (State.userService == null) {
+                    State.log("bind user service");
+                    Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+                    Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+                }
+                if (State.userService == null) {
+                    State.log("user service not found yet");
+                    return false;
+                }
+                try {
+                    State.log("start fetch logs");
+                    State.userService.fetchLogs();
+                } catch (RemoteException ex) {
+                    // ignore
                 }
                 return true;
             }

@@ -1,11 +1,16 @@
 package com.gitee.connect_screen;
 
+import android.content.ComponentName;
+import android.content.ServiceConnection;
 import android.hardware.usb.UsbDevice;
 import android.media.projection.MediaProjection;
+import android.os.IBinder;
 import android.util.Log;
 
 import com.gitee.connect_screen.job.Job;
 import com.gitee.connect_screen.job.YieldException;
+import com.gitee.connect_screen.shizuku.IUserService;
+import com.gitee.connect_screen.shizuku.UserService;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -14,6 +19,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
@@ -27,6 +34,28 @@ public class State {
     public static String lastPackageName;
     public static Set<Integer> virtualDisplayIds = new HashSet<>();
     public static String displaylinkDeviceName;
+    public static volatile IUserService userService;
+
+
+    public static final ServiceConnection userServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            State.log("user service connected");
+            State.userService = IUserService.Stub.asInterface(binder);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            State.log("user service disconnected");
+        }
+    };
+
+    public static final Shizuku.UserServiceArgs userServiceArgs =
+            new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+                    .daemon(false)
+                    .processNameSuffix("service")
+                    .debuggable(BuildConfig.DEBUG)
+                    .version(BuildConfig.VERSION_CODE);
 
     public static boolean isJobRunning() {
         return currentJob != null;

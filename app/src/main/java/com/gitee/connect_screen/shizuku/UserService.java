@@ -2,6 +2,8 @@ package com.gitee.connect_screen.shizuku;
 
 import android.util.Log;
 
+import android.os.RemoteException;
+
 public class UserService extends IUserService.Stub  {
     public UserService() {
         Log.i("UserService", "constructor");
@@ -21,9 +23,8 @@ public class UserService extends IUserService.Stub  {
         destroy();
     }
 
-    
     @Override
-    public String fetchLogs() {
+    public String fetchLogs() throws RemoteException  {
         return "hello world";
     }
 }
