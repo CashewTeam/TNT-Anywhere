@@ -13,6 +13,7 @@ import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
 import com.displaylink.manager.display.DisplayMode;
+import com.gitee.connect_screen.job.MirrorArgs;
 
 public class UsbState {
     public UsbDevice device;
@@ -24,29 +25,17 @@ public class UsbState {
     public long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
+    public MirrorArgs mirrorArgs = new MirrorArgs();
     private volatile VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
     public volatile int frameCounter = 0;
     public volatile int[] recentPostFrameResultCodes = new int[8];
-    public int overrideMonitorWidth;
-    public int overrideMonitorHeight;
     public ProjectionMode projectionMode;
-
-    public int getMonitorWidth() {
-        return overrideMonitorWidth != 0 ? overrideMonitorWidth : monitorInfo.a[0].width;
-    }
-
-    public int getMonitorHeight() {
-        return overrideMonitorHeight != 0 ? overrideMonitorHeight : monitorInfo.a[0].height;
-    }   
-
-    public DisplayMode getDisplayMode() {
-        if (overrideMonitorWidth != 0 && overrideMonitorHeight != 0) {
-            return new DisplayMode(overrideMonitorWidth, overrideMonitorHeight, monitorInfo.a[0].refreshRate);
-        }   
-        return monitorInfo.a[0];
-    }
+    public int monitorWidth;
+    public int monitorHeight;
+    public int sourceWidth;
+    public int sourceHeight;
 
     public void stopHandlerThread() {
         if (handlerThread != null) {

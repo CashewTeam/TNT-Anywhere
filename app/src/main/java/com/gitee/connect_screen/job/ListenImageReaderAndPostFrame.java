@@ -20,6 +20,7 @@ import android.view.Surface;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 
+import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
@@ -54,25 +55,13 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
     private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
 
-    public void startVirtualDisplay(UsbState usbState) {
+    public void startVirtualDisplay(UsbState usbState, MirrorArgs mirrorArgs) {
         this.usbState = usbState;
-        this.monitorWidth = usbState.getMonitorWidth();
-        this.monitorHeight = usbState.getMonitorHeight();
-        int height = usbState.getMonitorHeight();
-        int dpi = 160;
+        this.monitorWidth = mirrorArgs.monitorWidth;
+        this.monitorHeight = mirrorArgs.monitorHeight;
+        int virtualDisplayWidth = mirrorArgs.virtualDisplayWidth;
 
-        WindowManager windowManager = (WindowManager) State.currentActivity.get().getSystemService(Context.WINDOW_SERVICE);
-        WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
-
-        int pxHeight = windowMetrics.getBounds().height();
-        int pxWidth = windowMetrics.getBounds().width();
-
-        int targetWidth = usbState.getMonitorWidth();
-        if (usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
-            targetWidth = height * Math.max(pxWidth, pxHeight) / Math.min(pxWidth, pxHeight);
-        }
-
-        usbState.imageReader = ImageReader.newInstance(targetWidth, height, 1, 2);
+        usbState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
         usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
         usbState.handlerThread.start();
         usbState.handler = new Handler(usbState.handlerThread.getLooper());
@@ -97,7 +86,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             }
             VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
                 "DisplayLink",
-                targetWidth, height, dpi)
+                virtualDisplayWidth, monitorHeight, 160)
                 .setSurface(surface)
                 .setFlags(flags)
                 .build();
@@ -116,7 +105,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         } else {
             usbState.createdVirtualDisplay(
                 State.mediaProjection.createVirtualDisplay("DisplayLink",
-                    targetWidth, height, dpi,
+                    virtualDisplayWidth, monitorHeight, 160,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null)
             );
@@ -133,7 +122,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         Image.Plane plane = thisImage.getPlanes()[0];
         if (!hasSetMode) {
             hasSetMode = true;
-            usbState.nativeDriver.setMode(usbState.encoderId, usbState.getDisplayMode(), plane.getRowStride(), 1);
+            usbState.nativeDriver.setMode(usbState.encoderId, new DisplayMode(monitorWidth, monitorHeight, 60), plane.getRowStride(), 1);
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();

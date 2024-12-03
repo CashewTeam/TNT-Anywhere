@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
+import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 import java.lang.ref.WeakReference;
@@ -82,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                         State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new MirrorViaDisplaylink(device));
+                        State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
                     } else {
                         State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
                     }
@@ -145,10 +146,15 @@ public class MainActivity extends AppCompatActivity {
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
             UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (device != null) {
-                // 处理 USB 设备连接的逻辑
+            if (device != null && device.getVendorId() == 6121) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
-                State.startNewJob(new MirrorViaDisplaylink(device));
+                if (State.displaylinkDeviceName == null) {
+                    State.displaylinkDeviceName = device.getDeviceName();
+                }
+                // 处理 USB 设备连接的逻辑
+                if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
+                    State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
+                }
             }
         }
 

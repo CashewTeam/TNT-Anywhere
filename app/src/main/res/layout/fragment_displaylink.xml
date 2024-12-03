@@ -22,18 +22,42 @@
         android:textSize="16sp"/>
 
     <TextView
-        android:id="@+id/physicalSizeLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="物理显示器尺寸"
+        android:text="投屏模式"
         android:textSize="16sp"
+        android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp"/>
+
+    <Spinner
+        android:id="@+id/projectionModeSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="显示器尺寸"
+            android:textSize="16sp"/>
+
+        <Spinner
+            android:id="@+id/resolutionPresetSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <EditText
             android:id="@+id/displayWidthInput"
@@ -41,7 +65,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="宽度"
-            android:inputType="text"
+            android:inputType="number"
             android:layout_marginEnd="4dp"/>
 
         <TextView
@@ -54,27 +78,70 @@
             android:layout_marginEnd="4dp"/>
 
         <EditText
-            android:id="@+id/displayHeightInput"
+            android:id="@+id/monitorHeightInput"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="高度"
-            android:inputType="text"
+            android:inputType="number"
             android:layout_marginStart="4dp"/>
     </LinearLayout>
 
-    <TextView
+    <LinearLayout
+        android:id="@+id/sourceScreenSizeLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="投屏模式"
-        android:textSize="16sp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp"/>
+        android:orientation="vertical"
+        android:visibility="gone">
+        
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="主屏尺寸"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"/>
 
-    <Spinner
-        android:id="@+id/projectionModeSpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/sourceWidthInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="宽度"
+                android:inputType="number"
+                android:layout_marginEnd="4dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="x"
+                android:textSize="16sp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"/>
+
+            <EditText
+                android:id="@+id/sourceHeightInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="高度"
+                android:inputType="number"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/aspectRatioExplanation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="14sp"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/mirrorViaDisplaylinkButton"

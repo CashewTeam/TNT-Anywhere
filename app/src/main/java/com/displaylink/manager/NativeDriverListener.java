@@ -6,6 +6,7 @@ import android.util.Log;
 import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 
 public class NativeDriverListener {
@@ -56,7 +57,7 @@ public class NativeDriverListener {
                 usbState.encoderId = encoderId;
                 usbState.monitorInfo = monitorInfo;
                 if (!State.isJobRunning() && wasNoMonitor) {
-                    State.startNewJob(new MirrorViaDisplaylink(usbState.device));
+                    State.startNewJob(new MirrorViaDisplaylink(usbState.device, usbState.mirrorArgs));
                 }
             }
         });
