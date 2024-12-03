@@ -1,15 +1,56 @@
 package com.gitee.connect_screen;
 
+import static com.gitee.connect_screen.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
+
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.shizuku.IUserService;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.gitee.connect_screen.shizuku.UserService;
+
+import rikka.shizuku.Shizuku;
+
 public class AboutFragment extends Fragment {
+
+    private final ServiceConnection userServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            IUserService service = IUserService.Stub.asInterface(binder);
+            try {
+                Log.i("About", service.fetchLogs());
+            } catch (RemoteException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+        }
+    };
+
+    private final Shizuku.UserServiceArgs userServiceArgs =
+    new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+            .daemon(false)
+            .processNameSuffix("service")
+            .debuggable(BuildConfig.DEBUG)
+            .version(BuildConfig.VERSION_CODE);
+            
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_about, container, false);
@@ -39,6 +80,36 @@ public class AboutFragment extends Fragment {
         TextView websiteLink = view.findViewById(R.id.websiteLink);
         websiteLink.setOnClickListener(v -> openUrl("https://connect-screen.com"));
 
+        GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (!ShizukuUtils.hasShizukuStarted()) {
+                    return false;
+                }
+                if (!ShizukuUtils.hasPermission()) {
+                    Toast.makeText(getContext(), "导出故障日志需要 shizuku 权限", Toast.LENGTH_SHORT).show();
+                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
+                    return false;
+                }
+                int serviceVersion = Shizuku.peekUserService(userServiceArgs, userServiceConnection);
+                if (serviceVersion == -1) {
+                    Shizuku.bindUserService(userServiceArgs, userServiceConnection);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+        });
+
+        View header = view.findViewById(R.id.header);
+        header.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
+        
         return view;
     }
 
