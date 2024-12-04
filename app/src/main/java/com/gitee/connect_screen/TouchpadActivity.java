@@ -68,6 +68,7 @@ public class TouchpadActivity extends AppCompatActivity {
     private static class GestureState {
         boolean isGestureInProgress = false;
         boolean isMoveGesture = false;
+        boolean isMovingCursor = false;
         List<MotionEvent> allMotionEvents = new ArrayList<>();
         int lastReplayed = 0;
         float initialTouchX = 0;
@@ -157,8 +158,9 @@ public class TouchpadActivity extends AppCompatActivity {
                     ) / (e2.getEventTime() - e1.getEventTime());
                     Log.d(TAG, "onScroll 当前移动速度: " + speed);
                     gestureState.isMoveGesture = true;
-                    if (speed < 1.5) { // 设置一个较低的速度阈值用于光标移动
+                    if (speed < 3 || gestureState.isMovingCursor) { // 设置一个较低的速度阈值用于光标移动
                         // 慢速移动时更新光标位置
+                        gestureState.isMovingCursor = true;
                         updateCursorPosition(-distanceX, -distanceY);
                         return true;
                     }
@@ -204,7 +206,8 @@ public class TouchpadActivity extends AppCompatActivity {
             gestureState.allMotionEvents.add(copiedEventWithOffset);
             
             boolean handled = gestureDetector.onTouchEvent(event);
-            if (!gestureState.isMoveGesture && gestureState.allMotionEvents.size() > 2) {
+            if (!gestureState.isMoveGesture && !gestureState.isMovingCursor && gestureState.allMotionEvents.size() > 4) {
+                Log.d(TAG, "开始重放，因为不是 move gesture");
                 replayBufferedEvents();
             }
             
@@ -215,12 +218,14 @@ public class TouchpadActivity extends AppCompatActivity {
                 if (accessibilityService != null) {
                     accessibilityService.cancelScroll();
                 }
-                if (!gestureState.isMoveGesture) {
+                if (!gestureState.isMoveGesture && !gestureState.isMovingCursor) {
+                    Log.d(TAG, "开始重放，因为触摸事件结束");
                     replayBufferedEvents();
                 }
                 gestureState.lastReplayed = 0;
                 gestureState.isGestureInProgress = false;
                 gestureState.isMoveGesture = false;
+                gestureState.isMovingCursor = false;
                 gestureState.allMotionEvents.clear();
             }
             return handled;
@@ -393,7 +398,9 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null) {
             cursorView.setVisibility(isDarkMode ? View.GONE : View.VISIBLE);
         }
-        if (accessibilityService != null) {
+        if (accessibilityService == null) {
+            ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
+        } else {
             accessibilityService.setFocus(displayId);
         }
     }
