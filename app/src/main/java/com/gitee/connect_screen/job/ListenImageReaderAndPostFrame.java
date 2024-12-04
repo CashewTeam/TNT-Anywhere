@@ -70,19 +70,19 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         Surface surface = usbState.imageReader.getSurface();
         if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
-            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
-            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
-            | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT
-            | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
+            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC;
+//            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
+//            | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT
+//            | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
             if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
-                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
-                        | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
-                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
-                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
-                if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
-                    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
-                            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
-                }
+                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED;
+//                        | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
+//                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
+//                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
+//                if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+//                    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
+//                            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
+//                }
             }
             VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
                 "DisplayLink",
