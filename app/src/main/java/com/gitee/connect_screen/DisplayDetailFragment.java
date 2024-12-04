@@ -177,10 +177,6 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void startTouchpad() {
-        // if (ShizukuUtils.hasShizukuStarted()) {
-        //     State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
-        //     return;
-        // }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(getContext())) {
             Intent intent = new Intent(
@@ -189,6 +185,11 @@ public class DisplayDetailFragment extends Fragment {
             );
             startActivity(intent);
             showToast("请授予悬浮窗权限");
+            return;
+        }
+        
+        if (ShizukuUtils.hasShizukuStarted()) {
+            State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
             return;
         }
         

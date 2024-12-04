@@ -167,7 +167,23 @@ public class TouchpadActivity extends AppCompatActivity {
         // 替换触控板的触摸事件监听
         touchpadArea.setOnTouchListener((v, event) -> {
             gestureState.isGestureInProgress = true;
-            gestureState.allMotionEvents.add(event);
+            
+            // 计算偏移量并存储修改后的事件
+            if (gestureState.allMotionEvents.isEmpty()) {
+                gestureState.initialTouchX = event.getX();
+                gestureState.initialTouchY = event.getY();
+            }
+            
+            float relativeX = event.getX() - gestureState.initialTouchX;
+            float relativeY = event.getY() - gestureState.initialTouchY;
+            float absoluteX = cursorX + halfWidth + relativeX;
+            float absoluteY = cursorY + halfHeight + relativeY;
+            float offsetX = absoluteX - event.getX();
+            float offsetY = absoluteY - event.getY();
+            
+            MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event, offsetX, offsetY);
+            gestureState.allMotionEvents.add(copiedEventWithOffset);
+            
             boolean handled = gestureDetector.onTouchEvent(event);
             if (!gestureState.isMoveGesture && gestureState.allMotionEvents.size() > 2) {
                 replayBufferedEvents();
@@ -239,61 +255,24 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void replayBufferedEvents() {
-        if (inputManager == null) {
-            return;
-        }
-        if (gestureState.allMotionEvents.isEmpty()) {
+        if (inputManager == null || gestureState.allMotionEvents.isEmpty()) {
             Log.d(TAG, "没有需要重放的事件");
             return;
         }
 
-        // 获取初始触摸事件的坐标
-        MotionEvent firstEvent = gestureState.allMotionEvents.get(0);
-        if (gestureState.lastReplayed == 0) {
-            gestureState.initialTouchX = firstEvent.getX();
-            gestureState.initialTouchY = firstEvent.getY();
-            Log.d(TAG, "初始触摸点坐标: (" + gestureState.initialTouchX + ", " + gestureState.initialTouchY + ")");
-        }
-
-        // 从上次重放的位置开始，重放所有未处理的事件
+        // 直接重放已经计算好偏移量的事件
         for (int i = gestureState.lastReplayed; i < gestureState.allMotionEvents.size(); i++) {
             MotionEvent event = gestureState.allMotionEvents.get(i);
             
-            // 计算相对于初始触摸点的偏移
-            float relativeX = event.getX() - gestureState.initialTouchX;
-            float relativeY = event.getY() - gestureState.initialTouchY;
-
-            float absoluteX = cursorX + halfWidth + relativeX;
-            float absoluteY = cursorY + halfHeight + relativeY;
-
-            float offsetX = absoluteX - event.getX();
-            float offsetY = absoluteY - event.getY();
-            
-            // 将相对偏移应用到光标位置
-            MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event,
-                offsetX,
-                offsetY
-            );
-            
             Log.d(TAG, String.format(
-                "重放事件 #%d [显示ID=%d]: " +
-                "初始触摸点=(%.2f, %.2f), 当前事件点=(%.2f, %.2f), " +
-                "相对偏移=(%.2f, %.2f), 绝对位置=(%.2f, %.2f), 最终偏移=(%.2f, %.2f), " +
-                "复制后坐标=(%.2f, %.2f)", 
-                i, displayId,
-                gestureState.initialTouchX, gestureState.initialTouchY,
-                event.getX(), event.getY(),
-                relativeX, relativeY, 
-                absoluteX, absoluteY, 
-                offsetX, offsetY,
-                copiedEventWithOffset.getX(), copiedEventWithOffset.getY()));
+                "重放事件 #%d [显示ID=%d]: 坐标=(%.2f, %.2f), 动作=%d", 
+                i, displayId, event.getX(), event.getY(), event.getAction()));
             
-            
-            MotionEventHidden eventHidden = Refine.unsafeCast(copiedEventWithOffset);
+            MotionEventHidden eventHidden = Refine.unsafeCast(event);
             eventHidden.setDisplayId(displayId);
             IActivityTaskManager activityTaskManager = ServiceUtils.getActivityTaskManager();
             activityTaskManager.focusTopTask(displayId);
-            boolean success = inputManager.injectInputEvent(copiedEventWithOffset, INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT);
+            boolean success = inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT);
             if (!success) {
                 Log.e(TAG, "重放事件失败");
             }
