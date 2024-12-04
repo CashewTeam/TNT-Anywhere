@@ -136,13 +136,32 @@ public class TouchpadActivity extends AppCompatActivity {
             }
 
             @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                // 检测快速滑动手势
+                if (e2.getPointerCount() == 1) {
+                    if (inputManager == null) {
+
+                    } else {
+                        gestureState.isMoveGesture = false;
+                    }
+                }
+                return false;
+            }
+
+            @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 if (e2.getPointerCount() == 1) {
-                    // 单指移动光标
+                    float speed = (float) Math.sqrt(
+                        (e2.getX() - e1.getX()) * (e2.getX() - e1.getX()) +
+                        (e2.getY() - e1.getY()) * (e2.getY() - e1.getY())
+                    ) / (e2.getEventTime() - e1.getEventTime());
+                    Log.d(TAG, "onScroll 当前移动速度: " + speed);
                     gestureState.isMoveGesture = true;
-                    Log.d(TAG, "移动光标 - 偏移量: (" + (-distanceX) + ", " + (-distanceY) + ")");
-                    updateCursorPosition(-distanceX, -distanceY);
-                    return true;
+                    if (speed < 1.5) { // 设置一个较低的速度阈值用于光标移动
+                        // 慢速移动时更新光标位置
+                        updateCursorPosition(-distanceX, -distanceY);
+                        return true;
+                    }
                 }
                 if (inputManager != null) {
                     return false;
@@ -176,8 +195,8 @@ public class TouchpadActivity extends AppCompatActivity {
             
             float relativeX = event.getX() - gestureState.initialTouchX;
             float relativeY = event.getY() - gestureState.initialTouchY;
-            float absoluteX = cursorX + halfWidth + relativeX;
-            float absoluteY = cursorY + halfHeight + relativeY;
+            float absoluteX = cursorX + halfWidth + relativeX * 2;
+            float absoluteY = cursorY + halfHeight + relativeY * 2;
             float offsetX = absoluteX - event.getX();
             float offsetY = absoluteY - event.getY();
             
@@ -323,7 +342,7 @@ public class TouchpadActivity extends AppCompatActivity {
         }
     }
 
-    // 添加更新光标位置的方法
+    // 添加更新光标位��的方法
     private void updateCursorPosition(float deltaX, float deltaY) {
         cursorX += deltaX * 1.5f;
         cursorY += deltaY * 1.5f;
@@ -374,7 +393,9 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null) {
             cursorView.setVisibility(isDarkMode ? View.GONE : View.VISIBLE);
         }
-        accessibilityService.setFocus(displayId);
+        if (accessibilityService != null) {
+            accessibilityService.setFocus(displayId);
+        }
     }
 
     // 添加显示帮助对话框的方法
