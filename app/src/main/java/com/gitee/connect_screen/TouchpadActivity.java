@@ -67,7 +67,7 @@ public class TouchpadActivity extends AppCompatActivity {
 
     private static class GestureState {
         boolean isGestureInProgress = false;
-        boolean isMoveGesture = false;
+        boolean firstEventLooksLikeMovingCursor = false;
         boolean isMovingCursor = false;
         List<MotionEvent> allMotionEvents = new ArrayList<>();
         int lastReplayed = 0;
@@ -137,29 +137,27 @@ public class TouchpadActivity extends AppCompatActivity {
             }
 
             @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                // 检测快速滑动手势
-                if (e2.getPointerCount() == 1) {
-                    if (inputManager == null) {
-
-                    } else {
-                        gestureState.isMoveGesture = false;
-                    }
-                }
-                return false;
-            }
-
-            @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 if (e2.getPointerCount() == 1) {
                     float speed = (float) Math.sqrt(
                         (e2.getX() - e1.getX()) * (e2.getX() - e1.getX()) +
                         (e2.getY() - e1.getY()) * (e2.getY() - e1.getY())
                     ) / (e2.getEventTime() - e1.getEventTime());
-                    Log.d(TAG, "onScroll 当前移动速度: " + speed);
-                    gestureState.isMoveGesture = true;
-                    if (speed < 3 || gestureState.isMovingCursor) { // 设置一个较低的速度阈值用于光标移动
-                        // 慢速移动时更新光标位置
+                    if (gestureState.allMotionEvents.size() <= 2 && speed < 1.5) {
+                        Log.d(TAG, "判定可能要移动光标, onScroll 当前移动速度: " + speed);
+                        gestureState.firstEventLooksLikeMovingCursor = true;
+                        return true;
+                    }
+                    if (!gestureState.firstEventLooksLikeMovingCursor) {
+                        return false;
+                    }
+                    if (gestureState.isMovingCursor) {
+                        updateCursorPosition(-distanceX, -distanceY);
+                        return true;
+                    }
+                    boolean confirmed = (gestureState.allMotionEvents.size() <= 4 &&speed < 2);
+                    if (confirmed) {
+                        Log.d(TAG, "确认是要移动光标, 事件数量: " + gestureState.allMotionEvents.size() + " onScroll 当前移动速度: " + speed);
                         gestureState.isMovingCursor = true;
                         updateCursorPosition(-distanceX, -distanceY);
                         return true;
@@ -206,7 +204,7 @@ public class TouchpadActivity extends AppCompatActivity {
             gestureState.allMotionEvents.add(copiedEventWithOffset);
             
             boolean handled = gestureDetector.onTouchEvent(event);
-            if (!gestureState.isMoveGesture && !gestureState.isMovingCursor && gestureState.allMotionEvents.size() > 4) {
+            if (!gestureState.isMovingCursor && gestureState.allMotionEvents.size() > 4) {
                 Log.d(TAG, "开始重放，因为不是 move gesture");
                 replayBufferedEvents();
             }
@@ -218,13 +216,12 @@ public class TouchpadActivity extends AppCompatActivity {
                 if (accessibilityService != null) {
                     accessibilityService.cancelScroll();
                 }
-                if (!gestureState.isMoveGesture && !gestureState.isMovingCursor) {
+                if (!gestureState.isMovingCursor) {
                     Log.d(TAG, "开始重放，因为触摸事件结束");
                     replayBufferedEvents();
                 }
                 gestureState.lastReplayed = 0;
                 gestureState.isGestureInProgress = false;
-                gestureState.isMoveGesture = false;
                 gestureState.isMovingCursor = false;
                 gestureState.allMotionEvents.clear();
             }
@@ -294,12 +291,7 @@ public class TouchpadActivity extends AppCompatActivity {
             
             MotionEventHidden eventHidden = Refine.unsafeCast(event);
             eventHidden.setDisplayId(displayId);
-            IActivityTaskManager activityTaskManager = ServiceUtils.getActivityTaskManager();
-            activityTaskManager.focusTopTask(displayId);
-            boolean success = inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT);
-            if (!success) {
-                Log.e(TAG, "重放事件失败");
-            }
+            inputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_ASYNC);
         }
         
         gestureState.lastReplayed = gestureState.allMotionEvents.size();
