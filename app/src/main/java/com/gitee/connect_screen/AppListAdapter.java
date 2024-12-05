@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.text.method.Touch;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -66,6 +67,9 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();
             launchAppNormally(app.packageName, v.getContext());
+            if (TouchpadActivity.startTouchpad(v.getContext(), targetDisplayId, true)) {
+                TouchpadActivity.startTouchpad(v.getContext(), targetDisplayId, false);
+            }
         });
         holder.btnLaunchToDefaultDisplay.setOnClickListener(v -> {
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);

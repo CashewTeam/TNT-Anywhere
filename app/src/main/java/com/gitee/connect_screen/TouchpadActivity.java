@@ -14,9 +14,11 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -35,6 +37,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.gitee.connect_screen.job.AcquireShizukuAndTouchPad;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -73,6 +76,64 @@ public class TouchpadActivity extends AppCompatActivity {
         int lastReplayed = 0;
         float initialTouchX = 0;
         float initialTouchY = 0;
+    }
+
+    public static boolean startTouchpad(Context context,int displayId, boolean dryRun) {
+        // 检查悬浮窗权限
+        if (!Settings.canDrawOverlays(context)) {
+            if (!dryRun) {
+                Intent intent = new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + context.getPackageName())
+                );
+                context.startActivity(intent);
+            }
+            return false;
+        }
+        
+        if (ShizukuUtils.hasShizukuStarted()) {
+            if (!dryRun) {
+                State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
+            }
+            return true;
+        }
+        
+        // 检查无障碍服务权限并尝试启动服务
+        if (!isAccessibilityServiceEnabled(context)) {
+            if (!dryRun) {
+                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                context.startActivity(intent);
+            }
+            return false;
+        }
+        
+        if (!dryRun) {
+            // 启动无障碍服务
+            Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
+            context.startService(serviceIntent);
+            
+            // 权限都具备且服务启动后启动触控板
+            Intent touchpadIntent = new Intent(context, TouchpadActivity.class);
+            touchpadIntent.putExtra("display_id", displayId);
+            context.startActivity(touchpadIntent);
+        }
+        return true;
+    }
+
+    
+
+    // 检查无障碍服务是否启用
+    private static boolean isAccessibilityServiceEnabled(Context context) {
+        String serviceName = context.getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(
+            context.getContentResolver(),
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+        
+        if (enabledServices != null) {
+            return enabledServices.contains(serviceName);
+        }
+        return false;
     }
     
     @Override

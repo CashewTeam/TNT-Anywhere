@@ -133,7 +133,7 @@ public class DisplayDetailFragment extends Fragment {
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
         touchpadButton.setOnClickListener(v -> {
-            startTouchpad();
+            TouchpadActivity.startTouchpad(getContext(), displayId, false);
         });
 
         // 添加修改按钮点击事件
@@ -174,55 +174,6 @@ public class DisplayDetailFragment extends Fragment {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
         }
-    }
-
-    private void startTouchpad() {
-        // 检查悬浮窗权限
-        if (!Settings.canDrawOverlays(getContext())) {
-            Intent intent = new Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:" + getContext().getPackageName())
-            );
-            startActivity(intent);
-            showToast("请授予悬浮窗权限");
-            return;
-        }
-        
-        if (ShizukuUtils.hasShizukuStarted()) {
-            State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
-            return;
-        }
-        
-        // 检查无障碍服务权限并尝试启动服务
-        if (!isAccessibilityServiceEnabled()) {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            startActivity(intent);
-            showToast("请开启无障碍服务权限");
-            return;
-        }
-        
-        // 启动无障碍服务
-        Intent serviceIntent = new Intent(getContext(), TouchpadAccessibilityService.class);
-        getContext().startService(serviceIntent);
-        
-        // 权限都具备且服务启动后启动触控板
-        Intent touchpadIntent = new Intent(getContext(), TouchpadActivity.class);
-        touchpadIntent.putExtra("display_id", getArguments().getInt(ARG_DISPLAY_ID));
-        startActivity(touchpadIntent);
-    }
-
-    // 检查无障碍服务是否启用
-    private boolean isAccessibilityServiceEnabled() {
-        String serviceName = getContext().getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
-        String enabledServices = Settings.Secure.getString(
-            getContext().getContentResolver(),
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        );
-        
-        if (enabledServices != null) {
-            return enabledServices.contains(serviceName);
-        }
-        return false;
     }
 
     private void showResolutionDialog(int currentWidth, int currentHeight) {

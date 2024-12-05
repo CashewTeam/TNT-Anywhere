@@ -33,8 +33,12 @@ public class LauncherActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_launcher);
         
-        TextView textView = findViewById(R.id.demo_text);
-        textView.setText("已安装的应用列表");
+        // 添加退出按钮的点击监听器
+        findViewById(R.id.btn_exit).setOnClickListener(v -> finish());
+
+        findViewById(R.id.btn_touchpad).setOnClickListener(v -> {
+            TouchpadActivity.startTouchpad(this, targetDisplayId, false);
+        });
         
         RecyclerView recyclerView = findViewById(R.id.app_list);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));

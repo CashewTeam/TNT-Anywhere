@@ -6,7 +6,11 @@ import rikka.shizuku.Shizuku;
 
 public class ShizukuUtils {
     public static boolean hasPermission() {
-        return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
+        try {
+            return Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED;
+        } catch(Exception e) {
+            return false;
+        }
     }
     public static boolean hasShizukuStarted() {
         try {
