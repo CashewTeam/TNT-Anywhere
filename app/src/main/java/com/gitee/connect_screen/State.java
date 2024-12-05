@@ -87,7 +87,11 @@ public class State {
 
     public static void resumeJob() {
         if (currentJob == null) {
-            breadcrumbManager.refreshCurrentFragment();
+            try {
+                breadcrumbManager.refreshCurrentFragment();
+            } catch(Exception e) {
+                // ignore
+            }
             return;
         }
         try {
