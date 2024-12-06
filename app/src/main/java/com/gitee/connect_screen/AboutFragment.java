@@ -53,7 +53,7 @@ public class AboutFragment extends Fragment {
         youtubeLink.setOnClickListener(v -> openUrl("https://www.youtube.com/@connect-screen"));
 
         TextView qqLink = view.findViewById(R.id.qqLink);
-        qqLink.setOnClickListener(v -> joinQQGroup("577902537"));
+        qqLink.setOnClickListener(v -> joinQQGroup());
 
         TextView websiteLink = view.findViewById(R.id.websiteLink);
         websiteLink.setOnClickListener(v -> openUrl("https://connect-screen.com"));
@@ -109,9 +109,15 @@ public class AboutFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void joinQQGroup(String groupId) {
-        Uri uri = Uri.parse("https://qm.qq.com/cgi-bin/qm/qr?k=" + groupId + "&jump_from=webapi");
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-        startActivity(intent);
-}
+    public void joinQQGroup() {
+        String key = "ngIy53SQRlz6tAO0UEkmALBjvGKkDYrq";
+        Intent intent = new Intent();
+        intent.setData(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D" + key));
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            openUrl("https://connect-screen.com");
+        }
+    }
+
 } 
