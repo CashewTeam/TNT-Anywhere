@@ -201,7 +201,19 @@ public class TouchpadActivity extends AppCompatActivity {
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 // 只在光标锁定时响应快速滑动手势
                 if (isCursorLocked && inputManager == null) {
-                    return true;
+                    if (Math.abs(velocityY) > Math.abs(velocityX)) {  // 垂直方向的快速滑动
+                        float x = cursorX + halfWidth;
+                        if (accessibilityService != null) {
+                            if (velocityY < 0) {  // 向上滑动
+                                Log.d(TAG, "onFling up");
+                                accessibilityService.performFling(displayId, x, true);
+                            } else {  // 向下滑动
+                                Log.d(TAG, "onFling up down");
+                                accessibilityService.performFling(displayId, x, false);
+                            }
+                        }
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -342,7 +354,6 @@ public class TouchpadActivity extends AppCompatActivity {
 
     private void replayBufferedEvents() {
         if (inputManager == null || gestureState.allMotionEvents.isEmpty()) {
-            Log.d(TAG, "没有需要重放的事件");
             return;
         }
 

@@ -240,4 +240,35 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         scrollQueue.clear();
         isScrolling = false;
     }
+
+    public void performFling(int displayId, float x, boolean isUpward) {
+        float startY, endY;
+        if (isUpward) {
+            startY = 800;  // 从屏幕下方开始
+            endY = 200;    // 滑动到屏幕上方
+        } else {
+            startY = 200;  // 从屏幕上方开始
+            endY = 800;    // 滑动到屏幕下方
+        }
+
+        Path flingPath = new Path();
+        flingPath.moveTo(x, startY);
+        flingPath.lineTo(x, endY);
+
+        GestureDescription.Builder builder = new GestureDescription.Builder();
+        builder.addStroke(new GestureDescription.StrokeDescription(
+            flingPath,
+            0,      // 开始时间
+            100     // 持续时间 - 快速滑动使用较短的时间
+        ));
+        builder.setDisplayId(displayId);
+
+        dispatchGesture(builder.build(), new GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                super.onCompleted(gestureDescription);
+                android.util.Log.d("AccessibilityService", "快速滑动手势执行完成");
+            }
+        }, null);
+    }
 }
