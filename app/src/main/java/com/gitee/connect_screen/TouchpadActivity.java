@@ -1,22 +1,16 @@
 package com.gitee.connect_screen;
 
-import static android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK;
-
 import android.app.ActivityOptions;
 import android.app.IActivityTaskManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
-import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
@@ -31,8 +25,10 @@ import android.view.MotionEventHidden;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -51,7 +47,7 @@ public class TouchpadActivity extends AppCompatActivity {
     public static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
     public static final int INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT = 1;
     public static final int INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH = 2;
-    private View touchpadArea;
+    private TextView touchpadArea;
     private ImageView cursorView;
     private int displayId;
     private static final String TAG = "TouchpadActivity";
@@ -67,13 +63,13 @@ public class TouchpadActivity extends AppCompatActivity {
     private GestureDetector gestureDetector;
     private IInputManager inputManager;
     private GestureState gestureState = new GestureState();
+    private boolean isCursorLocked = false;
+    private Button toggleCursorButton;
 
     private static class GestureState {
-        boolean isGestureInProgress = false;
-        boolean firstEventLooksLikeMovingCursor = false;
-        boolean isMovingCursor = false;
         List<MotionEvent> allMotionEvents = new ArrayList<>();
         int lastReplayed = 0;
+        boolean isSingleFinger;
         float initialTouchX = 0;
         float initialTouchY = 0;
     }
@@ -164,6 +160,10 @@ public class TouchpadActivity extends AppCompatActivity {
         // 4. 最后设置内容视图
         setContentView(R.layout.activity_touchpad);
         
+        // 设置触控板区域的帮助文案
+        touchpadArea = findViewById(R.id.touchpad_area);
+        updateHelp();
+
         // 获取目标显示器ID
         displayId = getIntent().getIntExtra("display_id", Display.DEFAULT_DISPLAY);
         
@@ -198,46 +198,34 @@ public class TouchpadActivity extends AppCompatActivity {
             }
 
             @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                // 只在光标锁定时响应快速滑动手势
+                if (isCursorLocked && inputManager == null) {
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 if (e2.getPointerCount() == 1) {
-                    float speed = (float) Math.sqrt(
-                        (e2.getX() - e1.getX()) * (e2.getX() - e1.getX()) +
-                        (e2.getY() - e1.getY()) * (e2.getY() - e1.getY())
-                    ) / (e2.getEventTime() - e1.getEventTime());
-                    if (gestureState.allMotionEvents.size() <= 2 && speed < 1.5) {
-                        Log.d(TAG, "判定可能要移动光标, onScroll 当前移动速度: " + speed);
-                        gestureState.firstEventLooksLikeMovingCursor = true;
-                        return true;
-                    }
-                    if (!gestureState.firstEventLooksLikeMovingCursor) {
-                        return false;
-                    }
-                    if (gestureState.isMovingCursor) {
+                    gestureState.isSingleFinger = true;
+                    // 只在光标未锁定时更新位置
+                    if (!isCursorLocked) {
                         updateCursorPosition(-distanceX, -distanceY);
-                        return true;
-                    }
-                    boolean confirmed = (gestureState.allMotionEvents.size() <= 4 &&speed < 2);
-                    if (confirmed) {
-                        Log.d(TAG, "确认是要移动光标, 事件数量: " + gestureState.allMotionEvents.size() + " onScroll 当前移动速度: " + speed);
-                        gestureState.isMovingCursor = true;
-                        updateCursorPosition(-distanceX, -distanceY);
-                        return true;
                     }
                 }
                 if (inputManager != null) {
                     return false;
                 }
                 if (e2.getPointerCount() == 2) {
-                    // 双指滚动，直接传递增量值
                     if (Math.abs(distanceY) > 5) {
                         accessibilityService.performScroll(
                             displayId,
-                            cursorX + halfWidth,  // 当前光标X坐标
-                            -distanceY * 2        // Y方向的增量
+                            cursorX + halfWidth,
+                            -distanceY * 2
                         );
                         return true;
-                    } else {
-                        return false;
                     }
                 }
                 return false;
@@ -246,8 +234,6 @@ public class TouchpadActivity extends AppCompatActivity {
 
         // 替换触控板的触摸事件监听
         touchpadArea.setOnTouchListener((v, event) -> {
-            gestureState.isGestureInProgress = true;
-            
             // 计算偏移量并存储修改后的事件
             if (gestureState.allMotionEvents.isEmpty()) {
                 gestureState.initialTouchX = event.getX();
@@ -264,9 +250,12 @@ public class TouchpadActivity extends AppCompatActivity {
             MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event, offsetX, offsetY);
             gestureState.allMotionEvents.add(copiedEventWithOffset);
             
-            boolean handled = gestureDetector.onTouchEvent(event);
-            if (!gestureState.isMovingCursor && gestureState.allMotionEvents.size() > 4) {
-                Log.d(TAG, "开始重放，因为不是 move gesture");
+            gestureDetector.onTouchEvent(event);
+            boolean shouldReplay = isCursorLocked;
+            if (!gestureState.isSingleFinger && gestureState.allMotionEvents.size() > 4) {
+                shouldReplay = true;
+            }
+            if (shouldReplay) {
                 replayBufferedEvents();
             }
             
@@ -277,16 +266,14 @@ public class TouchpadActivity extends AppCompatActivity {
                 if (accessibilityService != null) {
                     accessibilityService.cancelScroll();
                 }
-                if (!gestureState.isMovingCursor) {
-                    Log.d(TAG, "开始重放，因为触摸事件结束");
+                if (!gestureState.isSingleFinger) {
                     replayBufferedEvents();
                 }
                 gestureState.lastReplayed = 0;
-                gestureState.isGestureInProgress = false;
-                gestureState.isMovingCursor = false;
+                gestureState.isSingleFinger = false;
                 gestureState.allMotionEvents.clear();
             }
-            return handled;
+            return true;
         });
         
         accessibilityService = TouchpadAccessibilityService.getInstance();
@@ -330,10 +317,27 @@ public class TouchpadActivity extends AppCompatActivity {
             finish(); // 结束当前Activity，返回上一级
         });
 
-        // 添加帮助按钮的点击监听器
-        findViewById(R.id.helpButton).setOnClickListener(v -> {
-            showHelpDialog();
-        });
+        toggleCursorButton = findViewById(R.id.helpButton);
+        toggleCursorButton.setOnClickListener(v -> toggleCursorLock());
+
+        setFocus();
+    }
+
+    private void updateHelp() {
+        String singleFingerAction = "移动光标";
+        if (isCursorLocked) {
+            singleFingerAction = "刷抖音的上滑或者下滑";
+        }
+        touchpadArea.setText(
+            "请在此区域触控\n" +
+            "• 单指滑动 - " + singleFingerAction +"\n" +
+            "• 单指轻触 - 点击\n" +
+            "• 双指滑动 - 滚动页面\n" +
+            "• 返回按钮 - 在目标屏幕上按返回\n" +
+            "• 主页按钮 - 再次打开列表中选择的应用\n" +
+            "• 月亮按钮 - 纯黑色屏幕省电\n" +
+            "• 如果蓝牙手柄等控制不了显示器，请尝试用月亮按钮让主屏熄屏，从而把输入焦点转移到显示器"
+        );
     }
 
     private void replayBufferedEvents() {
@@ -342,7 +346,7 @@ public class TouchpadActivity extends AppCompatActivity {
             return;
         }
 
-        // 直接重放已经计算好偏移量的事件
+        // 直重放已经计算好偏移量的事件
         for (int i = gestureState.lastReplayed; i < gestureState.allMotionEvents.size(); i++) {
             MotionEvent event = gestureState.allMotionEvents.get(i);
             
@@ -400,7 +404,7 @@ public class TouchpadActivity extends AppCompatActivity {
         }
     }
 
-    // 添加更新光标位��的方法
+    // 添加更新光标位的方法
     private void updateCursorPosition(float deltaX, float deltaY) {
         cursorX += deltaX * 1.5f;
         cursorY += deltaY * 1.5f;
@@ -451,28 +455,15 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null) {
             cursorView.setVisibility(isDarkMode ? View.GONE : View.VISIBLE);
         }
+        setFocus();
+    }
+
+    private void setFocus() {
         if (accessibilityService == null) {
             ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
         } else {
             accessibilityService.setFocus(displayId);
         }
-    }
-
-    // 添加显示帮助对话框的方法
-    private void showHelpDialog() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("触控板使用帮助")
-            .setMessage(
-                "• 单指轻触 - 点击\n" +
-                "• 单指滑动 - 移动光标\n" +
-                "• 双指滑动 - 滚动页面\n" +
-                "• 返回按钮 - 在目标屏幕上按返回\n" +
-                "• 主页按钮 - 再次打开列表中选择的应用\n" +
-                "• 暗色按钮 - 纯黑色屏幕省电\n" +
-                "• 退出按钮 - 退出触控板"
-            )
-            .setPositiveButton("知道了", null)
-            .show();
     }
 
     @Override
@@ -524,5 +515,11 @@ public class TouchpadActivity extends AppCompatActivity {
             source.getSource(),
             source.getFlags()
         );
+    }
+
+    private void toggleCursorLock() {
+        isCursorLocked = !isCursorLocked;
+        toggleCursorButton.setText(isCursorLocked ? "解锁光标" : "锁定光标");
+        updateHelp();
     }
 }

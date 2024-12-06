@@ -33,22 +33,25 @@
                 android:id="@+id/helpButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="帮助"
+                android:text="锁定光标"
                 android:layout_gravity="end" />
 
         </LinearLayout>
 
         <!-- 触控板区域 -->
-        <View
+        <TextView
             android:id="@+id/touchpad_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_margin="16dp"
-            android:padding="16dp"
+            android:padding="32dp"
             android:background="@drawable/touchpad_background"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:lineSpacingExtra="8dp"/>
 
         <!-- 底部功能按钮区域 -->
         <LinearLayout
