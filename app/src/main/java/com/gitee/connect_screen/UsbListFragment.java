@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,6 +19,7 @@ public class UsbListFragment extends Fragment {
     private RecyclerView usbDeviceList;
     private UsbDeviceAdapter adapter;
     private List<UsbDevice> devices = new ArrayList<>();
+    private TextView emptyView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,6 +45,8 @@ public class UsbListFragment extends Fragment {
         
         usbDeviceList.setAdapter(adapter);
         
+        emptyView = view.findViewById(R.id.emptyView);
+        
         // 查询USB设备
         refreshUsbDevices();
         
@@ -56,5 +60,8 @@ public class UsbListFragment extends Fragment {
         devices.clear();
         devices.addAll(deviceList.values());
         adapter.notifyDataSetChanged();
+        
+        // 根据列表是否为空来显示或隐藏提示文本
+        emptyView.setVisibility(devices.isEmpty() ? View.VISIBLE : View.GONE);
     }
 } 

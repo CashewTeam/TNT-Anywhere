@@ -123,6 +123,9 @@ public class DisplayDetailFragment extends Fragment {
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
 
         launchButton = view.findViewById(R.id.start_launcher_button);
+        if (displayId == 0) {
+            launchButton.setVisibility(View.GONE);
+        }
         launchButton.setOnClickListener(v -> {
             Context context = State.currentActivity.get();
             Intent intent = new Intent(context, LauncherActivity.class);
@@ -132,6 +135,9 @@ public class DisplayDetailFragment extends Fragment {
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
+        if (displayId == 0) {
+            touchpadButton.setVisibility(View.GONE);
+        }
         touchpadButton.setOnClickListener(v -> {
             TouchpadActivity.startTouchpad(getContext(), displayId, false);
         });

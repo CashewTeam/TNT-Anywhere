@@ -4,6 +4,7 @@ import static android.content.Context.DISPLAY_SERVICE;
 import static androidx.core.content.ContextCompat.getSystemService;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -33,6 +34,13 @@ public class DisplayListFragment extends Fragment {
         RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(new DisplayAdapter(Arrays.asList(displays), this::onDisplayItemClick));
+
+        // 添加按钮点击事件
+        view.findViewById(R.id.btnOpenCast).setOnClickListener(v -> {
+            Intent intent = new Intent();
+            intent.setAction(android.provider.Settings.ACTION_CAST_SETTINGS);
+            startActivity(intent);
+        });
 
         return view;
     }
