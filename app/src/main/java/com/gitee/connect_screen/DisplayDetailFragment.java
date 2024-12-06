@@ -37,7 +37,8 @@ public class DisplayDetailFragment extends Fragment {
     private TextView shizukuStatusText;
     private Button launchButton;
     private int displayId;
-    
+    private Display display;
+
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
         Bundle args = new Bundle();
@@ -73,7 +74,7 @@ public class DisplayDetailFragment extends Fragment {
         
         displayId = getArguments().getInt(ARG_DISPLAY_ID);
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
-        Display display = displayManager.getDisplay(displayId);
+        display = displayManager.getDisplay(displayId);
 
         if(display == null) {
             return view;
@@ -104,7 +105,6 @@ public class DisplayDetailFragment extends Fragment {
             "显示器 ID: %d\n" +
             "名称: %s\n" +
             "刷新率: %.1f Hz\n" +
-            "DPI: %d\n" +
             "状态: %s\n" +
             "HDR支持: %s\n" +
             "显示器标志: %s\n" +
@@ -112,7 +112,6 @@ public class DisplayDetailFragment extends Fragment {
             display.getDisplayId(),
             display.getName(),
             display.getRefreshRate(),
-            metrics.densityDpi,
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
             display.isHdr() ? "是" : "否",
             getDisplayFlags(display),
@@ -148,6 +147,17 @@ public class DisplayDetailFragment extends Fragment {
             editResolutionButton.setVisibility(View.VISIBLE);
             editResolutionButton.setOnClickListener(v -> {
                 showResolutionDialog(display.getWidth(), display.getHeight());
+            });
+        }
+
+        TextView dpiText = view.findViewById(R.id.dpi_text);
+        dpiText.setText(String.format("DPI: %d", metrics.densityDpi));
+
+        Button editDpiButton = view.findViewById(R.id.edit_dpi_button);
+        if(ShizukuUtils.hasShizukuStarted()) {
+            editDpiButton.setVisibility(View.VISIBLE);
+            editDpiButton.setOnClickListener(v -> {
+                showDpiDialog(metrics.densityDpi);
             });
         }
 
@@ -204,6 +214,36 @@ public class DisplayDetailFragment extends Fragment {
                             return;
                         }
                         State.startNewJob(new ChangeResolution(displayId, newWidth, newHeight));
+                    } catch (NumberFormatException e) {
+                        showToast("请输入有效的数字");
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showDpiDialog(int currentDpi) {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_dpi, null);
+        EditText dpiInput = dialogView.findViewById(R.id.dpi_input);
+        
+        dpiInput.setText(String.valueOf(currentDpi));
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("修改DPI")
+                .setView(dialogView)
+                .setPositiveButton("确定", (dialog, which) -> {
+                    try {
+                        int newDpi = Integer.parseInt(dpiInput.getText().toString());
+                        
+                        if (newDpi <= 0) {
+                            showToast("请输入有效的DPI值");
+                            return;
+                        }
+                        ServiceUtils.getWindowManager().setForcedDisplayDensityForUser(displayId, newDpi, 0);
+                        TextView dpiText = DisplayDetailFragment.this.getView().findViewById(R.id.dpi_text);
+                        DisplayMetrics metrics = new DisplayMetrics();
+                        display.getMetrics(metrics);
+                        dpiText.setText(String.format("DPI: %d", metrics.densityDpi));
                     } catch (NumberFormatException e) {
                         showToast("请输入有效的数字");
                     }
