@@ -18,6 +18,8 @@ public interface IInputManager extends IInterface {
     boolean injectInputEvent(InputEvent ev, int mode);
     void addPortAssociation(String inputPort, int displayPort);
     void removePortAssociation(String inputPort);
+    void addUniqueIdAssociation(String inputPort, String displayUniqueId);
+    void removeUniqueIdAssociation(String inputPort);
     void addUniqueIdAssociationByPort(String inputPort, String displayUniqueId);
     void addUniqueIdAssociationByDescriptor(String inputDeviceDescriptor, String displayUniqueId);
     void removeUniqueIdAssociationByDescriptor(String inputDeviceDescriptor);

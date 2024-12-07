@@ -82,7 +82,8 @@ public class AboutFragment extends Fragment {
                 }
                 try {
                     State.log("start fetch logs");
-                    State.userService.fetchLogs();
+                    String logs = State.userService.fetchLogs();
+                    State.log("logs: " + logs);
                 } catch (RemoteException ex) {
                     // ignore
                 }

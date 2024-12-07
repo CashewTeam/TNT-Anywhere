@@ -10,6 +10,7 @@ import android.hardware.display.IVirtualDisplayCallback;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.display.VirtualDisplayConfig;
 import android.hardware.input.IInputManager;
+import android.hardware.input.InputManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
@@ -30,6 +31,7 @@ import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 import java.io.Serial;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
 import dev.rikka.tools.refine.Refine;
@@ -102,9 +104,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             for (int deviceId : inputManager.getInputDeviceIds()) {
                 InputDevice inputDevice = inputManager.getInputDevice(deviceId);
                 if (inputDevice.isExternal()) {
-                    State.log("更新输入设备路由: " + inputDevice);
-                    inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
-                    inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
+                    try {
+                        inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
+                        inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
+                        State.log("成功更新输入设备路由: " + inputDevice);
+                    } catch(Error e) {
+                        State.log("未能更新输入设备路由: " + inputDevice);
+                        inputManager.removeUniqueIdAssociation("usb-xhci-hcd.2.auto-1.2.4/input0");
+                        inputManager.addUniqueIdAssociation("usb-xhci-hcd.2.auto-1.2.4/input0", String.valueOf(displayInfo.uniqueId));
+                    }
                 }
             }
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);

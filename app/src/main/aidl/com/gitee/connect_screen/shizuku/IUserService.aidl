@@ -7,4 +7,6 @@ interface IUserService {
     void exit() = 1; // Exit method defined by user
 
     String fetchLogs() = 2;
+
+    String dumpsysInput() = 3;
 }

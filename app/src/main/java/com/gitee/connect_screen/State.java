@@ -42,6 +42,11 @@ public class State {
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             State.log("user service connected");
             State.userService = IUserService.Stub.asInterface(binder);
+            if (State.currentActivity.get() != null) {
+                State.currentActivity.get().runOnUiThread(() -> {
+                    State.resumeJob();
+                });
+            }
         }
 
         @Override
@@ -52,10 +57,10 @@ public class State {
 
     public static final Shizuku.UserServiceArgs userServiceArgs =
             new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
-                    .daemon(false)
+                    .daemon(true)
                     .processNameSuffix("service")
                     .debuggable(BuildConfig.DEBUG)
-                    .version(BuildConfig.VERSION_CODE);
+                    .version(BuildConfig.VERSION_CODE + 1);
 
     public static boolean isJobRunning() {
         return currentJob != null;
@@ -132,6 +137,12 @@ public class State {
         }
         if (deviceName.equals(displaylinkDeviceName)) {
             displaylinkDeviceName = null;
+        }
+    }
+
+    public static void unbindUserService() {
+        if (userService == null) {
+            Shizuku.unbindUserService(userServiceArgs, userServiceConnection, true); // 解绑用户服务
         }
     }
 }

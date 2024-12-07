@@ -25,6 +25,47 @@ public class UserService extends IUserService.Stub  {
 
     @Override
     public String fetchLogs() throws RemoteException  {
-        return "hello world";
+        try {
+            Process process = Runtime.getRuntime().exec("dumpsys input");
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()));
+
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            reader.close();
+            process.waitFor();
+
+            return output.toString();
+        } catch (Exception e) {
+            Log.e("UserService", "dumpsysInput failed", e);
+            throw new RemoteException("Failed to execute dumpsys input: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public String dumpsysInput() throws RemoteException {
+        try {
+            Process process = Runtime.getRuntime().exec("dumpsys input");
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(process.getInputStream()));
+            
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            
+            reader.close();
+            process.waitFor();
+            
+            return output.toString();
+        } catch (Exception e) {
+            Log.e("UserService", "dumpsysInput failed", e);
+            throw new RemoteException("Failed to execute dumpsys input: " + e.getMessage());
+        }
     }
 }
