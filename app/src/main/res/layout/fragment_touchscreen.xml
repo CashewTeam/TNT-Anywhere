@@ -6,20 +6,31 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/touchscreenTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="触摸屏查看"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
-
     <View
         android:id="@+id/touchArea"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="#EEEEEE"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/formatInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:fontFamily="monospace"/>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout> 
