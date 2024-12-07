@@ -50,6 +50,9 @@ public class TouchscreenFragment extends Fragment {
         
         TouchInputFormat.FieldInfo currentField = null;
         
+        int logicalMinimum = 0;
+        int logicalMaximum = 0;
+        
         while (i < reportDescriptor.length) {
             int prefix = reportDescriptor[i] & 0xFF;
             int tag = (prefix >> 4) & 0x0F;
@@ -84,6 +87,12 @@ public class TouchscreenFragment extends Fragment {
                         case 9: // Report Count
                             currentReportCount = (int)data;
                             break;
+                        case 1: // Logical Minimum
+                            logicalMinimum = (int)data;
+                            break;
+                        case 2: // Logical Maximum
+                            logicalMaximum = (int)data;
+                            break;
                     }
                     break;
                     
@@ -93,8 +102,12 @@ public class TouchscreenFragment extends Fragment {
                         if (currentUsagePage == 0x01) { // GenericDesktop
                             switch ((int)data) {
                                 case 0x30: // X
+                                    format.xMin = logicalMinimum;
+                                    format.xMax = logicalMaximum;
+                                    break;
                                 case 0x31: // Y
-                                    // 坐标相关字段
+                                    format.yMin = logicalMinimum;
+                                    format.yMax = logicalMaximum;
                                     break;
                             }
                         } else if (currentUsagePage == 0x0D) {// Digitizer
@@ -128,6 +141,10 @@ public class TouchscreenFragment extends Fragment {
         boolean hasInRange = false;
         boolean hasTipSwitch = false;
         int totalBits = 0;
+        
+        // 添加坐标范围信息
+        int xMin = 0, xMax = 0;
+        int yMin = 0, yMax = 0;
         
         void addField(FieldInfo field) {
             fields.add(field);
@@ -217,6 +234,15 @@ public class TouchscreenFragment extends Fragment {
         info.append("- 压力感应: ").append(inputFormat.hasPressure ? "是" : "否").append("\n");
         info.append("- 悬空检测: ").append(inputFormat.hasInRange ? "是" : "否").append("\n");
         info.append("- 接触检测: ").append(inputFormat.hasTipSwitch ? "是" : "否").append("\n\n");
+        
+        info.append("坐标范围：\n");
+        if (inputFormat.xMax > inputFormat.xMin) {
+            info.append("- X轴: ").append(inputFormat.xMin).append(" - ").append(inputFormat.xMax).append("\n");
+        }
+        if (inputFormat.yMax > inputFormat.yMin) {
+            info.append("- Y轴: ").append(inputFormat.yMin).append(" - ").append(inputFormat.yMax).append("\n");
+        }
+        info.append("\n");
         
         info.append("数据字段：\n");
         for (int i = 0; i < inputFormat.fields.size(); i++) {
