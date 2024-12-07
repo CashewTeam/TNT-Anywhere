@@ -109,23 +109,49 @@ public class UsbInterfaceDetailFragment extends Fragment {
     }
 
     private void requestUsbPermissionAndGetDetails() {
+        // 检查是否已经有权限
+        if (usbManager.hasPermission(device)) {
+            getHidDetails();
+            return;
+        }
+
+        // 没有权限则请求权限
         PendingIntent permissionIntent = PendingIntent.getBroadcast(getContext(), 0,
-                new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+                new Intent(ACTION_USB_PERMISSION), 
+                PendingIntent.FLAG_IMMUTABLE);
+                
+        // 注册广播接收器
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         requireContext().registerReceiver(usbReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        usbManager.requestPermission(device, permissionIntent);
+        
+        // 请求权限前先确保设备和管理器都存在
+        if (device != null && usbManager != null) {
+            usbManager.requestPermission(device, permissionIntent);
+        } else {
+            Toast.makeText(getContext(), "USB设备或管理器不可用", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (ACTION_USB_PERMISSION.equals(intent.getAction())) {
-                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                    getHidDetails();
-                } else {
-                    Toast.makeText(context, "USB权限被拒绝", Toast.LENGTH_SHORT).show();
+            String action = intent.getAction();
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                synchronized (this) {
+                    UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        if (usbDevice != null && usbDevice.equals(device)) {
+                            getHidDetails();
+                        }
+                    } else {
+                        Toast.makeText(context, "USB权限被拒绝", Toast.LENGTH_SHORT).show();
+                    }
+                    try {
+                        context.unregisterReceiver(this);
+                    } catch (IllegalArgumentException e) {
+                        // 忽略重复解注册的异常
+                    }
                 }
-                context.unregisterReceiver(this);
             }
         }
     };
@@ -271,22 +297,45 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
 
         try {
+            StringBuilder sb = new StringBuilder(detailContent.getText());
+            sb.append("\n\nHID详情:\n");
+            sb.append("━━━━━━━━━━━━━━━━━━\n");
+            
             // 获取HID描述符
-            byte[] desc = new byte[256];
-            int len = connection.controlTransfer(
+            byte[] hidDesc = new byte[256];
+            int hidLen = connection.controlTransfer(
                     UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
                     USB_REQ_GET_DESCRIPTOR,
                     (USB_DT_HID << 8) | 0,
                     interfaceIndex,
-                    desc,
+                    hidDesc,
                     256,
                     1000);
 
-            StringBuilder sb = new StringBuilder(detailContent.getText());
-            sb.append("\n\nHID详情:\n");
-            
-            if (len > 0) {
-                parseHidDescriptor(desc, len, sb);
+            if (hidLen > 0) {
+                parseHidDescriptor(hidDesc, hidLen, sb);
+                
+                // 从HID描述符中获取报告描述符的长度
+                if (hidLen >= 9) {
+                    int reportDescLength = (hidDesc[7] & 0xFF) | ((hidDesc[8] & 0xFF) << 8);
+                    
+                    // 获取报告描述符
+                    byte[] reportDesc = new byte[reportDescLength];
+                    int reportLen = connection.controlTransfer(
+                            UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
+                            USB_REQ_GET_DESCRIPTOR,
+                            (0x22 << 8) | 0, // 0x22 是报告描述符的类型
+                            interfaceIndex,
+                            reportDesc,
+                            reportDescLength,
+                            1000);
+
+                    if (reportLen > 0) {
+                        parseReportDescriptor(reportDesc, reportLen, sb);
+                    } else {
+                        sb.append("\n无法获取报告描述符\n");
+                    }
+                }
             } else {
                 sb.append("无法获取HID描述符\n");
             }
@@ -332,7 +381,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
     }
 
-    // 新增方法：获取HID设备用途描述
+    // 新增方���：获取HID设备用途描述
     private String getHidUsageDescription(int subClass, int protocol) {
         if (subClass == 1) { // Boot Interface Subclass
             switch (protocol) {
