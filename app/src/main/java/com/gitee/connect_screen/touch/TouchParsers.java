@@ -301,8 +301,8 @@ public class TouchParsers {
         return result;
     }
 
-    // 7. EGalaxEETI格式
-    public static TouchData parseEGalaxEETIFormat(byte[] data, int length) {
+    // 7. ILITek格式
+    public static TouchData parseILITekFormat(byte[] data, int length) {
         TouchData touchData = new TouchData();
 
         // 数据格式说明（每个触摸点8字节）:
