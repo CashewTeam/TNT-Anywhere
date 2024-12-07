@@ -67,6 +67,10 @@ public class UsbDeviceDetailFragment extends Fragment {
     private void showBasicInfo() {
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
+        String manufacturerName = device.getManufacturerName();
+        sb.append("制造商: ").append(manufacturerName != null ? manufacturerName : "未知").append("\n");
+        String productName = device.getProductName();
+        sb.append("产品名称: ").append(productName != null ? productName : "未知").append("\n");
         sb.append("厂商ID: ").append(device.getVendorId()).append("\n");
         sb.append("产品ID: ").append(device.getProductId()).append("\n");
         sb.append("设备类: ").append(device.getDeviceClass()).append("\n");

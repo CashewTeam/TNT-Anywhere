@@ -180,6 +180,8 @@ public class DisplaylinkFragment extends Fragment {
 
         StringBuilder sb = new StringBuilder();
         sb.append("设备名称: ").append(device.getDeviceName()).append("\n");
+        sb.append("制造商: ").append(device.getManufacturerName() != null ? device.getManufacturerName() : "未知").append("\n");
+        sb.append("产品名称: ").append(device.getProductName() != null ? device.getProductName() : "未知").append("\n");
         sb.append("厂商ID: ").append(device.getVendorId()).append("\n");
         sb.append("产品ID: ").append(device.getProductId()).append("\n");
         sb.append("设备类: ").append(device.getDeviceClass()).append("\n");
