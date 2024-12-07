@@ -332,7 +332,9 @@ public class TouchpadActivity extends AppCompatActivity {
         toggleCursorButton = findViewById(R.id.helpButton);
         toggleCursorButton.setOnClickListener(v -> toggleCursorLock());
 
-        setFocus();
+        if (ShizukuUtils.hasPermission()) {
+            setFocus();
+        }
     }
 
     private void updateHelp() {
