@@ -23,6 +23,7 @@ public class TouchscreenFragment extends Fragment {
     private static final String ARG_REPORT_DESC = "report_descriptor";
     private static final String ARG_DEVICE = "device";
     private static final String ARG_INTERFACE_INDEX = "interface_index";
+    private static final String TAG = "TouchscreenFragment";
     
     private byte[] hidDescriptor;
     private byte[] reportDescriptor;
@@ -32,6 +33,9 @@ public class TouchscreenFragment extends Fragment {
     private UsbDeviceConnection connection;
     private UsbEndpoint inputEndpoint;
     private UsbManager usbManager;
+    private boolean isReading = false;
+    private Thread readThread;
+    private byte[] inputBuffer;
     
     private void parseInputFormat() {
         if (reportDescriptor == null) return;
@@ -40,7 +44,6 @@ public class TouchscreenFragment extends Fragment {
         TouchInputFormat format = new TouchInputFormat();
         int i = 0;
         int currentUsagePage = 0;
-        boolean inInputReport = false;
         int currentReportSize = 0;
         int currentReportCount = 0;
         int currentUsage = 0;
@@ -63,7 +66,6 @@ public class TouchscreenFragment extends Fragment {
             switch (type) {
                 case 0: // 主项
                     if (tag == 8) { // Input
-                        inInputReport = true;
                         currentField = new TouchInputFormat.FieldInfo(currentReportSize, currentReportCount);
                         currentField.usagePage = currentUsagePage;
                         currentField.usage = currentUsage;
@@ -185,6 +187,11 @@ public class TouchscreenFragment extends Fragment {
             parseInputFormat();
         }
         usbManager = (UsbManager) requireContext().getSystemService(Context.USB_SERVICE);
+        
+        if (inputEndpoint != null) {
+            inputBuffer = new byte[inputEndpoint.getMaxPacketSize()];
+            startReading();
+        }
     }
     
     @Override
@@ -239,5 +246,109 @@ public class TouchscreenFragment extends Fragment {
             }
         }
         return "未知字段";
+    }
+    
+    private void startReading() {
+        if (connection == null) {
+            connection = usbManager.openDevice(device);
+            if (connection != null) {
+                connection.claimInterface(usbInterface, true);
+            }
+        }
+        
+        if (connection == null) return;
+        
+        isReading = true;
+        readThread = new Thread(() -> {
+            while (isReading) {
+                int bytesRead = connection.bulkTransfer(inputEndpoint, inputBuffer, 
+                    inputBuffer.length, 100);
+                if (bytesRead > 0) {
+                    parseInputData(inputBuffer, bytesRead);
+                }
+            }
+        });
+        readThread.start();
+    }
+
+    private void parseInputData(byte[] data, int length) {
+        if (inputFormat == null) return;
+        
+        StringBuilder hexString = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            hexString.append(String.format("%02X ", data[i]));
+        }
+        android.util.Log.d(TAG, "触控原始数据: " + hexString.toString());
+        
+        int bitOffset = 0;
+        int contactId = -1;
+        int x = 0, y = 0;
+        boolean isTouched = false;
+        int pressure = 0;
+        boolean foundFirstValidPoint = false;
+        
+        StringBuilder fieldLog = new StringBuilder("字段解析:\n");
+        
+        for (TouchInputFormat.FieldInfo field : inputFormat.fields) {
+            long value = extractBits(data, bitOffset, field.size);
+            
+            fieldLog.append(String.format("位置 %d-%d: %d位 = 0x%X (%s)\n",
+                bitOffset, bitOffset + field.size - 1,
+                field.size, value, getUsageDescription(field.usagePage, field.usage)));
+            
+            if (!foundFirstValidPoint) {
+                if (field.usagePage == 0x0D) { // Digitizer
+                    switch (field.usage) {
+                        case 0x51: contactId = (int)value; break;
+                        case 0x42: isTouched = value != 0; break;
+                        case 0x30: pressure = (int)value; break;
+                    }
+                } else if (field.usagePage == 0x01) { // Generic Desktop
+                    switch (field.usage) {
+                        case 0x30: 
+                            x = (int)value;
+                            if (value != 0) foundFirstValidPoint = true;
+                            break;
+                        case 0x31: 
+                            y = (int)value;
+                            if (value != 0) foundFirstValidPoint = true;
+                            break;
+                    }
+                }
+            }
+            
+            bitOffset += field.size * field.count;
+        }
+    }
+
+    private long extractBits(byte[] data, int startBit, int length) {
+        long result = 0;
+        for (int i = 0; i < length; i++) {
+            int byteIndex = (startBit + i) / 8;
+            int bitIndex = (startBit + i) % 8;
+            if (byteIndex >= data.length) break;
+            
+            if ((data[byteIndex] & (1 << bitIndex)) != 0) {
+                result |= (1L << i);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void onDestroy() {
+        isReading = false;
+        if (readThread != null) {
+            try {
+                readThread.join(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if (connection != null) {
+            connection.releaseInterface(usbInterface);
+            connection.close();
+        }
+        super.onDestroy();
     }
 } 
