@@ -15,7 +15,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,7 +28,6 @@ public class UsbInterfaceDetailFragment extends Fragment {
     private int interfaceIndex;
     private UsbInterface usbInterface;
     private TextView detailContent;
-    private Button btnGetHidDetails;
     private UsbManager usbManager;
 
     private static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
@@ -61,14 +59,13 @@ public class UsbInterfaceDetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_usb_interface_detail, container, false);
         detailContent = view.findViewById(R.id.detailContent);
-        btnGetHidDetails = view.findViewById(R.id.btnGetHidDetails);
         usbManager = (UsbManager) requireContext().getSystemService(Context.USB_SERVICE);
 
         showInterfaceInfo();
         
+        // 如果是HID设备,直接请求权限并获取详情
         if (usbInterface.getInterfaceClass() == UsbConstants.USB_CLASS_HID) {
-            btnGetHidDetails.setVisibility(View.VISIBLE);
-            btnGetHidDetails.setOnClickListener(v -> requestUsbPermissionAndGetDetails());
+            requestUsbPermissionAndGetDetails();
         }
 
         return view;
@@ -308,7 +305,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
             case 13: return "国际通用";
             case 14: return "意大利";
             case 15: return "日本";
-            case 16: return "韩国";
+            case 16: return "��国";
             case 17: return "拉丁美洲";
             case 18: return "荷兰";
             case 19: return "挪威";
