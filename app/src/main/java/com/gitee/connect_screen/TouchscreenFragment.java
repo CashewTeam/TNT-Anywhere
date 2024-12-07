@@ -16,6 +16,8 @@ import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.touch.TouchData;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -311,7 +313,7 @@ public class TouchscreenFragment extends Fragment {
         touchData = parseEGalaxEETIFormat(data, length);
         
         // 处理解析结果
-        for (TouchPoint point : touchData.points) {
+        for (TouchData.TouchPoint point : touchData.points) {
             if (point.isValid) {
                 Log.d(TAG, String.format("触摸点 ID:%d, X:%d, Y:%d, 按下:%b",
                         point.contactId, point.x, point.y, point.isTouched));
@@ -350,24 +352,6 @@ public class TouchscreenFragment extends Fragment {
         super.onDestroy();
     }
 
-    private static class TouchPoint {
-        boolean isValid;
-        int contactId;
-        int x;
-        int y;
-        boolean isTouched;
-    }
-
-    private static class TouchData {
-        List<TouchPoint> points;
-        int scanTime; // 扫描时间 (最后16位)
-        int reportId; // 报告ID (最后8位)
-        
-        TouchData() {
-            points = new ArrayList<>();
-        }
-    }
-
     // 1. 基础格式 (常见于简单触摸屏)
     private TouchData parseWithBasicFormat(byte[] data, int length) {
         // 基础触摸数据格式结构（每个触摸点5字节）:
@@ -390,7 +374,7 @@ public class TouchscreenFragment extends Fragment {
         // 从第二个字节开始解析触摸点数据
         int offset = 1;
         for (int i = 0; i < touchCount && offset + 5 <= length; i++) {
-            TouchPoint point = new TouchPoint();
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
             
             // 解析触摸信息字节
             int touchInfo = data[offset] & 0xFF;
@@ -440,7 +424,7 @@ public class TouchscreenFragment extends Fragment {
         
         int offset = 2;
         for (int i = 0; i < touchCount && offset + 8 <= length; i++) {
-            TouchPoint point = new TouchPoint();
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
             
             point.contactId = data[offset] & 0xFF;
             point.isTouched = (data[offset + 1] & 0x01) != 0;
@@ -541,8 +525,8 @@ public class TouchscreenFragment extends Fragment {
         for (int i = 0; i < pointCount; i++) {
             // 计算当前触摸点数据的起始字节位置
             int offset = i * 8;
-            
-            TouchPoint point = new TouchPoint();
+
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
             // 使用索引作为触摸点ID
             point.contactId = i;
             
@@ -573,8 +557,8 @@ public class TouchscreenFragment extends Fragment {
         if (inputFormat == null || length < 3) return result;
         
         int currentBit = 0;
-        List<TouchPoint> points = new ArrayList<>();
-        TouchPoint currentPoint = null;
+        List<TouchData.TouchPoint> points = new ArrayList<>();
+        TouchData.TouchPoint currentPoint = null;
         
         // 基于HID报告描述符解析
         for (TouchInputFormat.FieldInfo field : inputFormat.fields) {
@@ -583,7 +567,7 @@ public class TouchscreenFragment extends Fragment {
             if (field.usagePage == 0x0D) { // Digitizer
                 switch (field.usage) {
                     case 0x51: // Contact ID
-                        currentPoint = new TouchPoint();
+                        currentPoint = new TouchData.TouchPoint();
                         currentPoint.contactId = (int)value;
                         points.add(currentPoint);
                         break;
