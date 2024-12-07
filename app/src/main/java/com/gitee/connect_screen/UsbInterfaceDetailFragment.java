@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +30,9 @@ public class UsbInterfaceDetailFragment extends Fragment {
     private UsbInterface usbInterface;
     private TextView detailContent;
     private UsbManager usbManager;
+    private Button btnViewTouchscreen;
+    private byte[] hidDescriptor;
+    private byte[] reportDescriptor;
 
     private static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
     private static final byte USB_REQ_GET_DESCRIPTOR = 0x06;
@@ -59,7 +63,18 @@ public class UsbInterfaceDetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_usb_interface_detail, container, false);
         detailContent = view.findViewById(R.id.detailContent);
+        btnViewTouchscreen = view.findViewById(R.id.btnViewTouchscreen);
         usbManager = (UsbManager) requireContext().getSystemService(Context.USB_SERVICE);
+
+        // 设置按钮点击事件
+        btnViewTouchscreen.setOnClickListener(v -> {
+            if (hidDescriptor != null && reportDescriptor != null) {
+                MainActivity activity = (MainActivity) getActivity();
+                activity.pushBreadcrumb("触摸屏", () -> TouchscreenFragment.newInstance(hidDescriptor, reportDescriptor));
+            } else {
+                Toast.makeText(getContext(), "触摸屏描述符数据不可用", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         showInterfaceInfo();
         
@@ -179,7 +194,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
     }
     
-    // 添加新的辅助方法来获取端点类型描述
+    // 添加新的辅助方���来获取端点类型描述
     private String getEndpointType(int type) {
         switch (type) {
             case UsbConstants.USB_ENDPOINT_XFER_CONTROL:
@@ -305,7 +320,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
             case 13: return "国际通用";
             case 14: return "意大利";
             case 15: return "日本";
-            case 16: return "��国";
+            case 16: return "国";
             case 17: return "拉丁美洲";
             case 18: return "荷兰";
             case 19: return "挪威";
@@ -409,61 +424,58 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
 
         try {
-            // 先获取HID描述符
-            byte[] hidDesc = new byte[256];
+            hidDescriptor = new byte[256];
             int hidLen = connection.controlTransfer(
                     UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
                     USB_REQ_GET_DESCRIPTOR,
                     (USB_DT_HID << 8) | 0,
                     interfaceIndex,
-                    hidDesc,
+                    hidDescriptor,
                     256,
                     1000);
 
             // 获取报告描述符
-            byte[] reportDesc = null;
-            int reportLen = 0;
             if (hidLen >= 9) {
-                int reportDescLength = (hidDesc[7] & 0xFF) | ((hidDesc[8] & 0xFF) << 8);
-                reportDesc = new byte[reportDescLength];
-                reportLen = connection.controlTransfer(
+                int reportDescLength = (hidDescriptor[7] & 0xFF) | ((hidDescriptor[8] & 0xFF) << 8);
+                reportDescriptor = new byte[reportDescLength];
+                int reportLen = connection.controlTransfer(
                         UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
                         USB_REQ_GET_DESCRIPTOR,
                         (0x22 << 8) | 0,
                         interfaceIndex,
-                        reportDesc,
+                        reportDescriptor,
                         reportDescLength,
                         1000);
-            }
-
-            // 开始构建显示内容
-            StringBuilder sb = new StringBuilder(detailContent.getText());
-            
-            // 如果成功获取到报告描述符，添加设备类型分析
-            if (reportLen > 0) {
-                sb.append("\n设备类型分析:\n");
-                sb.append("━━━━━━━━━━━━━━━━━━\n");
-                analyzeDeviceType(reportDesc, reportLen, sb);
-            }
-
-            sb.append("\n\nHID详情:\n");
-            sb.append("━━━━━━━━━━━━━━━━━━\n");
-
-            // 解析HID描述符
-            if (hidLen > 0) {
-                parseHidDescriptor(hidDesc, hidLen, sb);
                 
-                // 解析报告描述符
+                // 开始构建显示内容
+                StringBuilder sb = new StringBuilder(detailContent.getText());
+                
+                // 如果成功获取到报告描述符，添加设备类型分析
                 if (reportLen > 0) {
-                    parseReportDescriptor(reportDesc, reportLen, sb);
-                } else {
-                    sb.append("\n无法获取报告描述符\n");
+                    sb.append("\n设备类型分析:\n");
+                    sb.append("━━━━━━━━━━━━━━━━━━\n");
+                    analyzeDeviceType(reportDescriptor, reportLen, sb);
                 }
-            } else {
-                sb.append("无法获取HID描述符\n");
+
+                sb.append("\n\nHID详情:\n");
+                sb.append("━━━━━━━━━━━━━━━━━━\n");
+
+                // 解析HID描述符
+                if (hidLen > 0) {
+                    parseHidDescriptor(hidDescriptor, hidLen, sb);
+                    
+                    // 解析报告描述符
+                    if (reportLen > 0) {
+                        parseReportDescriptor(reportDescriptor, reportLen, sb);
+                    } else {
+                        sb.append("\n无法获取报告描述符\n");
+                    }
+                } else {
+                    sb.append("无法获取HID描述符\n");
+                }
+                
+                detailContent.setText(sb.toString());
             }
-            
-            detailContent.setText(sb.toString());
             
         } finally {
             connection.close();
@@ -521,6 +533,13 @@ public class UsbInterfaceDetailFragment extends Fragment {
             sb.append("• 其他HID设备\n");
         }
         sb.append("\n");
+        
+        // 分析完成后，根据是否是触摸屏来显示按钮
+        if (isTouchScreen) {
+            requireActivity().runOnUiThread(() -> {
+                btnViewTouchscreen.setVisibility(View.VISIBLE);
+            });
+        }
     }
 
     // 新增方法：获取接口类描述

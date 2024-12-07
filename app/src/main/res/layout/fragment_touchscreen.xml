@@ -6,27 +6,20 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <Button
-        android:id="@+id/btnViewTouchscreen"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="查看触摸屏"
-        android:visibility="gone"
-        android:layout_marginBottom="16dp"/>
-
     <TextView
-        android:id="@+id/detailTitle"
+        android:id="@+id/touchscreenTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="接口详情"
+        android:text="触摸屏查看"
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:id="@+id/detailContent"
+    <View
+        android:id="@+id/touchArea"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="16sp"/>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#EEEEEE"/>
 
-</LinearLayout>
+</LinearLayout> 
