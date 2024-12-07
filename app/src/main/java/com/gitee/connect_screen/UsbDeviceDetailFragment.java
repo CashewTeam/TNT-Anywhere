@@ -160,19 +160,37 @@ public class UsbDeviceDetailFragment extends Fragment {
                     if (intf.getInterfaceClass() == UsbConstants.USB_CLASS_HID) {
                         sb.append("\nHID描述符信息 #").append(i).append(":\n");
                         
-                        byte[] desc = new byte[256];
-                        int result = connection.controlTransfer(
+                        // 首先获取 HID 描述符
+                        byte[] hidDesc = new byte[256];
+                        int hidResult = connection.controlTransfer(
                             UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
                             USB_REQ_GET_DESCRIPTOR,
                             (USB_DT_HID << 8) | 0,
                             intf.getId(),
-                            desc,
-                            desc.length,
+                            hidDesc,
+                            hidDesc.length,
                             1000);
                         
-                        if (result > 0) {
-                            sb.append("HID描述符长度: ").append(result).append(" bytes\n");
-                            sb.append("原始描述符数据: ").append(bytesToHex(desc, result)).append("\n");
+                        if (hidResult > 0) {
+                            sb.append("HID描述符长度: ").append(hidResult).append(" bytes\n");
+                            sb.append("HID描述符数据: ").append(bytesToHex(hidDesc, hidResult)).append("\n");
+                            
+                            // 获取报告描述符
+                            byte[] reportDesc = new byte[1024];  // 报告描述符通常更长
+                            int reportResult = connection.controlTransfer(
+                                UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
+                                USB_REQ_GET_DESCRIPTOR,
+                                (0x22 << 8) | 0,  // 0x22 是报告描述符的类型
+                                intf.getId(),
+                                reportDesc,
+                                reportDesc.length,
+                                1000);
+                                
+                            if (reportResult > 0) {
+                                sb.append("报告描述符长度: ").append(reportResult).append(" bytes\n");
+                                sb.append("报告描述符数据: ").append(bytesToHex(reportDesc, reportResult)).append("\n");
+                                // 可以在这里解析报告描述符的具体含义
+                            }
                         }
                     }
                 }
