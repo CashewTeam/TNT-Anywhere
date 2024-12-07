@@ -8,6 +8,7 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -253,6 +254,7 @@ public class TouchscreenFragment extends Fragment {
         }
         info.append("\n总位数：").append(inputFormat.totalBits).append("位");
         
+        android.util.Log.d(TAG, info.toString());
         textView.setText(info.toString());
     }
     
@@ -299,51 +301,13 @@ public class TouchscreenFragment extends Fragment {
 
     private void parseInputData(byte[] data, int length) {
         if (inputFormat == null) return;
-        
-        StringBuilder hexString = new StringBuilder();
-        for (int i = 0; i < length; i++) {
-            hexString.append(String.format("%02X ", data[i]));
-        }
-        android.util.Log.d(TAG, "触控原始数据: " + hexString.toString());
-        
-        int bitOffset = 0;
-        int contactId = -1;
-        int x = 0, y = 0;
-        boolean isTouched = false;
-        int pressure = 0;
-        boolean foundFirstValidPoint = false;
-        
-        StringBuilder fieldLog = new StringBuilder("字段解析:\n");
-        
-        for (TouchInputFormat.FieldInfo field : inputFormat.fields) {
-            long value = extractBits(data, bitOffset, field.size);
-            
-            fieldLog.append(String.format("位置 %d-%d: %d位 = 0x%X (%s)\n",
-                bitOffset, bitOffset + field.size - 1,
-                field.size, value, getUsageDescription(field.usagePage, field.usage)));
-            
-            if (!foundFirstValidPoint) {
-                if (field.usagePage == 0x0D) { // Digitizer
-                    switch (field.usage) {
-                        case 0x51: contactId = (int)value; break;
-                        case 0x42: isTouched = value != 0; break;
-                        case 0x30: pressure = (int)value; break;
-                    }
-                } else if (field.usagePage == 0x01) { // Generic Desktop
-                    switch (field.usage) {
-                        case 0x30: 
-                            x = (int)value;
-                            if (value != 0) foundFirstValidPoint = true;
-                            break;
-                        case 0x31: 
-                            y = (int)value;
-                            if (value != 0) foundFirstValidPoint = true;
-                            break;
-                    }
-                }
+
+        TouchData touchData = parseWithBasicFormat(data, length);
+        for (TouchPoint point : touchData.points) {
+            if (point.isValid) {
+                Log.d(TAG, String.format("触摸点 ID:%d, X:%d, Y:%d, 按下:%b",
+                        point.contactId, point.x, point.y, point.isTouched));
             }
-            
-            bitOffset += field.size * field.count;
         }
     }
 
@@ -376,5 +340,54 @@ public class TouchscreenFragment extends Fragment {
             connection.close();
         }
         super.onDestroy();
+    }
+
+    private static class TouchPoint {
+        boolean isValid;
+        int contactId;
+        int x;
+        int y;
+        boolean isTouched;
+    }
+
+    private static class TouchData {
+        List<TouchPoint> points;
+        int scanTime; // 扫描时间 (最后16位)
+        int reportId; // 报告ID (最后8位)
+        
+        TouchData() {
+            points = new ArrayList<>();
+        }
+    }
+
+    private TouchData parseWithBasicFormat(byte[] data, int length) {
+        TouchData result = new TouchData();
+        if (length < 5) return result;
+
+        int touchCount = data[0] & 0xFF;
+        touchCount = Math.min(touchCount, 10);
+        
+        int offset = 1;
+        for (int i = 0; i < touchCount && offset + 5 <= length; i++) {
+            TouchPoint point = new TouchPoint();
+            
+            int touchInfo = data[offset] & 0xFF;
+            
+            point.contactId = (touchInfo >> 4) & 0x0F;
+            point.isTouched = (touchInfo & 0x0F) == 1;
+            
+            // 解析X坐标 (小端)
+            point.x = ((data[offset + 2] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
+            
+            // 解析Y坐标 (小端)
+            point.y = ((data[offset + 4] & 0xFF) << 8) | (data[offset + 3] & 0xFF);
+            
+            // 判断该点是否有效
+            point.isValid = (point.x != 0 || point.y != 0);
+            
+            result.points.add(point);
+            offset += 5; // 移动到下一个触摸点数据
+        }
+        return result;
     }
 } 
