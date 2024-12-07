@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -102,6 +103,19 @@ public class UsbDeviceDetailFragment extends Fragment {
             } else {
                 sb.append("\n");
             }
+
+            // 添加 endpoint 信息
+            sb.append("  端点数量: ").append(intf.getEndpointCount()).append("\n");
+            for (int j = 0; j < intf.getEndpointCount(); j++) {
+                UsbEndpoint endpoint = intf.getEndpoint(j);
+                sb.append("    端点 #").append(j).append(":\n");
+                sb.append("      地址: 0x").append(String.format("%02X", endpoint.getAddress())).append("\n");
+                sb.append("      方向: ").append(endpoint.getDirection() == UsbConstants.USB_DIR_IN ? "IN" : "OUT").append("\n");
+                sb.append("      类型: ").append(getEndpointType(endpoint.getType())).append("\n");
+                sb.append("      最大包大小: ").append(endpoint.getMaxPacketSize()).append(" bytes\n");
+                sb.append("      轮询间隔: ").append(endpoint.getInterval()).append(" ms\n");
+            }
+            sb.append("\n");
         }
         
         detailContent.setText(sb.toString());
@@ -202,6 +216,22 @@ public class UsbDeviceDetailFragment extends Fragment {
                 return "启动接口子类 (1)";
             default:
                 return "未知子类 (" + subclass + ")";
+        }
+    }
+
+    // 添加新的辅助方法来获取端点类型描述
+    private String getEndpointType(int type) {
+        switch (type) {
+            case UsbConstants.USB_ENDPOINT_XFER_CONTROL:
+                return "控制传输";
+            case UsbConstants.USB_ENDPOINT_XFER_BULK:
+                return "批量传输";
+            case UsbConstants.USB_ENDPOINT_XFER_INT:
+                return "中断传输";
+            case UsbConstants.USB_ENDPOINT_XFER_ISOC:
+                return "同步传输";
+            default:
+                return "未知 (" + type + ")";
         }
     }
 } 
