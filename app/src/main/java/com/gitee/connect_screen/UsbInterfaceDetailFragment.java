@@ -70,7 +70,14 @@ public class UsbInterfaceDetailFragment extends Fragment {
         btnViewTouchscreen.setOnClickListener(v -> {
             if (hidDescriptor != null && reportDescriptor != null) {
                 MainActivity activity = (MainActivity) getActivity();
-                activity.pushBreadcrumb("触摸屏", () -> TouchscreenFragment.newInstance(hidDescriptor, reportDescriptor));
+                activity.pushBreadcrumb("触摸屏", () -> 
+                    TouchscreenFragment.newInstance(
+                        hidDescriptor, 
+                        reportDescriptor,
+                        device,
+                        interfaceIndex
+                    )
+                );
             } else {
                 Toast.makeText(getContext(), "触摸屏描述符数据不可用", Toast.LENGTH_SHORT).show();
             }
@@ -194,7 +201,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
     }
     
-    // 添加新的辅助方���来获取端点类型描述
+    // 添加新的辅助方法来获取端点类型描述
     private String getEndpointType(int type) {
         switch (type) {
             case UsbConstants.USB_ENDPOINT_XFER_CONTROL:
