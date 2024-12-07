@@ -77,19 +77,32 @@ public class UsbInterfaceDetailFragment extends Fragment {
     private void showInterfaceInfo() {
         StringBuilder sb = new StringBuilder();
         sb.append("接口 #").append(interfaceIndex).append(" 详情:\n\n");
-        sb.append("类型: ").append(usbInterface.getInterfaceClass());
+        
+        // 基本信息部分
+        sb.append("基本信息:\n");
+        sb.append("━━━━━━━━━━━━━━━━━━\n");
+        sb.append("接口ID: ").append(usbInterface.getId()).append("\n");
+        sb.append("替代设置: ").append(usbInterface.getAlternateSetting()).append("\n");
+        sb.append("类型: ").append(getInterfaceClassDescription(usbInterface.getInterfaceClass())).append("\n");
+        
+        // HID设备特殊信息
         if (usbInterface.getInterfaceClass() == UsbConstants.USB_CLASS_HID) {
-            sb.append(" (HID设备)\n");
             sb.append("子类: ").append(getHidSubclassDescription(usbInterface.getInterfaceSubclass())).append("\n");
             sb.append("协议: ").append(getHidProtocolDescription(usbInterface.getInterfaceProtocol())).append("\n");
+            sb.append("用途: ").append(getHidUsageDescription(usbInterface.getInterfaceSubclass(), usbInterface.getInterfaceProtocol())).append("\n");
         }
+        
+        // 端点信息部分
         sb.append("\n端点信息:\n");
+        sb.append("━━━━━━━━━━━━━━━━━━\n");
         for (int i = 0; i < usbInterface.getEndpointCount(); i++) {
             UsbEndpoint endpoint = usbInterface.getEndpoint(i);
             sb.append("端点 ").append(i).append(":\n");
             sb.append("  地址: 0x").append(String.format("%02X", endpoint.getAddress())).append("\n");
             sb.append("  类型: ").append(getEndpointType(endpoint.getType())).append("\n");
-            sb.append("  方向: ").append((endpoint.getDirection() == UsbConstants.USB_DIR_IN) ? "IN" : "OUT").append("\n");
+            sb.append("  方向: ").append(getEndpointDirection(endpoint.getDirection())).append("\n");
+            sb.append("  最大包大小: ").append(endpoint.getMaxPacketSize()).append(" bytes\n");
+            sb.append("  间隔: ").append(endpoint.getInterval()).append(" ms\n");
         }
         
         detailContent.setText(sb.toString());
@@ -168,7 +181,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         sb.append("  描述符类型: ").append(String.format("0x%02X", desc[1] & 0xFF)).append("\n");
         sb.append("  HID版本: ").append((desc[3] & 0xFF)).append(".").append((desc[2] & 0xFF)).append("\n");
         sb.append("  国家代码: ").append(desc[4] & 0xFF).append("\n");
-        sb.append("  描��符数量: ").append(desc[5] & 0xFF).append("\n");
+        sb.append("  描述符数量: ").append(desc[5] & 0xFF).append("\n");
         
         // 解析类描述符信息
         int numDesc = desc[5] & 0xFF;
@@ -282,6 +295,65 @@ public class UsbInterfaceDetailFragment extends Fragment {
             
         } finally {
             connection.close();
+        }
+    }
+
+    // 新增方法：获取接口类描述
+    private String getInterfaceClassDescription(int interfaceClass) {
+        switch (interfaceClass) {
+            case UsbConstants.USB_CLASS_APP_SPEC:
+                return "应用程序特定 (0x00)";
+            case UsbConstants.USB_CLASS_AUDIO:
+                return "音频设备 (0x01)";
+            case UsbConstants.USB_CLASS_CDC_DATA:
+                return "CDC数据 (0x0A)";
+            case UsbConstants.USB_CLASS_HID:
+                return "人机接口设备(HID) (0x03)";
+            case UsbConstants.USB_CLASS_MASS_STORAGE:
+                return "大容量存储 (0x08)";
+            case UsbConstants.USB_CLASS_HUB:
+                return "USB集线器 (0x09)";
+            case UsbConstants.USB_CLASS_VENDOR_SPEC:
+                return "厂商特定 (0xFF)";
+            default:
+                return "未知类型 (0x" + String.format("%02X", interfaceClass) + ")";
+        }
+    }
+
+    // 新增方法：获取端点方向描述
+    private String getEndpointDirection(int direction) {
+        switch (direction) {
+            case UsbConstants.USB_DIR_IN:
+                return "设备到主机 (IN)";
+            case UsbConstants.USB_DIR_OUT:
+                return "主机到设备 (OUT)";
+            default:
+                return "未知方向";
+        }
+    }
+
+    // 新增方法：获取HID设备用途描述
+    private String getHidUsageDescription(int subClass, int protocol) {
+        if (subClass == 1) { // Boot Interface Subclass
+            switch (protocol) {
+                case 1:
+                    return "启动键盘";
+                case 2:
+                    return "启动鼠标";
+                default:
+                    return "启动设备";
+            }
+        } else {
+            switch (protocol) {
+                case 0:
+                    return "通用HID设备";
+                case 1:
+                    return "键盘";
+                case 2:
+                    return "鼠标";
+                default:
+                    return "特殊HID设备";
+            }
         }
     }
 }
