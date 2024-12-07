@@ -140,7 +140,7 @@ public class DisplaylinkFragment extends Fragment {
 
         // 添加分辨率预设选项
         Spinner resolutionPresetSpinner = view.findViewById(R.id.resolutionPresetSpinner);
-        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p"};
+        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
         ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
             getContext(),
             android.R.layout.simple_spinner_item,
@@ -164,6 +164,10 @@ public class DisplaylinkFragment extends Fragment {
                     case 3: // 2160p
                         monitorWidthInput.setText("3840");
                         monitorHeightInput.setText("2160");
+                        break;
+                    case 4: // ipad4
+                        monitorWidthInput.setText("2048");
+                        monitorHeightInput.setText("1536");
                         break;
                 }
             }
