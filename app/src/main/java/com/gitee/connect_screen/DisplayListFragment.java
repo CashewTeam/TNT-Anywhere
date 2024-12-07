@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Display;
 import android.widget.TextView;
+import android.widget.Button;
 
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -45,7 +46,6 @@ public class DisplayListFragment extends Fragment {
         return view;
     }
 
-    // 新增：处理显示器项的点击事件
     private void onDisplayItemClick(Display display) {
         if (getActivity() instanceof MainActivity) {
             MainActivity activity = (MainActivity) getActivity();
@@ -85,8 +85,10 @@ public class DisplayListFragment extends Fragment {
             holder.displayId.setText(displayInfo);
             holder.displayName.setText("显示器名称: " + display.getName());
 
-            // 简化的点击监听器设置
+            // 设置整个项目的点击事件
             holder.itemView.setOnClickListener(v -> clickListener.onDisplayClick(display));
+            // 设置按钮的点击事件
+            holder.btnViewDetail.setOnClickListener(v -> clickListener.onDisplayClick(display));
         }
 
         @Override
@@ -97,11 +99,13 @@ public class DisplayListFragment extends Fragment {
         public static class ViewHolder extends RecyclerView.ViewHolder {
             public final TextView displayId;
             public final TextView displayName;
+            public final Button btnViewDetail;  // 添加按钮引用
 
             public ViewHolder(View view) {
                 super(view);
                 displayId = view.findViewById(R.id.display_id);
                 displayName = view.findViewById(R.id.display_name);
+                btnViewDetail = view.findViewById(R.id.btn_view_detail);  // 初始化按钮
             }
         }
     }
