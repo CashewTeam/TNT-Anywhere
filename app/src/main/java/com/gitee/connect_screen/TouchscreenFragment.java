@@ -43,6 +43,9 @@ public class TouchscreenFragment extends Fragment {
         boolean inInputReport = false;
         int currentReportSize = 0;
         int currentReportCount = 0;
+        int currentUsage = 0;
+        
+        TouchInputFormat.FieldInfo currentField = null;
         
         while (i < reportDescriptor.length) {
             int prefix = reportDescriptor[i] & 0xFF;
@@ -61,7 +64,10 @@ public class TouchscreenFragment extends Fragment {
                 case 0: // 主项
                     if (tag == 8) { // Input
                         inInputReport = true;
-                        format.addField(currentReportSize, currentReportCount);
+                        currentField = new TouchInputFormat.FieldInfo(currentReportSize, currentReportCount);
+                        currentField.usagePage = currentUsagePage;
+                        currentField.usage = currentUsage;
+                        format.addField(currentField);
                     }
                     break;
                     
@@ -81,16 +87,24 @@ public class TouchscreenFragment extends Fragment {
                     
                 case 2: // 局部项
                     if (tag == 0) { // Usage
-                        if (currentUsagePage == 0x0D) { // Digitizer
+                        currentUsage = (int)data;
+                        if (currentUsagePage == 0x01) { // GenericDesktop
                             switch ((int)data) {
-                                case 0x30: // Tip Pressure
-                                    format.hasPressure = true;
+                                case 0x30: // X
+                                case 0x31: // Y
+                                    // 坐标相关字段
                                     break;
-                                case 0x32: // In Range
-                                    format.hasInRange = true;
+                            }
+                        } else if (currentUsagePage == 0x0D) {// Digitizer
+                            switch ((int)data) {
+                                case 0x51: // Contact ID
+                                    // 手指ID字段
                                     break;
                                 case 0x42: // Tip Switch
                                     format.hasTipSwitch = true;
+                                    break;
+                                case 0x30: // Tip Pressure
+                                    format.hasPressure = true;
                                     break;
                             }
                         }
@@ -113,14 +127,16 @@ public class TouchscreenFragment extends Fragment {
         boolean hasTipSwitch = false;
         int totalBits = 0;
         
-        void addField(int size, int count) {
-            fields.add(new FieldInfo(size, count));
-            totalBits += size * count;
+        void addField(FieldInfo field) {
+            fields.add(field);
+            totalBits += field.size * field.count;
         }
         
         static class FieldInfo {
             final int size;
             final int count;
+            int usage = 0;
+            int usagePage = 0;
             
             FieldInfo(int size, int count) {
                 this.size = size;
@@ -198,10 +214,30 @@ public class TouchscreenFragment extends Fragment {
         info.append("数据字段：\n");
         for (int i = 0; i < inputFormat.fields.size(); i++) {
             TouchInputFormat.FieldInfo field = inputFormat.fields.get(i);
-            info.append(String.format("字段 %d: %d位 x %d个\n", i + 1, field.size, field.count));
+            String usage = getUsageDescription(field.usagePage, field.usage);
+            info.append(String.format("字段 %d: %d位 x %d个 -%s\n", 
+                i + 1, field.size, field.count, usage));
         }
         info.append("\n总位数：").append(inputFormat.totalBits).append("位");
         
         textView.setText(info.toString());
+    }
+    
+    private String getUsageDescription(int usagePage, int usage) {
+        if (usagePage == 0x01) {
+            switch (usage) {
+                case 0x30: return "X坐标";
+                case 0x31: return "Y坐标";
+                default: return "未知通用字段";
+            }
+        } else if (usagePage == 0x0D) {
+            switch (usage) {
+                case 0x51: return "手指ID";
+                case 0x42: return "触摸状态";
+                case 0x30: return "压力值";
+                default: return "未知数字化仪字段";
+            }
+        }
+        return "未知字段";
     }
 } 
