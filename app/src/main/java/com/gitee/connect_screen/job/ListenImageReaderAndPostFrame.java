@@ -1,24 +1,26 @@
 package com.gitee.connect_screen.job;
 
-import android.app.ActivityOptions;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
 import android.hardware.display.IDisplayManager;
 import android.hardware.display.IVirtualDisplayCallback;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.display.VirtualDisplayConfig;
+import android.hardware.input.IInputManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.view.DisplayAddress;
+import android.view.DisplayInfo;
+import android.view.InputDevice;
+import android.view.InputDeviceHidden;
 import android.view.Surface;
-import android.view.WindowManager;
-import android.view.WindowMetrics;
 
 import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.LauncherActivity;
@@ -27,8 +29,10 @@ import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 
-import java.lang.reflect.Method;
+import java.io.Serial;
 import java.nio.ByteBuffer;
+
+import dev.rikka.tools.refine.Refine;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
     private UsbState usbState;
@@ -70,18 +74,18 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         Surface surface = usbState.imageReader.getSurface();
         if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
-            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC;
-//            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
+            int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
+           | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
 //            | VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT
 //            | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
             if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
-                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED;
-//                        | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
+                flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
+                       | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP;
 //                        | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
-//                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
+//                        | VIRTUAL_DISPLAY_FLAG_TOUCH_FEED BACK_DISABLED;
 //                if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
-//                    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
-//                            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
+                   flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
+                           | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
 //                }
             }
             VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
@@ -92,10 +96,20 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 .build();
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
-            State.log("创建虚拟显示成功，displayId: " + displayId);
+            DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
+            State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
+            IInputManager inputManager = ServiceUtils.getInputManager();
+            for (int deviceId : inputManager.getInputDeviceIds()) {
+                InputDevice inputDevice = inputManager.getInputDevice(deviceId);
+                if (inputDevice.isExternal()) {
+                    State.log("更新输入设备路由: " + inputDevice);
+                    inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
+                    inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
+                }
+            }
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
             usbState.createdVirtualDisplay(
-                virtualDisplay
+                    virtualDisplay
             );
             Context context = State.currentActivity.get();
             Intent intent = new Intent(context, LauncherActivity.class);

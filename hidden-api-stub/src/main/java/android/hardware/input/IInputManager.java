@@ -3,6 +3,7 @@ package android.hardware.input;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.view.InputDevice;
 import android.view.InputEvent;
 
 public interface IInputManager extends IInterface {
@@ -12,6 +13,12 @@ public interface IInputManager extends IInterface {
             throw new RuntimeException("Stub!");
         }
     }
-
+    InputDevice getInputDevice(int deviceId);
+    int[] getInputDeviceIds();
     boolean injectInputEvent(InputEvent ev, int mode);
+    void addPortAssociation(String inputPort, int displayPort);
+    void removePortAssociation(String inputPort);
+    void addUniqueIdAssociationByPort(String inputPort, String displayUniqueId);
+    void addUniqueIdAssociationByDescriptor(String inputDeviceDescriptor, String displayUniqueId);
+    void removeUniqueIdAssociationByDescriptor(String inputDeviceDescriptor);
 }

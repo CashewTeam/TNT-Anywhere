@@ -53,3 +53,4 @@
 * https://github.com/itzuo/SceenLive/blob/master/app/src/main/java/com/zxj/screenlive/VideoCodec.java
 * https://github.com/WuDi-ZhanShen/AndroidUHidPureJava
 * https://github.com/WuDi-ZhanShen/ScreenOff
+* https://blog.csdn.net/liaosongmao1/article/details/136129774

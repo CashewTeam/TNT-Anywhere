@@ -282,7 +282,7 @@ public class TouchscreenFragment extends Fragment {
         Log.d(TAG, hexData.toString());
         
         TouchData touchData;
-        touchData = TouchParsers.parseILITekFormat(data, length);
+        touchData = TouchParsers.parseWithHidFormat(data, length, inputFormat);
         
         // 处理解析结果
         for (TouchData.TouchPoint point : touchData.points) {
