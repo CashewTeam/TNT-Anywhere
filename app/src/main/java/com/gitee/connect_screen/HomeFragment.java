@@ -32,7 +32,7 @@ public class HomeFragment extends Fragment {
         usbDeviceBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                activity.pushBreadcrumb("USB设备", () -> new UsbListFragment());
+                activity.pushBreadcrumb("USB", () -> new UsbListFragment());
             }
         });
 
