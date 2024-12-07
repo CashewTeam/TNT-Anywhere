@@ -412,11 +412,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
 
         try {
-            StringBuilder sb = new StringBuilder(detailContent.getText());
-            sb.append("\n\nHID详情:\n");
-            sb.append("━━━━━━━━━━━━━━━━━━\n");
-            
-            // 获取HID描述符
+            // 先获取HID描述符
             byte[] hidDesc = new byte[256];
             int hidLen = connection.controlTransfer(
                     UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
@@ -427,29 +423,44 @@ public class UsbInterfaceDetailFragment extends Fragment {
                     256,
                     1000);
 
+            // 获取报告描述符
+            byte[] reportDesc = null;
+            int reportLen = 0;
+            if (hidLen >= 9) {
+                int reportDescLength = (hidDesc[7] & 0xFF) | ((hidDesc[8] & 0xFF) << 8);
+                reportDesc = new byte[reportDescLength];
+                reportLen = connection.controlTransfer(
+                        UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
+                        USB_REQ_GET_DESCRIPTOR,
+                        (0x22 << 8) | 0,
+                        interfaceIndex,
+                        reportDesc,
+                        reportDescLength,
+                        1000);
+            }
+
+            // 开始构建显示内容
+            StringBuilder sb = new StringBuilder(detailContent.getText());
+            
+            // 如果成功获取到报告描述符，添加设备类型分析
+            if (reportLen > 0) {
+                sb.append("\n设备类型分析:\n");
+                sb.append("━━━━━━━━━━━━━━━━━━\n");
+                analyzeDeviceType(reportDesc, reportLen, sb);
+            }
+
+            sb.append("\n\nHID详情:\n");
+            sb.append("━━━━━━━━━━━━━━━━━━\n");
+
+            // 解析HID描述符
             if (hidLen > 0) {
                 parseHidDescriptor(hidDesc, hidLen, sb);
                 
-                // 从HID描述符中获取报告描述符的长度
-                if (hidLen >= 9) {
-                    int reportDescLength = (hidDesc[7] & 0xFF) | ((hidDesc[8] & 0xFF) << 8);
-                    
-                    // 获取报告描述符
-                    byte[] reportDesc = new byte[reportDescLength];
-                    int reportLen = connection.controlTransfer(
-                            UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_STANDARD,
-                            USB_REQ_GET_DESCRIPTOR,
-                            (0x22 << 8) | 0, // 0x22 是报告描述符的类型
-                            interfaceIndex,
-                            reportDesc,
-                            reportDescLength,
-                            1000);
-
-                    if (reportLen > 0) {
-                        parseReportDescriptor(reportDesc, reportLen, sb);
-                    } else {
-                        sb.append("\n无法获取报告描述符\n");
-                    }
+                // 解析报告描述符
+                if (reportLen > 0) {
+                    parseReportDescriptor(reportDesc, reportLen, sb);
+                } else {
+                    sb.append("\n无法获取报告描述符\n");
                 }
             } else {
                 sb.append("无法获取HID描述符\n");
@@ -460,6 +471,59 @@ public class UsbInterfaceDetailFragment extends Fragment {
         } finally {
             connection.close();
         }
+    }
+
+    // 新增设备类型分析方法
+    private void analyzeDeviceType(byte[] desc, int length, StringBuilder sb) {
+        boolean isTouchScreen = false;
+        boolean isDigitizer = false;
+        boolean isKeyboard = false;
+        boolean isMouse = false;
+        int currentUsagePage = 0;
+        
+        int i = 0;
+        while (i < length) {
+            int prefix = desc[i] & 0xFF;
+            int tag = (prefix >> 4) & 0x0F;
+            int type = (prefix >> 2) & 0x03;
+            int size = prefix & 0x03;
+            
+            long data = 0;
+            if (size > 0 && i + size < length) {
+                for (int j = 0; j < size; j++) {
+                    data |= (desc[i + 1 + j] & 0xFF) << (j * 8);
+                }
+            }
+
+            if (type == 1 && tag == 0) { // Usage Page (全局项)
+                currentUsagePage = (int)data;
+                if (data == 0x0D) { // Digitizer
+                    isDigitizer = true;
+                } else if (data == 0x01) { // Generic Desktop
+                    // 继续检查具体Usage
+                } else if (data == 0x07) { // Keyboard
+                    isKeyboard = true;
+                }
+            } else if (type == 2 && tag == 0) { // Usage (局部项)
+                if (currentUsagePage == 0x0D && data == 0x04) { // Touch Screen
+                    isTouchScreen = true;
+                } else if (currentUsagePage == 0x01 && data == 0x02) { // Mouse
+                    isMouse = true;
+                }
+            }
+
+            i += 1 + size;
+        }
+        
+        sb.append("检测到的设备类型:\n");
+        if (isTouchScreen) sb.append("• 触摸屏\n");
+        if (isDigitizer && !isTouchScreen) sb.append("• 数位板\n");
+        if (isKeyboard) sb.append("• 键盘\n");
+        if (isMouse) sb.append("• 鼠标\n");
+        if (!isTouchScreen && !isDigitizer && !isKeyboard && !isMouse) {
+            sb.append("• 其他HID设备\n");
+        }
+        sb.append("\n");
     }
 
     // 新增方法：获取接口类描述
