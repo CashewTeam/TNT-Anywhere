@@ -6,6 +6,7 @@ import android.hardware.usb.UsbManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -52,11 +53,17 @@ public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.View
         holder.deviceId.setText(deviceType + " - VID: " + vendorInfo + 
             " PID: " + device.getProductId() + " - " + authStatus);
         
-        holder.itemView.setOnClickListener(v -> {
+        View.OnClickListener clickListener = v -> {
             if (listener != null) {
                 listener.onDeviceClick(device);
             }
-        });
+        };
+        
+        holder.itemView.setOnClickListener(clickListener);
+        holder.viewButton.setOnClickListener(clickListener);
+        if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
+            holder.viewButton.setText("投屏");
+        }
     }
 
     private String getDeviceTypeName(int deviceClass) {
@@ -108,11 +115,13 @@ public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.View
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView deviceName;
         TextView deviceId;
+        Button viewButton;
 
         ViewHolder(View view) {
             super(view);
             deviceName = view.findViewById(R.id.deviceName);
             deviceId = view.findViewById(R.id.deviceId);
+            viewButton = view.findViewById(R.id.viewButton);
         }
     }
 }
