@@ -17,6 +17,7 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.touch.TouchData;
+import com.gitee.connect_screen.touch.TouchInputFormat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -136,37 +137,7 @@ public class TouchscreenFragment extends Fragment {
         // 保存解析结果
         inputFormat = format;
     }
-    
-    // 用于存储触摸输入格式的内部类
-    private static class TouchInputFormat {
-        List<FieldInfo> fields = new ArrayList<>();
-        boolean hasPressure = false;
-        boolean hasInRange = false;
-        boolean hasTipSwitch = false;
-        int totalBits = 0;
-        
-        // 添加坐标范围信息
-        int xMin = 0, xMax = 0;
-        int yMin = 0, yMax = 0;
-        
-        void addField(FieldInfo field) {
-            fields.add(field);
-            totalBits += field.size * field.count;
-        }
-        
-        static class FieldInfo {
-            final int size;
-            final int count;
-            int usage = 0;
-            int usagePage = 0;
-            
-            FieldInfo(int size, int count) {
-                this.size = size;
-                this.count = count;
-            }
-        }
-    }
-    
+
     private TouchInputFormat inputFormat;
     
     public static TouchscreenFragment newInstance(byte[] hidDesc, byte[] reportDesc, 
