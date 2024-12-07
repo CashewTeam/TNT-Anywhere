@@ -109,8 +109,42 @@ public class TouchParsers {
         // byte 1-2: X坐标 (16位)
         // byte 3-4: Y坐标 (16位)
         // byte 5: 压力值
-        // ...
-        throw new RuntimeException("Wacom格式解析未实现");
+        TouchData result = new TouchData();
+        if (length < 2) return result;
+
+        // 获取报告ID
+        result.reportId = data[0] & 0xFF;
+        
+        // 解析触摸点数量（byte1的高2位）
+        int touchCount = (data[1] >> 6) & 0x03;
+        touchCount = Math.min(touchCount, 10); // 限制最大触摸点数
+        
+        int offset = 2; // 从第三个字节开始是触摸点数据
+        for (int i = 0; i < touchCount && offset + 6 <= length; i++) {
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
+            
+            // 解析触摸ID和接触标志
+            int touchInfo = data[offset] & 0xFF;
+            point.isTouched = (touchInfo & 0x80) != 0;  // 最高位是接触标志
+            point.contactId = touchInfo & 0x7F;         // 低7位是触摸ID
+            
+            // 解析X坐标（16位）
+            point.x = ((data[offset + 2] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
+            
+            // 解析Y坐标（16位）
+            point.y = ((data[offset + 4] & 0xFF) << 8) | (data[offset + 3] & 0xFF);
+            
+            // 压力值（可选）
+            int pressure = data[offset + 5] & 0xFF;
+            
+            // 当坐标值不为0且有接触时认为该点有效
+            point.isValid = point.isTouched && (point.x != 0 || point.y != 0);
+            
+            result.points.add(point);
+            offset += 6; // 每个触摸点占6字节
+        }
+        
+        return result;
     }
 
     // 4. FocalTech格式
@@ -123,8 +157,43 @@ public class TouchParsers {
         // byte 1-2: X坐标
         // byte 3-4: Y坐标
         // byte 5: 压力值
-        // ...
-        throw new RuntimeException("FocalTech格式解析未实现");
+        TouchData result = new TouchData();
+        if (length < 2) return result;  // 确保至少有手势ID和触摸点数量
+
+        // 获取触摸点数量
+        int touchCount = data[1] & 0xFF;
+        touchCount = Math.min(touchCount, 10);  // 限制最大触摸点数为10
+
+        int offset = 2;  // 从第三个字节开始是触摸点数据
+        for (int i = 0; i < touchCount && offset + 6 <= length; i++) {
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
+            
+            // 解析触摸事件和ID
+            int touchInfo = data[offset] & 0xFF;
+            int touchEvent = (touchInfo >> 4) & 0x0F;  // 高4位是触摸事件
+            point.contactId = touchInfo & 0x0F;        // 低4位是触摸ID
+            
+            // 根据触摸事件判断是否触摸
+            // 通常：0=释放，1=按下，2=移动
+            point.isTouched = touchEvent > 0;
+            
+            // 解析X坐标（16位）
+            point.x = ((data[offset + 2] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
+            
+            // 解析Y坐标（16位）
+            point.y = ((data[offset + 4] & 0xFF) << 8) | (data[offset + 3] & 0xFF);
+            
+            // 压力值（可选）
+            int pressure = data[offset + 5] & 0xFF;
+            
+            // 当坐标值不为0且有触摸时认为该点有效
+            point.isValid = point.isTouched && (point.x != 0 || point.y != 0);
+            
+            result.points.add(point);
+            offset += 6;  // 每个触摸点占6字节
+        }
+        
+        return result;
     }
 
     // 5. Goodix格式
@@ -138,8 +207,50 @@ public class TouchParsers {
         // byte 1-2: X坐标 (12位)
         // byte 3-4: Y坐标 (12位)
         // byte 5: 触摸尺寸/压力
-        // ...
-        throw new RuntimeException("Goodix格式解析未实现");
+        TouchData result = new TouchData();
+        
+        // 检查数据长度是否足够且第一个字节是否为固定标识0xBA
+        if (length < 3 || (data[0] & 0xFF) != 0xBA) return result;
+        
+        // 获取触摸点数量
+        int touchCount = data[1] & 0xFF;
+        // 限制最大触摸点数为10
+        touchCount = Math.min(touchCount, 10);
+        
+        // 保存帧计数器
+        result.reportId = data[2] & 0xFF;
+        
+        int offset = 3; // 从第4个字节开始是触摸点数据
+        for (int i = 0; i < touchCount && offset + 6 <= length; i++) {
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
+            
+            // 获取触摸ID
+            point.contactId = data[offset] & 0xFF;
+            
+            // 解析X坐标（12位）
+            // 第一个字节的所有位 + 第二个字节的低4位
+            point.x = ((data[offset + 1] & 0xFF) << 4) | 
+                     ((data[offset + 2] & 0xF0) >> 4);
+            
+            // 解析Y坐标（12位）
+            // 第二个字节的高4位 + 第三个字节的所有位
+            point.y = ((data[offset + 2] & 0x0F) << 8) | 
+                     (data[offset + 3] & 0xFF);
+            
+            // 获取压力值
+            int pressure = data[offset + 5] & 0xFF;
+            
+            // 当压力值大于0时认为是触摸状态
+            point.isTouched = pressure > 0;
+            
+            // 当坐标值不为0且有触摸时认为该点有效
+            point.isValid = point.isTouched && (point.x != 0 || point.y != 0);
+            
+            result.points.add(point);
+            offset += 6; // 每个触摸点占6字节
+        }
+        
+        return result;
     }
 
     // 6. Microsoft Precision Touchpad格式
@@ -153,8 +264,41 @@ public class TouchParsers {
         // byte 2-3: X坐标 (0-32767)
         // byte 4-5: Y坐标 (0-32767)
         // byte 6-7: 接触宽度和高度
-        // ...
-        throw new RuntimeException("Microsoft Precision Touchpad格式解析未实现");
+        TouchData result = new TouchData();
+        if (length < 3) return result;  // 确保至少有基本头部数据
+
+        // 验证报告ID
+        result.reportId = data[0] & 0xFF;
+        if (result.reportId != 0x05) return result;
+
+        // 解析触摸点数量（byte1的高4位）
+        int touchCount = (data[1] >> 4) & 0x0F;
+        touchCount = Math.min(touchCount, 10);  // 限制最大触摸点数为10
+
+        int offset = 3;  // 跳过报告ID、触摸点数量和扫描时间
+        for (int i = 0; i < touchCount && offset + 8 <= length; i++) {
+            TouchData.TouchPoint point = new TouchData.TouchPoint();
+            
+            // 解析触摸点ID和状态（2字节）
+            point.contactId = data[offset] & 0xFF;
+            point.isTouched = (data[offset + 1] & 0x01) != 0;
+            
+            // 解析X坐标（16位，范围0-32767）
+            point.x = ((data[offset + 3] & 0xFF) << 8) | (data[offset + 2] & 0xFF);
+            
+            // 解析Y坐标（16位，范围0-32767）
+            point.y = ((data[offset + 5] & 0xFF) << 8) | (data[offset + 4] & 0xFF);
+            
+            // 当坐标值在有效范围内且有触摸时认为该点有效
+            point.isValid = point.isTouched && 
+                          point.x >= 0 && point.x <= 32767 && 
+                          point.y >= 0 && point.y <= 32767;
+            
+            result.points.add(point);
+            offset += 8;  // 每个触摸点占8字节
+        }
+        
+        return result;
     }
 
     // 7. EGalaxEETI格式
