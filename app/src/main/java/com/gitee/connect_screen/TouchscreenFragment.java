@@ -300,7 +300,17 @@ public class TouchscreenFragment extends Fragment {
     }
 
     private void parseInputData(byte[] data, int length) {
-        TouchData touchData = parseWithBasicFormat(data, length);
+        // 记录原始数据的十六进制表示
+        StringBuilder hexData = new StringBuilder("原始数据: ");
+        for (int i = 0; i < length; i++) {
+            hexData.append(String.format("%02X ", data[i]));
+        }
+        Log.d(TAG, hexData.toString());
+        
+        TouchData touchData;
+        touchData = parseSpecialFormat(data, length);
+        
+        // 处理解析结果
         for (TouchPoint point : touchData.points) {
             if (point.isValid) {
                 Log.d(TAG, String.format("触摸点 ID:%d, X:%d, Y:%d, 按下:%b",
@@ -374,7 +384,7 @@ public class TouchscreenFragment extends Fragment {
             point.contactId = (touchInfo >> 4) & 0x0F;
             point.isTouched = (touchInfo & 0x0F) == 1;
             
-            // 解析X坐标 (小端)
+            // 解析X坐标 (端)
             point.x = ((data[offset + 2] & 0xFF) << 8) | (data[offset + 1] & 0xFF);
             
             // 解析Y坐标 (小端)
@@ -387,5 +397,110 @@ public class TouchscreenFragment extends Fragment {
             offset += 5; // 移动到下一个触摸点数据
         }
         return result;
+    }
+
+    private TouchData parseWithExtendedFormat(byte[] data, int length) {
+        TouchData result = new TouchData();
+        if (length < 8) return result;
+        
+        // 扩展格式通常包含更多信息
+        result.reportId = data[0] & 0xFF;
+        int touchCount = data[1] & 0xFF;
+        touchCount = Math.min(touchCount, 10);
+        
+        int offset = 2;
+        for (int i = 0; i < touchCount && offset + 8 <= length; i++) {
+            TouchPoint point = new TouchPoint();
+            
+            point.contactId = data[offset] & 0xFF;
+            point.isTouched = (data[offset + 1] & 0x01) != 0;
+            
+            // 32位坐标值处理
+            point.x = ((data[offset + 4] & 0xFF) << 24) |
+                     ((data[offset + 3] & 0xFF) << 16) |
+                     ((data[offset + 2] & 0xFF) << 8) |
+                     (data[offset + 1] & 0xFF);
+                     
+            point.y = ((data[offset + 8] & 0xFF) << 24) |
+                     ((data[offset + 7] & 0xFF) << 16) |
+                     ((data[offset + 6] & 0xFF) << 8) |
+                     (data[offset + 5] & 0xFF);
+            
+            point.isValid = (point.x != 0 || point.y != 0);
+            result.points.add(point);
+            offset += 8;
+        }
+        return result;
+    }
+
+    private TouchData parseWithHidFormat(byte[] data, int length) {
+        TouchData result = new TouchData();
+        if (inputFormat == null || length < 3) return result;
+        
+        int currentBit = 0;
+        List<TouchPoint> points = new ArrayList<>();
+        TouchPoint currentPoint = null;
+        
+        // 基于HID报告描述符解析
+        for (TouchInputFormat.FieldInfo field : inputFormat.fields) {
+            long value = extractBits(data, currentBit, field.size * field.count);
+            
+            if (field.usagePage == 0x0D) { // Digitizer
+                switch (field.usage) {
+                    case 0x51: // Contact ID
+                        currentPoint = new TouchPoint();
+                        currentPoint.contactId = (int)value;
+                        points.add(currentPoint);
+                        break;
+                    case 0x42: // Tip Switch
+                        if (currentPoint != null) {
+                            currentPoint.isTouched = value != 0;
+                        }
+                        break;
+                }
+            } else if (field.usagePage == 0x01) { // Generic Desktop
+                if (currentPoint != null) {
+                    switch (field.usage) {
+                        case 0x30: // X
+                            currentPoint.x = (int)value;
+                            break;
+                        case 0x31: // Y
+                            currentPoint.y = (int)value;
+                            break;
+                    }
+                }
+            }
+            currentBit += field.size * field.count;
+        }
+        
+        result.points = points;
+        return result;
+    }
+
+    private TouchData parseSpecialFormat(byte[] data, int length) {
+        TouchData touchData = new TouchData();
+        
+        // 每个触摸点占用8字节
+        int pointCount = length / 8;
+        // 限制最大触摸点数为10
+        pointCount = Math.min(pointCount, 10);
+        
+        for (int i = 0; i < pointCount; i++) {
+            // 计算每个触摸点数据的起始位置
+            int offset = i * 8;
+            
+            TouchPoint point = new TouchPoint();
+            point.contactId = i;
+            // X坐标（小端序）
+            point.x = ((data[offset + 4] & 0xFF) << 8) | (data[offset + 3] & 0xFF);
+            // Y坐标（小端序）
+            point.y = ((data[offset + 6] & 0xFF) << 8) | (data[offset + 5] & 0xFF);
+            point.isTouched = (data[offset + 1] != 0);
+            point.isValid = point.x > 0 && point.y > 0;
+            
+            touchData.points.add(point);
+        }
+        
+        return touchData;
     }
 } 
