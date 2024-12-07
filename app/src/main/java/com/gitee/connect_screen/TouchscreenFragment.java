@@ -300,8 +300,6 @@ public class TouchscreenFragment extends Fragment {
     }
 
     private void parseInputData(byte[] data, int length) {
-        if (inputFormat == null) return;
-
         TouchData touchData = parseWithBasicFormat(data, length);
         for (TouchPoint point : touchData.points) {
             if (point.isValid) {

@@ -68,19 +68,15 @@ public class UsbInterfaceDetailFragment extends Fragment {
 
         // 设置按钮点击事件
         btnViewTouchscreen.setOnClickListener(v -> {
-            if (hidDescriptor != null && reportDescriptor != null) {
-                MainActivity activity = (MainActivity) getActivity();
-                activity.pushBreadcrumb("触摸屏", () -> 
-                    TouchscreenFragment.newInstance(
-                        hidDescriptor, 
-                        reportDescriptor,
-                        device,
-                        interfaceIndex
-                    )
-                );
-            } else {
-                Toast.makeText(getContext(), "触摸屏描述符数据不可用", Toast.LENGTH_SHORT).show();
-            }
+            MainActivity activity = (MainActivity) getActivity();
+            activity.pushBreadcrumb("触摸屏", () -> 
+                TouchscreenFragment.newInstance(
+                    hidDescriptor, 
+                    reportDescriptor,
+                    device,
+                    interfaceIndex
+                )
+            );
         });
 
         showInterfaceInfo();
@@ -462,6 +458,9 @@ public class UsbInterfaceDetailFragment extends Fragment {
                     sb.append("\n设备类型分析:\n");
                     sb.append("━━━━━━━━━━━━━━━━━━\n");
                     analyzeDeviceType(reportDescriptor, reportLen, sb);
+                } else {
+                    btnViewTouchscreen.setText("未知设备强制识别为触摸屏");
+                    btnViewTouchscreen.setVisibility(View.VISIBLE);
                 }
 
                 sb.append("\n\nHID详情:\n");
@@ -482,6 +481,9 @@ public class UsbInterfaceDetailFragment extends Fragment {
                 }
                 
                 detailContent.setText(sb.toString());
+            } else {
+                btnViewTouchscreen.setText("未知设备强制识别为触摸屏");
+                btnViewTouchscreen.setVisibility(View.VISIBLE);
             }
             
         } finally {
@@ -543,9 +545,10 @@ public class UsbInterfaceDetailFragment extends Fragment {
         
         // 分析完成后，根据是否是触摸屏来显示按钮
         if (isTouchScreen) {
-            requireActivity().runOnUiThread(() -> {
-                btnViewTouchscreen.setVisibility(View.VISIBLE);
-            });
+            btnViewTouchscreen.setVisibility(View.VISIBLE);
+        } else {
+            btnViewTouchscreen.setText("未知设备强制识别为触摸屏");
+            btnViewTouchscreen.setVisibility(View.VISIBLE);
         }
     }
 
