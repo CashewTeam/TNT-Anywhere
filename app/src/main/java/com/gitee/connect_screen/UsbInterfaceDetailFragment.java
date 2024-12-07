@@ -204,19 +204,34 @@ public class UsbInterfaceDetailFragment extends Fragment {
         
         sb.append("\nHID描述符解析:\n");
         sb.append("  描述符长度: ").append(desc[0] & 0xFF).append(" bytes\n");
-        sb.append("  描述符类型: ").append(String.format("0x%02X", desc[1] & 0xFF)).append("\n");
+        
+        // 添加描述符类型的含义说明
+        int descType = desc[1] & 0xFF;
+        String descTypeStr = descType == 0x21 ? "HID描述符" : 
+                            descType == 0x22 ? "报告描述符" :
+                            descType == 0x23 ? "物理描述符" : "未知类型";
+        sb.append("  描述符类型: 0x").append(String.format("%02X", descType))
+          .append(" (").append(descTypeStr).append(")\n");
+        
         sb.append("  HID版本: ").append((desc[3] & 0xFF)).append(".").append((desc[2] & 0xFF)).append("\n");
-        sb.append("  国家代码: ").append(desc[4] & 0xFF).append("\n");
+        
+        // 添加国家代码的含义说明
+        int countryCode = desc[4] & 0xFF;
+        String countryStr = getCountryCodeDescription(countryCode);
+        sb.append("  国家代码: ").append(countryCode).append(" (").append(countryStr).append(")\n");
+        
         sb.append("  描述符数量: ").append(desc[5] & 0xFF).append("\n");
         
         // 解析类描述符信息
         int numDesc = desc[5] & 0xFF;
         int pos = 6;
         for (int i = 0; i < numDesc && pos + 3 <= length; i++) {
-            int descType = desc[pos + 1] & 0xFF;
+            int classDescType = desc[pos + 1] & 0xFF;
+            String classDescTypeStr = getClassDescriptorType(classDescType);
             int descLength = (desc[pos + 2] & 0xFF) | ((desc[pos + 3] & 0xFF) << 8);
             sb.append("  类描述符 #").append(i + 1).append(":\n");
-            sb.append("    类型: ").append(String.format("0x%02X", descType)).append("\n");
+            sb.append("    类型: 0x").append(String.format("%02X", classDescType))
+              .append(" (").append(classDescTypeStr).append(")\n");
             sb.append("    长度: ").append(descLength).append(" bytes\n");
             pos += 3;
         }
@@ -233,62 +248,162 @@ public class UsbInterfaceDetailFragment extends Fragment {
             
             sb.append("  项 @").append(i).append(": ");
             
-            // 解析项类型
+            // 解析项类型和数据
+            String itemTypeStr = "";
+            String tagMeaning = "";
+            
             switch (type) {
                 case 0: // 主项
-                    sb.append("主项 - ");
-                    switch (tag) {
-                        case 8: sb.append("Input"); break;
-                        case 9: sb.append("Output"); break;
-                        case 11: sb.append("Feature"); break;
-                        case 10: sb.append("Collection"); break;
-                        case 12: sb.append("End Collection"); break;
-                        default: sb.append("未知(").append(tag).append(")");
-                    }
+                    itemTypeStr = "主项";
+                    tagMeaning = getMainTagMeaning(tag);
                     break;
-                    
                 case 1: // 全局项
-                    sb.append("全局项 - ");
-                    switch (tag) {
-                        case 0: sb.append("Usage Page"); break;
-                        case 1: sb.append("Logical Minimum"); break;
-                        case 2: sb.append("Logical Maximum"); break;
-                        case 3: sb.append("Physical Minimum"); break;
-                        case 4: sb.append("Physical Maximum"); break;
-                        case 5: sb.append("Unit Exponent"); break;
-                        case 6: sb.append("Unit"); break;
-                        case 7: sb.append("Report Size"); break;
-                        case 8: sb.append("Report ID"); break;
-                        case 9: sb.append("Report Count"); break;
-                        default: sb.append("未知(").append(tag).append(")");
-                    }
+                    itemTypeStr = "全局项";
+                    tagMeaning = getGlobalTagMeaning(tag);
                     break;
-                    
                 case 2: // 局部项
-                    sb.append("局部项 - ");
-                    switch (tag) {
-                        case 0: sb.append("Usage"); break;
-                        case 1: sb.append("Usage Minimum"); break;
-                        case 2: sb.append("Usage Maximum"); break;
-                        default: sb.append("未知(").append(tag).append(")");
-                    }
+                    itemTypeStr = "局部项";
+                    tagMeaning = getLocalTagMeaning(tag);
                     break;
             }
             
-            // 读取数据
+            sb.append(itemTypeStr).append(" - ").append(tagMeaning);
+            
+            // 读取数据并解析含义
             if (size > 0 && i + size < length) {
-                sb.append(" 数据: ");
                 long data = 0;
                 for (int j = 0; j < size; j++) {
                     data |= (desc[i + 1 + j] & 0xFF) << (j * 8);
                 }
-                sb.append(String.format("0x%X", data));
+                sb.append(" 数据: 0x").append(String.format("%X", data));
+                
+                // 根据不同类型的项添加数据含义
+                String dataMeaning = getDataMeaning(type, tag, data);
+                if (!dataMeaning.isEmpty()) {
+                    sb.append(" (").append(dataMeaning).append(")");
+                }
             }
             
             sb.append("\n");
-            i += 1 + size; // 移动到下一项
+            i += 1 + size;
         }
     }
+
+    // 新增辅助方法
+    private String getCountryCodeDescription(int code) {
+        switch (code) {
+            case 0: return "不支持本地化";
+            case 1: return "阿拉伯";
+            case 2: return "比利时";
+            case 3: return "加拿大-双语";
+            case 4: return "加拿大-法语";
+            case 5: return "捷克共和国";
+            case 6: return "丹麦";
+            case 7: return "芬兰";
+            case 8: return "法国";
+            case 9: return "德国";
+            case 10: return "希腊";
+            case 11: return "希伯来语";
+            case 12: return "匈牙利";
+            case 13: return "国际通用";
+            case 14: return "意大利";
+            case 15: return "日本";
+            case 16: return "韩国";
+            case 17: return "拉丁美洲";
+            case 18: return "荷兰";
+            case 19: return "挪威";
+            case 20: return "波斯（法尔西）";
+            case 21: return "波兰";
+            case 22: return "葡萄牙";
+            case 23: return "俄罗斯";
+            case 24: return "斯洛伐克";
+            case 25: return "西班牙";
+            case 26: return "瑞典";
+            case 27: return "瑞士-法语";
+            case 28: return "瑞士-德语";
+            case 29: return "瑞士";
+            case 30: return "台湾";
+            case 31: return "土耳其-Q";
+            case 32: return "英国";
+            case 33: return "美国";
+            case 34: return "南斯拉夫";
+            case 35: return "土耳其-F";
+            default: return "未知";
+        }
+    }
+
+    private String getClassDescriptorType(int type) {
+        switch (type) {
+            case 0x21: return "HID描述符";
+            case 0x22: return "报告描述符";
+            case 0x23: return "物理描述符";
+            default: return "未知描述符";
+        }
+    }
+
+    private String getMainTagMeaning(int tag) {
+        switch (tag) {
+            case 8: return "输入(Input)";
+            case 9: return "输出(Output)";
+            case 10: return "集合(Collection)";
+            case 11: return "特性(Feature)";
+            case 12: return "结束集合(End Collection)";
+            default: return "未知主项(" + tag + ")";
+        }
+    }
+
+    private String getGlobalTagMeaning(int tag) {
+        switch (tag) {
+            case 0: return "用途页(Usage Page)";
+            case 1: return "逻辑最小值";
+            case 2: return "逻辑最大值";
+            case 3: return "物理最小值";
+            case 4: return "物理最大值";
+            case 5: return "单位指数";
+            case 6: return "单位";
+            case 7: return "报告大小(bits)";
+            case 8: return "报告ID";
+            case 9: return "报告数量";
+            default: return "未知全局项(" + tag + ")";
+        }
+    }
+
+    private String getLocalTagMeaning(int tag) {
+        switch (tag) {
+            case 0: return "用途(Usage)";
+            case 1: return "用途最小值";
+            case 2: return "用途最大值";
+            case 3: return "指示符索引";
+            case 4: return "指示符数量";
+            default: return "未知局部项(" + tag + ")";
+        }
+    }
+
+    private String getDataMeaning(int type, int tag, long data) {
+        if (type == 1 && tag == 0) { // Usage Page
+            return getUsagePageMeaning((int)data);
+        }
+        return "";
+    }
+
+    private String getUsagePageMeaning(int page) {
+        switch (page) {
+            case 0x01: return "通用桌面控制";
+            case 0x02: return "仿真控制";
+            case 0x03: return "VR控制";
+            case 0x04: return "运动控制";
+            case 0x05: return "游戏控制";
+            case 0x06: return "通用设备控制";
+            case 0x07: return "键盘/小键盘";
+            case 0x08: return "LED指示灯";
+            case 0x09: return "按钮";
+            case 0x0A: return "序数";
+            case 0x0B: return "电话设备";
+            case 0x0C: return "消费者设备";
+            default: return "未知用途页";
+        }
+    }
+
     private void getHidDetails() {
         UsbDeviceConnection connection = usbManager.openDevice(device);
         if (connection == null) {
@@ -381,7 +496,7 @@ public class UsbInterfaceDetailFragment extends Fragment {
         }
     }
 
-    // 新增方���：获取HID设备用途描述
+    // 新增方法：获取HID设备用途描述
     private String getHidUsageDescription(int subClass, int protocol) {
         if (subClass == 1) { // Boot Interface Subclass
             switch (protocol) {
