@@ -53,7 +53,7 @@ public class MirrorViaDisplaylink implements Job {
                     return;
                 }
             }
-            if (State.userService == null) {
+            if (State.userService == null && !userServiceRequested) {
                 userServiceRequested = true;
                 Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
                 Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);

@@ -66,13 +66,7 @@
                 android:text="修改"/>
         </LinearLayout>
 
-        <Button
-            android:id="@+id/start_launcher_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="投屏单个应用"/>
-
+        
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -95,27 +89,13 @@
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/start_launcher_button"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp"
+            android:text="投屏单个应用"/>
 
-            <Button
-                android:id="@+id/apps_modes_toggle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="应用支持的显示模式 ▼"/>
-
-            <TextView
-                android:id="@+id/apps_modes_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                android:padding="8dp"
-                android:textSize="14sp"
-                android:layout_marginStart="8dp"/>
-        </LinearLayout>
 
         <Button
             android:id="@+id/touchpad_button"
