@@ -32,6 +32,10 @@ public class DisplayDetailFragment extends Fragment {
     private Button launchButton;
     private int displayId;
     private Display display;
+    private Button supportedModesToggle;
+    private TextView supportedModesText;
+    private Button appsModesToggle;
+    private TextView appsModesText;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -65,7 +69,10 @@ public class DisplayDetailFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_display_detail, container, false);
-        
+        supportedModesToggle = view.findViewById(R.id.supported_modes_toggle);
+        supportedModesText = view.findViewById(R.id.supported_modes_text);
+        appsModesToggle = view.findViewById(R.id.apps_modes_toggle);
+        appsModesText = view.findViewById(R.id.apps_modes_text);
         displayId = getArguments().getInt(ARG_DISPLAY_ID);
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
         display = displayManager.getDisplay(displayId);
@@ -189,6 +196,9 @@ public class DisplayDetailFragment extends Fragment {
 
                 Display.Mode[] supportedModes = displayInfo.supportedModes;
                 Display.Mode[] appsSupportedModes = displayInfo.appsSupportedModes;
+                
+                // 添加显示模式信息到状态文本
+                setupDisplayModes(supportedModes, appsSupportedModes);
             }
             shizukuStatusText.setText(statusText);
         } catch(Exception e) {
@@ -255,5 +265,44 @@ public class DisplayDetailFragment extends Fragment {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void setupDisplayModes(Display.Mode[] supportedModes, Display.Mode[] appsSupportedModes) {
+        // 设置支持的显示模式文本
+        StringBuilder supportedModesStr = new StringBuilder();
+        for (Display.Mode mode : supportedModes) {
+            supportedModesStr.append(String.format("模式ID: %d, 分辨率: %dx%d, 刷新率: %.1f Hz\n",
+                    mode.getModeId(),
+                    mode.getPhysicalWidth(),
+                    mode.getPhysicalHeight(),
+                    mode.getRefreshRate()));
+        }
+        supportedModesText.setText(supportedModesStr.toString());
+
+        // 设置应用支持的显示模式文本
+        StringBuilder appsModesStr = new StringBuilder();
+        for (Display.Mode mode : appsSupportedModes) {
+            appsModesStr.append(String.format("模式ID: %d, 分辨率: %dx%d, 刷新率: %.1f Hz\n",
+                    mode.getModeId(),
+                    mode.getPhysicalWidth(),
+                    mode.getPhysicalHeight(),
+                    mode.getRefreshRate()));
+        }
+        appsModesText.setText(appsModesStr.toString());
+
+        // 设置点击展开/收起事件
+        supportedModesToggle.setOnClickListener(v -> {
+            boolean isVisible = supportedModesText.getVisibility() == View.VISIBLE;
+            supportedModesText.setVisibility(isVisible ? View.GONE : View.VISIBLE);
+            supportedModesToggle.setText("支持的显示模式 " + (isVisible ? "▼" : "▲"));
+            supportedModesText.requestLayout();
+        });
+
+        appsModesToggle.setOnClickListener(v -> {
+            boolean isVisible = appsModesText.getVisibility() == View.VISIBLE;
+            appsModesText.setVisibility(isVisible ? View.GONE : View.VISIBLE);
+            appsModesToggle.setText("应用支持的显示模式 " + (isVisible ? "▼" : "▲"));
+            appsModesText.requestLayout();
+        });
     }
 }
