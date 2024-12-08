@@ -2,14 +2,9 @@ package com.gitee.connect_screen;
 
 import static com.gitee.connect_screen.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
 
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -20,9 +15,8 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.shizuku.IUserService;
+import com.gitee.connect_screen.job.FetchLogAndShare;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
-import com.gitee.connect_screen.shizuku.UserService;
 
 import rikka.shizuku.Shizuku;
 
@@ -71,22 +65,7 @@ public class AboutFragment extends Fragment {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
                     return false;
                 }
-                if (State.userService == null) {
-                    State.log("bind user service");
-                    Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-                    Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
-                }
-                if (State.userService == null) {
-                    State.log("user service not found yet");
-                    return false;
-                }
-                try {
-                    State.log("start fetch logs");
-                    String logs = State.userService.fetchLogs();
-                    State.log("logs: " + logs);
-                } catch (RemoteException ex) {
-                    // ignore
-                }
+                State.startNewJob(new FetchLogAndShare());
                 return true;
             }
 

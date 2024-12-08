@@ -2,12 +2,9 @@ package com.gitee.connect_screen;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
@@ -22,11 +19,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
-import rikka.shizuku.Shizuku;
-import android.graphics.Color;
-
-import com.gitee.connect_screen.job.AcquireShizuku;
-import com.gitee.connect_screen.job.AcquireShizukuAndTouchPad;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;

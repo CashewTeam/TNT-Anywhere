@@ -36,6 +36,7 @@ public class State {
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
 
+    private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     public static final ServiceConnection userServiceConnection = new ServiceConnection() {
         @Override
@@ -58,9 +59,10 @@ public class State {
     public static final Shizuku.UserServiceArgs userServiceArgs =
             new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
                     .daemon(true)
-                    .processNameSuffix("service")
-                    .debuggable(BuildConfig.DEBUG)
-                    .version(BuildConfig.VERSION_CODE + 1);
+                    .tag("temp5")
+                    .processNameSuffix("connect-screen")
+                    .debuggable(false)
+                    .version(BuildConfig.VERSION_CODE);
 
     public static boolean isJobRunning() {
         return currentJob != null;
@@ -111,6 +113,14 @@ public class State {
         breadcrumbManager.refreshCurrentFragment();
     }
 
+    public static void resumeJobLater(long delayMillis) {
+        if (currentActivity.get() != null) {
+            mainHandler.postDelayed(() -> {
+                resumeJob();
+            }, delayMillis);
+        }
+    }
+
     public static void log(String message) {
         logs.add(message);
         Log.i("ConnectScreen", message);
@@ -141,8 +151,12 @@ public class State {
     }
 
     public static void unbindUserService() {
-        if (userService == null) {
-            Shizuku.unbindUserService(userServiceArgs, userServiceConnection, true); // 解绑用户服务
+        try {
+            if (userService == null) {
+                Shizuku.unbindUserService(userServiceArgs, userServiceConnection, true); // 解绑用户服务
+            }
+        } catch (Exception e) {
+            // ignore
         }
     }
 }

@@ -5,13 +5,12 @@ import android.content.Intent;
 
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.TouchpadActivity;
-import com.gitee.connect_screen.job.Job;
 
-public class AcquireShizukuAndTouchPad implements Job {
+public class StartTouchPad implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private final int displayId;
 
-    public AcquireShizukuAndTouchPad(int displayId) {
+    public StartTouchPad(int displayId) {
         this.displayId = displayId;
     }
 

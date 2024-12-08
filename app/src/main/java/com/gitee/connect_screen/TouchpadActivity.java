@@ -33,7 +33,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.gitee.connect_screen.job.AcquireShizukuAndTouchPad;
+import com.gitee.connect_screen.job.StartTouchPad;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -89,7 +89,7 @@ public class TouchpadActivity extends AppCompatActivity {
         
         if (ShizukuUtils.hasShizukuStarted()) {
             if (!dryRun) {
-                State.startNewJob(new AcquireShizukuAndTouchPad(displayId));
+                State.startNewJob(new StartTouchPad(displayId));
             }
             return true;
         }
