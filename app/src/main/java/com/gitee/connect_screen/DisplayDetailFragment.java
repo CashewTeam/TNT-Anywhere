@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
@@ -8,6 +9,7 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
+import android.view.DisplayInfo;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -92,7 +94,7 @@ public class DisplayDetailFragment extends Fragment {
         // 设置分辨率文本
         String resolution = String.format("分辨率: %dx%d", display.getWidth(), display.getHeight());
         resolutionText.setText(resolution);
-        
+
         String details = String.format(
             "显示器 ID: %d\n" +
             "名称: %s\n" +
@@ -176,6 +178,17 @@ public class DisplayDetailFragment extends Fragment {
                 Point initialSize = new Point();
                 ServiceUtils.getWindowManager().getInitialDisplaySize(displayId, initialSize);
                 statusText += String.format("\nPhysical size: %dx%d", initialSize.x, initialSize.y);
+
+                DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
+                statusText += String.format("\n旋转角度: %d°", displayInfo.rotation * 90);
+                statusText += String.format("\n渲染帧率: %.1f fps", displayInfo.renderFrameRate);
+                statusText += String.format("\n默认模式ID: %d", displayInfo.defaultModeId);
+                statusText += String.format("\n用户首选模式ID: %d", displayInfo.userPreferredModeId);
+                statusText += String.format("\n刷新率覆盖: %.1f Hz", displayInfo.refreshRateOverride);
+                statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
+
+                Display.Mode[] supportedModes = displayInfo.supportedModes;
+                Display.Mode[] appsSupportedModes = displayInfo.appsSupportedModes;
             }
             shizukuStatusText.setText(statusText);
         } catch(Exception e) {
