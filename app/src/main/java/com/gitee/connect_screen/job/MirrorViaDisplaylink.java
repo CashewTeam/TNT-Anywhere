@@ -15,12 +15,15 @@ import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
+import rikka.shizuku.Shizuku;
+
 public class MirrorViaDisplaylink implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean usbRequested = false;
     private boolean device2UsbRequested = false;
     private boolean mediaProjectionRequested = false;
     private final String deviceName;
+    private boolean userServiceRequested = false;
     private final MirrorArgs mirrorArgs;
 
     public MirrorViaDisplaylink(UsbDevice device, MirrorArgs mirrorArgs) {
@@ -49,6 +52,13 @@ public class MirrorViaDisplaylink implements Job {
                 if (!acquireShizuku.acquired) {
                     return;
                 }
+            }
+            if (State.userService == null) {
+                userServiceRequested = true;
+                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+                State.resumeJobLater(1000);
+                throw new YieldException("等待 user service 启动");
             }
         }
 

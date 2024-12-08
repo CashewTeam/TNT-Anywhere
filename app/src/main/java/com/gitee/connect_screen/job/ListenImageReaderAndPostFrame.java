@@ -1,6 +1,5 @@
 package com.gitee.connect_screen.job;
 
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.DisplayManager;
@@ -10,17 +9,15 @@ import android.hardware.display.IVirtualDisplayCallback;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.display.VirtualDisplayConfig;
 import android.hardware.input.IInputManager;
-import android.hardware.input.InputManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.RemoteException;
 import android.util.Log;
-import android.view.DisplayAddress;
 import android.view.DisplayInfo;
 import android.view.InputDevice;
-import android.view.InputDeviceHidden;
 import android.view.Surface;
 
 import com.displaylink.manager.display.DisplayMode;
@@ -30,11 +27,9 @@ import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 
-import java.io.Serial;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-
-import dev.rikka.tools.refine.Refine;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
     private UsbState usbState;
@@ -100,21 +95,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
-            IInputManager inputManager = ServiceUtils.getInputManager();
-            for (int deviceId : inputManager.getInputDeviceIds()) {
-                InputDevice inputDevice = inputManager.getInputDevice(deviceId);
-                if (inputDevice.isExternal()) {
-                    try {
-                        inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
-                        inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
-                        State.log("成功更新输入设备路由: " + inputDevice);
-                    } catch(Error e) {
-                        State.log("未能更新输入设备路由: " + inputDevice);
-                        inputManager.removeUniqueIdAssociation("usb-xhci-hcd.2.auto-1.2.4/input0");
-                        inputManager.addUniqueIdAssociation("usb-xhci-hcd.2.auto-1.2.4/input0", String.valueOf(displayInfo.uniqueId));
-                    }
-                }
-            }
+            updateInputRouting(displayInfo);
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
             usbState.createdVirtualDisplay(
                     virtualDisplay
@@ -132,6 +113,60 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                     surface, null, null)
             );
         }
+    }
+
+    private void updateInputRouting(DisplayInfo displayInfo) {
+        IInputManager inputManager = ServiceUtils.getInputManager();
+        Map<String, String> inputDeviceDescriptorToPortMap = getInputDeviceDescriptorToPortMap();
+        for (int deviceId : inputManager.getInputDeviceIds()) {
+            InputDevice inputDevice = inputManager.getInputDevice(deviceId);
+            if (!inputDevice.isExternal()) {
+                continue;
+            }
+            try {
+                inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
+                inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
+                State.log("成功更新输入设备路由: " + inputDevice);
+            } catch(Error e) {
+                String inputPort = inputDeviceDescriptorToPortMap.get(inputDevice.getDescriptor());
+                if (inputPort == null) {
+                    State.log("未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
+                } else {
+                    try {
+                        inputManager.removeUniqueIdAssociation(inputPort);
+                        inputManager.addUniqueIdAssociation(inputPort, String.valueOf(displayInfo.uniqueId));
+                    } catch(Error e2) {
+                        State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    private Map<String, String> getInputDeviceDescriptorToPortMap() {
+        if (State.userService == null) {
+            State.log("user service 未启动，无法获取输入设备 descriptor -> port 的映射");
+            return new HashMap<>();
+        }
+        Map<String, String> map = new HashMap<>();
+        try {
+            String inputDump = State.userService.dumpsysInput();
+            String[] lines = inputDump.split("\n");
+            String lastDescriptor = "";
+            for (String line : lines) {
+                line = line.trim();
+                if (line.startsWith("Descriptor:")) {
+                    lastDescriptor = line.substring("Descriptor:".length()).trim();
+                }
+                if (line.startsWith("Location:")) {
+                    String inputPort = line.substring("Location:".length()).trim();
+                    map.put(lastDescriptor, inputPort);
+                }
+            }
+        } catch (RemoteException ex) {
+            throw new RuntimeException(ex);
+        }
+        return map;
     }
 
     @Override
