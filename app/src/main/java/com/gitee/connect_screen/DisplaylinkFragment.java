@@ -15,6 +15,7 @@ import android.view.WindowMetrics;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -31,6 +32,7 @@ public class DisplaylinkFragment extends Fragment {
     private UsbState usbState;
     private View sourceScreenSizeLayout;
     private View aspectRatioExplanation;
+    private CheckBox rotatesWithContentCheckbox;
 
     public static DisplaylinkFragment newInstance(UsbDevice device) {
         DisplaylinkFragment fragment = new DisplaylinkFragment();
@@ -52,6 +54,8 @@ public class DisplaylinkFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_displaylink, container, false);
+
+        rotatesWithContentCheckbox = view.findViewById(R.id.rotatesWithContentCheckbox);
 
         TextView detailContent = view.findViewById(R.id.detailContent);
         Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
@@ -220,6 +224,11 @@ public class DisplaylinkFragment extends Fragment {
             State.startNewJob(new MirrorViaDisplaylink(device, usbState.mirrorArgs));
         });
 
+        rotatesWithContentCheckbox.setChecked(usbState.rotatesWithContent);
+        rotatesWithContentCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            usbState.rotatesWithContent = isChecked;
+        });
+
         return view;
     }
 
@@ -229,6 +238,10 @@ public class DisplaylinkFragment extends Fragment {
         // 更新16:9模式相关视图
         boolean is16_9Mode = usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
         sourceScreenSizeLayout.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
+        
+        // 更新单应用模式相关视图
+        boolean isSingleAppMode = usbState.projectionMode == ProjectionMode.SINGLE_APP;
+        rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         
         // 如果在16:9模式下，更新裁剪说明
         if (is16_9Mode) {
