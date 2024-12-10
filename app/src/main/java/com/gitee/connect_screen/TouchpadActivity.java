@@ -359,6 +359,8 @@ public class TouchpadActivity extends AppCompatActivity {
             return;
         }
 
+        setFocus();
+
         // 直重放已经计算好偏移量的事件
         for (int i = gestureState.lastReplayed; i < gestureState.allMotionEvents.size(); i++) {
             MotionEvent event = gestureState.allMotionEvents.get(i);

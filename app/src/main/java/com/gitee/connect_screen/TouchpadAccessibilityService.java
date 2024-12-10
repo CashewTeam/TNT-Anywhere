@@ -62,6 +62,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
     // 模拟点击事件
     public void performClick(int displayId, float x, float y) {
+        setFocus(displayId);
         Path clickPath = new Path();
         clickPath.moveTo(x, y);
         

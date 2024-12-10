@@ -26,6 +26,10 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class DisplayDetailFragment extends Fragment {
+    public final static int FIXED_TO_USER_ROTATION_DEFAULT = 0;
+    public final static int FIXED_TO_USER_ROTATION_DISABLED = 1;
+    public final static int FIXED_TO_USER_ROTATION_ENABLED = 2;
+    public final static int FIXED_TO_USER_ROTATION_IF_NO_AUTO_ROTATION = 3;
     private static final String ARG_DISPLAY_ID = "display_id";
     
     private TextView shizukuStatusText;
@@ -105,6 +109,7 @@ public class DisplayDetailFragment extends Fragment {
             "状态: %s\n" +
             "HDR支持: %s\n" +
             "显示器标志: %s\n" +
+            "旋转角度: %d°\n" +
             "凹口信息: %s",
             display.getDisplayId(),
             display.getName(),
@@ -112,8 +117,12 @@ public class DisplayDetailFragment extends Fragment {
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
             display.isHdr() ? "是" : "否",
             getDisplayFlags(display),
+            display.getRotation() * 90,
             cutoutInfo
         );
+        
+        // 添加显示模式信息到状态文本
+        setupDisplayModes(display.getSupportedModes());
         detailText.setText(details);
 
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
@@ -183,16 +192,9 @@ public class DisplayDetailFragment extends Fragment {
                 statusText += String.format("\nPhysical size: %dx%d", initialSize.x, initialSize.y);
 
                 DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
-                statusText += String.format("\n旋转角度: %d°", displayInfo.rotation * 90);
-                statusText += String.format("\n渲染帧率: %.1f fps", displayInfo.renderFrameRate);
                 statusText += String.format("\n默认模式ID: %d", displayInfo.defaultModeId);
                 statusText += String.format("\n刷新率覆盖: %.1f Hz", displayInfo.refreshRateOverride);
                 statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
-
-                Display.Mode[] supportedModes = displayInfo.supportedModes;
-                
-                // 添加显示模式信息到状态文本
-                setupDisplayModes(supportedModes);
             }
             shizukuStatusText.setText(statusText);
         } catch(Exception e) {
