@@ -115,7 +115,6 @@ public class DisplayDetailFragment extends Fragment {
             "状态: %s\n" +
             "HDR支持: %s\n" +
             "显示器标志: %s\n" +
-            "旋转角度: %d°\n" +
             "凹口信息: %s",
             display.getDisplayId(),
             display.getName(),
@@ -123,7 +122,6 @@ public class DisplayDetailFragment extends Fragment {
             display.getState() == Display.STATE_ON ? "开启" : "关闭",
             display.isHdr() ? "是" : "否",
             getDisplayFlags(display),
-            display.getRotation() * 90,
             cutoutInfo
         );
         
@@ -173,48 +171,18 @@ public class DisplayDetailFragment extends Fragment {
             });
         }
 
-        // 设置旋转选项
-        rotationSpinner = view.findViewById(R.id.rotation_spinner);
-        applyRotationButton = view.findViewById(R.id.apply_rotation_button);
-        
-        String[] rotationOptions = new String[]{"不强制", "0°", "90°", "180°", "270°"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            getContext(),
-            android.R.layout.simple_spinner_item,
-            rotationOptions
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        rotationSpinner.setAdapter(adapter);
+        TextView rotationText = view.findViewById(R.id.rotation_text);
+        Button editRotationButton = view.findViewById(R.id.edit_rotation_button);
 
-        applyRotationButton.setOnClickListener(v -> {
-            if (!ShizukuUtils.hasShizukuStarted()) {
-                showToast("需要安装 Shizuku 才支持此功能");
-                return;
-            }
+        // 更新当前旋转状态
+        updateRotationText(rotationText);
 
-            int position = rotationSpinner.getSelectedItemPosition();
-            int rotation;
-            switch (position) {
-                case 0: // 不强制
-                    rotation = -1;
-                    break;
-                case 1: // 0°
-                    rotation = Surface.ROTATION_0;
-                    break;
-                case 2: // 90°
-                    rotation = Surface.ROTATION_90;
-                    break;
-                case 3: // 180°
-                    rotation = Surface.ROTATION_180;
-                    break;
-                case 4: // 270°
-                    rotation = Surface.ROTATION_270;
-                    break;
-                default:
-                    rotation = -1;
-            }
-            State.startNewJob(new ChangeRotation(displayId, rotation));
-        });
+        if(ShizukuUtils.hasShizukuStarted()) {
+            editRotationButton.setVisibility(View.VISIBLE);
+            editRotationButton.setOnClickListener(v -> {
+                showRotationDialog();
+            });
+        }
 
         updateShizukuStatus();
         return view;
@@ -330,4 +298,72 @@ public class DisplayDetailFragment extends Fragment {
             supportedModesText.requestLayout();
         });
     }
+
+    
+// 添加新方法:
+private void updateRotationText(TextView rotationText) {
+    int rotation = display.getRotation();
+    String rotationStr;
+    switch(rotation) {
+        case Surface.ROTATION_0:
+            rotationStr = "0°";
+            break;
+        case Surface.ROTATION_90:
+            rotationStr = "90°";
+            break;
+        case Surface.ROTATION_180:
+            rotationStr = "180°";
+            break;
+        case Surface.ROTATION_270:
+            rotationStr = "270°";
+            break;
+        default:
+            rotationStr = "未知";
+    }
+    rotationText.setText("旋转角度: " + rotationStr);
+}
+
+private void showRotationDialog() {
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_rotation, null);
+    Spinner rotationSpinner = dialogView.findViewById(R.id.rotation_spinner);
+    
+    String[] rotationOptions = new String[]{"不强制", "0°", "90°", "180°", "270°"};
+    ArrayAdapter<String> adapter = new ArrayAdapter<>(
+        getContext(),
+        android.R.layout.simple_spinner_item,
+        rotationOptions
+    );
+    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    rotationSpinner.setAdapter(adapter);
+
+    new AlertDialog.Builder(getContext())
+            .setTitle("修改旋转方向")
+            .setView(dialogView)
+            .setPositiveButton("确定", (dialog, which) -> {
+                int position = rotationSpinner.getSelectedItemPosition();
+                int rotation;
+                switch (position) {
+                    case 0: // 不强制
+                        rotation = -1;
+                        break;
+                    case 1: // 0°
+                        rotation = Surface.ROTATION_0;
+                        break;
+                    case 2: // 90°
+                        rotation = Surface.ROTATION_90;
+                        break;
+                    case 3: // 180°
+                        rotation = Surface.ROTATION_180;
+                        break;
+                    case 4: // 270°
+                        rotation = Surface.ROTATION_270;
+                        break;
+                    default:
+                        rotation = -1;
+                }
+                State.startNewJob(new ChangeRotation(displayId, rotation));
+            })
+            .setNegativeButton("取消", null)
+            .show();
+}
 }
