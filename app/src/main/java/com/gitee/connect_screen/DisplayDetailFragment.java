@@ -24,6 +24,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.job.ChangeDPI;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.job.ChangeRotation;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
@@ -266,11 +267,7 @@ public class DisplayDetailFragment extends Fragment {
                             showToast("请输入有效的DPI值");
                             return;
                         }
-                        ServiceUtils.getWindowManager().setForcedDisplayDensityForUser(displayId, newDpi, 0);
-                        TextView dpiText = DisplayDetailFragment.this.getView().findViewById(R.id.dpi_text);
-                        DisplayMetrics metrics = new DisplayMetrics();
-                        display.getMetrics(metrics);
-                        dpiText.setText(String.format("DPI: %d", metrics.densityDpi));
+                        State.startNewJob(new ChangeDPI(displayId, newDpi));
                     } catch (NumberFormatException e) {
                         showToast("请输入有效的数字");
                     }
