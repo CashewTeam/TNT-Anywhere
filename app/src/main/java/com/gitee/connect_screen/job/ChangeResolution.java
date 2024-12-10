@@ -35,7 +35,6 @@ public class ChangeResolution implements Job {
         }
         if (!sleep1) {
             sleep1 = true;
-            ServiceUtils.initWithShizuku();
             IWindowManager wm = ServiceUtils.getWindowManager();
             Point baseSize = new Point();
             wm.getBaseDisplaySize(displayId, baseSize);

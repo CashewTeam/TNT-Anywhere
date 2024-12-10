@@ -11,10 +11,13 @@ import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.DisplayInfo;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,6 +25,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.ChangeResolution;
+import com.gitee.connect_screen.job.ChangeRotation;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -38,6 +42,8 @@ public class DisplayDetailFragment extends Fragment {
     private Display display;
     private Button supportedModesToggle;
     private TextView supportedModesText;
+    private Spinner rotationSpinner;
+    private Button applyRotationButton;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -167,6 +173,49 @@ public class DisplayDetailFragment extends Fragment {
             });
         }
 
+        // 设置旋转选项
+        rotationSpinner = view.findViewById(R.id.rotation_spinner);
+        applyRotationButton = view.findViewById(R.id.apply_rotation_button);
+        
+        String[] rotationOptions = new String[]{"不强制", "0°", "90°", "180°", "270°"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            rotationOptions
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        rotationSpinner.setAdapter(adapter);
+
+        applyRotationButton.setOnClickListener(v -> {
+            if (!ShizukuUtils.hasShizukuStarted()) {
+                showToast("需要安装 Shizuku 才支持此功能");
+                return;
+            }
+
+            int position = rotationSpinner.getSelectedItemPosition();
+            int rotation;
+            switch (position) {
+                case 0: // 不强制
+                    rotation = -1;
+                    break;
+                case 1: // 0°
+                    rotation = Surface.ROTATION_0;
+                    break;
+                case 2: // 90°
+                    rotation = Surface.ROTATION_90;
+                    break;
+                case 3: // 180°
+                    rotation = Surface.ROTATION_180;
+                    break;
+                case 4: // 270°
+                    rotation = Surface.ROTATION_270;
+                    break;
+                default:
+                    rotation = -1;
+            }
+            State.startNewJob(new ChangeRotation(displayId, rotation));
+        });
+
         updateShizukuStatus();
         return view;
     }
@@ -183,7 +232,6 @@ public class DisplayDetailFragment extends Fragment {
             boolean hasPermission = ShizukuUtils.hasPermission();
             String statusText = "Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权");
             if (hasPermission) {
-                ServiceUtils.initWithShizuku();
                 Point baseSize = new Point();
                 ServiceUtils.getWindowManager().getBaseDisplaySize(displayId, baseSize);
                 statusText += String.format("\nOverride size: %dx%d", baseSize.x, baseSize.y);

@@ -32,7 +32,7 @@ public class ServiceUtils {
     private static IDisplayManager displayManager;
     private static IInputManager inputManager;
 
-    public static void initWithShizuku() {
+    private static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
         activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.ACTIVITY_SERVICE)));
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
@@ -67,7 +67,7 @@ public class ServiceUtils {
 
     public static int startActivity(Intent intent, ActivityOptions options) {
         if (activityManager == null) {
-            throw new IllegalStateException("ServiceUtils 未初始化，请先调用 initWithShizuku()");
+            initWithShizuku();
         }
         
         try {
@@ -104,7 +104,7 @@ public class ServiceUtils {
 
     public static IWindowManager getWindowManager() {
         if (windowManager == null) {
-            throw new IllegalStateException("ServiceUtils 未初始化，请先调用 initWithShizuku()");
+            initWithShizuku();
         }
         return windowManager;
     }
