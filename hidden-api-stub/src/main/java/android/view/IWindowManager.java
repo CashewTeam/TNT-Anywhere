@@ -20,9 +20,12 @@ public interface IWindowManager extends IInterface {
     void setForcedDisplayDensityForUser(int displayId, int density, int userId);
     void clearForcedDisplaySize(int displayId);
     void clearForcedDisplayDensityForUser(int displayId, int userId);
-    void freezeDisplayRotation(int displayId, int rotation, String caller);
-    void thawDisplayRotation(int displayId, String caller);
-    void setFixedToUserRotation(int displayId, int fixedToUserRotation);
     int getDisplayUserRotation(int displayId);
+    boolean isDisplayRotationFrozen(int displayId);
+    void freezeDisplayRotation(int displayId, int rotation, String caller);
+    void freezeDisplayRotation(int displayId, int rotation);
+    void thawDisplayRotation(int displayId, String caller);
+    void thawDisplayRotation(int displayId);
+    void setFixedToUserRotation(int displayId, int fixedToUserRotation);
     void setIgnoreOrientationRequest(int displayId, boolean ignoreOrientationRequest);
 }

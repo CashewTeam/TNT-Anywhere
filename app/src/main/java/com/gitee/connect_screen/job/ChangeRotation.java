@@ -1,11 +1,13 @@
 package com.gitee.connect_screen.job;
 
-import android.view.Surface;
+import android.view.IWindowManager;
 
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 public class ChangeRotation implements Job {
+    private final static int FIXED_TO_USER_ROTATION_DEFAULT = 0;
+    private final static int FIXED_TO_USER_ROTATION_ENABLED = 2;
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     public final int displayId;
     public final int rotation;
@@ -21,11 +23,51 @@ public class ChangeRotation implements Job {
         if (!acquireShizuku.acquired) {
             return;
         }
-        try {
-            ServiceUtils.getWindowManager().freezeDisplayRotation(displayId, rotation, "WindowManagerShellCommand#lock");
-            State.log("旋转设置已应用");
-        } catch (Exception e) {
-            State.log("设置旋转失败：" + e.getMessage());
+        IWindowManager windowManager = ServiceUtils.getWindowManager();
+        if (rotation == -1) {
+            try {
+                windowManager.setIgnoreOrientationRequest(displayId, false);
+            } catch(Error e) {
+                State.log("failed to setIgnoreOrientationRequest" + e.getMessage());
+            }
+            try {
+                windowManager.setFixedToUserRotation(displayId, FIXED_TO_USER_ROTATION_DEFAULT);
+            } catch(Error e) {
+                State.log("failed to setFixedToUserRotation" + e.getMessage());
+            }
+            try {
+                windowManager.thawDisplayRotation(displayId, "WindowManagerShellCommand#free");
+                State.log("旋转设置已应用");
+            } catch (Error e) {
+                try {
+                    windowManager.thawDisplayRotation(displayId);
+                    State.log("旋转设置已应用");
+                } catch(Error e2) {
+                    State.log("设置旋转失败：" + e2.getMessage());
+                }
+            }
+        } else {
+            try {
+                windowManager.setIgnoreOrientationRequest(displayId, true);
+            } catch(Error e) {
+                State.log("failed to setIgnoreOrientationRequest" + e.getMessage());
+            }
+            try {
+                windowManager.setFixedToUserRotation(displayId, FIXED_TO_USER_ROTATION_ENABLED);
+            } catch(Error e) {
+                State.log("failed to setFixedToUserRotation" + e.getMessage());
+            }
+            try {
+                windowManager.freezeDisplayRotation(displayId, rotation, "WindowManagerShellCommand#lock");
+                State.log("旋转设置已应用");
+            } catch (Error e) {
+                try {
+                    windowManager.freezeDisplayRotation(displayId, rotation);
+                    State.log("旋转设置已应用");
+                } catch(Error e2) {
+                    State.log("设置旋转失败：" + e2.getMessage());
+                }
+            }
         }
     }
 }
