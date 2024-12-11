@@ -73,7 +73,7 @@
             android:layout_marginTop="8dp">
 
             <TextView
-                android:id="@+id/rotation_text"
+                android:id="@+id/user_rotation_text"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

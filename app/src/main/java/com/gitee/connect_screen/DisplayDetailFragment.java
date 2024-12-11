@@ -10,6 +10,7 @@ import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.DisplayInfo;
+import android.view.IWindowManager;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
@@ -24,6 +25,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import java.net.ServerSocket;
+
 import com.gitee.connect_screen.job.ChangeDPI;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.job.ChangeRotation;
@@ -31,10 +34,6 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class DisplayDetailFragment extends Fragment {
-    public final static int FIXED_TO_USER_ROTATION_DEFAULT = 0;
-    public final static int FIXED_TO_USER_ROTATION_DISABLED = 1;
-    public final static int FIXED_TO_USER_ROTATION_ENABLED = 2;
-    public final static int FIXED_TO_USER_ROTATION_IF_NO_AUTO_ROTATION = 3;
     private static final String ARG_DISPLAY_ID = "display_id";
     
     private TextView shizukuStatusText;
@@ -43,8 +42,6 @@ public class DisplayDetailFragment extends Fragment {
     private Display display;
     private Button supportedModesToggle;
     private TextView supportedModesText;
-    private Spinner rotationSpinner;
-    private Button applyRotationButton;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -172,11 +169,11 @@ public class DisplayDetailFragment extends Fragment {
             });
         }
 
-        TextView rotationText = view.findViewById(R.id.rotation_text);
+        TextView userRotationText = view.findViewById(R.id.user_rotation_text);
         Button editRotationButton = view.findViewById(R.id.edit_rotation_button);
 
         // 更新当前旋转状态
-        updateRotationText(rotationText);
+        updateUserRotationText(userRotationText);
 
         if(ShizukuUtils.hasShizukuStarted()) {
             editRotationButton.setVisibility(View.VISIBLE);
@@ -230,7 +227,7 @@ public class DisplayDetailFragment extends Fragment {
         heightInput.setText(String.valueOf(currentHeight));
 
         new AlertDialog.Builder(getContext())
-                .setTitle("修改分辨率")
+                .setTitle("修改分辨率（大概率无效）")
                 .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     try {
@@ -298,7 +295,7 @@ public class DisplayDetailFragment extends Fragment {
 
     
 // 添加新方法:
-private void updateRotationText(TextView rotationText) {
+private void updateUserRotationText(TextView rotationText) {
     int rotation = display.getRotation();
     String rotationStr;
     switch(rotation) {
@@ -334,7 +331,7 @@ private void showRotationDialog() {
     rotationSpinner.setAdapter(adapter);
 
     new AlertDialog.Builder(getContext())
-            .setTitle("修改旋转方向")
+            .setTitle("修改旋转方向（仅在澎湃2安卓15上测试有效）")
             .setView(dialogView)
             .setPositiveButton("确定", (dialog, which) -> {
                 int position = rotationSpinner.getSelectedItemPosition();
