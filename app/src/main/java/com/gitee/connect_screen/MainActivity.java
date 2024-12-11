@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
@@ -122,7 +123,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-
+        if (ShizukuUtils.hasPermission() && State.userService == null) {
+            Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+            Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+        }
 
         // 移除默认的 ActionBar
         if (getSupportActionBar() != null) {
