@@ -46,6 +46,15 @@ public class MirrorViaDisplaylink implements Job {
             return;
         }
 
+        if(ShizukuUtils.hasShizukuStarted()) {
+            if (!ShizukuUtils.hasPermission()) {
+                acquireShizuku.start();
+                if (!acquireShizuku.acquired) {
+                    return;
+                }
+            }
+        }
+
         if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
             if (!ShizukuUtils.hasShizukuStarted()) {
                 State.log("需要安装 Shizuku");
@@ -54,12 +63,6 @@ public class MirrorViaDisplaylink implements Job {
             if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 State.log("需要安卓14");
                 return;
-            }
-            if (!ShizukuUtils.hasPermission()) {
-                acquireShizuku.start();
-                if (!acquireShizuku.acquired) {
-                    return;
-                }
             }
             if (State.userService == null && !userServiceRequested) {
                 userServiceRequested = true;
@@ -217,7 +220,8 @@ public class MirrorViaDisplaylink implements Job {
     }
 
     private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
-        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasPermission()) {
+            // 无需 media projection 授权
             usbState.stopVirtualDisplay();
             return true;
         }

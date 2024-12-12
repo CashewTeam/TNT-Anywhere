@@ -26,6 +26,7 @@ import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -72,7 +73,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
-        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasPermission()) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
@@ -91,33 +92,31 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 //            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
                }
             }
-            VirtualDisplayConfig config = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                config = new VirtualDisplayConfig.Builder(
-                    "DisplayLink",
-                    virtualDisplayWidth, monitorHeight, 160)
-                    .setSurface(surface)
-                    .setFlags(flags)
-                    .setRequestedRefreshRate(mirrorArgs.refreshRate)
-                    .build();
-            } else {
-                State.log("单应用投屏暂时只支持安卓14以及以上");
-                return;
-            }
+            VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
+                "DisplayLink",
+                virtualDisplayWidth, monitorHeight, 160)
+                .setSurface(surface)
+                .setFlags(flags)
+                .setRequestedRefreshRate(mirrorArgs.refreshRate)
+                .build();
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
-            updateInputRouting(displayInfo);
+            if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+                updateInputRouting(displayInfo);
+            }
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
             usbState.createdVirtualDisplay(
                     virtualDisplay
             );
-            Context context = State.currentActivity.get();
-            Intent intent = new Intent(context, LauncherActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-            context.startActivity(intent);
+            if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+                Context context = State.currentActivity.get();
+                Intent intent = new Intent(context, LauncherActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+                context.startActivity(intent);
+            }
         } else {
             usbState.createdVirtualDisplay(
                 State.mediaProjection.createVirtualDisplay("DisplayLink",
