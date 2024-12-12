@@ -125,5 +125,13 @@
             android:layout_marginTop="8dp"
             android:text="触控板"/>
 
+        <Button
+            android:id="@+id/goto_displaylink_button" 
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:text="由 Displaylink 创建"/>
+
     </LinearLayout>
 </ScrollView>

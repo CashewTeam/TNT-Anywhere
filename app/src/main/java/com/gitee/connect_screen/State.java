@@ -32,7 +32,7 @@ public class State {
     public static Map<String, UsbState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
     public static String lastPackageName;
-    public static Set<Integer> virtualDisplayIds = new HashSet<>();
+    public static Map<Integer, UsbDevice> virtualDisplayIds = new HashMap<>();
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
 

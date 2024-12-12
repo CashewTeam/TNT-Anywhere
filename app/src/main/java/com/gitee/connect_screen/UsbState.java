@@ -61,7 +61,7 @@ public class UsbState {
 
     public void createdVirtualDisplay(VirtualDisplay virtualDisplay) {
         this.virtualDisplay = virtualDisplay;
-        State.virtualDisplayIds.add(virtualDisplay.getDisplay().getDisplayId());
+        State.virtualDisplayIds.put(virtualDisplay.getDisplay().getDisplayId(), device);
     }   
 
     public VirtualDisplay getVirtualDisplay() {

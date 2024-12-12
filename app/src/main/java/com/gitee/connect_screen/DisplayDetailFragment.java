@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
+import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -42,6 +43,7 @@ public class DisplayDetailFragment extends Fragment {
     private Display display;
     private Button supportedModesToggle;
     private TextView supportedModesText;
+    private Button gotoDisplaylinkButton;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -183,6 +185,20 @@ public class DisplayDetailFragment extends Fragment {
         }
 
         updateShizukuStatus();
+
+        // 添加 Displaylink 按钮相关逻辑
+        gotoDisplaylinkButton = view.findViewById(R.id.goto_displaylink_button);
+        UsbDevice usbDevice = State.virtualDisplayIds.get(displayId);
+        if(usbDevice != null) {
+            gotoDisplaylinkButton.setVisibility(View.VISIBLE);
+            gotoDisplaylinkButton.setOnClickListener(v -> {
+                MainActivity activity = (MainActivity) getActivity();
+                activity.pushBreadcrumb("Displaylink", () -> 
+                    DisplaylinkFragment.newInstance(usbDevice)
+                );
+            });
+        }
+
         return view;
     }
 
