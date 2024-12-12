@@ -47,6 +47,14 @@ public class MirrorViaDisplaylink implements Job {
         }
 
         if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            if (!ShizukuUtils.hasShizukuStarted()) {
+                State.log("需要安装 Shizuku");
+                return;
+            }
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                State.log("需要安卓14");
+                return;
+            }
             if (!ShizukuUtils.hasPermission()) {
                 acquireShizuku.start();
                 if (!acquireShizuku.acquired) {

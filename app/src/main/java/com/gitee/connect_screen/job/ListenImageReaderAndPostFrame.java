@@ -32,15 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
-    private UsbState usbState;
-    private boolean hasSetMode = false;
-    private Image lastImage;
-    private static byte[] rowDatas;
-    private static int startX;
-    private static int rowStride;
-    private static int pixelStride;
-    private int monitorWidth;
-    private int monitorHeight;
 
     // Internal fields copied from android.hardware.display.DisplayManager
     private static final int VIRTUAL_DISPLAY_FLAG_PUBLIC = android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
@@ -56,10 +47,22 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
     private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
 
+    private UsbState usbState;
+    private boolean hasSetMode = false;
+    private Image lastImage;
+    private static byte[] rowDatas;
+    private static int startX;
+    private static int rowStride;
+    private static int pixelStride;
+    private int monitorWidth;
+    private int monitorHeight;
+    private int refreshRate;
+
     public void startVirtualDisplay(UsbState usbState, MirrorArgs mirrorArgs) {
         this.usbState = usbState;
         this.monitorWidth = mirrorArgs.monitorWidth;
         this.monitorHeight = mirrorArgs.monitorHeight;
+        this.refreshRate = mirrorArgs.refreshRate;
         int virtualDisplayWidth = mirrorArgs.virtualDisplayWidth;
 
         usbState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
@@ -72,8 +75,8 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
-           | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH
-           | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
+           | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
+        //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
             if (usbState.rotatesWithContent) {
                 flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
             }
@@ -95,6 +98,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                     virtualDisplayWidth, monitorHeight, 160)
                     .setSurface(surface)
                     .setFlags(flags)
+                    .setRequestedRefreshRate(mirrorArgs.refreshRate)
                     .build();
             } else {
                 State.log("单应用投屏暂时只支持安卓14以及以上");
@@ -188,7 +192,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
         Image.Plane plane = thisImage.getPlanes()[0];
         if (!hasSetMode) {
             hasSetMode = true;
-            usbState.nativeDriver.setMode(usbState.encoderId, new DisplayMode(monitorWidth, monitorHeight, 60), plane.getRowStride(), 1);
+            usbState.nativeDriver.setMode(usbState.encoderId, new DisplayMode(monitorWidth, monitorHeight, refreshRate), plane.getRowStride(), 1);
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();
