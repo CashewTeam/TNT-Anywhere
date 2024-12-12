@@ -88,12 +88,18 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 //            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
                }
             }
-            VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
-                "DisplayLink",
-                virtualDisplayWidth, monitorHeight, 160)
-                .setSurface(surface)
-                .setFlags(flags)
-                .build();
+            VirtualDisplayConfig config = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                config = new VirtualDisplayConfig.Builder(
+                    "DisplayLink",
+                    virtualDisplayWidth, monitorHeight, 160)
+                    .setSurface(surface)
+                    .setFlags(flags)
+                    .build();
+            } else {
+                State.log("单应用投屏暂时只支持安卓14以及以上");
+                return;
+            }
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);

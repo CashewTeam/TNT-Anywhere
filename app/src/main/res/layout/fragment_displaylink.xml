@@ -143,6 +143,33 @@
             android:textSize="14sp"/>
     </LinearLayout>
 
+
+    <LinearLayout
+        android:id="@+id/frameRateLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="帧率"
+            android:textSize="16sp"/>
+
+        <EditText
+            android:id="@+id/frameRateInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:hint="帧率 (默认60)"
+            android:inputType="number"/>
+            
+    </LinearLayout>
+
     <CheckBox
         android:id="@+id/rotatesWithContentCheckbox"
         android:layout_width="match_parent"

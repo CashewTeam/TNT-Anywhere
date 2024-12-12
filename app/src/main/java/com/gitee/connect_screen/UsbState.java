@@ -36,6 +36,7 @@ public class UsbState {
     public int monitorHeight;
     public int sourceWidth;
     public int sourceHeight;
+    public int refreshRate;
     public boolean rotatesWithContent = true;
 
     public void stopHandlerThread() {

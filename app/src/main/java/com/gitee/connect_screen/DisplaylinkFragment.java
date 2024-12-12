@@ -2,6 +2,7 @@ package com.gitee.connect_screen;
 
 import android.content.Context;
 import android.hardware.usb.UsbDevice;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -23,6 +24,7 @@ import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.Arrays;
 
@@ -33,6 +35,7 @@ public class DisplaylinkFragment extends Fragment {
     private View sourceScreenSizeLayout;
     private View aspectRatioExplanation;
     private CheckBox rotatesWithContentCheckbox;
+    private View frameRateLayout;
 
     public static DisplaylinkFragment newInstance(UsbDevice device) {
         DisplaylinkFragment fragment = new DisplaylinkFragment();
@@ -62,7 +65,14 @@ public class DisplaylinkFragment extends Fragment {
         EditText monitorWidthInput = view.findViewById(R.id.displayWidthInput);
         EditText monitorHeightInput = view.findViewById(R.id.monitorHeightInput);
 
+        sourceScreenSizeLayout = view.findViewById(R.id.sourceScreenSizeLayout);
+        EditText sourceWidthInput = view.findViewById(R.id.sourceWidthInput);
+        EditText sourceHeightInput = view.findViewById(R.id.sourceHeightInput);
+        aspectRatioExplanation = view.findViewById(R.id.aspectRatioExplanation);
+        frameRateLayout = view.findViewById(R.id.frameRateLayout);
+
         Spinner projectionModeSpinner = view.findViewById(R.id.projectionModeSpinner);
+
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
             getContext(),
             android.R.layout.simple_spinner_item,
@@ -83,11 +93,7 @@ public class DisplaylinkFragment extends Fragment {
         if (usbState.projectionMode != null) {
             projectionModeSpinner.setSelection(usbState.projectionMode.ordinal());
         }
-        
-        sourceScreenSizeLayout = view.findViewById(R.id.sourceScreenSizeLayout);
-        EditText sourceWidthInput = view.findViewById(R.id.sourceWidthInput);
-        EditText sourceHeightInput = view.findViewById(R.id.sourceHeightInput);
-        aspectRatioExplanation = view.findViewById(R.id.aspectRatioExplanation);
+
 
         projectionModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -229,6 +235,29 @@ public class DisplaylinkFragment extends Fragment {
             usbState.rotatesWithContent = isChecked;
         });
 
+        EditText frameRateInput = view.findViewById(R.id.frameRateInput);
+        frameRateInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                try {
+                    int frameRate = Integer.parseInt(s.toString());
+                    usbState.refreshRate = frameRate;
+                    updateView();
+                } catch (NumberFormatException e) {
+                    // 忽略无效输入
+                }
+            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+        
+        // 如果 usbState 中已有帧率值，则显示在输入框中
+        if (usbState.refreshRate > 0) {
+            frameRateInput.setText(String.valueOf(usbState.refreshRate));
+        }
+
+        updateView();
+
         return view;
     }
 
@@ -242,8 +271,12 @@ public class DisplaylinkFragment extends Fragment {
         // 更新单应用模式相关视图
         boolean isSingleAppMode = usbState.projectionMode == ProjectionMode.SINGLE_APP;
         rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
-        
-        // 如果在16:9模式下，更新裁剪说明
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasShizukuStarted()) {
+            frameRateLayout.setVisibility(View.VISIBLE);
+        }
+
+            // 如果在16:9模式下，更新裁剪说明
         if (is16_9Mode) {
             try {
                 int sourceWidth = usbState.sourceWidth;
@@ -265,13 +298,13 @@ public class DisplaylinkFragment extends Fragment {
                 explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
                 explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
 
-                usbState.mirrorArgs = new MirrorArgs(monitorWidth, monitorHeight, virtualDisplayWidth);
+                usbState.mirrorArgs = new MirrorArgs(monitorWidth, monitorHeight, virtualDisplayWidth, usbState.refreshRate);
                 ((TextView) aspectRatioExplanation).setText(explanation.toString());
             } catch (NumberFormatException e) {
                 // 忽略无效输入
             }
         } else {
-            usbState.mirrorArgs = new MirrorArgs(usbState.monitorWidth, usbState.monitorHeight, usbState.monitorWidth);
+            usbState.mirrorArgs = new MirrorArgs(usbState.monitorWidth, usbState.monitorHeight, usbState.monitorWidth, usbState.refreshRate);
         }
         aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
     }
