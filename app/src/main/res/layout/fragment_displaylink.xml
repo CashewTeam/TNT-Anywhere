@@ -185,4 +185,12 @@
         android:layout_marginTop="16dp"
         android:text="通过DisplayLink镜像"/>
 
+    <Button
+        android:id="@+id/view_virtual_display_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        android:text="查看虚拟显示器"/>
+
 </LinearLayout>

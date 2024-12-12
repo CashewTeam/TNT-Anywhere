@@ -256,6 +256,20 @@ public class DisplaylinkFragment extends Fragment {
             frameRateInput.setText(String.valueOf(usbState.refreshRate));
         }
 
+        // 添加查看虚拟显示器按钮
+        Button viewVirtualDisplayButton = view.findViewById(R.id.view_virtual_display_button);
+        if (usbState.getVirtualDisplay() != null) {
+            viewVirtualDisplayButton.setVisibility(View.VISIBLE);
+            viewVirtualDisplayButton.setOnClickListener(v -> {
+                MainActivity activity = (MainActivity) getActivity();
+                activity.pushBreadcrumb("虚拟显示器", () -> 
+                    DisplayDetailFragment.newInstance(usbState.getVirtualDisplay().getDisplay().getDisplayId())
+                );
+            });
+        } else {
+            viewVirtualDisplayButton.setVisibility(View.GONE);
+        }
+
         updateView();
 
         return view;
