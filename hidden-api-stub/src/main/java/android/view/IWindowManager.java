@@ -28,4 +28,7 @@ public interface IWindowManager extends IInterface {
     void thawDisplayRotation(int displayId);
     void setFixedToUserRotation(int displayId, int fixedToUserRotation);
     void setIgnoreOrientationRequest(int displayId, boolean ignoreOrientationRequest);
+    int getDisplayImePolicy(int displayId);
+    void setDisplayImePolicy(int displayId, int imePolicy);
+    int getImeDisplayId();
 }

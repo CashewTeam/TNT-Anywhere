@@ -215,11 +215,29 @@ public class DisplayDetailFragment extends Fragment {
             String statusText = "Shizuku权限状态: " + (hasPermission ? "已授权" : "未授权");
             if (hasPermission) {
                 Point baseSize = new Point();
-                ServiceUtils.getWindowManager().getBaseDisplaySize(displayId, baseSize);
+                IWindowManager windowManager = ServiceUtils.getWindowManager();
+                windowManager.getBaseDisplaySize(displayId, baseSize);
                 statusText += String.format("\nOverride size: %dx%d", baseSize.x, baseSize.y);
                 Point initialSize = new Point();
-                ServiceUtils.getWindowManager().getInitialDisplaySize(displayId, initialSize);
+                windowManager.getInitialDisplaySize(displayId, initialSize);
                 statusText += String.format("\nPhysical size: %dx%d", initialSize.x, initialSize.y);
+                int imeDisplayId = windowManager.getImeDisplayId();
+                statusText += String.format("\n在此显示输入法: %s", imeDisplayId == displayId ? "是" : "否");
+                int imePolicy = windowManager.getDisplayImePolicy(displayId);
+                switch (imePolicy) {
+                    case 0:
+                        statusText += "\n输入法策略: LOCAL";
+                        break;
+                    case 1:
+                        statusText += "\n输入法策略: FALLBACK_DISPLAY";
+                        break;
+                    case 2:
+                        statusText += "\n输入法策略: HIDE";
+                        break;
+                    default:
+                        statusText += ("\n输入法策略: " + imePolicy);
+                        break;
+                }
 
                 DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
                 statusText += String.format("\n默认模式ID: %d", displayInfo.defaultModeId);

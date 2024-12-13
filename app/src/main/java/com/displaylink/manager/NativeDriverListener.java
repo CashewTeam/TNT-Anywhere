@@ -31,9 +31,9 @@ public class NativeDriverListener {
                 State.log("Display已断开, 但找不到 USB 设备");
             } else {
                 State.log("Display已断开, 关闭 usb 对应的状态");
+                usbState.stopVirtualDisplay();
                 usbState.encoderId = 0;
                 usbState.monitorInfo = null;
-                usbState.stopVirtualDisplay();
                 State.resumeJob();
             }
         });

@@ -69,14 +69,15 @@ public class UsbState {
     }   
 
     public void stopVirtualDisplay() {
-        if (virtualDisplay != null) {
-            State.virtualDisplayIds.remove(virtualDisplay.getDisplay().getDisplayId());
+        VirtualDisplay toStop = virtualDisplay;
+        virtualDisplay = null;
+        if (toStop != null) {
+            State.virtualDisplayIds.remove(toStop.getDisplay().getDisplayId());
         }
         stopHandlerThread();
         stopImageReader();
-        if (virtualDisplay != null) {
-            virtualDisplay.release();
-            virtualDisplay = null;
+        if (toStop != null) {
+            toStop.release();
         }
     }
 
