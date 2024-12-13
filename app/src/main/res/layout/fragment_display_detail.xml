@@ -117,7 +117,6 @@
             android:layout_marginTop="8dp"
             android:text="投屏单个应用"/>
 
-
         <Button
             android:id="@+id/touchpad_button"
             android:layout_width="wrap_content"
@@ -132,6 +131,13 @@
             android:layout_marginTop="8dp"
             android:visibility="gone"
             android:text="由 Displaylink 创建"/>
+            
+        <Button
+            android:id="@+id/set_ime_policy_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"/>
 
     </LinearLayout>
 </ScrollView>

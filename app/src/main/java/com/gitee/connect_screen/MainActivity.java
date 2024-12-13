@@ -65,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
                     State.removeUsbState(device.getDeviceName());
                     State.resumeJob();
                 }
+                if (device != null && device.getDeviceName().equals(State.displaylinkDeviceName)) {
+                    State.displaylinkDeviceName = null;
+                }
             }
         }
     };
