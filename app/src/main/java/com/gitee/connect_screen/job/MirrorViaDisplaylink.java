@@ -9,6 +9,7 @@ import android.media.projection.MediaProjectionManager;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
+import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
@@ -55,7 +56,7 @@ public class MirrorViaDisplaylink implements Job {
             }
         }
 
-        if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+        if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
             if (!ShizukuUtils.hasShizukuStarted()) {
                 State.log("需要安装 Shizuku");
                 return;

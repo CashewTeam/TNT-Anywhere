@@ -21,6 +21,7 @@ import android.view.InputDevice;
 import android.view.Surface;
 
 import com.displaylink.manager.display.DisplayMode;
+import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
@@ -78,7 +79,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
         //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
-            if (usbState.rotatesWithContent) {
+            if (DisplaylinkPref.rotatesWithContent) {
                 flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
             }
             if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
@@ -103,14 +104,14 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
-            if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
                 updateInputRouting(displayInfo);
             }
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
             usbState.createdVirtualDisplay(
                     virtualDisplay
             );
-            if (usbState.projectionMode == ProjectionMode.SINGLE_APP) {
+            if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
                 Context context = State.currentActivity.get();
                 Intent intent = new Intent(context, LauncherActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -199,7 +200,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             rowDatas = new byte[monitorWidth * pixelStride];
         }
         ByteBuffer buffer = plane.getBuffer();
-        if (usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
+        if (DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
             for (int row = 0; row < monitorHeight; row++) {
                 buffer.position(row * rowStride + startX);
                 buffer.get(rowDatas, 0, monitorWidth * pixelStride);

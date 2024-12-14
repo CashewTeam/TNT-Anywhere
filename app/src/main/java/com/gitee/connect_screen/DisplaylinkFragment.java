@@ -90,15 +90,15 @@ public class DisplaylinkFragment extends Fragment {
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         projectionModeSpinner.setAdapter(spinnerAdapter);
         
-        if (usbState.projectionMode != null) {
-            projectionModeSpinner.setSelection(usbState.projectionMode.ordinal());
+        if (DisplaylinkPref.projectionMode != null) {
+            projectionModeSpinner.setSelection(DisplaylinkPref.projectionMode.ordinal());
         }
 
 
         projectionModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                usbState.projectionMode = ProjectionMode.values()[position];
+                DisplaylinkPref.projectionMode = ProjectionMode.values()[position];
                 updateView();
             }
 
@@ -114,13 +114,13 @@ public class DisplaylinkFragment extends Fragment {
         int pxWidth = windowMetrics.getBounds().width();
         int pxHeight = windowMetrics.getBounds().height();
 
-        if (usbState.sourceWidth != 0) {
-            sourceWidthInput.setText(String.valueOf(usbState.sourceWidth));
+        if (DisplaylinkPref.sourceWidth != 0) {
+            sourceWidthInput.setText(String.valueOf(DisplaylinkPref.sourceWidth));
         } else {
             sourceWidthInput.setText(String.valueOf(pxWidth));
         }
-        if (usbState.sourceHeight != 0) {
-            sourceHeightInput.setText(String.valueOf(usbState.sourceHeight));
+        if (DisplaylinkPref.sourceHeight != 0) {
+            sourceHeightInput.setText(String.valueOf(DisplaylinkPref.sourceHeight));
         } else {
             sourceHeightInput.setText(String.valueOf(pxHeight));
         }
@@ -130,10 +130,10 @@ public class DisplaylinkFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 try {
-                    usbState.sourceWidth = Integer.parseInt(sourceWidthInput.getText().toString());
-                    usbState.sourceHeight = Integer.parseInt(sourceHeightInput.getText().toString());
-                    usbState.monitorWidth = Integer.parseInt(monitorWidthInput.getText().toString());
-                    usbState.monitorHeight = Integer.parseInt(monitorHeightInput.getText().toString());
+                    DisplaylinkPref.sourceWidth = Integer.parseInt(sourceWidthInput.getText().toString());
+                    DisplaylinkPref.sourceHeight = Integer.parseInt(sourceHeightInput.getText().toString());
+                    DisplaylinkPref.monitorWidth = Integer.parseInt(monitorWidthInput.getText().toString());
+                    DisplaylinkPref.monitorHeight = Integer.parseInt(monitorHeightInput.getText().toString());
                     updateView();
                 } catch (NumberFormatException e) {
                     // 忽略无效输入
@@ -199,15 +199,15 @@ public class DisplaylinkFragment extends Fragment {
         sb.append("协议: ").append(device.getDeviceProtocol()).append("\n");
 
         sb.append("Native Driver: ").append(usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
-        if (usbState.monitorWidth != 0) {
-            monitorWidthInput.setText(String.valueOf(usbState.monitorWidth));
+        if (DisplaylinkPref.monitorWidth != 0) {
+            monitorWidthInput.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         } else if (usbState.monitorInfo != null) {
             monitorWidthInput.setText(String.valueOf(usbState.monitorInfo.a[0].width));
         } else {
             monitorWidthInput.setText("未连接");
         }
-        if (usbState.monitorHeight != 0) {
-            monitorHeightInput.setText(String.valueOf(usbState.monitorHeight));
+        if (DisplaylinkPref.monitorHeight != 0) {
+            monitorHeightInput.setText(String.valueOf(DisplaylinkPref.monitorHeight));
         } else if (usbState.monitorInfo != null) {
             monitorHeightInput.setText(String.valueOf(usbState.monitorInfo.a[0].height));
         } else {
@@ -230,9 +230,9 @@ public class DisplaylinkFragment extends Fragment {
             State.startNewJob(new MirrorViaDisplaylink(device, usbState.mirrorArgs));
         });
 
-        rotatesWithContentCheckbox.setChecked(usbState.rotatesWithContent);
+        rotatesWithContentCheckbox.setChecked(DisplaylinkPref.rotatesWithContent);
         rotatesWithContentCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            usbState.rotatesWithContent = isChecked;
+            DisplaylinkPref.rotatesWithContent = isChecked;
         });
 
         EditText frameRateInput = view.findViewById(R.id.frameRateInput);
@@ -241,7 +241,7 @@ public class DisplaylinkFragment extends Fragment {
             public void afterTextChanged(Editable s) {
                 try {
                     int frameRate = Integer.parseInt(s.toString());
-                    usbState.refreshRate = frameRate;
+                    DisplaylinkPref.refreshRate = frameRate;
                     updateView();
                 } catch (NumberFormatException e) {
                     // 忽略无效输入
@@ -252,8 +252,8 @@ public class DisplaylinkFragment extends Fragment {
         });
         
         // 如果 usbState 中已有帧率值，则显示在输入框中
-        if (usbState.refreshRate > 0) {
-            frameRateInput.setText(String.valueOf(usbState.refreshRate));
+        if (DisplaylinkPref.refreshRate > 0) {
+            frameRateInput.setText(String.valueOf(DisplaylinkPref.refreshRate));
         }
 
         // 添加查看虚拟显示器按钮
@@ -279,11 +279,11 @@ public class DisplaylinkFragment extends Fragment {
         if (usbState == null) return;
         
         // 更新16:9模式相关视图
-        boolean is16_9Mode = usbState.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
+        boolean is16_9Mode = DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
         sourceScreenSizeLayout.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
         
         // 更新单应用模式相关视图
-        boolean isSingleAppMode = usbState.projectionMode == ProjectionMode.SINGLE_APP;
+        boolean isSingleAppMode = DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP;
         rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasShizukuStarted()) {
@@ -293,10 +293,10 @@ public class DisplaylinkFragment extends Fragment {
             // 如果在16:9模式下，更新裁剪说明
         if (is16_9Mode) {
             try {
-                int sourceWidth = usbState.sourceWidth;
-                int sourceHeight = usbState.sourceHeight;
-                int monitorWidth = usbState.monitorWidth;
-                int monitorHeight = usbState.monitorHeight;
+                int sourceWidth = DisplaylinkPref.sourceWidth;
+                int sourceHeight = DisplaylinkPref.sourceHeight;
+                int monitorWidth = DisplaylinkPref.monitorWidth;
+                int monitorHeight = DisplaylinkPref.monitorHeight;
                 int maxSourceDim = Math.max(sourceWidth, sourceHeight);
                 int minSourceDim = Math.min(sourceWidth, sourceHeight);
                 if (minSourceDim == 0) {
@@ -312,13 +312,13 @@ public class DisplaylinkFragment extends Fragment {
                 explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
                 explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
 
-                usbState.mirrorArgs = new MirrorArgs(monitorWidth, monitorHeight, virtualDisplayWidth, usbState.refreshRate);
+                usbState.mirrorArgs = new MirrorArgs(monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate);
                 ((TextView) aspectRatioExplanation).setText(explanation.toString());
             } catch (NumberFormatException e) {
                 // 忽略无效输入
             }
         } else {
-            usbState.mirrorArgs = new MirrorArgs(usbState.monitorWidth, usbState.monitorHeight, usbState.monitorWidth, usbState.refreshRate);
+            usbState.mirrorArgs = new MirrorArgs(DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate);
         }
         aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
     }

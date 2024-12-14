@@ -31,13 +31,6 @@ public class UsbState {
     public Handler handler;
     public volatile int frameCounter = 0;
     public volatile int[] recentPostFrameResultCodes = new int[8];
-    public ProjectionMode projectionMode;
-    public int monitorWidth;
-    public int monitorHeight;
-    public int sourceWidth;
-    public int sourceHeight;
-    public int refreshRate;
-    public boolean rotatesWithContent = true;
 
     public void stopHandlerThread() {
         if (handlerThread != null) {
