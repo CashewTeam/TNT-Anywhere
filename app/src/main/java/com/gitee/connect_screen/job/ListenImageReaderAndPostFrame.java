@@ -130,57 +130,13 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     private void updateInputRouting(DisplayInfo displayInfo) {
         IInputManager inputManager = ServiceUtils.getInputManager();
-        Map<String, String> inputDeviceDescriptorToPortMap = getInputDeviceDescriptorToPortMap();
+        Map<String, String> inputDeviceDescriptorToPortMap = InputRouting.getInputDeviceDescriptorToPortMap();
         for (int deviceId : inputManager.getInputDeviceIds()) {
             InputDevice inputDevice = inputManager.getInputDevice(deviceId);
-            if (!inputDevice.isExternal()) {
-                continue;
-            }
-            try {
-                inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
-                inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
-                State.log("成功更新输入设备路由: " + inputDevice);
-            } catch(Error e) {
-                String inputPort = inputDeviceDescriptorToPortMap.get(inputDevice.getDescriptor());
-                if (inputPort == null) {
-                    State.log("未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
-                } else {
-                    try {
-                        inputManager.removeUniqueIdAssociation(inputPort);
-                        inputManager.addUniqueIdAssociation(inputPort, String.valueOf(displayInfo.uniqueId));
-                    } catch(Error e2) {
-                        State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
-                    }
-                }
-            }
+            InputRouting.bindInputToDisplay(displayInfo, inputDevice, inputManager, inputDeviceDescriptorToPortMap);
         }
     }
 
-    private Map<String, String> getInputDeviceDescriptorToPortMap() {
-        if (State.userService == null) {
-            State.log("user service 未启动，无法获取输入设备 descriptor -> port 的映射");
-            return new HashMap<>();
-        }
-        Map<String, String> map = new HashMap<>();
-        try {
-            String inputDump = State.userService.dumpsysInput();
-            String[] lines = inputDump.split("\n");
-            String lastDescriptor = "";
-            for (String line : lines) {
-                line = line.trim();
-                if (line.startsWith("Descriptor:")) {
-                    lastDescriptor = line.substring("Descriptor:".length()).trim();
-                }
-                if (line.startsWith("Location:")) {
-                    String inputPort = line.substring("Location:".length()).trim();
-                    map.put(lastDescriptor, inputPort);
-                }
-            }
-        } catch (RemoteException ex) {
-            throw new RuntimeException(ex);
-        }
-        return map;
-    }
 
     @Override
     public void onImageAvailable(ImageReader reader) {
