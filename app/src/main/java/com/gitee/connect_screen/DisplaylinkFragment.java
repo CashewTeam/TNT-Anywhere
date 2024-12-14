@@ -48,6 +48,7 @@ public class DisplaylinkFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DisplaylinkPref.load(getContext());
         if (getArguments() != null) {
             device = getArguments().getParcelable(ARG_DEVICE);
             usbState = State.getOrCreateUsbState(device);
@@ -227,6 +228,7 @@ public class DisplaylinkFragment extends Fragment {
         detailContent.setText(sb.toString());
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
+            DisplaylinkPref.save(getContext());
             State.startNewJob(new MirrorViaDisplaylink(device, usbState.mirrorArgs));
         });
 
