@@ -59,15 +59,13 @@ public class MainActivity extends AppCompatActivity {
             android.util.Log.d("MainActivity", "received action: " + intent.getAction());
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && State.getUsbState(device.getDeviceName()) != null) {
                     State.log("USB 设备已断开: " + device.getDeviceName());
                     State.removeUsbState(device.getDeviceName());
                     State.resumeJob();
                 }
-                if (device != null && device.getDeviceName().equals(State.displaylinkDeviceName)) {
-                    State.displaylinkDeviceName = null;
-                }
+                UsbMonitor.onUsbDeviceDetached(device);
             }
         }
     };
@@ -79,12 +77,10 @@ public class MainActivity extends AppCompatActivity {
             android.util.Log.d("MainActivity", "received action: " + intent.getAction());
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                UsbMonitor.onUsbDeviceAttached(device);
                 if (device != null && device.getVendorId() == 6121) {
                     State.log("USB 设备已连接: " + device.getDeviceName());
-                    if (State.displaylinkDeviceName == null) {
-                        State.displaylinkDeviceName = device.getDeviceName();
-                    }
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                         State.log("识别为 Displaylink: " + device.getDeviceName());
                         State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
@@ -152,16 +148,12 @@ public class MainActivity extends AppCompatActivity {
 
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-            UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (device != null && device.getVendorId() == 6121) {
+            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            UsbMonitor.onUsbDeviceAttached(device);
+            // 处理 USB 设备连接的逻辑
+            if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
-                if (State.displaylinkDeviceName == null) {
-                    State.displaylinkDeviceName = device.getDeviceName();
-                }
-                // 处理 USB 设备连接的逻辑
-                if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
-                    State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
-                }
+                State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
             }
         }
 

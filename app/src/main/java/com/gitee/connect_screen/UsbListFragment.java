@@ -32,9 +32,7 @@ public class UsbListFragment extends Fragment {
         adapter = new UsbDeviceAdapter(devices, device -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
-                if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
-                    State.displaylinkDeviceName = device.getDeviceName();
-                }
+                UsbMonitor.onUsbDeviceAttached(device);
                 if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                     activity.pushBreadcrumb(device.getDeviceName(), () -> DisplaylinkFragment.newInstance(device));
                 } else {
