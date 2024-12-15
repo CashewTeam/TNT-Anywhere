@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.BindInputToDisplay;
+import com.gitee.connect_screen.job.InputRouting;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
@@ -142,22 +143,12 @@ public class UsbDeviceDetailFragment extends Fragment {
             State.log("需要安装 Shizuku 并授权才能绑定输入到屏幕");
             return;
         }
-        InputDevice inputDevice = findInputDevice(usbDevice);
+        InputManager inputManager = (InputManager) getContext().getSystemService(Context.INPUT_SERVICE);
+        InputDevice inputDevice = InputRouting.findInputDevice(inputManager, usbDevice);
         if (inputDevice == null) {
             State.log("找不到对应的输入设备");
             return;
         }
         State.startNewJob(new BindInputToDisplay(inputDevice, display));
-    }
-
-    private InputDevice findInputDevice(UsbDevice usbDevice) {
-        InputManager inputManager = (InputManager) getContext().getSystemService(Context.INPUT_SERVICE);
-        for(int inputDeviceId : inputManager.getInputDeviceIds()) {
-            InputDevice inputDevice = inputManager.getInputDevice(inputDeviceId);
-            if (inputDevice.isExternal() && inputDevice.getVendorId() == usbDevice.getVendorId() && inputDevice.getProductId() == usbDevice.getProductId()) {
-                return inputDevice;
-            }
-         }
-        return null;
     }
 } 

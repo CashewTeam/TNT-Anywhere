@@ -1,8 +1,16 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.DisplayManagerGlobal;
+import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.view.Display;
+import android.view.InputDevice;
+
+import com.gitee.connect_screen.job.BindInputToDisplay;
+import com.gitee.connect_screen.job.InputRouting;
 
 public class UsbMonitor {
     public static void onUsbDeviceAttached(UsbDevice device) {
@@ -21,7 +29,31 @@ public class UsbMonitor {
         if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
             State.displaylinkDeviceName = device.getDeviceName();
         }
+        if (isHid(device) && State.lastSingleAppDisplay > 0) {
+            MainActivity mainActivity = State.currentActivity.get();
+            if (mainActivity != null) {
+                InputManager inputManager = (InputManager) mainActivity.getSystemService(Context.INPUT_SERVICE);
+                DisplayManager displayManager = (DisplayManager) mainActivity.getSystemService(Context.DISPLAY_SERVICE);
+                Display display = displayManager.getDisplay(State.lastSingleAppDisplay);
+                if (display != null) {
+                    InputDevice inputDevice = InputRouting.findInputDevice(inputManager, device);
+                    State.startNewJob(new BindInputToDisplay(inputDevice, display));
+                }
+            }
+        }
     }
+
+    private static boolean isHid(UsbDevice device) {
+        if (device.getInterfaceCount() > 0) {
+            for (int i = 0; i < device.getInterfaceCount(); i++) {
+                if (device.getInterface(i).getInterfaceClass() == 3) { // HID class is 3
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static void onUsbDeviceDetached(UsbDevice device) {
         if (device != null && device.getDeviceName().equals(State.displaylinkDeviceName)) {
             State.displaylinkDeviceName = null;

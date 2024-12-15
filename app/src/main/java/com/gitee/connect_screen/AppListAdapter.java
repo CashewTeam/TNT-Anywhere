@@ -65,6 +65,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         
         holder.btnLaunch.setOnClickListener(v -> {
             State.lastPackageName = app.packageName;
+            State.lastSingleAppDisplay = targetDisplayId;
             sharedPreferences.edit()
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();

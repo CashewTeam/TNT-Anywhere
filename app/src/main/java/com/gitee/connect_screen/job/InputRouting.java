@@ -3,7 +3,10 @@ package com.gitee.connect_screen.job;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 
+import android.content.Context;
 import android.hardware.input.IInputManager;
+import android.hardware.input.InputManager;
+import android.hardware.usb.UsbDevice;
 import android.os.RemoteException;
 import android.view.Display;
 import android.view.DisplayInfo;
@@ -60,5 +63,15 @@ public class InputRouting {
                 }
             }
         }
+    }
+
+    public static InputDevice findInputDevice(InputManager inputManager, UsbDevice usbDevice) {
+        for(int inputDeviceId : inputManager.getInputDeviceIds()) {
+            InputDevice inputDevice = inputManager.getInputDevice(inputDeviceId);
+            if (inputDevice.isExternal() && inputDevice.getVendorId() == usbDevice.getVendorId() && inputDevice.getProductId() == usbDevice.getProductId()) {
+                return inputDevice;
+            }
+        }
+        return null;
     }
 }
