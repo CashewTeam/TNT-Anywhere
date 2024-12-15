@@ -74,4 +74,14 @@ public class InputRouting {
         }
         return null;
     }
+
+    public static void bindAllExternalInputToDisplay(int displayId) {
+        DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
+        IInputManager inputManager = ServiceUtils.getInputManager();
+        Map<String, String> inputDeviceDescriptorToPortMap = InputRouting.getInputDeviceDescriptorToPortMap();
+        for (int deviceId : inputManager.getInputDeviceIds()) {
+            InputDevice inputDevice = inputManager.getInputDevice(deviceId);
+            InputRouting.bindInputToDisplay(displayInfo, inputDevice, inputManager, inputDeviceDescriptorToPortMap);
+        }
+    }
 }

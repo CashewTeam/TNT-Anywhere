@@ -22,12 +22,6 @@ public class BindAllExternalInputToDisplay implements Job {
         if (!acquireShizuku.acquired) {
             return;
         }
-        DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
-        IInputManager inputManager = ServiceUtils.getInputManager();
-        Map<String, String> inputDeviceDescriptorToPortMap = InputRouting.getInputDeviceDescriptorToPortMap();
-        for (int deviceId : inputManager.getInputDeviceIds()) {
-            InputDevice inputDevice = inputManager.getInputDevice(deviceId);
-            InputRouting.bindInputToDisplay(displayInfo, inputDevice, inputManager, inputDeviceDescriptorToPortMap);
-        }
+        InputRouting.bindAllExternalInputToDisplay(displayId);
     }
 }
