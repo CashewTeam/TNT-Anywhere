@@ -104,9 +104,6 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
-            if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
-                updateInputRouting(displayInfo);
-            }
             VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
             usbState.createdVirtualDisplay(
                     virtualDisplay
@@ -127,16 +124,6 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             );
         }
     }
-
-    private void updateInputRouting(DisplayInfo displayInfo) {
-        IInputManager inputManager = ServiceUtils.getInputManager();
-        Map<String, String> inputDeviceDescriptorToPortMap = InputRouting.getInputDeviceDescriptorToPortMap();
-        for (int deviceId : inputManager.getInputDeviceIds()) {
-            InputDevice inputDevice = inputManager.getInputDevice(deviceId);
-            InputRouting.bindInputToDisplay(displayInfo, inputDevice, inputManager, inputDeviceDescriptorToPortMap);
-        }
-    }
-
 
     @Override
     public void onImageAvailable(ImageReader reader) {

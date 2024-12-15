@@ -16,6 +16,8 @@ import android.content.Context;
 import androidx.recyclerview.widget.RecyclerView;
 
 
+import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+
 import java.util.List;
 import java.util.Collections;
 
@@ -95,6 +97,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
             ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(targetDisplayId);
             context.startActivity(launchIntent, options.toBundle());
+            State.startNewJob(new BindAllExternalInputToDisplay(targetDisplayId));
         }
     }
 
