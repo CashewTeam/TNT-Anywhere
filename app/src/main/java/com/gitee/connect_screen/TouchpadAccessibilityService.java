@@ -101,6 +101,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
     public boolean setFocus(int displayId) {
         // 获取指定显示器上的窗口
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
+            return false;
+        }
         SparseArray<List<AccessibilityWindowInfo>> windows = getWindowsOnAllDisplays();
         List<AccessibilityWindowInfo> targetDisplayWindows = windows.get(displayId);
         android.util.Log.d("AccessibilityService", "获取到窗口列表: " + (targetDisplayWindows != null ? targetDisplayWindows.size() : 0) + "个窗口");

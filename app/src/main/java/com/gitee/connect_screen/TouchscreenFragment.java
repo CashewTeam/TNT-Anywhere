@@ -253,18 +253,23 @@ public class TouchscreenFragment extends Fragment {
     private void startReading() {
         if (connection == null) {
             connection = usbManager.openDevice(device);
+            Log.i("Touch", "open connection");
             if (connection != null) {
                 connection.claimInterface(usbInterface, true);
+                Log.i("Touch", "claim");
             }
         }
         
         if (connection == null) return;
-        
+
+        Log.i("Touch", "start reading");
+
         isReading = true;
         readThread = new Thread(() -> {
             while (isReading) {
                 int bytesRead = connection.bulkTransfer(inputEndpoint, inputBuffer, 
                     inputBuffer.length, 100);
+                Log.i("Usb", "bytes read: " + bytesRead);
                 if (bytesRead > 0) {
                     parseInputData(inputBuffer, bytesRead);
                 }

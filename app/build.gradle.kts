@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.gitee.connect_screen"
-        minSdk = 30
+        minSdk = 29
         targetSdk = 34
         versionCode = 18
         versionName = "1.1.8"

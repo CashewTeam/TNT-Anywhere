@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
+import android.opengl.Visibility;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -146,8 +147,8 @@ public class DisplayDetailFragment extends Fragment {
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
-        if (displayId == 0) {
-            touchpadButton.setVisibility(View.GONE);
+        if (displayId != Display.DEFAULT_DISPLAY && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            touchpadButton.setVisibility(View.VISIBLE);
         }
         touchpadButton.setOnClickListener(v -> {
             TouchpadActivity.startTouchpad(getContext(), displayId, false);

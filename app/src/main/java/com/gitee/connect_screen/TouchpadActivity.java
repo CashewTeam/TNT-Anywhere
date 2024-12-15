@@ -7,9 +7,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -146,14 +148,16 @@ public class TouchpadActivity extends AppCompatActivity {
         );
         
         Window window = getWindow();
-        window.setDecorFitsSystemWindows(false);
-        
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowManager.LayoutParams layoutParams = window.getAttributes();
             layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
             window.setAttributes(layoutParams);
         }
-        
+
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
         
@@ -173,7 +177,7 @@ public class TouchpadActivity extends AppCompatActivity {
         // 计算屏幕尺寸
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display targetDisplay = displayManager.getDisplay(displayId);
-        android.graphics.Point size = new android.graphics.Point();
+        Point size = new Point();
         targetDisplay.getSize(size);
 
         // 计算屏幕边界（以屏幕中心为原点）
