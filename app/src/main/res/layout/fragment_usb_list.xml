@@ -16,7 +16,7 @@
         android:id="@+id/emptyView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="未找到USB设备"
+        android:text="未找到 Displaylink 设备。USB 2.0 的手机需要插入 Displaylink 扩展坞才能接显示器。"
         android:visibility="gone"
         android:textSize="16sp"
         app:layout_constraintTop_toTopOf="parent"
