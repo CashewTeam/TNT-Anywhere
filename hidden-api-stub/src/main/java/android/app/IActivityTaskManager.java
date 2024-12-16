@@ -3,8 +3,12 @@ package android.app;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.app.ActivityTaskManager;
+
+import java.util.List;
 
 public interface IActivityTaskManager extends IInterface {
+
     abstract class Stub extends Binder implements IServiceConnection {
         public static IActivityTaskManager asInterface(IBinder obj)
         {
@@ -21,4 +25,8 @@ public interface IActivityTaskManager extends IInterface {
     void unregisterTaskStackListener(ITaskStackListener iTaskStackListener);
     
     void focusTopTask(int displayId);
+
+    List<ActivityTaskManager.RootTaskInfo> getAllRootTaskInfosOnDisplay(int displayId);
+
+    void setFocusedRootTask(int taskId);
 }

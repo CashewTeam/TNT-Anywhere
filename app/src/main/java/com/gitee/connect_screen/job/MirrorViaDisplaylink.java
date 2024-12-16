@@ -61,10 +61,6 @@ public class MirrorViaDisplaylink implements Job {
                 State.log("需要安装 Shizuku");
                 return;
             }
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                State.log("需要安卓14");
-                return;
-            }
             if (State.userService == null && !userServiceRequested) {
                 userServiceRequested = true;
                 Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);

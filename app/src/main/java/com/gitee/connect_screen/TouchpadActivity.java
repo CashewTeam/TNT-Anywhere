@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
+import android.app.ActivityTaskManager;
 import android.app.IActivityTaskManager;
 import android.content.Context;
 import android.content.Intent;
@@ -382,8 +383,7 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void injectKeyEvent(int action, int keyCode, int repeat, int metaState, int injectMode) {
-        IActivityTaskManager activityTaskManager = ServiceUtils.getActivityTaskManager();
-        activityTaskManager.focusTopTask(displayId);
+        setFocus();
         long now = SystemClock.uptimeMillis();
         KeyEvent event = new KeyEvent(now, now, action, keyCode, repeat, metaState, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                 InputDevice.SOURCE_KEYBOARD);
@@ -479,7 +479,15 @@ public class TouchpadActivity extends AppCompatActivity {
 
     private void setFocus() {
         if (accessibilityService == null) {
-            ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
+            } else {
+                List<ActivityTaskManager.RootTaskInfo> taskInfos = ServiceUtils.getActivityTaskManager().getAllRootTaskInfosOnDisplay(displayId);
+                for (ActivityTaskManager.RootTaskInfo taskInfo : taskInfos) {
+                    ServiceUtils.getActivityTaskManager().setFocusedRootTask(taskInfo.taskId);
+                    break;
+                }
+            }
         } else {
             accessibilityService.setFocus(displayId);
         }

@@ -11,6 +11,7 @@ import android.hardware.display.VirtualDisplayConfig;
 import android.hardware.input.IInputManager;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -32,6 +33,8 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import dev.rikka.tools.refine.Refine;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
 
@@ -74,7 +77,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasPermission()) {
+        if (ShizukuUtils.hasPermission()) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
            | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
@@ -93,18 +96,34 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 //            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
                }
             }
-            VirtualDisplayConfig config = new VirtualDisplayConfig.Builder(
-                "DisplayLink",
-                virtualDisplayWidth, monitorHeight, 160)
-                .setSurface(surface)
-                .setFlags(flags)
-                .setRequestedRefreshRate(mirrorArgs.refreshRate)
-                .build();
+            VirtualDisplayConfig config = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                config = new VirtualDisplayConfig.Builder(
+                    "DisplayLink",
+                    virtualDisplayWidth, monitorHeight, 160)
+                    .setSurface(surface)
+                    .setFlags(flags)
+                    .setRequestedRefreshRate(mirrorArgs.refreshRate)
+                    .build();
+            } else {
+                config = new VirtualDisplayConfig.Builder(
+                        "DisplayLink",
+                        virtualDisplayWidth, monitorHeight, 160)
+                        .setSurface(surface)
+                        .setFlags(flags)
+                        .build();
+            }
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
-            int displayId = displayManager.createVirtualDisplay(config, callback, null, "com.android.shell");
+            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
+            int displayId = displayManager.createVirtualDisplay(config, callback, mediaProjectionHidden.getProjection(), "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
-            VirtualDisplay virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
+            VirtualDisplay virtualDisplay = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
+            } else {
+                virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, null, callback, displayId);
+            }
             usbState.createdVirtualDisplay(
                     virtualDisplay
             );
