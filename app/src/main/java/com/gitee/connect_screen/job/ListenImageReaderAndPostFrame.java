@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.DisplayInfo;
 import android.view.InputDevice;
 import android.view.Surface;
+import android.app.ActivityOptions;
 
 import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.DisplaylinkPref;
@@ -133,11 +134,23 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                     virtualDisplay
             );
             if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
-                Context context = State.currentActivity.get();
-                Intent intent = new Intent(context, LauncherActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-                context.startActivity(intent);
+                if (DisplaylinkPref.autoOpenLastApp && State.lastPackageName != null) {
+                    Context context = State.currentActivity.get();
+                    Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(State.lastPackageName);
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ActivityOptions options = ActivityOptions.makeBasic();
+                        options.setLaunchDisplayId(displayId);
+                        context.startActivity(launchIntent, options.toBundle());
+                        InputRouting.bindAllExternalInputToDisplay(displayId);
+                    }
+                } else {
+                    Context context = State.currentActivity.get();
+                    Intent intent = new Intent(context, LauncherActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+                    context.startActivity(intent);
+                }
             }
         } else {
             usbState.createdVirtualDisplay(

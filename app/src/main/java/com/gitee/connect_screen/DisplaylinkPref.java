@@ -12,6 +12,7 @@ public class DisplaylinkPref {
     public static int refreshRate;
     public static boolean rotatesWithContent = true;
     public static boolean skipMediaProjectionPermission = false;
+    public static boolean autoOpenLastApp = false;
 
     public static void save(Context context) {
         SharedPreferences prefs = context.getSharedPreferences("displaylink_settings", Context.MODE_PRIVATE);
@@ -25,7 +26,8 @@ public class DisplaylinkPref {
         editor.putInt("refresh_rate", refreshRate);
         editor.putBoolean("rotates_with_content", rotatesWithContent);
         editor.putBoolean("skip_media_projection_permission", skipMediaProjectionPermission);
-        
+        editor.putBoolean("auto_open_last_app", autoOpenLastApp);
+
         editor.apply();
     }
     public static void load(Context context) {
@@ -41,5 +43,6 @@ public class DisplaylinkPref {
         refreshRate = prefs.getInt("refresh_rate", 60);
         rotatesWithContent = prefs.getBoolean("rotates_with_content", true);
         skipMediaProjectionPermission = prefs.getBoolean("skip_media_projection_permission", false);
+        autoOpenLastApp = prefs.getBoolean("auto_open_last_app", false);
     }
 }

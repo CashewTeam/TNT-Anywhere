@@ -186,6 +186,14 @@
         android:layout_marginTop="16dp"
         android:visibility="gone"/>
 
+    <CheckBox
+        android:id="@+id/autoOpenLastAppCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自动打开上次应用"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"/>
+
     <Button
         android:id="@+id/mirrorViaDisplaylinkButton"
         android:layout_width="wrap_content"

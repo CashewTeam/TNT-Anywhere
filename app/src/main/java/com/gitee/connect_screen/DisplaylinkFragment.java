@@ -36,6 +36,7 @@ public class DisplaylinkFragment extends Fragment {
     private View aspectRatioExplanation;
     private CheckBox rotatesWithContentCheckbox;
     private CheckBox skipMediaProjectionPermissionCheckbox;
+    private CheckBox autoOpenLastAppCheckbox;
     private View frameRateLayout;
 
     public static DisplaylinkFragment newInstance(UsbDevice device) {
@@ -62,6 +63,7 @@ public class DisplaylinkFragment extends Fragment {
 
         rotatesWithContentCheckbox = view.findViewById(R.id.rotatesWithContentCheckbox);
         skipMediaProjectionPermissionCheckbox = view.findViewById(R.id.skipMediaProjectionPermissionCheckbox);
+        autoOpenLastAppCheckbox = view.findViewById(R.id.autoOpenLastAppCheckbox);
 
         TextView detailContent = view.findViewById(R.id.detailContent);
         Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
@@ -244,6 +246,11 @@ public class DisplaylinkFragment extends Fragment {
             DisplaylinkPref.skipMediaProjectionPermission = isChecked;
         });
 
+        autoOpenLastAppCheckbox.setChecked(DisplaylinkPref.autoOpenLastApp);
+        autoOpenLastAppCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            DisplaylinkPref.autoOpenLastApp = isChecked;
+        });
+
         EditText frameRateInput = view.findViewById(R.id.frameRateInput);
         frameRateInput.addTextChangedListener(new TextWatcher() {
             @Override
@@ -295,6 +302,7 @@ public class DisplaylinkFragment extends Fragment {
         boolean isSingleAppMode = DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP;
         rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         skipMediaProjectionPermissionCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
+        autoOpenLastAppCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasShizukuStarted()) {
             frameRateLayout.setVisibility(View.VISIBLE);
