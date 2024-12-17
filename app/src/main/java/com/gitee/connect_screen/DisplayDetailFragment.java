@@ -1,8 +1,11 @@
 package com.gitee.connect_screen;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
@@ -196,8 +199,14 @@ public class DisplayDetailFragment extends Fragment {
         gotoDisplaylinkButton = view.findViewById(R.id.goto_displaylink_button);
         UsbDevice usbDevice = State.virtualDisplayIds.get(displayId);
         if(usbDevice == null) {
-            if (displayId == Display.DEFAULT_DISPLAY) {
+            if (displayId != Display.DEFAULT_DISPLAY) {
                 autoOpenLastAppCheckbox.setVisibility(View.VISIBLE);
+                SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
+                autoOpenLastAppCheckbox.setChecked(appPreferences.getBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false));
+                autoOpenLastAppCheckbox.setOnClickListener(v -> {
+                    boolean isChecked = autoOpenLastAppCheckbox.isChecked();
+                    appPreferences.edit().putBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), isChecked).apply();
+                });
             }
         } else {
             gotoDisplaylinkButton.setVisibility(View.VISIBLE);
