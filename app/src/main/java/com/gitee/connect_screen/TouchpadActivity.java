@@ -5,6 +5,7 @@ import android.app.ActivityTaskManager;
 import android.app.IActivityTaskManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
@@ -316,11 +317,13 @@ public class TouchpadActivity extends AppCompatActivity {
         // 添加Home按钮的点击监听器
         ImageButton homeButton = findViewById(R.id.homeButton);
         homeButton.setOnClickListener(v -> {
-            if (State.lastPackageName == null) {
+            SharedPreferences appPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE);
+            String lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+            if (lastPackageName == null) {
                 return;
             }
             PackageManager pm = getPackageManager();
-            Intent launchIntent = pm.getLaunchIntentForPackage(State.lastPackageName);
+            Intent launchIntent = pm.getLaunchIntentForPackage(lastPackageName);
             if (launchIntent != null) {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 ActivityOptions options = ActivityOptions.makeBasic();

@@ -1,7 +1,10 @@
 package com.gitee.connect_screen.job;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
 import android.hardware.display.IDisplayManager;
@@ -26,6 +29,7 @@ import android.app.ActivityOptions;
 import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.LauncherActivity;
+import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.UsbState;
@@ -134,9 +138,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                     virtualDisplay
             );
             if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
-                if (DisplaylinkPref.autoOpenLastApp && State.lastPackageName != null) {
+                MainActivity mainActivity = State.currentActivity.get();
+                String lastPackageName = null;
+                if (mainActivity != null) {
+                    SharedPreferences appPreferences = mainActivity.getSharedPreferences("app_preferences", MODE_PRIVATE);
+                    lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+                }
+                if (DisplaylinkPref.autoOpenLastApp && lastPackageName != null) {
                     Context context = State.currentActivity.get();
-                    Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(State.lastPackageName);
+                    Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(lastPackageName);
                     if (launchIntent != null) {
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         ActivityOptions options = ActivityOptions.makeBasic();

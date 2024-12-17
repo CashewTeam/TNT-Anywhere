@@ -140,5 +140,13 @@
             android:visibility="gone"
             android:layout_marginTop="8dp"/>
 
+        <CheckBox
+            android:id="@+id/autoOpenLastAppCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="自动打开上次应用"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"/>
+
     </LinearLayout>
 </ScrollView>

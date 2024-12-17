@@ -31,7 +31,6 @@ public class State {
     public static List<String> logs = new ArrayList<>();
     public static Map<String, UsbState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
-    public static String lastPackageName;
     public static int lastSingleAppDisplay;
     public static Map<Integer, UsbDevice> virtualDisplayIds = new HashMap<>();
     public static String displaylinkDeviceName;

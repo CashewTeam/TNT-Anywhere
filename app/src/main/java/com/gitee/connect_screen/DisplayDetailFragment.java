@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -46,6 +47,7 @@ public class DisplayDetailFragment extends Fragment {
     private TextView supportedModesText;
     private Button gotoDisplaylinkButton;
     private Button setImePolicyButton;
+    private CheckBox autoOpenLastAppCheckbox;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -82,6 +84,7 @@ public class DisplayDetailFragment extends Fragment {
         setImePolicyButton = view.findViewById(R.id.set_ime_policy_button);
         supportedModesToggle = view.findViewById(R.id.supported_modes_toggle);
         supportedModesText = view.findViewById(R.id.supported_modes_text);
+        autoOpenLastAppCheckbox = view.findViewById(R.id.autoOpenLastAppCheckbox);
         displayId = getArguments().getInt(ARG_DISPLAY_ID);
         DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
         display = displayManager.getDisplay(displayId);
@@ -192,7 +195,11 @@ public class DisplayDetailFragment extends Fragment {
         // 添加 Displaylink 按钮相关逻辑
         gotoDisplaylinkButton = view.findViewById(R.id.goto_displaylink_button);
         UsbDevice usbDevice = State.virtualDisplayIds.get(displayId);
-        if(usbDevice != null) {
+        if(usbDevice == null) {
+            if (displayId == Display.DEFAULT_DISPLAY) {
+                autoOpenLastAppCheckbox.setVisibility(View.VISIBLE);
+            }
+        } else {
             gotoDisplaylinkButton.setVisibility(View.VISIBLE);
             gotoDisplaylinkButton.setOnClickListener(v -> {
                 MainActivity activity = (MainActivity) getActivity();
