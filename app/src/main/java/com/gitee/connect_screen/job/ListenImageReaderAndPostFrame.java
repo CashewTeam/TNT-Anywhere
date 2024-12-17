@@ -11,6 +11,7 @@ import android.hardware.display.VirtualDisplayConfig;
 import android.hardware.input.IInputManager;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.projection.IMediaProjection;
 import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
 import android.os.Handler;
@@ -114,8 +115,12 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                         .build();
             }
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
-            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
-            int displayId = displayManager.createVirtualDisplay(config, callback, mediaProjectionHidden.getProjection(), "com.android.shell");
+            IMediaProjection projection = null;
+            if (State.mediaProjection != null) {
+                MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
+                projection = mediaProjectionHidden.getProjection();
+            }
+            int displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
             VirtualDisplay virtualDisplay = null;

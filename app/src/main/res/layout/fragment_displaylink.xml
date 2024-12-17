@@ -178,6 +178,14 @@
         android:layout_marginTop="16dp"
         android:visibility="gone"/>
 
+    <CheckBox
+        android:id="@+id/skipMediaProjectionPermissionCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="跳过询问媒体投影权限"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"/>
+
     <Button
         android:id="@+id/mirrorViaDisplaylinkButton"
         android:layout_width="wrap_content"

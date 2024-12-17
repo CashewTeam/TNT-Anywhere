@@ -11,6 +11,8 @@ public class DisplaylinkPref {
     public static int sourceHeight;
     public static int refreshRate;
     public static boolean rotatesWithContent = true;
+    public static boolean skipMediaProjectionPermission = false;
+
     public static void save(Context context) {
         SharedPreferences prefs = context.getSharedPreferences("displaylink_settings", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -22,6 +24,7 @@ public class DisplaylinkPref {
         editor.putInt("source_height", sourceHeight);
         editor.putInt("refresh_rate", refreshRate);
         editor.putBoolean("rotates_with_content", rotatesWithContent);
+        editor.putBoolean("skip_media_projection_permission", skipMediaProjectionPermission);
         
         editor.apply();
     }
@@ -37,5 +40,6 @@ public class DisplaylinkPref {
         sourceHeight = prefs.getInt("source_height", 1080);
         refreshRate = prefs.getInt("refresh_rate", 60);
         rotatesWithContent = prefs.getBoolean("rotates_with_content", true);
+        skipMediaProjectionPermission = prefs.getBoolean("skip_media_projection_permission", false);
     }
 }

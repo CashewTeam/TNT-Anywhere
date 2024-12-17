@@ -2,6 +2,8 @@ package com.gitee.connect_screen;
 
 import android.os.Bundle;
 import android.view.Display;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.pm.ApplicationInfo;
@@ -36,7 +38,11 @@ public class LauncherActivity extends AppCompatActivity {
         // 添加退出按钮的点击监听器
         findViewById(R.id.btn_exit).setOnClickListener(v -> finish());
 
-        findViewById(R.id.btn_touchpad).setOnClickListener(v -> {
+        Button touchpadButton = findViewById(R.id.btn_touchpad);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            touchpadButton.setVisibility(View.VISIBLE);
+        }
+        touchpadButton.setOnClickListener(v -> {
             TouchpadActivity.startTouchpad(this, targetDisplayId, false);
         });
         

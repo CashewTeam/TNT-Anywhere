@@ -217,7 +217,7 @@ public class MirrorViaDisplaylink implements Job {
     }
 
     private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasPermission()) {
+        if (DisplaylinkPref.skipMediaProjectionPermission) {
             // 无需 media projection 授权
             usbState.stopVirtualDisplay();
             return true;
