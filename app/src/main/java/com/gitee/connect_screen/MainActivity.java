@@ -1,17 +1,21 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityManager;
+import android.app.ActivityOptions;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Build;
+import android.view.Display;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -22,6 +26,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
+import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+import com.gitee.connect_screen.job.InputRouting;
 import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -169,11 +175,62 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter attachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
 
+        // 监听显示器变化
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        for (Display display : displayManager.getDisplays()) {
+            handleNewDisplay(display);
+        }
+        displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
+            @Override
+            public void onDisplayAdded(int displayId) {
+                State.log("新增显示器，displayId: " + displayId);
+                Display display = displayManager.getDisplay(displayId);
+                if (display != null) {
+                    handleNewDisplay(display);
+                }
+            }
+
+            @Override
+            public void onDisplayRemoved(int displayId) {
+                State.log("移除显示器，displayId: " + displayId);
+            }
+
+            @Override
+            public void onDisplayChanged(int displayId) {
+                // 显示器状态变化时的处理
+            }
+        }, null);
+
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
+    }
+
+    private void handleNewDisplay(Display display) {
+        if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
+            return;
+        }
+        SharedPreferences appPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE);
+        boolean autoOpen = appPreferences.getBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false);
+        if (!autoOpen) {
+            return;
+        }
+        String lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+        if (lastPackageName == null) {
+            return;
+        }
+        State.log("尝试自动打开显示器 " + display.getName() + " 上投屏的应用 " + lastPackageName);
+        Context context = State.currentActivity.get();
+        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(lastPackageName);
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(display.getDisplayId());
+            context.startActivity(launchIntent, options.toBundle());
+            State.startNewJob(new BindAllExternalInputToDisplay(display.getDisplayId()));
+        }
     }
 
     @Override
