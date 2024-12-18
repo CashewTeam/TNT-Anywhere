@@ -21,6 +21,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.InputDevice;
 import android.view.Surface;
@@ -36,6 +37,7 @@ import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
+import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -131,8 +133,29 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             VirtualDisplay virtualDisplay = null;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
-            } else {
+            } else if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, null, callback, displayId);
+            } else {
+                try {
+                    DisplayManagerGlobal displayManagerGlobal = DisplayManagerGlobal.getInstance();
+                    Class<?> virtualDisplayClass = VirtualDisplay.class;
+                    Constructor<?> constructor = virtualDisplayClass.getDeclaredConstructor(
+                            DisplayManagerGlobal.class,
+                            Display.class,
+                            IVirtualDisplayCallback.class,
+                            Surface.class
+                    );
+                    constructor.setAccessible(true);
+                    Display display = displayManagerGlobal.getRealDisplay(displayId);
+                    virtualDisplay = (VirtualDisplay) constructor.newInstance(
+                            displayManagerGlobal,
+                            display,
+                            callback,
+                            surface
+                    );
+                } catch(Throwable e) {
+                    throw new RuntimeException(e);
+                }
             }
             usbState.createdVirtualDisplay(
                     virtualDisplay

@@ -277,7 +277,11 @@ public class DisplayDetailFragment extends Fragment {
                 DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
                 statusText += String.format("\n默认模式ID: %d", displayInfo.defaultModeId);
                 statusText += String.format("\n刷新率覆盖: %.1f Hz", displayInfo.refreshRateOverride);
-                statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
+                try {
+                    statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
+                } catch(Throwable e) {
+                    // ignore
+                }
             }
             shizukuStatusText.setText(statusText);
         } catch(Exception e) {
