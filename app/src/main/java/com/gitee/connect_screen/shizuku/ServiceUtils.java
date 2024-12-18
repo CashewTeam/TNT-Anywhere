@@ -71,11 +71,19 @@ public class ServiceUtils {
         }
         
         try {
-            return activityManager.startActivityAsUserWithFeature(
-                null, "com.android.shell", null, intent,
-                intent.getType(), null, null, 0, 0,
-                null, options.toBundle(), 0
-            );
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                return activityManager.startActivityAsUserWithFeature(
+                        null, "com.android.shell", null, intent,
+                        intent.getType(), null, null, 0, 0,
+                        null, options.toBundle(), 0
+                );
+            } else {
+                return activityManager.startActivity(
+                        null, "com.android.shell", intent,
+                        intent.getType(), null, null, 0, 0,
+                        null, options.toBundle()
+                );
+            }
         } catch (Exception e) {            
             State.log("failed to start activity: " + e.getMessage());
             return -1;

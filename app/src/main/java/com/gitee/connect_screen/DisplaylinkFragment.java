@@ -115,9 +115,18 @@ public class DisplaylinkFragment extends Fragment {
 
         // 获取主屏幕尺寸
         WindowManager windowManager = (WindowManager) requireActivity().getSystemService(Context.WINDOW_SERVICE);
-        WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
-        int pxWidth = windowMetrics.getBounds().width();
-        int pxHeight = windowMetrics.getBounds().height();
+        int pxWidth = 0, pxHeight = 0;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
+            pxWidth = windowMetrics.getBounds().width();
+            pxHeight = windowMetrics.getBounds().height();
+        } else {
+            Display display = windowManager.getDefaultDisplay();
+            DisplayMetrics metrics = new DisplayMetrics();
+            display.getRealMetrics(metrics);
+            pxWidth = metrics.widthPixels;
+            pxHeight = metrics.heightPixels;
+        }
 
         if (DisplaylinkPref.sourceWidth != 0) {
             sourceWidthInput.setText(String.valueOf(DisplaylinkPref.sourceWidth));
@@ -298,7 +307,7 @@ public class DisplaylinkFragment extends Fragment {
         boolean is16_9Mode = DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
         sourceScreenSizeLayout.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
         
-        // 更新单应用模式相关视图
+        // 更���单应用模式相关视图
         boolean isSingleAppMode = DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP;
         rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         skipMediaProjectionPermissionCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);

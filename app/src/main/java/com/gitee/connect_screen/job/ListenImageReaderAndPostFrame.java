@@ -113,13 +113,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                     .setFlags(flags)
                     .setRequestedRefreshRate(mirrorArgs.refreshRate)
                     .build();
-            } else {
+            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                 config = new VirtualDisplayConfig.Builder(
                         "DisplayLink",
                         virtualDisplayWidth, monitorHeight, 160)
                         .setSurface(surface)
                         .setFlags(flags)
                         .build();
+            } else {
+
             }
             IVirtualDisplayCallback callback = new VirtualDisplayCallback();
             IMediaProjection projection = null;
@@ -127,7 +129,12 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
                 projection = mediaProjectionHidden.getProjection();
             }
-            int displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
+            int displayId = -1;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
+            } else {
+                displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", "DisplayLink", virtualDisplayWidth, monitorHeight, 160, surface, flags, "DisplayLink");
+            }
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
             VirtualDisplay virtualDisplay = null;

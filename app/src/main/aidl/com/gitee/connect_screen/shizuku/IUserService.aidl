@@ -8,5 +8,5 @@ interface IUserService {
 
     String fetchLogs() = 2;
 
-    String dumpsysInput() = 3;
+    String executeCommand(String command) = 3;
 }

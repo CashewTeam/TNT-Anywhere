@@ -47,7 +47,7 @@ public class UserService extends IUserService.Stub  {
     }
 
     @Override
-    public String dumpsysInput() throws RemoteException {
+    public String executeCommand(String command) throws RemoteException {
         try {
             Process process = Runtime.getRuntime().exec("dumpsys input");
             java.io.BufferedReader reader = new java.io.BufferedReader(
@@ -64,8 +64,8 @@ public class UserService extends IUserService.Stub  {
             
             return output.toString();
         } catch (Exception e) {
-            Log.e("UserService", "dumpsysInput failed", e);
-            throw new RemoteException("Failed to execute dumpsys input: " + e.getMessage());
+            Log.e("UserService", "execute command failed: " + command, e);
+            throw new RemoteException("Failed to execute command: " + command + " " + e.getMessage());
         }
     }
 }

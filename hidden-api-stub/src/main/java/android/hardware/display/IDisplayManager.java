@@ -5,6 +5,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.view.DisplayInfo;
+import android.view.Surface;
 
 public interface IDisplayManager extends IInterface {
     abstract class Stub extends Binder implements IDisplayManager {
@@ -15,4 +16,7 @@ public interface IDisplayManager extends IInterface {
     }
     DisplayInfo getDisplayInfo(int displayId);
     int createVirtualDisplay(VirtualDisplayConfig config, IVirtualDisplayCallback callback, IMediaProjection mediaProjection, String packageName);
+    int createVirtualDisplay(IVirtualDisplayCallback callback,
+                             IMediaProjection projectionToken, String packageName, String name,
+                             int width, int height, int densityDpi, Surface surface, int flags, String uniqueId);
 }

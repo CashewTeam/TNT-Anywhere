@@ -240,6 +240,7 @@ public class DisplayDetailFragment extends Fragment {
                 Point initialSize = new Point();
                 windowManager.getInitialDisplaySize(displayId, initialSize);
                 statusText += String.format("\nPhysical size: %dx%d", initialSize.x, initialSize.y);
+               try {
                 int imePolicy = windowManager.getDisplayImePolicy(displayId);
                 switch (imePolicy) {
                     case 0:
@@ -255,28 +256,36 @@ public class DisplayDetailFragment extends Fragment {
                         statusText += ("\n输入法策略: " + imePolicy);
                         break;
                 }
-                if (displayId != Display.DEFAULT_DISPLAY) {
-                    setImePolicyButton.setVisibility(View.VISIBLE);
-                    if(imePolicy == 0) {
-                        setImePolicyButton.setText("回主屏显示输入法");
-                        setImePolicyButton.setOnClickListener(v -> {
-                            windowManager.setDisplayImePolicy(displayId, 1);
-                            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
-                            State.breadcrumbManager.refreshCurrentFragment();
-                        });
-                    } else {
-                        setImePolicyButton.setText("在此屏幕显示输入法");
-                        setImePolicyButton.setOnClickListener(v -> {
-                            windowManager.setDisplayImePolicy(displayId, 0);
-                            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
-                            State.breadcrumbManager.refreshCurrentFragment();
-                        });
-                    }
-                }
+
+                   if (displayId != Display.DEFAULT_DISPLAY) {
+                       setImePolicyButton.setVisibility(View.VISIBLE);
+                       if(imePolicy == 0) {
+                           setImePolicyButton.setText("回主屏显示输入法");
+                           setImePolicyButton.setOnClickListener(v -> {
+                               windowManager.setDisplayImePolicy(displayId, 1);
+                               windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
+                               State.breadcrumbManager.refreshCurrentFragment();
+                           });
+                       } else {
+                           setImePolicyButton.setText("在此屏幕显示输入法");
+                           setImePolicyButton.setOnClickListener(v -> {
+                               windowManager.setDisplayImePolicy(displayId, 0);
+                               windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
+                               State.breadcrumbManager.refreshCurrentFragment();
+                           });
+                       }
+                   }
+               } catch(Throwable e) {
+                // ignore
+               }
 
                 DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
                 statusText += String.format("\n默认模式ID: %d", displayInfo.defaultModeId);
-                statusText += String.format("\n刷新率覆盖: %.1f Hz", displayInfo.refreshRateOverride);
+                try {
+                    statusText += String.format("\n刷新率覆盖: %.1f Hz", displayInfo.refreshRateOverride);
+                } catch(Throwable e) {
+                    // ignore
+                }
                 try {
                     statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
                 } catch(Throwable e) {

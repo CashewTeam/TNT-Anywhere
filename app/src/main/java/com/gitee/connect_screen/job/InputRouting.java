@@ -23,7 +23,7 @@ public class InputRouting {
         }
         Map<String, String> map = new HashMap<>();
         try {
-            String inputDump = State.userService.dumpsysInput();
+            String inputDump = State.userService.executeCommand("dumpsys input");
             String[] lines = inputDump.split("\n");
             String lastDescriptor = "";
             for (String line : lines) {

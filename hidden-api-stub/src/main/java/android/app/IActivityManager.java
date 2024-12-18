@@ -36,6 +36,10 @@ public interface IActivityManager extends IInterface {
             Bundle options,
             int userId);
 
+    int startActivity(IApplicationThread caller, String callingPackage, Intent intent,
+                      String resolvedType, IBinder resultTo, String resultWho, int requestCode,
+                      int flags, ProfilerInfo profilerInfo, Bundle options);
+
     int sendIntentSender(
             IIntentSender target,
             IBinder whitelistToken,

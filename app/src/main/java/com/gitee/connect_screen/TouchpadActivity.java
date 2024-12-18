@@ -79,6 +79,9 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     public static boolean startTouchpad(Context context,int displayId, boolean dryRun) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) {
+            return false;
+        }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(context)) {
             if (!dryRun) {
