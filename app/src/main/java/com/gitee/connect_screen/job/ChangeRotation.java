@@ -27,12 +27,12 @@ public class ChangeRotation implements Job {
         if (rotation == -1) {
             try {
                 windowManager.setIgnoreOrientationRequest(displayId, false);
-            } catch(Error e) {
+            } catch(Throwable e) {
                 State.log("failed to setIgnoreOrientationRequest" + e.getMessage());
             }
             try {
                 windowManager.setFixedToUserRotation(displayId, FIXED_TO_USER_ROTATION_DEFAULT);
-            } catch(Error e) {
+            } catch(Throwable e) {
                 State.log("failed to setFixedToUserRotation" + e.getMessage());
             }
             try {
@@ -42,19 +42,19 @@ public class ChangeRotation implements Job {
                 try {
                     windowManager.thawDisplayRotation(displayId);
                     State.log("旋转设置已应用");
-                } catch(Error e2) {
+                } catch(Throwable e2) {
                     State.log("设置旋转失败：" + e2.getMessage());
                 }
             }
         } else {
             try {
                 windowManager.setIgnoreOrientationRequest(displayId, true);
-            } catch(Error e) {
+            } catch(Throwable e) {
                 State.log("failed to setIgnoreOrientationRequest" + e.getMessage());
             }
             try {
                 windowManager.setFixedToUserRotation(displayId, FIXED_TO_USER_ROTATION_ENABLED);
-            } catch(Error e) {
+            } catch(Throwable e) {
                 State.log("failed to setFixedToUserRotation" + e.getMessage());
             }
             try {
@@ -64,7 +64,7 @@ public class ChangeRotation implements Job {
                 try {
                     windowManager.freezeDisplayRotation(displayId, rotation);
                     State.log("旋转设置已应用");
-                } catch(Error e2) {
+                } catch(Throwable e2) {
                     State.log("设置旋转失败：" + e2.getMessage());
                 }
             }

@@ -50,7 +50,7 @@ public class InputRouting {
             inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
             inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
             State.log("成功更新输入设备路由: " + inputDevice);
-        } catch(Error e) {
+        } catch(Throwable e) {
             String inputPort = inputDeviceDescriptorToPortMap.get(inputDevice.getDescriptor());
             if (inputPort == null) {
                 State.log("未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
@@ -58,7 +58,7 @@ public class InputRouting {
                 try {
                     inputManager.removeUniqueIdAssociation(inputPort);
                     inputManager.addUniqueIdAssociation(inputPort, String.valueOf(displayInfo.uniqueId));
-                } catch(Error e2) {
+                } catch(Throwable e2) {
                     State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
                 }
             }

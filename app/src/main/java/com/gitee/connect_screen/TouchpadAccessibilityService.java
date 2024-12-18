@@ -135,27 +135,41 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                         boolean focusSuccess = false;
                         // 遍历所有可获取焦点的节点，直到成功设置焦点
                         for (AccessibilityNodeInfo node : focusableNodes) {
-                            boolean focusResult = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                            android.util.Log.d("AccessibilityService", "尝试设置焦点: " + (focusResult ? "成功" : "失败"));
-                            
-                            if (focusResult) {
-                                focusSuccess = true;
-                                break;
+                            if (!node.isFocusable()) {
+                                continue;
+                            }
+                            try {
+                                boolean focusResult = node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                                android.util.Log.d("AccessibilityService", "尝试设置焦点: " + (focusResult ? "成功" : "失败"));
+
+                                if (focusResult) {
+                                    focusSuccess = true;
+                                    break;
+                                }
+                            } catch(Throwable e) {
+                                // ignore
                             }
                         }
                         
-                        // 回收所有节点
-                        for (AccessibilityNodeInfo node : focusableNodes) {
-                            node.recycle();
+                        try {
+                            for (AccessibilityNodeInfo node : focusableNodes) {
+                                node.recycle();
+                            }
+                        } catch(Throwable e) {
+                            // ignore
                         }
-                        
+
                         if (focusSuccess) {
                             return true;
                         } else {
                             android.util.Log.d("AccessibilityService", "所有节点都无法获取焦点");
                         }
                     } finally {
-                        rootNode.recycle();
+                        try {
+                            rootNode.recycle();
+                        } catch(Throwable e) {
+                            // ignore
+                        }
                         android.util.Log.d("AccessibilityService", "回收根节点");
                     }
                 }
