@@ -13,7 +13,7 @@ import com.gitee.connect_screen.job.BindInputToDisplay;
 import com.gitee.connect_screen.job.InputRouting;
 
 public class UsbMonitor {
-    public static void onUsbDeviceAttached(UsbDevice device) {
+    public static void handleDisplaylink(UsbDevice device) {
         if (device == null) {
             return;
         }
@@ -29,6 +29,12 @@ public class UsbMonitor {
         if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
             State.displaylinkDeviceName = device.getDeviceName();
         }
+    }
+    public static void onUsbDeviceAttached(UsbDevice device) {
+        if (device == null) {
+            return;
+        }
+        handleDisplaylink(device);
         if (isHid(device) && State.lastSingleAppDisplay > 0) {
             MainActivity mainActivity = State.currentActivity.get();
             if (mainActivity != null) {
@@ -36,6 +42,7 @@ public class UsbMonitor {
                 DisplayManager displayManager = (DisplayManager) mainActivity.getSystemService(Context.DISPLAY_SERVICE);
                 Display display = displayManager.getDisplay(State.lastSingleAppDisplay);
                 if (display != null) {
+                    State.log("usb attached to bind input to display");
                     InputDevice inputDevice = InputRouting.findInputDevice(inputManager, device);
                     State.startNewJob(new BindInputToDisplay(inputDevice, display));
                 }
