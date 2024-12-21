@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
@@ -41,6 +42,7 @@ public class HomeFragment extends Fragment {
 
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
         Button usbDeviceBtn = view.findViewById(R.id.usbDeviceBtn);
+        Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
         displayDeviceBtn.setOnClickListener(v -> {
@@ -55,6 +57,12 @@ public class HomeFragment extends Fragment {
             if (activity != null) {
                 activity.pushBreadcrumb("USB", () -> new UsbListFragment());
             }
+        });
+
+        simulateScreenOffBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), PureBlackActivity.class);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            startActivity(intent, options.toBundle());
         });
 
         aboutBtn.setOnClickListener(v -> {

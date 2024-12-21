@@ -487,7 +487,6 @@ public class TouchpadActivity extends AppCompatActivity {
 
     private void toggleDarkMode() {
         Intent intent = new Intent(this, PureBlackActivity.class);
-        intent.putExtra("display_id", displayId);
         ActivityOptions options = ActivityOptions.makeBasic();
         startActivity(intent, options.toBundle());
         setFocus();

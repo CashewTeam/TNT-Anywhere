@@ -40,6 +40,13 @@
         android:text="USB设备" />
 
     <Button
+        android:id="@+id/simulateScreenOffBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="模拟熄屏" />
+
+    <Button
         android:id="@+id/aboutBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
