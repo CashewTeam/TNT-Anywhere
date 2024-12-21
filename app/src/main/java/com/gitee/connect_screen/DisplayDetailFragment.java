@@ -211,7 +211,9 @@ public class DisplayDetailFragment extends Fragment {
                 });
             }
         } else {
-            launchButton.setVisibility(View.GONE);
+            if (!ShizukuUtils.hasPermission()) {
+                launchButton.setVisibility(View.GONE);
+            }
             gotoDisplaylinkButton.setVisibility(View.VISIBLE);
             gotoDisplaylinkButton.setOnClickListener(v -> {
                 MainActivity activity = (MainActivity) getActivity();
@@ -265,16 +267,25 @@ public class DisplayDetailFragment extends Fragment {
                        if(imePolicy == 0) {
                            setImePolicyButton.setText("回主屏显示输入法");
                            setImePolicyButton.setOnClickListener(v -> {
-                               windowManager.setDisplayImePolicy(displayId, 1);
                                windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
-                               State.breadcrumbManager.refreshCurrentFragment();
+                               windowManager.setDisplayImePolicy(displayId, 1);
+                               try {
+                                   State.breadcrumbManager.refreshCurrentFragment();
+                               } catch (Throwable e) {
+                                   State.log("回主屏显示输入法，设置失败" + e);
+                               }
                            });
                        } else {
                            setImePolicyButton.setText("在此屏幕显示输入法");
                            setImePolicyButton.setOnClickListener(v -> {
-                               windowManager.setDisplayImePolicy(displayId, 0);
                                windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
-                               State.breadcrumbManager.refreshCurrentFragment();
+                               try {
+                                   windowManager.setDisplayImePolicy(displayId, 0);
+                                   State.breadcrumbManager.refreshCurrentFragment();
+                               } catch (Throwable e) {
+                                   windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
+                                   State.log("在此屏幕显示输入法，设置失败" + e);
+                               }
                            });
                        }
                    }

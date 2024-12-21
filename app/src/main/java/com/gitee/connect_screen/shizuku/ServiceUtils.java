@@ -4,20 +4,24 @@ import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.ActivityOptionsHidden;
 import android.app.PendingIntentHidden;
+import android.content.ComponentName;
 import android.content.ContextHidden;
 import android.app.IActivityManager;
 import android.app.IActivityTaskManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.view.WindowManager;
 import android.view.IWindowManager;
+import android.widget.Toast;
 
 import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
 
 import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.ShizukuBinderWrapper;
@@ -26,6 +30,8 @@ import rikka.shizuku.SystemServiceHelper;
 import java.util.List;
 
 public class ServiceUtils {
+    private static final int WINDOWING_MODE_FULLSCREEN = 1;
+
     private static IActivityManager activityManager;
     private static IActivityTaskManager activityTaskManager;
     private static IWindowManager windowManager;
@@ -87,6 +93,52 @@ public class ServiceUtils {
         } catch (Exception e) {            
             State.log("failed to start activity: " + e.getMessage());
             return -1;
+        }
+    }
+
+    public static void launchPackage(Context context, String packageName, int targetDisplayId) {
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && State.virtualDisplayIds.containsKey(targetDisplayId)) {
+            launchAppWithShizuku(packageName, context, targetDisplayId);
+        } else {
+            launchAppNormally(packageName, context, targetDisplayId);
+        }
+    }
+
+    private static void launchAppNormally(String packageName, Context context, int targetDisplayId) {
+        PackageManager packageManager = context.getPackageManager();
+        Intent launchIntent = packageManager.getLaunchIntentForPackage(packageName);
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(targetDisplayId);
+            context.startActivity(launchIntent, options.toBundle());
+            State.startNewJob(new BindAllExternalInputToDisplay(targetDisplayId));
+        }
+    }
+
+    private static void launchAppWithShizuku(String packageName, Context context, int targetDisplayId) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            PackageManager packageManager = context.getPackageManager();
+            ComponentName componentName = packageManager.getLaunchIntentForPackage(packageName).getComponent();
+            intent.setComponent(componentName);
+            intent.setPackage(packageName);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(targetDisplayId);
+            ActivityOptionsHidden optionsHidden = Refine.unsafeCast(options);
+            optionsHidden.setLaunchWindowingMode(WINDOWING_MODE_FULLSCREEN);
+            int result = ServiceUtils.startActivity(intent, options);
+            if (result < 0) {
+                Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();
+                State.log("使用 Shizuku 启动应用失败，返回值: " + result);
+            } else {
+                State.log("使用 Shizuku 启动应用成功: " + packageName);
+            }
+        } catch (Exception e) {
+            Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();
+            State.log("使用 Shizuku 启动应用失败: " + e.getMessage());
         }
     }
 

@@ -2,8 +2,10 @@ package com.gitee.connect_screen;
 
 import android.app.ActivityManager;
 import android.app.ActivityOptions;
+import android.app.ActivityOptionsHidden;
 import android.app.ActivityTaskManager;
 import android.app.IActivityTaskManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -333,14 +335,7 @@ public class TouchpadActivity extends AppCompatActivity {
             if (lastPackageName == null) {
                 return;
             }
-            PackageManager pm = getPackageManager();
-            Intent launchIntent = pm.getLaunchIntentForPackage(lastPackageName);
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                ActivityOptions options = ActivityOptions.makeBasic();
-                options.setLaunchDisplayId(displayId);
-                v.getContext().startActivity(launchIntent, options.toBundle());
-            }
+            ServiceUtils.launchPackage(this, lastPackageName, displayId);
         });
 
         // 添加退出按钮的点击监听器
