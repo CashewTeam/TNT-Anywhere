@@ -17,7 +17,7 @@
             android:id="@+id/shizukuStatusPrefix"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Shizuku状态: " />
+            android:text="Shizuku 权限状态: " />
 
         <TextView
             android:id="@+id/shizukuStatus"
