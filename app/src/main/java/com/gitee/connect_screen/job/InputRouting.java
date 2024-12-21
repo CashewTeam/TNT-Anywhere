@@ -46,10 +46,11 @@ public class InputRouting {
         if (!inputDevice.isExternal()) {
             return;
         }
+        State.log("尝试绑定设备 " + inputDevice.getId());
         try {
             inputManager.removeUniqueIdAssociationByDescriptor(inputDevice.getDescriptor());
             inputManager.addUniqueIdAssociationByDescriptor(inputDevice.getDescriptor(), String.valueOf(displayInfo.uniqueId));
-            State.log("成功更新输入设备路由: " + inputDevice);
+            State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputDevice.getDescriptor());
         } catch(Throwable e) {
             String inputPort = inputDeviceDescriptorToPortMap.get(inputDevice.getDescriptor());
             if (inputPort == null) {
@@ -58,6 +59,7 @@ public class InputRouting {
                 try {
                     inputManager.removeUniqueIdAssociation(inputPort);
                     inputManager.addUniqueIdAssociation(inputPort, String.valueOf(displayInfo.uniqueId));
+                    State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputDevice.getDescriptor() + " => " + inputPort);
                 } catch(Throwable e2) {
                     State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
                 }
