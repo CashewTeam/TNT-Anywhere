@@ -199,7 +199,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="通过DisplayLink镜像"/>
+        android:text="启动 Displaylink"/>
+
+    <Button
+        android:id="@+id/launch_app_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        android:text="选择单个应用"/>
 
     <Button
         android:id="@+id/view_virtual_display_button"

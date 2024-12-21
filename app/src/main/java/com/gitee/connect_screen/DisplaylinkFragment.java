@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +39,7 @@ public class DisplaylinkFragment extends Fragment {
     private CheckBox skipMediaProjectionPermissionCheckbox;
     private CheckBox autoOpenLastAppCheckbox;
     private View frameRateLayout;
+    private View launchAppButton;
 
     public static DisplaylinkFragment newInstance(UsbDevice device) {
         DisplaylinkFragment fragment = new DisplaylinkFragment();
@@ -64,6 +66,7 @@ public class DisplaylinkFragment extends Fragment {
         rotatesWithContentCheckbox = view.findViewById(R.id.rotatesWithContentCheckbox);
         skipMediaProjectionPermissionCheckbox = view.findViewById(R.id.skipMediaProjectionPermissionCheckbox);
         autoOpenLastAppCheckbox = view.findViewById(R.id.autoOpenLastAppCheckbox);
+        launchAppButton = view.findViewById(R.id.launch_app_button);
 
         TextView detailContent = view.findViewById(R.id.detailContent);
         Button mirrorViaDisplaylinkButton = view.findViewById(R.id.mirrorViaDisplaylinkButton);
@@ -291,6 +294,13 @@ public class DisplaylinkFragment extends Fragment {
                     DisplayDetailFragment.newInstance(usbState.getVirtualDisplay().getDisplay().getDisplayId())
                 );
             });
+            launchAppButton.setOnClickListener(v -> {
+                Context context = State.currentActivity.get();
+                Intent intent = new Intent(context, LauncherActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, usbState.getVirtualDisplay().getDisplay().getDisplayId());
+                context.startActivity(intent);
+            });
         } else {
             viewVirtualDisplayButton.setVisibility(View.GONE);
         }
@@ -307,11 +317,15 @@ public class DisplaylinkFragment extends Fragment {
         boolean is16_9Mode = DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
         sourceScreenSizeLayout.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
         
-        // 更���单应用模式相关视图
+        // 更新单应用模式相关视图
         boolean isSingleAppMode = DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP;
         rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         skipMediaProjectionPermissionCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         autoOpenLastAppCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
+        launchAppButton.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
+        if (usbState.getVirtualDisplay() == null) {
+            launchAppButton.setVisibility(View.GONE);
+        }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasShizukuStarted()) {
             frameRateLayout.setVisibility(View.VISIBLE);

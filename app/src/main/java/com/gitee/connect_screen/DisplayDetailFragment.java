@@ -211,6 +211,7 @@ public class DisplayDetailFragment extends Fragment {
                 });
             }
         } else {
+            launchButton.setVisibility(View.GONE);
             gotoDisplaylinkButton.setVisibility(View.VISIBLE);
             gotoDisplaylinkButton.setOnClickListener(v -> {
                 MainActivity activity = (MainActivity) getActivity();
