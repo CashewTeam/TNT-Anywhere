@@ -64,7 +64,6 @@ public class TouchpadActivity extends AppCompatActivity {
     private static final long CLICK_TIME_THRESHOLD = 200; // 毫秒
     private float halfWidth;
     private float halfHeight;
-    private ImageView darkOverlayImage;
     private boolean isDarkMode = false;
     private GestureDetector gestureDetector;
     private IInputManager inputManager;
@@ -311,9 +310,6 @@ public class TouchpadActivity extends AppCompatActivity {
             return true;
         });
         
-        darkOverlayImage = findViewById(R.id.darkOverlayImage);
-        darkOverlayImage.setOnClickListener(v -> toggleDarkMode());
-        
         // 修改暗色模式按钮点击事件
         ImageButton goDarkButton = findViewById(R.id.goDarkButton);
         goDarkButton.setOnClickListener(v -> toggleDarkMode());
@@ -490,11 +486,10 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void toggleDarkMode() {
-        isDarkMode = !isDarkMode;
-        darkOverlayImage.setVisibility(isDarkMode ? View.VISIBLE : View.GONE);
-        if (cursorView != null) {
-            cursorView.setVisibility(isDarkMode ? View.GONE : View.VISIBLE);
-        }
+        Intent intent = new Intent(this, PureBlackActivity.class);
+        intent.putExtra("display_id", displayId);
+        ActivityOptions options = ActivityOptions.makeBasic();
+        startActivity(intent, options.toBundle());
         setFocus();
     }
 
@@ -548,7 +543,7 @@ public class TouchpadActivity extends AppCompatActivity {
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
         
-        // 复制每个触点的信息
+        // 复制每个触点的信��
         for (int i = 0; i < pointerCount; i++) {
             // 复制触点属性
             properties[i] = new MotionEvent.PointerProperties();

@@ -97,14 +97,4 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 添加全屏暗色遮罩 -->
-    <ImageView
-        android:id="@+id/darkOverlayImage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#FF000000"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true"/>
-
 </FrameLayout>
