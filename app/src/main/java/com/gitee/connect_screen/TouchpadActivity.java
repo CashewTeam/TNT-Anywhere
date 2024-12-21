@@ -63,7 +63,6 @@ public class TouchpadActivity extends AppCompatActivity {
     private static final long CLICK_TIME_THRESHOLD = 200; // 毫秒
     private float halfWidth;
     private float halfHeight;
-    private TouchpadAccessibilityService accessibilityService;
     private ImageView darkOverlayImage;
     private boolean isDarkMode = false;
     private GestureDetector gestureDetector;
@@ -214,6 +213,7 @@ public class TouchpadActivity extends AppCompatActivity {
                 if (isCursorLocked && inputManager == null) {
                     if (Math.abs(velocityY) > Math.abs(velocityX)) {  // 垂直方向的快速滑动
                         float x = cursorX + halfWidth;
+                        TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
                         if (accessibilityService != null) {
                             if (velocityY < 0) {  // 向上滑动
                                 Log.d(TAG, "onFling up");
@@ -243,11 +243,14 @@ public class TouchpadActivity extends AppCompatActivity {
                 }
                 if (e2.getPointerCount() == 2) {
                     if (Math.abs(distanceY) > 5) {
-                        accessibilityService.performScroll(
-                            displayId,
-                            cursorX + halfWidth,
-                            -distanceY * 2
-                        );
+                        TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
+                        if (accessibilityService != null) {
+                            accessibilityService.performScroll(
+                                    displayId,
+                                    cursorX + halfWidth,
+                                    -distanceY * 2
+                            );
+                        }
                         return true;
                     }
                 }
@@ -286,6 +289,7 @@ public class TouchpadActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_UP || 
                 event.getAction() == MotionEvent.ACTION_CANCEL) {
                 Log.d(TAG, "触摸事件结束");
+                TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
                 if (accessibilityService != null) {
                     accessibilityService.cancelScroll();
                 }
@@ -298,8 +302,6 @@ public class TouchpadActivity extends AppCompatActivity {
             }
             return true;
         });
-        
-        accessibilityService = TouchpadAccessibilityService.getInstance();
         
         darkOverlayImage = findViewById(R.id.darkOverlayImage);
         darkOverlayImage.setOnClickListener(v -> toggleDarkMode());
@@ -460,7 +462,7 @@ public class TouchpadActivity extends AppCompatActivity {
 
     // 添加执行点击的方法
     private void performClick() {
-        accessibilityService = TouchpadAccessibilityService.getInstance();
+        TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
         if (accessibilityService != null) {
             float x = cursorX + halfWidth;
             float y = cursorY + halfHeight; 
@@ -473,7 +475,10 @@ public class TouchpadActivity extends AppCompatActivity {
 
     // 添加执行返回手势的方法
     private void performBackGesture() {
-        accessibilityService.performBackGesture(displayId);
+        TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
+        if (accessibilityService != null) {
+            accessibilityService.performBackGesture(displayId);
+        }
     }
 
     private void toggleDarkMode() {
@@ -487,7 +492,7 @@ public class TouchpadActivity extends AppCompatActivity {
 
     private void setFocus() {
         try {
-            if (accessibilityService == null) {
+            if (inputManager != null) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
                 } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -507,7 +512,10 @@ public class TouchpadActivity extends AppCompatActivity {
                     }
                 }
             } else {
-                accessibilityService.setFocus(displayId);
+                TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
+                if (accessibilityService != null) {
+                    accessibilityService.setFocus(displayId);
+                }
             }
         } catch (Throwable e) {
             Log.e(TAG, "设置焦点失败", e);
