@@ -57,6 +57,12 @@
             android:exported="false"
             android:theme="@style/AppTheme" />
         
+        <activity
+            android:name=".BridgeActivity"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+        
         <service
             android:name=".MediaProjectionService"
             android:foregroundServiceType="mediaProjection"
