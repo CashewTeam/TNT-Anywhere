@@ -12,8 +12,8 @@ android {
         applicationId = "com.gitee.connect_screen"
         minSdk = 29
         targetSdk = 34
-        versionCode = 20
-        versionName = "1.2.0"
+        versionCode = 21
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
