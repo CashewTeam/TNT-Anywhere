@@ -16,6 +16,7 @@ import android.hardware.input.IInputManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
@@ -115,11 +116,20 @@ public class TouchpadActivity extends AppCompatActivity {
             // 启动无障碍服务
             Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
             context.startService(serviceIntent);
+
+            // 延迟1秒后启动触控板
+            new Handler().postDelayed(() -> {
+                if (TouchpadAccessibilityService.getInstance() == null) {
+                    Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                    context.startActivity(intent);
+                } else {
+                    // 权限都具备且服务启动后启动触控板
+                    Intent touchpadIntent = new Intent(context, TouchpadActivity.class);
+                    touchpadIntent.putExtra("display_id", displayId);
+                    context.startActivity(touchpadIntent);
+                }
+            }, 1000);
             
-            // 权限都具备且服务启动后启动触控板
-            Intent touchpadIntent = new Intent(context, TouchpadActivity.class);
-            touchpadIntent.putExtra("display_id", displayId);
-            context.startActivity(touchpadIntent);
         }
         return true;
     }
@@ -183,12 +193,10 @@ public class TouchpadActivity extends AppCompatActivity {
         // 计算屏幕尺寸
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display targetDisplay = displayManager.getDisplay(displayId);
-        Point size = new Point();
-        targetDisplay.getSize(size);
 
         // 计算屏幕边界（以屏幕中心为原点）
-        halfWidth = size.x / 2.0f;
-        halfHeight = size.y / 2.0f;
+        halfWidth = targetDisplay.getWidth() / 2.0f;
+        halfHeight = targetDisplay.getHeight() / 2.0f;
 
         // 显示光标
         showMouseCursor();
