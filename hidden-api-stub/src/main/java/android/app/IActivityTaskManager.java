@@ -28,5 +28,9 @@ public interface IActivityTaskManager extends IInterface {
 
     List<ActivityTaskManager.RootTaskInfo> getAllRootTaskInfosOnDisplay(int displayId);
 
+    List<Object> getAllStackInfosOnDisplay(int displayId);
+
     void setFocusedRootTask(int taskId);
+
+    void setFocusedStack(int stackId);
 }

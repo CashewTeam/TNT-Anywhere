@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityManager;
 import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
 import android.app.IActivityTaskManager;
@@ -41,6 +42,7 @@ import com.gitee.connect_screen.job.StartTouchPad;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -484,21 +486,31 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void setFocus() {
-        if (android.os.Build.VERSION.SDK_INT  <= android.os.Build.VERSION_CODES.R) {
-            return;
-        }
-        if (accessibilityService == null) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
-            } else {
-                List<ActivityTaskManager.RootTaskInfo> taskInfos = ServiceUtils.getActivityTaskManager().getAllRootTaskInfosOnDisplay(displayId);
-                for (ActivityTaskManager.RootTaskInfo taskInfo : taskInfos) {
-                    ServiceUtils.getActivityTaskManager().setFocusedRootTask(taskInfo.taskId);
-                    break;
+        try {
+            if (accessibilityService == null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceUtils.getActivityTaskManager().focusTopTask(displayId);
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    List<ActivityTaskManager.RootTaskInfo> taskInfos = ServiceUtils.getActivityTaskManager().getAllRootTaskInfosOnDisplay(displayId);
+                    for (ActivityTaskManager.RootTaskInfo taskInfo : taskInfos) {
+                        ServiceUtils.getActivityTaskManager().setFocusedRootTask(taskInfo.taskId);
+                        break;
+                    }
+                } else {
+                    List<Object> stackInfos = ServiceUtils.getActivityTaskManager().getAllStackInfosOnDisplay(displayId);
+                    if (!stackInfos.isEmpty()) {
+                        Object stackInfo = stackInfos.get(0);
+                        Field stackIdField = stackInfo.getClass().getDeclaredField("stackId");
+                        stackIdField.setAccessible(true);
+                        int stackId = stackIdField.getInt(stackInfo);
+                        ServiceUtils.getActivityTaskManager().setFocusedStack(stackId);
+                    }
                 }
+            } else {
+                accessibilityService.setFocus(displayId);
             }
-        } else {
-            accessibilityService.setFocus(displayId);
+        } catch (Throwable e) {
+            Log.e(TAG, "设置焦点失败", e);
         }
     }
 

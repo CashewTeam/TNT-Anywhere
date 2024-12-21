@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
+import android.app.ActivityOptionsHidden;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,7 +27,10 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 import java.util.List;
 import java.util.Collections;
 
+import dev.rikka.tools.refine.Refine;
+
 public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHolder> {
+    private static final int WINDOWING_MODE_FULLSCREEN = 1;
     private static final String LAUNCH_TIME_PREFIX = "launch_time_";
     private List<ApplicationInfo> appList;
     private PackageManager packageManager;
@@ -123,6 +127,8 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
             intent.setPackage(packageName);
             ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(targetDisplayId);
+            ActivityOptionsHidden optionsHidden = Refine.unsafeCast(options);
+            optionsHidden.setLaunchWindowingMode(WINDOWING_MODE_FULLSCREEN);
             int result = ServiceUtils.startActivity(intent, options);
             if (result < 0) {
                 Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();

@@ -18,4 +18,8 @@ public class ActivityOptionsHidden {
         throw new RuntimeException("Stub!");
     }
 
+    public void setLaunchWindowingMode(int windowingMode) {
+        throw new RuntimeException("Stub!");
+    }
+
 }
