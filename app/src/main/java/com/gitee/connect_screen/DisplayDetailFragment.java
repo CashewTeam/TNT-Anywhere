@@ -153,8 +153,10 @@ public class DisplayDetailFragment extends Fragment {
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
-        if (displayId != Display.DEFAULT_DISPLAY && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            touchpadButton.setVisibility(View.VISIBLE);
+        if (displayId != Display.DEFAULT_DISPLAY) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R || ShizukuUtils.hasPermission()) {
+                touchpadButton.setVisibility(View.VISIBLE);
+            }
         }
         touchpadButton.setOnClickListener(v -> {
             TouchpadActivity.startTouchpad(getContext(), displayId, false);

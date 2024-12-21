@@ -18,6 +18,9 @@ import android.view.WindowInsetsController;
 import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.util.DisplayMetrics;
+
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
+
 import java.util.stream.Collectors;
 
 public class LauncherActivity extends AppCompatActivity {
@@ -39,7 +42,7 @@ public class LauncherActivity extends AppCompatActivity {
         findViewById(R.id.btn_exit).setOnClickListener(v -> finish());
 
         Button touchpadButton = findViewById(R.id.btn_touchpad);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R || ShizukuUtils.hasPermission()) {
             touchpadButton.setVisibility(View.VISIBLE);
         }
         touchpadButton.setOnClickListener(v -> {
