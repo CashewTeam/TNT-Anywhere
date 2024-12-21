@@ -9,6 +9,7 @@ import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.os.RemoteException;
 import android.view.Display;
+import android.view.DisplayAddress;
 import android.view.DisplayInfo;
 import android.view.InputDevice;
 
@@ -59,9 +60,16 @@ public class InputRouting {
                 try {
                     inputManager.removeUniqueIdAssociation(inputPort);
                     inputManager.addUniqueIdAssociation(inputPort, String.valueOf(displayInfo.uniqueId));
-                    State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputDevice.getDescriptor() + " => " + inputPort);
+                    State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputPort + " => " + displayInfo.uniqueId);
                 } catch(Throwable e2) {
-                    State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice + ", " + e.getMessage());
+                    try {
+                        inputManager.removePortAssociation(inputPort);
+                        int displayPort = ((DisplayAddress.Physical) displayInfo.address).getPort();
+                        inputManager.addPortAssociation(inputPort, displayPort);
+                        State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputPort + " => " + displayPort);
+                    } catch(Throwable e3) {
+                        State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice.getName() + ", " + e3.getMessage());
+                    }
                 }
             }
         }
