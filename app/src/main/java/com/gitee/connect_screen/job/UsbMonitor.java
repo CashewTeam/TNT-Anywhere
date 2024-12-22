@@ -1,16 +1,15 @@
-package com.gitee.connect_screen;
+package com.gitee.connect_screen.job;
 
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.hardware.display.DisplayManagerGlobal;
 import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.view.Display;
 import android.view.InputDevice;
 
-import com.gitee.connect_screen.job.BindInputToDisplay;
-import com.gitee.connect_screen.job.InputRouting;
+import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.State;
 
 public class UsbMonitor {
     public static void handleDisplaylink(UsbDevice device) {

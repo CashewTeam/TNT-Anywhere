@@ -17,25 +17,20 @@ import android.os.Bundle;
 import android.os.Build;
 import android.view.Display;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
+
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
-import com.gitee.connect_screen.job.InputRouting;
-import com.gitee.connect_screen.job.MirrorArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
+import com.gitee.connect_screen.job.UsbMonitor;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 import rikka.shizuku.Shizuku;
 

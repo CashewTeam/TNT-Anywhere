@@ -11,6 +11,8 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gitee.connect_screen.job.UsbMonitor;
+
 import java.util.List;
 
 public class UsbDeviceAdapter extends RecyclerView.Adapter<UsbDeviceAdapter.ViewHolder> {
