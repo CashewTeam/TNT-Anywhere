@@ -25,7 +25,6 @@ import java.nio.ByteOrder;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-
 public class BridgeActivity extends AppCompatActivity {
 
     public static VirtualDisplay virtualDisplay;
@@ -42,18 +41,17 @@ public class BridgeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // 隐藏标题栏
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
-        
+
         // 设置全屏
         getWindow().setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-        
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         Window window = getWindow();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false);
@@ -69,12 +67,13 @@ public class BridgeActivity extends AppCompatActivity {
         // 设置状态栏和导航栏透明
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
-        
+
         // 创建并设置 GLSurfaceView
         glSurfaceView = new GLSurfaceView(this);
         glSurfaceView.setEGLContextClientVersion(2);
         VirtualDisplayArgs args = getIntent().getParcelableExtra("virtualDisplayArgs");
         glSurfaceView.setRenderer(new OpenGLRenderer(glSurfaceView, args));
+        glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         setContentView(glSurfaceView);
     }
 
@@ -137,38 +136,56 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
 
-
-            
-
             // 创建 SurfaceTexture 和 Surface
             surfaceTexture = new SurfaceTexture(textureId);
 
-            
             // 初始化顶点和纹理坐标
             float[] vertices = {
-                -1.0f, -1.0f,  // 左下
-                1.0f, -1.0f,   // 右下
-                -1.0f, 1.0f,   // 左上
-                1.0f, 1.0f     // 右上
-        };
+                    -1.0f, -1.0f, // 左下
+                    1.0f, -1.0f, // 右下
+                    -1.0f, 1.0f, // 左上
+                    1.0f, 1.0f // 右上
+            };
 
-        float[] texCoords = {
-                0.0f, 0.0f,    // 左下
-                1.0f, 0.0f,    // 右下
-                0.0f, 1.0f,    // 左上
-                1.0f, 1.0f     // 右上
-        };
+            float[] texCoords = {
+                    0.0f, 1.0f, // 左下
+                    1.0f, 1.0f, // 右下
+                    0.0f, 0.0f, // 左上
+                    1.0f, 0.0f  // 右上
+            };
 
-        vertexBuffer = ByteBuffer.allocateDirect(vertices.length * 4)
-                .order(ByteOrder.nativeOrder());
-        vertexBuffer.asFloatBuffer().put(vertices).position(0);
+            vertexBuffer = ByteBuffer.allocateDirect(vertices.length * 4)
+                    .order(ByteOrder.nativeOrder());
+            vertexBuffer.asFloatBuffer().put(vertices).position(0);
 
-        texcoordBuffer = ByteBuffer.allocateDirect(texCoords.length * 4)
-                .order(ByteOrder.nativeOrder());
-        texcoordBuffer.asFloatBuffer().put(texCoords).position(0);
+            texcoordBuffer = ByteBuffer.allocateDirect(texCoords.length * 4)
+                    .order(ByteOrder.nativeOrder());
+            texcoordBuffer.asFloatBuffer().put(texCoords).position(0);
 
-        // 初始化着色器程序
-        program = createProgram();
+            // 初始化着色器程序
+            program = createProgram();
+
+            
+            GLES20.glUseProgram(program);
+
+            // 启用顶点属性数组
+            GLES20.glEnableVertexAttribArray(positionHandle);
+            GLES20.glEnableVertexAttribArray(texcoordHandle);
+
+            // 设置顶点坐标数据
+            GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+            // 设置纹理坐标数据
+            GLES20.glVertexAttribPointer(texcoordHandle, 2, GLES20.GL_FLOAT, false, 0, texcoordBuffer);
+
+            // 设置MVP矩阵
+            Matrix.setIdentityM(mvpMatrix, 0);
+            GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
+
+            // 绑定纹理
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+            GLES20.glUniform1i(textureHandle, 0);
+
             State.currentActivity.get().runOnUiThread(() -> {
                 startProjection();
             });
@@ -180,7 +197,6 @@ public class BridgeActivity extends AppCompatActivity {
                 glSurfaceView.requestRender();
             });
             surface = new Surface(surfaceTexture);
-
 
             // 使用传入的参数创建虚拟显示
             stopVirtualDisplay();
@@ -199,23 +215,6 @@ public class BridgeActivity extends AppCompatActivity {
                 return;
             }
             surfaceTexture.updateTexImage();
-
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-            GLES20.glUseProgram(program);
-
-            // 设置顶点坐标数据
-            GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-            // 设置纹理坐标数据
-            GLES20.glVertexAttribPointer(texcoordHandle, 2, GLES20.GL_FLOAT, false, 0, texcoordBuffer);
-
-            // 设置MVP矩阵
-            Matrix.setIdentityM(mvpMatrix, 0);
-            GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
-
-            // 绑定纹理
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
-            GLES20.glUniform1i(textureHandle, 0);
 
             // 绘制
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
