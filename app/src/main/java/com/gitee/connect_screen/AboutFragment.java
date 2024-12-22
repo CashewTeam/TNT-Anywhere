@@ -52,6 +52,15 @@ public class AboutFragment extends Fragment {
         TextView websiteLink = view.findViewById(R.id.websiteLink);
         websiteLink.setOnClickListener(v -> openUrl("https://connect-screen.com"));
 
+        TextView versionText = view.findViewById(R.id.versionText);
+        try {
+            String versionName = requireContext().getPackageManager()
+                    .getPackageInfo(requireContext().getPackageName(), 0).versionName;
+            versionText.setText("版本：" + versionName);
+        } catch (Exception e) {
+            versionText.setText("版本：未知");
+        }
+
         GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
