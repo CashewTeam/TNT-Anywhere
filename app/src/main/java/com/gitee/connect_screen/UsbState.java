@@ -3,17 +3,14 @@ package com.gitee.connect_screen;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.display.DisplayManager;
 import android.media.ImageReader;
-import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.HandlerThread;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
-import com.displaylink.manager.display.DisplayMode;
-import com.gitee.connect_screen.job.MirrorArgs;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
 
 public class UsbState {
     public UsbDevice device;
@@ -25,7 +22,7 @@ public class UsbState {
     public long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
-    public MirrorArgs mirrorArgs = new MirrorArgs();
+    public VirtualDisplayArgs virtualDisplayArgs = new VirtualDisplayArgs();
     private volatile VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;

@@ -39,12 +39,12 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private int monitorHeight;
     private int refreshRate;
 
-    public void startVirtualDisplay(UsbState usbState, MirrorArgs mirrorArgs) {
+    public void startVirtualDisplay(UsbState usbState, VirtualDisplayArgs virtualDisplayArgs) {
         this.usbState = usbState;
-        this.monitorWidth = mirrorArgs.monitorWidth;
-        this.monitorHeight = mirrorArgs.monitorHeight;
-        this.refreshRate = mirrorArgs.refreshRate;
-        int virtualDisplayWidth = mirrorArgs.virtualDisplayWidth;
+        this.monitorWidth = virtualDisplayArgs.monitorWidth;
+        this.monitorHeight = virtualDisplayArgs.monitorHeight;
+        this.refreshRate = virtualDisplayArgs.refreshRate;
+        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
 
         usbState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
         usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
@@ -53,7 +53,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
-        VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(usbState, mirrorArgs, virtualDisplayWidth, surface);
+        VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, virtualDisplayWidth, surface);
         usbState.createdVirtualDisplay(virtualDisplay);
         int displayId = virtualDisplay.getDisplay().getDisplayId();
         if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {

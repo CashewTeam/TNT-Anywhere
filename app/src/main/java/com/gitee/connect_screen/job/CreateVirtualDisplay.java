@@ -13,9 +13,7 @@ import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.Surface;
 
-import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.UsbState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -39,13 +37,13 @@ public class CreateVirtualDisplay {
     private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
     private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
 
-    public static VirtualDisplay createVirtualDisplay(UsbState usbState, MirrorArgs mirrorArgs, int virtualDisplayWidth, Surface surface) {
+    public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, int virtualDisplayWidth, Surface surface) {
         if (ShizukuUtils.hasPermission()) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
                     | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
             //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
-            if (DisplaylinkPref.rotatesWithContent) {
+            if (virtualDisplayArgs.rotatesWithContent) {
                 flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
             }
             if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
@@ -62,16 +60,16 @@ public class CreateVirtualDisplay {
             VirtualDisplayConfig config = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 config = new VirtualDisplayConfig.Builder(
-                        "DisplayLink",
-                        virtualDisplayWidth, mirrorArgs.monitorHeight, 160)
+                        virtualDisplayArgs.virtualDisplayName,
+                        virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160)
                         .setSurface(surface)
                         .setFlags(flags)
-                        .setRequestedRefreshRate(mirrorArgs.refreshRate)
+                        .setRequestedRefreshRate(virtualDisplayArgs.refreshRate)
                         .build();
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 config = new VirtualDisplayConfig.Builder(
-                        "DisplayLink",
-                        virtualDisplayWidth, mirrorArgs.monitorHeight, 160)
+                        virtualDisplayArgs.virtualDisplayName,
+                        virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160)
                         .setSurface(surface)
                         .setFlags(flags)
                         .build();
@@ -88,7 +86,7 @@ public class CreateVirtualDisplay {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
             } else {
-                displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", "DisplayLink", virtualDisplayWidth, mirrorArgs.monitorHeight, 160, surface, flags, "DisplayLink");
+                displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", "DisplayLink", virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160, surface, flags, "DisplayLink");
             }
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
@@ -121,8 +119,8 @@ public class CreateVirtualDisplay {
             }
             return virtualDisplay;
         } else {
-            return State.mediaProjection.createVirtualDisplay("DisplayLink",
-                    virtualDisplayWidth, mirrorArgs.monitorHeight, 160,
+            return State.mediaProjection.createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
+                    virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
         }

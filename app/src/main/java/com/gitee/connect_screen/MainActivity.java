@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
                     State.log("USB 设备已连接: " + device.getDeviceName());
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                         State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
+                        State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).virtualDisplayArgs));
                     } else {
                         State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
                     }
@@ -154,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
             // 处理 USB 设备连接的逻辑
             if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
-                State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).mirrorArgs));
+                State.startNewJob(new MirrorViaDisplaylink(device, State.getOrCreateUsbState(device).virtualDisplayArgs));
             }
         }
 

@@ -25,11 +25,11 @@ public class MirrorViaDisplaylink implements Job {
     private boolean mediaProjectionRequested = false;
     private final String deviceName;
     private boolean userServiceRequested = false;
-    private final MirrorArgs mirrorArgs;
+    private final VirtualDisplayArgs virtualDisplayArgs;
 
-    public MirrorViaDisplaylink(UsbDevice device, MirrorArgs mirrorArgs) {
+    public MirrorViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
         this.deviceName = device.getDeviceName();
-        this.mirrorArgs = mirrorArgs;
+        this.virtualDisplayArgs = virtualDisplayArgs;
         State.getOrCreateUsbState(device);
     }
 
@@ -250,7 +250,7 @@ public class MirrorViaDisplaylink implements Job {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }
-        new ListenImageReaderAndPostFrame().startVirtualDisplay(usbState, mirrorArgs);
+        new ListenImageReaderAndPostFrame().startVirtualDisplay(usbState, virtualDisplayArgs);
 //        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
         State.mediaProjection = null;
         State.log("虚拟显示已创建");

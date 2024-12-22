@@ -3,7 +3,6 @@ package com.gitee.connect_screen;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -23,7 +22,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.MirrorArgs;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.job.MirrorViaDisplaylink;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -245,7 +244,7 @@ public class DisplaylinkFragment extends Fragment {
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
             DisplaylinkPref.save(getContext());
-            State.startNewJob(new MirrorViaDisplaylink(device, usbState.mirrorArgs));
+            State.startNewJob(new MirrorViaDisplaylink(device, usbState.virtualDisplayArgs));
         });
 
         rotatesWithContentCheckbox.setChecked(DisplaylinkPref.rotatesWithContent);
@@ -353,13 +352,13 @@ public class DisplaylinkFragment extends Fragment {
                 explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
                 explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
 
-                usbState.mirrorArgs = new MirrorArgs(monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate);
+                usbState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
                 ((TextView) aspectRatioExplanation).setText(explanation.toString());
             } catch (NumberFormatException e) {
                 // 忽略无效输入
             }
         } else {
-            usbState.mirrorArgs = new MirrorArgs(DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate);
+            usbState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
         }
         aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
     }

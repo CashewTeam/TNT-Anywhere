@@ -1,15 +1,18 @@
 package com.gitee.connect_screen.job;
 
-public class MirrorArgs {
+public class VirtualDisplayArgs {
     public final int monitorWidth;
     public final int monitorHeight;
     public final int virtualDisplayWidth;
     public final int refreshRate;
+    public final boolean rotatesWithContent;
+    public final String virtualDisplayName;
 
-    public MirrorArgs() {
-        this(1920, 1080, 1920, 60);
+    public VirtualDisplayArgs() {
+        this("DisplayLink", 1920, 1080, 1920, 60, false);
     }
-    public MirrorArgs(int monitorWidth, int monitorHeight, int virtualDisplayWidth, int refreshRate) {
+    public VirtualDisplayArgs(String virtualDisplayName, int monitorWidth, int monitorHeight, int virtualDisplayWidth, int refreshRate, boolean rotatesWithContent) {
+        this.virtualDisplayName = virtualDisplayName;
         if(monitorWidth == 0) {
             monitorWidth = 1920;
         }
@@ -26,5 +29,6 @@ public class MirrorArgs {
         this.monitorHeight = monitorHeight;
         this.virtualDisplayWidth = virtualDisplayWidth;
         this.refreshRate = refreshRate;
+        this.rotatesWithContent = rotatesWithContent;
     }
 }
