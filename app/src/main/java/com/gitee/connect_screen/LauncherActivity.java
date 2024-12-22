@@ -18,10 +18,12 @@ import android.view.WindowInsetsController;
 import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.util.DisplayMetrics;
+import android.widget.Toast;
 
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 public class LauncherActivity extends AppCompatActivity {
     // 添加常量定义
@@ -54,7 +56,13 @@ public class LauncherActivity extends AppCompatActivity {
         
         // 获取已安装的应用并过滤系统应用
         PackageManager pm = getPackageManager();
-        List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        List<ApplicationInfo> packages = new ArrayList<>();
+        try {
+            packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        } catch (SecurityException e) {
+            Toast.makeText(this, "需要 '查询所有应用' 权限", Toast.LENGTH_LONG).show();
+            State.log("查询应用列表失败: " + e);
+        }
         
         // 过滤掉系统应用
         List<ApplicationInfo> userApps = packages.stream()

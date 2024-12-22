@@ -32,7 +32,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
     private PackageManager packageManager;
 
     public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId, SharedPreferences sharedPreferences) {
-        this.appList = appList;
+        this.appList = appList != null ? appList : Collections.emptyList();
         this.packageManager = packageManager;
         this.targetDisplayId = targetDisplayId;
         this.sharedPreferences = sharedPreferences;
