@@ -15,6 +15,7 @@ import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Handler;
 import android.view.Display;
 import android.widget.FrameLayout;
 
@@ -26,8 +27,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+import com.gitee.connect_screen.job.ProjectViaBridge;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.job.UsbMonitor;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
@@ -208,6 +212,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         SharedPreferences appPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE);
+        boolean autoBridge = appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false);
+        if (ShizukuUtils.hasPermission() && autoBridge) {
+            new Handler().postDelayed(() -> {
+                State.startNewJob(new ProjectViaBridge(display.getDisplayId(), new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
+            }, 500);
+            return;
+        }
         boolean autoOpen = appPreferences.getBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false);
         if (!autoOpen) {
             return;
@@ -217,15 +228,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         State.log("尝试自动打开显示器 " + display.getName() + " 上投屏的应用 " + lastPackageName);
-        Context context = State.currentActivity.get();
-        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(lastPackageName);
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(display.getDisplayId());
-            context.startActivity(launchIntent, options.toBundle());
-            State.startNewJob(new BindAllExternalInputToDisplay(display.getDisplayId()));
-        }
+        new Handler().postDelayed(() -> {
+            ServiceUtils.launchPackage(this, lastPackageName, display.getDisplayId());
+        }, 500);
     }
 
     @Override
@@ -261,8 +266,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onStop() {
                             super.onStop();
-                            State.log("MediaProjection 停止");
-                            State.mediaProjection = null;
+                            State.log("MediaProjection onStop 回调");
                         }
                     }, null);
                     State.resumeJob();

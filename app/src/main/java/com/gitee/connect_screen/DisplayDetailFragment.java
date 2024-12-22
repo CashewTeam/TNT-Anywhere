@@ -488,7 +488,8 @@ private void showBridgeDialog() {
     BridgePref.load(getContext());
     rotatesWithContentCheckbox.setChecked(BridgePref.rotatesWithContent);
     skipMediaProjectionPermissionCheckbox.setChecked(BridgePref.skipMediaProjectionPermission);
-    autoBridgeCheckbox.setChecked(BridgePref.autoBridge);
+    SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
+    autoBridgeCheckbox.setChecked(appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false));
 
     new AlertDialog.Builder(getContext())
             .setTitle("桥接设置")
@@ -497,8 +498,12 @@ private void showBridgeDialog() {
                 // 保存设置到配置
                 BridgePref.rotatesWithContent = rotatesWithContentCheckbox.isChecked();
                 BridgePref.skipMediaProjectionPermission = skipMediaProjectionPermissionCheckbox.isChecked();
-                BridgePref.autoBridge = autoBridgeCheckbox.isChecked();
                 BridgePref.save(getContext());
+                boolean autoBridge = autoBridgeCheckbox.isChecked();
+                appPreferences.edit().putBoolean("AUTO_BRIDGE_" + display.getName(), autoBridge).apply();
+                if (autoBridge) {
+                    appPreferences.edit().putBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false).apply();
+                }
                 State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
             })
             .setNegativeButton("取消", null)

@@ -73,8 +73,7 @@ public class MediaProjectionService extends Service {
                 @Override
                 public void onStop() {
                     super.onStop();
-                    State.log("MediaProjection 停止");
-                    State.mediaProjection = null;
+                    State.log("MediaProjection onStop 回调");
                 }
             }, null);
             State.resumeJob();

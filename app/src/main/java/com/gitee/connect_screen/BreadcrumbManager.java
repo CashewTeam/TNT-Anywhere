@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import android.content.Context;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -21,29 +22,37 @@ public class BreadcrumbManager {
     }
 
     public void pushBreadcrumb(String newPath, FragmentFactory fragmentFactory) {
-        if (!newPath.isEmpty() && !navigationPath.contains(newPath)) {
-            navigationPath.add(newPath);
+        try {
+            if (!newPath.isEmpty() && !navigationPath.contains(newPath)) {
+                navigationPath.add(newPath);
+            }
+            updateBreadcrumbView();
+            // 保存当前的 FragmentFactory
+            this.currentFragmentFactory = fragmentFactory;
+            // 使用工厂方法创建 Fragment 并替换
+            Fragment fragment = fragmentFactory.createFragment();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.fragmentContainer, fragment)
+                    .addToBackStack(null)
+                    .commit();
+        } catch (Throwable e) {
+            // ignore
         }
-        updateBreadcrumbView();
-        // 保存当前的 FragmentFactory
-        this.currentFragmentFactory = fragmentFactory;
-        // 使用工厂方法创建 Fragment 并替换
-        Fragment fragment = fragmentFactory.createFragment();
-        fragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, fragment)
-                .addToBackStack(null)
-                .commit();
     }
 
     public void popBreadcrumb() {
-        if (navigationPath.size() > 1) {
-            navigationPath.remove(navigationPath.size() - 1);
-        } else {
-            ((MainActivity) fragmentManager.findFragmentById(R.id.fragmentContainer).getActivity()).finish();
+        try {
+            if (navigationPath.size() > 1) {
+                navigationPath.remove(navigationPath.size() - 1);
+            } else {
+                ((MainActivity) fragmentManager.findFragmentById(R.id.fragmentContainer).getActivity()).finish();
+            }
+            updateBreadcrumbView();
+            // 回退 Fragment
+            fragmentManager.popBackStack();
+        } catch (Exception e) {
+            // ignore
         }
-        updateBreadcrumbView();
-        // 回退 Fragment
-        fragmentManager.popBackStack();
     }
 
     private void updateBreadcrumbView() {
@@ -94,7 +103,7 @@ public class BreadcrumbManager {
                         .addToBackStack(null)
                         .commit();
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             // ignore
         }
     }

@@ -7,7 +7,6 @@ public class BridgePref {
 
     public static boolean rotatesWithContent;
     public static boolean skipMediaProjectionPermission;
-    public static boolean autoBridge;
 
     public static void save(Context context) {
         SharedPreferences prefs = context.getSharedPreferences("bridge_settings", Context.MODE_PRIVATE);
@@ -15,7 +14,6 @@ public class BridgePref {
 
         editor.putBoolean("rotates_with_content", rotatesWithContent);
         editor.putBoolean("skip_media_projection_permission", skipMediaProjectionPermission);
-        editor.putBoolean("auto_bridge", autoBridge);
 
         editor.apply();
     }
@@ -23,6 +21,5 @@ public class BridgePref {
         SharedPreferences prefs = context.getSharedPreferences("bridge_settings", Context.MODE_PRIVATE);
         rotatesWithContent = prefs.getBoolean("rotates_with_content", true);
         skipMediaProjectionPermission = prefs.getBoolean("skip_media_projection_permission", false);
-        autoBridge = prefs.getBoolean("auto_bridge", false);
     }
 }
