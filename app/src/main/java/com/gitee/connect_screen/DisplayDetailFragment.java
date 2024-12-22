@@ -229,7 +229,7 @@ public class DisplayDetailFragment extends Fragment {
         // 添加桥接按钮
         Button bridgeButton = view.findViewById(R.id.bridge_button);
 
-        if (displayId == State.getBridgeVirtualDisplayId()) {
+        if (displayId == State.getBridgeVirtualDisplayId() || displayId == State.bridgeDisplayId) {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setText("退出桥接");
             bridgeButton.setOnClickListener(v -> {
@@ -499,7 +499,7 @@ private void showBridgeDialog() {
                 BridgePref.skipMediaProjectionPermission = skipMediaProjectionPermissionCheckbox.isChecked();
                 BridgePref.autoBridge = autoBridgeCheckbox.isChecked();
                 BridgePref.save(getContext());
-                State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("Bridge", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
+                State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
             })
             .setNegativeButton("取消", null)
             .show();
