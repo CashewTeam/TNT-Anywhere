@@ -25,11 +25,30 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/placeholderText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:textSize="16sp"
-        android:textColor="@color/black"/>
+        android:text="外接输入设备："
+        android:textStyle="bold"
+        android:textSize="16sp"/>
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvExternalDevices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="内置输入设备："
+        android:textStyle="bold"
+        android:textSize="16sp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvInternalDevices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"/>
 </LinearLayout> 

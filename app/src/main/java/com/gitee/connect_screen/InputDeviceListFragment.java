@@ -15,7 +15,10 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.hardware.input.InputManager;
 import android.hardware.display.DisplayManager;
@@ -31,42 +34,22 @@ public class InputDeviceListFragment extends Fragment {
     private List<Display> displayList;
     private Spinner spinnerDisplays;
     private Button btnBind;
+    private RecyclerView rvExternalDevices;
+    private RecyclerView rvInternalDevices;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_input_device_list, container, false);
         
-        TextView placeholderText = view.findViewById(R.id.placeholderText);
         spinnerDisplays = view.findViewById(R.id.spinnerDisplays);
         btnBind = view.findViewById(R.id.btnBind);
-        
-        // 获取输入设备管理器
-        InputManager inputManager = (InputManager) requireContext().getSystemService(Context.INPUT_SERVICE);
-        
-        // 获取所有输入设备ID
-        int[] deviceIds = inputManager.getInputDeviceIds();
-        
-        // 构建设备列表字符串
-        StringBuilder deviceList = new StringBuilder();
-        deviceList.append("外接输入设备列表:\n\n");
-        
-        for (int deviceId : deviceIds) {
-            InputDevice device = InputDevice.getDevice(deviceId);
-            if (device != null && device.isExternal()) {
-                deviceList.append(device.getName()).append("\n");
-            }
-        }
-        
-        // 如果没有外接设备，显示提示信息
-        if (deviceList.toString().equals("外接输入设备列表:\n\n")) {
-            deviceList.append("未检测到外接输入设备");
-        }
-        
-        placeholderText.setText(deviceList.toString());
+        rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
+        rvInternalDevices = view.findViewById(R.id.rvInternalDevices);
         
         initializeDisplaySpinner();
         setupBindButton();
+        setupDeviceLists();
         
         return view;
     }
@@ -102,5 +85,50 @@ public class InputDeviceListFragment extends Fragment {
                 State.startNewJob(new BindAllExternalInputToDisplay(selectedDisplay.getDisplayId()));
             }
         });
+    }
+
+    private void setupDeviceLists() {
+        InputManager inputManager = (InputManager) requireContext().getSystemService(Context.INPUT_SERVICE);
+        int[] deviceIds = inputManager.getInputDeviceIds();
+        
+        List<InputDevice> externalDevices = new ArrayList<>();
+        List<InputDevice> internalDevices = new ArrayList<>();
+        
+        for (int deviceId : deviceIds) {
+            InputDevice device = InputDevice.getDevice(deviceId);
+            if (device != null) {
+                if (device.isExternal()) {
+                    externalDevices.add(device);
+                } else {
+                    internalDevices.add(device);
+                }
+            }
+        }
+
+        rvExternalDevices.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvInternalDevices.setLayoutManager(new LinearLayoutManager(requireContext()));
+        
+        DeviceAdapter externalAdapter = new DeviceAdapter(externalDevices, this::showDeviceDetails);
+        DeviceAdapter internalAdapter = new DeviceAdapter(internalDevices, this::showDeviceDetails);
+        
+        rvExternalDevices.setAdapter(externalAdapter);
+        rvInternalDevices.setAdapter(internalAdapter);
+    }
+
+    private void showDeviceDetails(InputDevice device) {
+        // 显示设备详情，可以使用 Dialog 或启动新的 Activity
+        String details = String.format(
+            "设备名称：%s\n设备ID：%d\n产品ID：%d\n供应商ID：%d",
+            device.getName(),
+            device.getId(),
+            device.getProductId(),
+            device.getVendorId()
+        );
+        
+        new AlertDialog.Builder(requireContext())
+            .setTitle("设备详情")
+            .setMessage(details)
+            .setPositiveButton("确定", null)
+            .show();
     }
 } 
