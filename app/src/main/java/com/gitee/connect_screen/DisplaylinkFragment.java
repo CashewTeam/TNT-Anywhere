@@ -293,8 +293,7 @@ public class DisplaylinkFragment extends Fragment {
         if (displaylinkState.getVirtualDisplay() != null) {
             viewVirtualDisplayButton.setVisibility(View.VISIBLE);
             viewVirtualDisplayButton.setOnClickListener(v -> {
-                MainActivity activity = (MainActivity) getActivity();
-                activity.pushBreadcrumb("虚拟显示器", () -> 
+                State.breadcrumbManager.pushBreadcrumb("虚拟显示器", () ->
                     DisplayDetailFragment.newInstance(displaylinkState.getVirtualDisplay().getDisplay().getDisplayId())
                 );
             });

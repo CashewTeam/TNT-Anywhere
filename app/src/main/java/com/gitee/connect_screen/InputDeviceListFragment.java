@@ -116,8 +116,7 @@ public class InputDeviceListFragment extends Fragment {
     }
 
     private void showDeviceDetails(InputDevice device) {
-        MainActivity activity = (MainActivity) getActivity();
-        activity.pushBreadcrumb(device.getName(), () -> 
+        State.breadcrumbManager.pushBreadcrumb(device.getName(), () ->
         InputDeviceDetailFragment.newInstance(device.getId())
         );
     }

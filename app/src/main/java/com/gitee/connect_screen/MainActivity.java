@@ -293,10 +293,6 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    public void pushBreadcrumb(String newPath, BreadcrumbManager.FragmentFactory fragmentFactory) {
-        breadcrumbManager.pushBreadcrumb(newPath, fragmentFactory);
-    }
-    
     @Override
     public void onBackPressed() {
         breadcrumbManager.popBreadcrumb();

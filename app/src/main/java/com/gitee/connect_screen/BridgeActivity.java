@@ -222,10 +222,9 @@ public class BridgeActivity extends AppCompatActivity {
             } else {
                 State.bridgeVirtualDisplay.setSurface(surface);
             }
-            MainActivity mainActivity = State.currentActivity.get();
-            mainActivity.onBackPressed();
+            State.breadcrumbManager.popBreadcrumb();
             Display jumpToDisplay = State.bridgeVirtualDisplay.getDisplay();
-            mainActivity.pushBreadcrumb("屏幕 " + jumpToDisplay.getDisplayId(), () -> DisplayDetailFragment.newInstance(jumpToDisplay.getDisplayId()));
+            State.breadcrumbManager.pushBreadcrumb("屏幕 " + jumpToDisplay.getDisplayId(), () -> DisplayDetailFragment.newInstance(jumpToDisplay.getDisplayId()));
         }
 
         @Override

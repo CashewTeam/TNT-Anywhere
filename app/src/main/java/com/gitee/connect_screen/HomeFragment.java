@@ -47,17 +47,11 @@ public class HomeFragment extends Fragment {
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
         displayDeviceBtn.setOnClickListener(v -> {
-            MainActivity activity = (MainActivity) getActivity();
-            if (activity != null) {
-                activity.pushBreadcrumb("屏幕", () -> new DisplayListFragment());
-            }
+            State.breadcrumbManager.pushBreadcrumb("屏幕", () -> new DisplayListFragment());
         });
 
         displaylinkBtn.setOnClickListener(v -> {
-            MainActivity activity = (MainActivity) getActivity();
-            if (activity != null) {
-                activity.pushBreadcrumb("Displaylink", () -> new DisplaylinkFragment());
-            }
+            State.breadcrumbManager.pushBreadcrumb("Displaylink", () -> new DisplaylinkFragment());
         });
 
         simulateScreenOffBtn.setOnClickListener(v -> {
@@ -67,18 +61,12 @@ public class HomeFragment extends Fragment {
         });
 
         inputDeviceBtn.setOnClickListener(v -> {
-            MainActivity activity = (MainActivity) getActivity();
-            if (activity != null) {
-                activity.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
-            }
+            State.breadcrumbManager.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
         });
 
         aboutBtn.setOnClickListener(v -> {
             // 处理关于按钮的点击事件
-            MainActivity activity = (MainActivity) getActivity();
-            if (activity != null) {
-                activity.pushBreadcrumb("关于", () -> new AboutFragment());
-            }
+            State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
         });
 
         return view;

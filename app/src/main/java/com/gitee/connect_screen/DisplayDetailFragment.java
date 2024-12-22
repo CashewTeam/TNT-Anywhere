@@ -219,8 +219,7 @@ public class DisplayDetailFragment extends Fragment {
             }
             gotoDisplaylinkButton.setVisibility(View.VISIBLE);
             gotoDisplaylinkButton.setOnClickListener(v -> {
-                MainActivity activity = (MainActivity) getActivity();
-                activity.pushBreadcrumb("Displaylink", () -> 
+                State.breadcrumbManager.pushBreadcrumb("Displaylink", () ->
                     DisplaylinkFragment.newInstance()
                 );
             });
