@@ -34,15 +34,15 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
     private PackageManager packageManager;
 
     public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId, SharedPreferences sharedPreferences) {
-        this.appList = appList != null ? appList : Collections.emptyList();
-        this.filteredList = new ArrayList<>(this.appList);
         this.packageManager = packageManager;
         this.targetDisplayId = targetDisplayId;
         this.sharedPreferences = sharedPreferences;
-        sortAppList();
+        this.appList = appList != null ? appList : Collections.emptyList();
+        sortAppList(this.appList);
+        this.filteredList = new ArrayList<>(this.appList);
     }
 
-    private void sortAppList() {
+    private void sortAppList(List<ApplicationInfo> appList) {
         Collections.sort(appList, (app1, app2) -> {
             Long time1 = sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app1.packageName, 0L);
             Long time2 = sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app2.packageName, 0L);
@@ -69,6 +69,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
                 }
             }
         }
+        sortAppList(filteredList);
         notifyDataSetChanged();
     }
 
