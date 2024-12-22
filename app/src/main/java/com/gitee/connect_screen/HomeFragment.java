@@ -69,6 +69,7 @@ public class HomeFragment extends Fragment {
         inputDeviceBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
+                activity.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
             }
         });
 
