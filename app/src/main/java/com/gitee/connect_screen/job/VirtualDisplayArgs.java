@@ -1,6 +1,9 @@
 package com.gitee.connect_screen.job;
 
-public class VirtualDisplayArgs {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class VirtualDisplayArgs implements Parcelable {
     public final int monitorWidth;
     public final int monitorHeight;
     public final int virtualDisplayWidth;
@@ -31,4 +34,40 @@ public class VirtualDisplayArgs {
         this.refreshRate = refreshRate;
         this.rotatesWithContent = rotatesWithContent;
     }
+
+    protected VirtualDisplayArgs(Parcel in) {
+        virtualDisplayName = in.readString();
+        monitorWidth = in.readInt();
+        monitorHeight = in.readInt();
+        virtualDisplayWidth = in.readInt();
+        refreshRate = in.readInt();
+        rotatesWithContent = in.readByte() != 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(virtualDisplayName);
+        dest.writeInt(monitorWidth);
+        dest.writeInt(monitorHeight);
+        dest.writeInt(virtualDisplayWidth);
+        dest.writeInt(refreshRate);
+        dest.writeByte((byte) (rotatesWithContent ? 1 : 0));
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<VirtualDisplayArgs> CREATOR = new Creator<VirtualDisplayArgs>() {
+        @Override
+        public VirtualDisplayArgs createFromParcel(Parcel in) {
+            return new VirtualDisplayArgs(in);
+        }
+
+        @Override
+        public VirtualDisplayArgs[] newArray(int size) {
+            return new VirtualDisplayArgs[size];
+        }
+    };
 }

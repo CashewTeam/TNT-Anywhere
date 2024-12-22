@@ -37,7 +37,8 @@ public class CreateVirtualDisplay {
     private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
     private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
 
-    public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, int virtualDisplayWidth, Surface surface) {
+    public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
+        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
         if (ShizukuUtils.hasPermission()) {
             IDisplayManager displayManager = ServiceUtils.getDisplayManager();
             int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC

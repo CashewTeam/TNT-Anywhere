@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -15,6 +16,9 @@ import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.gitee.connect_screen.job.CreateVirtualDisplay;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -24,7 +28,16 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class BridgeActivity extends AppCompatActivity {
 
+    public static VirtualDisplay virtualDisplay;
     private GLSurfaceView glSurfaceView;
+
+    public static void stopVirtualDisplay() {
+        if (virtualDisplay == null) {
+            return;
+        }
+        virtualDisplay.release();
+        virtualDisplay = null;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +73,8 @@ public class BridgeActivity extends AppCompatActivity {
         // 创建并设置 GLSurfaceView
         glSurfaceView = new GLSurfaceView(this);
         glSurfaceView.setEGLContextClientVersion(2);
-        glSurfaceView.setRenderer(new OpenGLRenderer(glSurfaceView));
+        VirtualDisplayArgs args = getIntent().getParcelableExtra("virtualDisplayArgs");
+        glSurfaceView.setRenderer(new OpenGLRenderer(glSurfaceView, args));
         setContentView(glSurfaceView);
     }
 
@@ -89,6 +103,7 @@ public class BridgeActivity extends AppCompatActivity {
         private int mvpMatrixHandle;
         private ByteBuffer vertexBuffer;
         private ByteBuffer texcoordBuffer;
+        private final VirtualDisplayArgs args;
 
         private final String vertexShader = "attribute vec4 position;\n" +
                 "attribute vec2 texcoord;\n" +
@@ -107,8 +122,9 @@ public class BridgeActivity extends AppCompatActivity {
                 "    gl_FragColor = texture2D(texture, v_texcoord);\n" +
                 "}";
 
-        public OpenGLRenderer(GLSurfaceView glSurfaceView) {
+        public OpenGLRenderer(GLSurfaceView glSurfaceView, VirtualDisplayArgs args) {
             this.glSurfaceView = glSurfaceView;
+            this.args = args;
         }
 
         @Override
@@ -117,23 +133,23 @@ public class BridgeActivity extends AppCompatActivity {
             int[] textures = new int[1];
             GLES20.glGenTextures(1, textures, 0);
             textureId = textures[0];
+            // 创建 SurfaceTexture 和 Surface
+            surfaceTexture = new SurfaceTexture(textureId);
+            State.currentActivity.get().runOnUiThread(() -> {
+                startProjection();
+            });
+        }
+
+        private void startProjection() {
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
 
-            // 创建 SurfaceTexture 和 Surface
-            surfaceTexture = new SurfaceTexture(textureId);
             surfaceTexture.setOnFrameAvailableListener(surfaceTexture -> {
                 // 请求重新绘制
                 glSurfaceView.requestRender();
             });
             surface = new Surface(surfaceTexture);
-
-            // 创建虚拟显示
-            State.mediaProjection.createVirtualDisplay("Preview",
-                    1920, 1080, 160,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                    surface, null, null);
 
             // 初始化顶点和纹理坐标
             float[] vertices = {
@@ -160,6 +176,10 @@ public class BridgeActivity extends AppCompatActivity {
 
             // 初始化着色器程序
             program = createProgram();
+
+            // 使用传入的参数创建虚拟显示
+            stopVirtualDisplay();
+            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
         }
 
         @Override
@@ -170,6 +190,9 @@ public class BridgeActivity extends AppCompatActivity {
 
         @Override
         public void onDrawFrame(GL10 gl) {
+            if (virtualDisplay == null) {
+                return;
+            }
             surfaceTexture.updateTexImage();
 
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);

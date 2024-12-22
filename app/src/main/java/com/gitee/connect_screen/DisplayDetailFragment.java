@@ -36,6 +36,8 @@ import java.net.ServerSocket;
 import com.gitee.connect_screen.job.ChangeDPI;
 import com.gitee.connect_screen.job.ChangeResolution;
 import com.gitee.connect_screen.job.ChangeRotation;
+import com.gitee.connect_screen.job.ProjectViaBridge;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -487,6 +489,7 @@ private void showBridgeDialog() {
                 BridgePref.skipMediaProjectionPermission = skipMediaProjectionPermissionCheckbox.isChecked();
                 BridgePref.autoBridge = autoBridgeCheckbox.isChecked();
                 BridgePref.save(getContext());
+                State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("Bridge", display.getWidth(), display.getHeight(), display.getWidth(), 60, BridgePref.rotatesWithContent)));
             })
             .setNegativeButton("取消", null)
             .show();

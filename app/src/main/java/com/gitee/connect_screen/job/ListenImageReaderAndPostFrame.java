@@ -53,7 +53,7 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
         Surface surface = usbState.imageReader.getSurface();
-        VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, virtualDisplayWidth, surface);
+        VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
         usbState.createdVirtualDisplay(virtualDisplay);
         int displayId = virtualDisplay.getDisplay().getDisplayId();
         if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
