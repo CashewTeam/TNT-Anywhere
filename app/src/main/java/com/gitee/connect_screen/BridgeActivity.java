@@ -133,49 +133,54 @@ public class BridgeActivity extends AppCompatActivity {
             int[] textures = new int[1];
             GLES20.glGenTextures(1, textures, 0);
             textureId = textures[0];
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+
+
+            
+
             // 创建 SurfaceTexture 和 Surface
             surfaceTexture = new SurfaceTexture(textureId);
+
+            
+            // 初始化顶点和纹理坐标
+            float[] vertices = {
+                -1.0f, -1.0f,  // 左下
+                1.0f, -1.0f,   // 右下
+                -1.0f, 1.0f,   // 左上
+                1.0f, 1.0f     // 右上
+        };
+
+        float[] texCoords = {
+                0.0f, 0.0f,    // 左下
+                1.0f, 0.0f,    // 右下
+                0.0f, 1.0f,    // 左上
+                1.0f, 1.0f     // 右上
+        };
+
+        vertexBuffer = ByteBuffer.allocateDirect(vertices.length * 4)
+                .order(ByteOrder.nativeOrder());
+        vertexBuffer.asFloatBuffer().put(vertices).position(0);
+
+        texcoordBuffer = ByteBuffer.allocateDirect(texCoords.length * 4)
+                .order(ByteOrder.nativeOrder());
+        texcoordBuffer.asFloatBuffer().put(texCoords).position(0);
+
+        // 初始化着色器程序
+        program = createProgram();
             State.currentActivity.get().runOnUiThread(() -> {
                 startProjection();
             });
         }
 
         private void startProjection() {
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
-            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
-            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-
             surfaceTexture.setOnFrameAvailableListener(surfaceTexture -> {
                 // 请求重新绘制
                 glSurfaceView.requestRender();
             });
             surface = new Surface(surfaceTexture);
 
-            // 初始化顶点和纹理坐标
-            float[] vertices = {
-                    -1.0f, -1.0f,  // 左下
-                    1.0f, -1.0f,   // 右下
-                    -1.0f, 1.0f,   // 左上
-                    1.0f, 1.0f     // 右上
-            };
-
-            float[] texCoords = {
-                    0.0f, 0.0f,    // 左下
-                    1.0f, 0.0f,    // 右下
-                    0.0f, 1.0f,    // 左上
-                    1.0f, 1.0f     // 右上
-            };
-
-            vertexBuffer = ByteBuffer.allocateDirect(vertices.length * 4)
-                    .order(ByteOrder.nativeOrder());
-            vertexBuffer.asFloatBuffer().put(vertices).position(0);
-
-            texcoordBuffer = ByteBuffer.allocateDirect(texCoords.length * 4)
-                    .order(ByteOrder.nativeOrder());
-            texcoordBuffer.asFloatBuffer().put(texCoords).position(0);
-
-            // 初始化着色器程序
-            program = createProgram();
 
             // 使用传入的参数创建虚拟显示
             stopVirtualDisplay();
@@ -197,7 +202,6 @@ public class BridgeActivity extends AppCompatActivity {
 
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
             GLES20.glUseProgram(program);
-
 
             // 设置顶点坐标数据
             GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
