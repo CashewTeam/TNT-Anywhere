@@ -8,7 +8,14 @@ import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+import android.opengl.GLSurfaceView;
+
 public class BridgeActivity extends AppCompatActivity {
+
+    private GLSurfaceView glSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +48,22 @@ public class BridgeActivity extends AppCompatActivity {
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
         
-        // 这里后续可以添加 OpenGL 相关的视图
-        // setContentView() 将在实现 OpenGL 渲染时设置
+        // 创建并设置 GLSurfaceView
+        glSurfaceView = new GLSurfaceView(this);
+        glSurfaceView.setEGLContextClientVersion(2);
+        glSurfaceView.setRenderer(new OpenGLRenderer(glSurfaceView));
+        setContentView(glSurfaceView);
     }
-} 
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        glSurfaceView.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        glSurfaceView.onResume();
+    }
+}
