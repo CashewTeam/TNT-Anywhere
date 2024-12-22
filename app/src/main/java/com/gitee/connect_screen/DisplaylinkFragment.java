@@ -23,7 +23,7 @@ import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.job.MirrorViaDisplaylink;
+import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.Arrays;
@@ -244,7 +244,7 @@ public class DisplaylinkFragment extends Fragment {
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
             DisplaylinkPref.save(getContext());
-            State.startNewJob(new MirrorViaDisplaylink(device, usbState.virtualDisplayArgs));
+            State.startNewJob(new ProjectViaDisplaylink(device, usbState.virtualDisplayArgs));
         });
 
         rotatesWithContentCheckbox.setChecked(DisplaylinkPref.rotatesWithContent);

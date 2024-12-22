@@ -18,7 +18,7 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 
-public class MirrorViaDisplaylink implements Job {
+public class ProjectViaDisplaylink implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean usbRequested = false;
     private boolean device2UsbRequested = false;
@@ -27,7 +27,7 @@ public class MirrorViaDisplaylink implements Job {
     private boolean userServiceRequested = false;
     private final VirtualDisplayArgs virtualDisplayArgs;
 
-    public MirrorViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
+    public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
         this.deviceName = device.getDeviceName();
         this.virtualDisplayArgs = virtualDisplayArgs;
         State.getOrCreateUsbState(device);
