@@ -30,14 +30,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:minWidth="200dp"
         android:text="屏幕" />
 
     <Button
-        android:id="@+id/usbDeviceBtn"
+        android:id="@+id/displaylinkBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="USB设备" />
+        android:minWidth="200dp"
+        android:text="Displaylink" />
 
 
     <Button
@@ -45,6 +47,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:minWidth="200dp"
         android:text="输入设备" />
     
     <Button
@@ -52,12 +55,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:minWidth="200dp"
         android:text="模拟熄屏" />
 
     <Button
         android:id="@+id/aboutBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:minWidth="200dp"
         android:text="关于" />
 
 </LinearLayout>

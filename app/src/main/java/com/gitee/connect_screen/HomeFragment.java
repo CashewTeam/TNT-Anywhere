@@ -41,7 +41,7 @@ public class HomeFragment extends Fragment {
         updateShizukuStatus(shizukuStatus);
 
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
-        Button usbDeviceBtn = view.findViewById(R.id.usbDeviceBtn);
+        Button displaylinkBtn = view.findViewById(R.id.displaylinkBtn);
         Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
         Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
@@ -53,7 +53,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        usbDeviceBtn.setOnClickListener(v -> {
+        displaylinkBtn.setOnClickListener(v -> {
             MainActivity activity = (MainActivity) getActivity();
             if (activity != null) {
                 activity.pushBreadcrumb("Displaylink", () -> new DisplaylinkFragment());
