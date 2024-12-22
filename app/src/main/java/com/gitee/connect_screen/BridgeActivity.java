@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.Display;
 import android.view.Surface;
 import android.view.View;
 import android.view.Window;
@@ -199,20 +200,23 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
             GLES20.glUniform1i(textureHandle, 0);
-
-            if (State.bridgeVirtualDisplay == null) {
-                State.currentActivity.get().runOnUiThread(() -> {
-                    startProjection();
-                });
-            } else {
-                State.bridgeVirtualDisplay.setSurface(surface);
-            }
+            State.currentActivity.get().runOnUiThread(() -> {
+                startProjection();
+            });
         }
 
         private void startProjection() {
-            // 使用传入的参数创建虚拟显示
-            stopVirtualDisplay();
-            State.bridgeVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
+            if (State.bridgeVirtualDisplay == null) {
+                // 使用传入的参数创建虚拟显示
+                stopVirtualDisplay();
+                State.bridgeVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
+            } else {
+                State.bridgeVirtualDisplay.setSurface(surface);
+            }
+            MainActivity mainActivity = State.currentActivity.get();
+            mainActivity.onBackPressed();
+            Display jumpToDisplay = State.bridgeVirtualDisplay.getDisplay();
+            mainActivity.pushBreadcrumb("屏幕 " + jumpToDisplay.getDisplayId(), () -> DisplayDetailFragment.newInstance(jumpToDisplay.getDisplayId()));
         }
 
         @Override

@@ -37,6 +37,7 @@ public class State {
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
+    public static int bridgeDisplayId;
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 

@@ -41,6 +41,7 @@ public class ProjectViaBridge implements Job {
             options.setLaunchDisplayId(bridgeDisplayId);
             context.startActivity(intent, options.toBundle());
         }
+        State.bridgeDisplayId = bridgeDisplayId;
     }
 
     private boolean requestMediaProjectionPermission(Context context) throws YieldException {
