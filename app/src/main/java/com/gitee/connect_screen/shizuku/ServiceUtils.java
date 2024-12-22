@@ -98,16 +98,20 @@ public class ServiceUtils {
     }
 
     public static void launchPackage(Context context, String packageName, int targetDisplayId) {
-        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            if (State.virtualDisplayIds.containsKey(targetDisplayId)) {
-                launchAppWithShizuku(packageName, context, targetDisplayId);
-            } else if (State.bridgeVirtualDisplay != null && State.bridgeVirtualDisplay.getDisplay().getDisplayId() == targetDisplayId) {
-                launchAppWithShizuku(packageName, context, targetDisplayId);
-            } else {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 launchAppNormally(packageName, context, targetDisplayId);
+            } else {
+                if (State.virtualDisplayIds.containsKey(targetDisplayId)) {
+                    launchAppWithShizuku(packageName, context, targetDisplayId);
+                } else if (State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                    launchAppWithShizuku(packageName, context, targetDisplayId);
+                } else {
+                    launchAppNormally(packageName, context, targetDisplayId);
+                }
             }
-        } else {
-            launchAppNormally(packageName, context, targetDisplayId);
+        } catch (Exception e) {
+            launchAppWithShizuku(packageName, context, targetDisplayId);
         }
     }
 

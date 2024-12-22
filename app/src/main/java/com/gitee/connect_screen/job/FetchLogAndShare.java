@@ -95,6 +95,7 @@ public class FetchLogAndShare implements Job {
             State.currentActivity.get().startActivity(Intent.createChooser(shareIntent, "分享日志文件"));
             
         } catch (RemoteException | IOException e) {
+            Toast.makeText(State.currentActivity.get(), "请检查下载目录下是否导出了 '安卓屏连.log' 这个文件", Toast.LENGTH_LONG).show();
             throw new RuntimeException(e);
         }
     }
