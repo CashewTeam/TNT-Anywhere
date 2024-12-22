@@ -238,7 +238,7 @@ public class DisplayDetailFragment extends Fragment {
                     BridgeActivity.getInstance().finish();
                 }
             });
-        } else if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
+        } else if(displayId != Display.DEFAULT_DISPLAY && !State.virtualDisplayIds.containsKey(displayId) && ShizukuUtils.hasShizukuStarted()) {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setOnClickListener(v -> showBridgeDialog());
         }
