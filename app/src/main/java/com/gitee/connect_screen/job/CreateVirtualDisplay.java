@@ -86,7 +86,7 @@ public class CreateVirtualDisplay {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
             } else {
-                displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", "DisplayLink", virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160, surface, flags, "DisplayLink");
+                displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160, surface, flags, virtualDisplayArgs.virtualDisplayName);
             }
             DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
             State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);

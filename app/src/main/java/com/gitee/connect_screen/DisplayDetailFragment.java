@@ -463,16 +463,11 @@ private void showRotationDialog() {
 
 private void showBridgeDialog() {
     View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_bridge, null);
-    CheckBox skipPermissionCheckbox = dialogView.findViewById(R.id.skip_permission_checkbox);
 
     new AlertDialog.Builder(getContext())
             .setTitle("桥接设置")
             .setView(dialogView)
             .setPositiveButton("确定", (dialog, which) -> {
-                boolean skipPermission = skipPermissionCheckbox.isChecked();
-                Intent intent = new Intent(getContext(), BridgeActivity.class);
-                intent.putExtra("skip_permission", skipPermission);
-                startActivity(intent);
             })
             .setNegativeButton("取消", null)
             .show();
