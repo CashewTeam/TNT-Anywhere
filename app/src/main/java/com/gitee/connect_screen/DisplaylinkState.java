@@ -12,7 +12,7 @@ import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
 
-public class UsbState {
+public class DisplaylinkState {
     public UsbDevice device;
     public UsbDeviceConnection usbConnection;
     public UsbDevice displaylinkDevice2;

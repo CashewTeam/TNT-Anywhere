@@ -16,10 +16,8 @@ import com.gitee.connect_screen.shizuku.UserService;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import rikka.shizuku.Shizuku;
 
@@ -30,7 +28,7 @@ public class State {
     public static boolean hasService = false;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
-    public static Map<String, UsbState> usbStates = new HashMap<>();
+    public static Map<String, DisplaylinkState> usbStates = new HashMap<>();
     public static MediaProjection mediaProjection;
     public static int lastSingleAppDisplay;
     public static Map<Integer, UsbDevice> virtualDisplayIds = new HashMap<>();
@@ -132,20 +130,20 @@ public class State {
         }
     }
 
-    public static UsbState getOrCreateUsbState(UsbDevice device) {
-        UsbState usbState = usbStates.computeIfAbsent(device.getDeviceName(), k -> new UsbState());
-        usbState.device = device;
-        return usbState;
+    public static DisplaylinkState getOrCreateUsbState(UsbDevice device) {
+        DisplaylinkState displaylinkState = usbStates.computeIfAbsent(device.getDeviceName(), k -> new DisplaylinkState());
+        displaylinkState.device = device;
+        return displaylinkState;
     }
 
-    public static UsbState getUsbState(String deviceName) {
+    public static DisplaylinkState getUsbState(String deviceName) {
         return usbStates.get(deviceName);
     }
 
     public static void removeUsbState(String deviceName) {
-        UsbState usbState = usbStates.get(deviceName);
-        if (usbState != null) {
-            usbState.destroy();
+        DisplaylinkState displaylinkState = usbStates.get(deviceName);
+        if (displaylinkState != null) {
+            displaylinkState.destroy();
             usbStates.remove(deviceName);
         }
         if (deviceName.equals(displaylinkDeviceName)) {

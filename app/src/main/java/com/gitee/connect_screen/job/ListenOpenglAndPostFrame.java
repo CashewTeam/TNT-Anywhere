@@ -10,10 +10,9 @@ import android.opengl.Matrix;
 import android.util.Log;
 import android.view.Surface;
 
-import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.DisplaylinkState;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -64,12 +63,12 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
     public Surface surface;
     private EGLSurface eglSurface;
     private int frameCounter;
-    private UsbState usbState;
+    private DisplaylinkState displaylinkState;
     private int mvpMatrixHandle;
 
-    public void startVirtualDisplay(UsbState usbState) {
+    public void startVirtualDisplay(DisplaylinkState displaylinkState) {
         try {
-            this.usbState = usbState;
+            this.displaylinkState = displaylinkState;
             egl = (EGL10) EGLContext.getEGL();
             eglDisplay = egl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
             if (eglDisplay == EGL10.EGL_NO_DISPLAY) {
@@ -148,7 +147,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             };
             surfaceTexture.setOnFrameAvailableListener(this);
             this.surface = new Surface(surfaceTexture);
-            usbState.createdVirtualDisplay(
+            displaylinkState.createdVirtualDisplay(
                 State.mediaProjection.createVirtualDisplay("DisplayLink",
                     targetWidth, height, dpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
@@ -316,7 +315,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
 
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        usbState.frameCounter++;
+        displaylinkState.frameCounter++;
         try {
             if (program == 0) {
                 // 初始化离屏渲染
@@ -328,7 +327,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
                     return;
                 }
                 State.log("创建着色器程序成功");
-                usbState.nativeDriver.setMode(usbState.encoderId, new DisplayMode(1920, 1080, 60), 7680, 1);
+                displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(1920, 1080, 60), 7680, 1);
             }
 
             // 确保在更新纹理前清除所有GL错误
@@ -367,8 +366,8 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             buffer.position(0);
             GLES20.glReadPixels(0, 0, 1920, 1080, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
             buffer.rewind();
-            int resultCode = usbState.nativeDriver.postFrame(usbState.encoderId, buffer);
-            usbState.recentPostFrameResultCodes[usbState.frameCounter % usbState.recentPostFrameResultCodes.length] = resultCode;
+            int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
+            displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
             if (resultCode < 0) {
                 Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
             }

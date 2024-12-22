@@ -31,7 +31,7 @@ import java.util.Arrays;
 public class DisplaylinkFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
     private UsbDevice device;
-    private UsbState usbState;
+    private DisplaylinkState displaylinkState;
     private View sourceScreenSizeLayout;
     private View aspectRatioExplanation;
     private CheckBox rotatesWithContentCheckbox;
@@ -54,7 +54,7 @@ public class DisplaylinkFragment extends Fragment {
         DisplaylinkPref.load(getContext());
         if (getArguments() != null) {
             device = getArguments().getParcelable(ARG_DEVICE);
-            usbState = State.getOrCreateUsbState(device);
+            displaylinkState = State.getOrCreateUsbState(device);
         }
     }
 
@@ -214,37 +214,37 @@ public class DisplaylinkFragment extends Fragment {
         sb.append("设备子类: ").append(device.getDeviceSubclass()).append("\n");
         sb.append("协议: ").append(device.getDeviceProtocol()).append("\n");
 
-        sb.append("Native Driver: ").append(usbState.nativeDriver != null ? "已连接" : "未连接").append("\n");
+        sb.append("Native Driver: ").append(displaylinkState.nativeDriver != null ? "已连接" : "未连接").append("\n");
         if (DisplaylinkPref.monitorWidth != 0) {
             monitorWidthInput.setText(String.valueOf(DisplaylinkPref.monitorWidth));
-        } else if (usbState.monitorInfo != null) {
-            monitorWidthInput.setText(String.valueOf(usbState.monitorInfo.a[0].width));
+        } else if (displaylinkState.monitorInfo != null) {
+            monitorWidthInput.setText(String.valueOf(displaylinkState.monitorInfo.a[0].width));
         } else {
             monitorWidthInput.setText("未连接");
         }
         if (DisplaylinkPref.monitorHeight != 0) {
             monitorHeightInput.setText(String.valueOf(DisplaylinkPref.monitorHeight));
-        } else if (usbState.monitorInfo != null) {
-            monitorHeightInput.setText(String.valueOf(usbState.monitorInfo.a[0].height));
+        } else if (displaylinkState.monitorInfo != null) {
+            monitorHeightInput.setText(String.valueOf(displaylinkState.monitorInfo.a[0].height));
         } else {
             monitorHeightInput.setText("未连接");
         }
-        if (usbState.getVirtualDisplay() != null) {
-            Display display = usbState.getVirtualDisplay().getDisplay();
+        if (displaylinkState.getVirtualDisplay() != null) {
+            Display display = displaylinkState.getVirtualDisplay().getDisplay();
             DisplayMetrics metrics = new DisplayMetrics();
             display.getRealMetrics(metrics);
             sb.append("虚拟显示器: ").append(display.getDisplayId()).append(", 宽: ").append(metrics.widthPixels).append(", 高: ").append(metrics.heightPixels).append("\n");
         } else {
             sb.append("虚拟显示器: ").append("未连接").append("\n");
         }
-        sb.append("总发送帧数: ").append(usbState.frameCounter).append("\n");
-        sb.append("最近发送帧状态码: ").append(Arrays.toString(usbState.recentPostFrameResultCodes)).append("\n");
+        sb.append("总发送帧数: ").append(displaylinkState.frameCounter).append("\n");
+        sb.append("最近发送帧状态码: ").append(Arrays.toString(displaylinkState.recentPostFrameResultCodes)).append("\n");
 
         detailContent.setText(sb.toString());
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
             DisplaylinkPref.save(getContext());
-            State.startNewJob(new ProjectViaDisplaylink(device, usbState.virtualDisplayArgs));
+            State.startNewJob(new ProjectViaDisplaylink(device, displaylinkState.virtualDisplayArgs));
         });
 
         rotatesWithContentCheckbox.setChecked(DisplaylinkPref.rotatesWithContent);
@@ -285,19 +285,19 @@ public class DisplaylinkFragment extends Fragment {
 
         // 添加查看虚拟显示器按钮
         Button viewVirtualDisplayButton = view.findViewById(R.id.view_virtual_display_button);
-        if (usbState.getVirtualDisplay() != null) {
+        if (displaylinkState.getVirtualDisplay() != null) {
             viewVirtualDisplayButton.setVisibility(View.VISIBLE);
             viewVirtualDisplayButton.setOnClickListener(v -> {
                 MainActivity activity = (MainActivity) getActivity();
                 activity.pushBreadcrumb("虚拟显示器", () -> 
-                    DisplayDetailFragment.newInstance(usbState.getVirtualDisplay().getDisplay().getDisplayId())
+                    DisplayDetailFragment.newInstance(displaylinkState.getVirtualDisplay().getDisplay().getDisplayId())
                 );
             });
             launchAppButton.setOnClickListener(v -> {
                 Context context = State.currentActivity.get();
                 Intent intent = new Intent(context, LauncherActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, usbState.getVirtualDisplay().getDisplay().getDisplayId());
+                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displaylinkState.getVirtualDisplay().getDisplay().getDisplayId());
                 context.startActivity(intent);
             });
         } else {
@@ -310,7 +310,7 @@ public class DisplaylinkFragment extends Fragment {
     }
 
     private void updateView() {
-        if (usbState == null) return;
+        if (displaylinkState == null) return;
         
         // 更新16:9模式相关视图
         boolean is16_9Mode = DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
@@ -322,7 +322,7 @@ public class DisplaylinkFragment extends Fragment {
         skipMediaProjectionPermissionCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         autoOpenLastAppCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
         launchAppButton.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
-        if (usbState.getVirtualDisplay() == null) {
+        if (displaylinkState.getVirtualDisplay() == null) {
             launchAppButton.setVisibility(View.GONE);
         }
 
@@ -352,13 +352,13 @@ public class DisplaylinkFragment extends Fragment {
                 explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
                 explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
 
-                usbState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
+                displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
                 ((TextView) aspectRatioExplanation).setText(explanation.toString());
             } catch (NumberFormatException e) {
                 // 忽略无效输入
             }
         } else {
-            usbState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
+            displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
         }
         aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
     }

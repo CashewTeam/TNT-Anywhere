@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 
 public class NativeDriverListener {
@@ -24,14 +24,14 @@ public class NativeDriverListener {
     public void onDisplayDisconnected(long encoderId) {
         Log.i("displaylink", "onDisplayDisconnected");
         State.currentActivity.get().runOnUiThread(() -> {
-            UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState == null) {
+            DisplaylinkState displaylinkState = State.getUsbState(usbDeviceName);
+            if (displaylinkState == null) {
                 State.log("Display已断开, 但找不到 USB 设备");
             } else {
                 State.log("Display已断开, 关闭 usb 对应的状态");
-                usbState.stopVirtualDisplay();
-                usbState.encoderId = 0;
-                usbState.monitorInfo = null;
+                displaylinkState.stopVirtualDisplay();
+                displaylinkState.encoderId = 0;
+                displaylinkState.monitorInfo = null;
                 State.resumeJob();
             }
         });
@@ -49,13 +49,13 @@ public class NativeDriverListener {
         Log.i("displaylink", "onUpdateMonitorInfo");
         State.currentActivity.get().runOnUiThread(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
-            UsbState usbState = State.getUsbState(usbDeviceName);
-            if (usbState != null) {
-                boolean wasNoMonitor = usbState.monitorInfo == null;
-                usbState.encoderId = encoderId;
-                usbState.monitorInfo = monitorInfo;
+            DisplaylinkState displaylinkState = State.getUsbState(usbDeviceName);
+            if (displaylinkState != null) {
+                boolean wasNoMonitor = displaylinkState.monitorInfo == null;
+                displaylinkState.encoderId = encoderId;
+                displaylinkState.monitorInfo = monitorInfo;
                 if (!State.isJobRunning() && wasNoMonitor) {
-                    State.startNewJob(new ProjectViaDisplaylink(usbState.device, usbState.virtualDisplayArgs));
+                    State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs));
                 }
             }
         });

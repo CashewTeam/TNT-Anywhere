@@ -20,7 +20,7 @@ import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
 
 public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailableListener {
 
-    private UsbState usbState;
+    private DisplaylinkState displaylinkState;
     private boolean hasSetMode = false;
     private Image lastImage;
     private static byte[] rowDatas;
@@ -39,22 +39,22 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private int monitorHeight;
     private int refreshRate;
 
-    public void startVirtualDisplay(UsbState usbState, VirtualDisplayArgs virtualDisplayArgs) {
-        this.usbState = usbState;
+    public void startVirtualDisplay(DisplaylinkState displaylinkState, VirtualDisplayArgs virtualDisplayArgs) {
+        this.displaylinkState = displaylinkState;
         this.monitorWidth = virtualDisplayArgs.monitorWidth;
         this.monitorHeight = virtualDisplayArgs.monitorHeight;
         this.refreshRate = virtualDisplayArgs.refreshRate;
         int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
 
-        usbState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
-        usbState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
-        usbState.handlerThread.start();
-        usbState.handler = new Handler(usbState.handlerThread.getLooper());
+        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
+        displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
+        displaylinkState.handlerThread.start();
+        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
 
-        usbState.imageReader.setOnImageAvailableListener(this, usbState.handler);
-        Surface surface = usbState.imageReader.getSurface();
+        displaylinkState.imageReader.setOnImageAvailableListener(this, displaylinkState.handler);
+        Surface surface = displaylinkState.imageReader.getSurface();
         VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
-        usbState.createdVirtualDisplay(virtualDisplay);
+        displaylinkState.createdVirtualDisplay(virtualDisplay);
         int displayId = virtualDisplay.getDisplay().getDisplayId();
         if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
             MainActivity mainActivity = State.currentActivity.get();
@@ -79,15 +79,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     @Override
     public void onImageAvailable(ImageReader reader) {
-        if (usbState.getVirtualDisplay() == null) {
+        if (displaylinkState.getVirtualDisplay() == null) {
             return;
         }
-        usbState.frameCounter++;
-        Image thisImage = usbState.imageReader.acquireNextImage();
+        displaylinkState.frameCounter++;
+        Image thisImage = displaylinkState.imageReader.acquireNextImage();
         Image.Plane plane = thisImage.getPlanes()[0];
         if (!hasSetMode) {
             hasSetMode = true;
-            usbState.nativeDriver.setMode(usbState.encoderId, new DisplayMode(monitorWidth, monitorHeight, refreshRate), plane.getRowStride(), 1);
+            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(monitorWidth, monitorHeight, refreshRate), plane.getRowStride(), 1);
             int imageWidth = thisImage.getWidth();
             pixelStride = plane.getPixelStride();
             rowStride = plane.getRowStride();
@@ -104,8 +104,8 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             }
             buffer.rewind();
         }
-        int resultCode = usbState.nativeDriver.postFrame(usbState.encoderId, buffer);
-        usbState.recentPostFrameResultCodes[usbState.frameCounter % usbState.recentPostFrameResultCodes.length] = resultCode;
+        int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
+        displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
         if (resultCode < 0) {
             Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
         }

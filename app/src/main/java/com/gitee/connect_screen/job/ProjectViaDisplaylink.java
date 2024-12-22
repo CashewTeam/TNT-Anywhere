@@ -13,7 +13,7 @@ import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.UsbState;
+import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
@@ -40,9 +40,9 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-        UsbState usbState = State.getUsbState(deviceName);
+        DisplaylinkState displaylinkState = State.getUsbState(deviceName);
 
-        if (usbState == null) {
+        if (displaylinkState == null) {
             State.log("USB 设备 " + deviceName + " 状态不存在，跳过任务");
             return;
         }
@@ -70,24 +70,24 @@ public class ProjectViaDisplaylink implements Job {
             }
         }
 
-        if (usbState.displaylinkDevice2 != null && usbState.getVirtualDisplay() != null) {
-            usbState.destroy();
+        if (displaylinkState.displaylinkDevice2 != null && displaylinkState.getVirtualDisplay() != null) {
+            displaylinkState.destroy();
         }
 
-        if (!requestUsbPermission(context, usbManager, usbState.device)) {
+        if (!requestUsbPermission(context, usbManager, displaylinkState.device)) {
             return;
         }
-        if (!requestDevice2UsbPermission(context, usbManager, usbState)) {
+        if (!requestDevice2UsbPermission(context, usbManager, displaylinkState)) {
             return;
         }
-        openUsbConnection(context, usbManager, usbState);
-        if (!initializeNativeDriver(context, usbState)) {
+        openUsbConnection(context, usbManager, displaylinkState);
+        if (!initializeNativeDriver(context, displaylinkState)) {
             return;
         }
-        if (!requestMediaProjectionPermission(context, usbState)) {
+        if (!requestMediaProjectionPermission(context, displaylinkState)) {
             return;
         }
-        createVirtualDisplay(context, usbState);
+        createVirtualDisplay(context, displaylinkState);
     }
 
     private boolean requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
@@ -105,11 +105,11 @@ public class ProjectViaDisplaylink implements Job {
         return true;
     }
 
-    private void openUsbConnection(Context context, UsbManager usbManager, UsbState usbState) {
-        if (usbState.displaylinkDevice2 == null) {
-            if (usbState.usbConnection == null) {
-                usbState.usbConnection = usbManager.openDevice(usbState.device);
-                if (usbState.usbConnection == null) {
+    private void openUsbConnection(Context context, UsbManager usbManager, DisplaylinkState displaylinkState) {
+        if (displaylinkState.displaylinkDevice2 == null) {
+            if (displaylinkState.usbConnection == null) {
+                displaylinkState.usbConnection = usbManager.openDevice(displaylinkState.device);
+                if (displaylinkState.usbConnection == null) {
                     throw new RuntimeException("无法打开 USB 设备连接");
                 } else {
                     State.log("成功打开 USB 设备连接");
@@ -118,18 +118,18 @@ public class ProjectViaDisplaylink implements Job {
                 State.log("USB 设备连接已存在");
             }
         } else {
-            if (usbState.displaylinkConnection2 == null || usbState.usbConnection == null || usbState.usbConnection.getRawDescriptors() == null) {
-                if (usbState.usbConnection != null) {
-                    usbState.usbConnection.close();
+            if (displaylinkState.displaylinkConnection2 == null || displaylinkState.usbConnection == null || displaylinkState.usbConnection.getRawDescriptors() == null) {
+                if (displaylinkState.usbConnection != null) {
+                    displaylinkState.usbConnection.close();
                 }
-                usbState.usbConnection = usbManager.openDevice(usbState.device);
-                if (usbState.usbConnection == null) {
+                displaylinkState.usbConnection = usbManager.openDevice(displaylinkState.device);
+                if (displaylinkState.usbConnection == null) {
                     throw new RuntimeException("无法打开 USB 设备连接");
                 } else {
                     State.log("成功打开 USB 设备连接");
                 }
-                usbState.displaylinkConnection2 = usbManager.openDevice(usbState.displaylinkDevice2);
-                if (usbState.displaylinkConnection2 == null) {
+                displaylinkState.displaylinkConnection2 = usbManager.openDevice(displaylinkState.displaylinkDevice2);
+                if (displaylinkState.displaylinkConnection2 == null) {
                     throw new RuntimeException("无法打开第二个 USB 设备连接");
                 } else {
                     State.log("成功打开第二个 USB 设备连接");
@@ -138,67 +138,67 @@ public class ProjectViaDisplaylink implements Job {
                 State.log("第二个 USB 设备连接已存在");
             }
         }
-        if (usbState.usbConnection.getRawDescriptors() == null) {
+        if (displaylinkState.usbConnection.getRawDescriptors() == null) {
             throw new RuntimeException("USB 连接无法获得 raw descriptors");
         }
     }
 
-    private boolean requestDevice2UsbPermission(Context context, UsbManager usbManager, UsbState usbState) throws YieldException {
-        if (usbState.displaylinkDevice2 == null) {
+    private boolean requestDevice2UsbPermission(Context context, UsbManager usbManager, DisplaylinkState displaylinkState) throws YieldException {
+        if (displaylinkState.displaylinkDevice2 == null) {
             for (UsbDevice device : usbManager.getDeviceList().values()) {
-                if (device.getDeviceName().equals(usbState.device.getDeviceName())) {
+                if (device.getDeviceName().equals(displaylinkState.device.getDeviceName())) {
                     continue;
                 }
                 if (device.getVendorId() == 6121) {
-                    usbState.displaylinkDevice2 = device;
+                    displaylinkState.displaylinkDevice2 = device;
                     break;
                 }
             }
         }
-        if (usbState.displaylinkDevice2 == null) {
+        if (displaylinkState.displaylinkDevice2 == null) {
             return true;
         }
-        if (usbManager.hasPermission(usbState.displaylinkDevice2)) {
-            State.log("已经拥有第二个 USB 设备权限: " + usbState.displaylinkDevice2.getDeviceName());
+        if (usbManager.hasPermission(displaylinkState.displaylinkDevice2)) {
+            State.log("已经拥有第二个 USB 设备权限: " + displaylinkState.displaylinkDevice2.getDeviceName());
             return true;
         } else if (device2UsbRequested) {
-            State.log("因为未授予第二个 USB 设备权限: " + usbState.displaylinkDevice2.getDeviceName() + "，跳过任务");
+            State.log("因为未授予第二个 USB 设备权限: " + displaylinkState.displaylinkDevice2.getDeviceName() + "，跳过任务");
             return false;
         }
         device2UsbRequested = true;
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-        usbManager.requestPermission(usbState.displaylinkDevice2, pendingIntent);
+        usbManager.requestPermission(displaylinkState.displaylinkDevice2, pendingIntent);
         throw new YieldException("等待用户第二个 USB 授权");
     }
-    private boolean initializeNativeDriver(Context context, UsbState usbState) throws YieldException {
-        if (usbState.displaylinkDevice2 != null && usbState.monitorInfo == null) {
-            if (usbState.nativeDriver != null) {
-                usbState.nativeDriver.destroy();
-                usbState.nativeDriver = null;
+    private boolean initializeNativeDriver(Context context, DisplaylinkState displaylinkState) throws YieldException {
+        if (displaylinkState.displaylinkDevice2 != null && displaylinkState.monitorInfo == null) {
+            if (displaylinkState.nativeDriver != null) {
+                displaylinkState.nativeDriver.destroy();
+                displaylinkState.nativeDriver = null;
             }
         }
-        if (usbState.nativeDriver == null) {
-            usbState.nativeDriver = new NativeDriver();
-            usbState.nativeDriverListener = new NativeDriverListener(deviceName);
-            usbState.nativeDriver.destroy();
-            int resultCode = usbState.nativeDriver.create(usbState.nativeDriverListener, context.getFilesDir().toString(), false);
+        if (displaylinkState.nativeDriver == null) {
+            displaylinkState.nativeDriver = new NativeDriver();
+            displaylinkState.nativeDriverListener = new NativeDriverListener(deviceName);
+            displaylinkState.nativeDriver.destroy();
+            int resultCode = displaylinkState.nativeDriver.create(displaylinkState.nativeDriverListener, context.getFilesDir().toString(), false);
             if (resultCode != 0) {
                 throw new RuntimeException("创建NativeDriver失败: " + resultCode);
             } else {
                 State.log("创建NativeDriver成功");
             }
-            usbState.nativeDriver.usbDeviceDetached(deviceName);
-            if (usbState.displaylinkDevice2 != null) {
-                usbState.nativeDriver.usbDeviceDetached(usbState.displaylinkDevice2.getDeviceName());
+            displaylinkState.nativeDriver.usbDeviceDetached(deviceName);
+            if (displaylinkState.displaylinkDevice2 != null) {
+                displaylinkState.nativeDriver.usbDeviceDetached(displaylinkState.displaylinkDevice2.getDeviceName());
             }
-            resultCode = usbState.nativeDriver.usbDeviceAttached(deviceName, usbState.usbConnection.getFileDescriptor(), usbState.usbConnection.getRawDescriptors(), usbState.usbConnection.getRawDescriptors().length);
+            resultCode = displaylinkState.nativeDriver.usbDeviceAttached(deviceName, displaylinkState.usbConnection.getFileDescriptor(), displaylinkState.usbConnection.getRawDescriptors(), displaylinkState.usbConnection.getRawDescriptors().length);
             if (resultCode != 0) {
                 throw new RuntimeException("附加USB设备失败: " + resultCode);
             } else {
                 State.log("附加USB设备成功");
             }
-            if (usbState.displaylinkDevice2 != null) {
-                resultCode = usbState.nativeDriver.usbDeviceAttached(usbState.displaylinkDevice2.getDeviceName(), usbState.displaylinkConnection2.getFileDescriptor(), usbState.displaylinkConnection2.getRawDescriptors(), usbState.displaylinkConnection2.getRawDescriptors().length);
+            if (displaylinkState.displaylinkDevice2 != null) {
+                resultCode = displaylinkState.nativeDriver.usbDeviceAttached(displaylinkState.displaylinkDevice2.getDeviceName(), displaylinkState.displaylinkConnection2.getFileDescriptor(), displaylinkState.displaylinkConnection2.getRawDescriptors(), displaylinkState.displaylinkConnection2.getRawDescriptors().length);
                 if (resultCode != 0) {
                     throw new RuntimeException("附加第二个USB设备失败: " + resultCode);
                 } else {
@@ -209,17 +209,17 @@ public class ProjectViaDisplaylink implements Job {
             State.log("NativeDriver 已经存在，跳过重复创建");
         }
 
-        if (usbState.monitorInfo == null) {
+        if (displaylinkState.monitorInfo == null) {
             State.log("未找到显示器信息, 请连接显示器之后重试");
             return false;
         }
         return true;
     }
 
-    private boolean requestMediaProjectionPermission(Context context, UsbState usbState) throws YieldException {
+    private boolean requestMediaProjectionPermission(Context context, DisplaylinkState displaylinkState) throws YieldException {
         if (DisplaylinkPref.skipMediaProjectionPermission) {
             // 无需 media projection 授权
-            usbState.stopVirtualDisplay();
+            displaylinkState.stopVirtualDisplay();
             return true;
         }
         if (State.mediaProjection != null) {
@@ -233,7 +233,7 @@ public class ProjectViaDisplaylink implements Job {
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
-        usbState.stopVirtualDisplay();
+        displaylinkState.stopVirtualDisplay();
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {
@@ -245,12 +245,12 @@ public class ProjectViaDisplaylink implements Job {
         }
     }
 
-    private void createVirtualDisplay(Context context, UsbState usbState) {
-        if (usbState.getVirtualDisplay() != null) {
+    private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState) {
+        if (displaylinkState.getVirtualDisplay() != null) {
             State.log("虚拟显示已存在，跳过重复创建");
             return;
         }
-        new ListenImageReaderAndPostFrame().startVirtualDisplay(usbState, virtualDisplayArgs);
+        new ListenImageReaderAndPostFrame().startVirtualDisplay(displaylinkState, virtualDisplayArgs);
 //        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
         State.log("虚拟显示已创建");
     }
