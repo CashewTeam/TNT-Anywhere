@@ -223,6 +223,10 @@ public class DisplayDetailFragment extends Fragment {
             });
         }
 
+        // 添加桥接按钮
+        Button bridgeButton = view.findViewById(R.id.bridge_button);
+        bridgeButton.setOnClickListener(v -> showBridgeDialog());
+
         return view;
     }
 
@@ -452,6 +456,23 @@ private void showRotationDialog() {
                         rotation = -1;
                 }
                 State.startNewJob(new ChangeRotation(displayId, rotation));
+            })
+            .setNegativeButton("取消", null)
+            .show();
+}
+
+private void showBridgeDialog() {
+    View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_bridge, null);
+    CheckBox skipPermissionCheckbox = dialogView.findViewById(R.id.skip_permission_checkbox);
+
+    new AlertDialog.Builder(getContext())
+            .setTitle("桥接设置")
+            .setView(dialogView)
+            .setPositiveButton("确定", (dialog, which) -> {
+                boolean skipPermission = skipPermissionCheckbox.isChecked();
+                Intent intent = new Intent(getContext(), BridgeActivity.class);
+                intent.putExtra("skip_permission", skipPermission);
+                startActivity(intent);
             })
             .setNegativeButton("取消", null)
             .show();
