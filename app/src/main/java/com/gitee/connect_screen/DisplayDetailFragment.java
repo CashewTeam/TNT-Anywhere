@@ -95,6 +95,7 @@ public class DisplayDetailFragment extends Fragment {
         display = displayManager.getDisplay(displayId);
 
         if(display == null) {
+            State.currentActivity.get().onBackPressed();
             return view;
         }
 
@@ -227,11 +228,20 @@ public class DisplayDetailFragment extends Fragment {
 
         // 添加桥接按钮
         Button bridgeButton = view.findViewById(R.id.bridge_button);
-        if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
-            bridgeButton.setVisibility(View.VISIBLE);
-        }
-        bridgeButton.setOnClickListener(v -> showBridgeDialog());
 
+        if (displayId == State.getBridgeVirtualDisplayId()) {
+            bridgeButton.setVisibility(View.VISIBLE);
+            bridgeButton.setText("退出桥接");
+            bridgeButton.setOnClickListener(v -> {
+                BridgeActivity.stopVirtualDisplay();
+                if (BridgeActivity.getInstance() != null) {
+                    BridgeActivity.getInstance().finish();
+                }
+            });
+        } else if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
+            bridgeButton.setVisibility(View.VISIBLE);
+            bridgeButton.setOnClickListener(v -> showBridgeDialog());
+        }
         return view;
     }
 

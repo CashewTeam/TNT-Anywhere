@@ -33,6 +33,12 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class BridgeActivity extends AppCompatActivity {
 
+    private static BridgeActivity instance;
+
+    public static BridgeActivity getInstance() {
+        return instance;
+    }
+
     private GLSurfaceView glSurfaceView;
     private OpenGLRenderer renderer;
 
@@ -40,6 +46,7 @@ public class BridgeActivity extends AppCompatActivity {
         if (State.bridgeVirtualDisplay == null) {
             return;
         }
+        State.bridgeDisplayId = -1;
         State.bridgeVirtualDisplay.release();
         State.bridgeVirtualDisplay = null;
     }
@@ -47,6 +54,7 @@ public class BridgeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
 
         // 隐藏标题栏
         if (getSupportActionBar() != null) {
@@ -97,6 +105,7 @@ public class BridgeActivity extends AppCompatActivity {
         ActivityOptions options = ActivityOptions.makeBasic();
         options.setLaunchDisplayId(0);
         this.startActivity(intent, options.toBundle());
+        instance = null;
     }
 
     private static class OpenGLRenderer implements GLSurfaceView.Renderer {
@@ -154,7 +163,7 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
 
-            // 初始化顶点和纹理坐标
+            // 初始化顶点和��理坐标
             float[] vertices = {
                     -1.0f, -1.0f, // 左下
                     1.0f, -1.0f, // 右下

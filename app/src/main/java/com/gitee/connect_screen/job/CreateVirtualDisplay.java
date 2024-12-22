@@ -118,12 +118,15 @@ public class CreateVirtualDisplay {
                     throw new RuntimeException(e);
                 }
             }
+            State.mediaProjection = null;
             return virtualDisplay;
         } else {
-            return State.mediaProjection.createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
+            VirtualDisplay virtualDisplay = State.mediaProjection.createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
                     virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 160,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
+            State.mediaProjection = null;
+            return virtualDisplay;
         }
     }
 }

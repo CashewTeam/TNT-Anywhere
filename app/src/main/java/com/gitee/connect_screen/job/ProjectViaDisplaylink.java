@@ -252,7 +252,6 @@ public class ProjectViaDisplaylink implements Job {
         }
         new ListenImageReaderAndPostFrame().startVirtualDisplay(usbState, virtualDisplayArgs);
 //        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
-        State.mediaProjection = null;
         State.log("虚拟显示已创建");
     }
 }

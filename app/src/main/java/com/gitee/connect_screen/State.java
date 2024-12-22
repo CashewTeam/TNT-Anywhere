@@ -37,7 +37,7 @@ public class State {
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
-    public static int bridgeDisplayId;
+    public static int bridgeDisplayId = -1;
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
@@ -161,5 +161,12 @@ public class State {
         } catch (Exception e) {
             // ignore
         }
+    }
+
+    public static int getBridgeVirtualDisplayId() {
+        if (bridgeVirtualDisplay == null) {
+            return -1;
+        }
+        return bridgeVirtualDisplay.getDisplay().getDisplayId();
     }
 }
