@@ -34,7 +34,13 @@ public class DisplayListFragment extends Fragment {
         // 设置RecyclerView
         RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(new DisplayAdapter(Arrays.asList(displays), this::onDisplayItemClick));
+        List<Display> displayList = new ArrayList<>();
+        for (Display display : displays) {
+            if (display.getDisplayId() != State.bridgeDisplayId) {
+                displayList.add(display);
+            }
+        }
+        recyclerView.setAdapter(new DisplayAdapter(displayList, this::onDisplayItemClick));
 
         // 添加按钮点击事件
         view.findViewById(R.id.btnOpenCast).setOnClickListener(v -> {
