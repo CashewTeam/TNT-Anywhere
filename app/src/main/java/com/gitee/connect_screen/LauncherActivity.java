@@ -19,6 +19,9 @@ import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.util.DisplayMetrics;
 import android.widget.Toast;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
 
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -28,6 +31,8 @@ import java.util.ArrayList;
 public class LauncherActivity extends AppCompatActivity {
     // 添加常量定义
     public static final String EXTRA_TARGET_DISPLAY_ID = "target_display_id";
+    
+    private AppListAdapter adapter;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,8 +74,23 @@ public class LauncherActivity extends AppCompatActivity {
             .filter(app -> (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
             .collect(Collectors.toList());
         
-        // 创建适配器时传入目标显示器ID和 SharedPreferences
-        AppListAdapter adapter = new AppListAdapter(
+        // 设置搜索框监听器
+        EditText searchBox = findViewById(R.id.search_box);
+        searchBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                adapter.filter(s.toString());
+            }
+        });
+        
+        // 创建适配器时保存引用
+        adapter = new AppListAdapter(
             userApps, 
             pm, 
             targetDisplayId,

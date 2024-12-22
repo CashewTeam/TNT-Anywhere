@@ -23,16 +23,19 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 import java.util.List;
 import java.util.Collections;
+import java.util.ArrayList;
 
 public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHolder> {
     private static final String LAUNCH_TIME_PREFIX = "launch_time_";
     private List<ApplicationInfo> appList;
+    private List<ApplicationInfo> filteredList;
     private int targetDisplayId;
     private SharedPreferences sharedPreferences;
     private PackageManager packageManager;
 
     public AppListAdapter(List<ApplicationInfo> appList, PackageManager packageManager, int targetDisplayId, SharedPreferences sharedPreferences) {
         this.appList = appList != null ? appList : Collections.emptyList();
+        this.filteredList = new ArrayList<>(this.appList);
         this.packageManager = packageManager;
         this.targetDisplayId = targetDisplayId;
         this.sharedPreferences = sharedPreferences;
@@ -53,6 +56,22 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         });
     }
 
+    public void filter(String query) {
+        filteredList.clear();
+        if (query.isEmpty()) {
+            filteredList.addAll(appList);
+        } else {
+            String lowerQuery = query.toLowerCase();
+            for (ApplicationInfo app : appList) {
+                String appName = app.loadLabel(packageManager).toString().toLowerCase();
+                if (appName.contains(lowerQuery)) {
+                    filteredList.add(app);
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
+
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
@@ -62,7 +81,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        ApplicationInfo app = appList.get(position);
+        ApplicationInfo app = filteredList.get(position);
         holder.text1.setText(app.loadLabel(packageManager));
         holder.text2.setText(app.packageName);
         
@@ -93,7 +112,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
 
     @Override
     public int getItemCount() {
-        return appList.size();
+        return filteredList.size();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
