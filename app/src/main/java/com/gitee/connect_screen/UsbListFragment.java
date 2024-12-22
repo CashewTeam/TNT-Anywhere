@@ -37,7 +37,7 @@ public class UsbListFragment extends Fragment {
             if (activity != null) {
                 UsbMonitor.handleDisplaylink(device);
                 if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
-                    activity.pushBreadcrumb(device.getDeviceName(), () -> DisplaylinkFragment.newInstance(device));
+                    activity.pushBreadcrumb(device.getDeviceName(), () -> DisplaylinkFragment.newInstance());
                 } else {
                     activity.pushBreadcrumb(device.getDeviceName(), () -> UsbDeviceDetailFragment.newInstance(device));
                 }

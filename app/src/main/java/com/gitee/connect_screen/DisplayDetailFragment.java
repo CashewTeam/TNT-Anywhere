@@ -221,7 +221,7 @@ public class DisplayDetailFragment extends Fragment {
             gotoDisplaylinkButton.setOnClickListener(v -> {
                 MainActivity activity = (MainActivity) getActivity();
                 activity.pushBreadcrumb("Displaylink", () -> 
-                    DisplaylinkFragment.newInstance(usbDevice)
+                    DisplaylinkFragment.newInstance()
                 );
             });
         }

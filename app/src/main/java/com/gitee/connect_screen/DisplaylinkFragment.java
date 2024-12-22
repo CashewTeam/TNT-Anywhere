@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -22,6 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.job.UsbMonitor;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -40,11 +42,8 @@ public class DisplaylinkFragment extends Fragment {
     private View frameRateLayout;
     private View launchAppButton;
 
-    public static DisplaylinkFragment newInstance(UsbDevice device) {
+    public static DisplaylinkFragment newInstance() {
         DisplaylinkFragment fragment = new DisplaylinkFragment();
-        Bundle args = new Bundle();
-        args.putParcelable(ARG_DEVICE, device);
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -52,16 +51,22 @@ public class DisplaylinkFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         DisplaylinkPref.load(getContext());
-        if (getArguments() != null) {
-            device = getArguments().getParcelable(ARG_DEVICE);
-            displaylinkState = State.getOrCreateUsbState(device);
-        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        UsbManager usbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
+        for (UsbDevice usbDevice : usbManager.getDeviceList().values()) {
+            UsbMonitor.handleDisplaylink(usbDevice);
+        }
+        device = usbManager.getDeviceList().get(State.displaylinkDeviceName);
+        if (device == null) {
+            TextView textView = new TextView(getActivity());
+            textView.setText("未找到 Displaylink 设备。USB 2.0 的手机需要插入 Displaylink 扩展坞才能接显示器。");
+            return textView;
+        }
+        displaylinkState = State.getOrCreateUsbState(device);
         View view = inflater.inflate(R.layout.fragment_displaylink, container, false);
-
         rotatesWithContentCheckbox = view.findViewById(R.id.rotatesWithContentCheckbox);
         skipMediaProjectionPermissionCheckbox = view.findViewById(R.id.skipMediaProjectionPermissionCheckbox);
         autoOpenLastAppCheckbox = view.findViewById(R.id.autoOpenLastAppCheckbox);
