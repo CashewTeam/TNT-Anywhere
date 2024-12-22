@@ -43,6 +43,7 @@ public class HomeFragment extends Fragment {
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
         Button usbDeviceBtn = view.findViewById(R.id.usbDeviceBtn);
         Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
+        Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
         displayDeviceBtn.setOnClickListener(v -> {
@@ -63,6 +64,12 @@ public class HomeFragment extends Fragment {
             Intent intent = new Intent(getActivity(), PureBlackActivity.class);
             ActivityOptions options = ActivityOptions.makeBasic();
             startActivity(intent, options.toBundle());
+        });
+
+        inputDeviceBtn.setOnClickListener(v -> {
+            MainActivity activity = (MainActivity) getActivity();
+            if (activity != null) {
+            }
         });
 
         aboutBtn.setOnClickListener(v -> {
