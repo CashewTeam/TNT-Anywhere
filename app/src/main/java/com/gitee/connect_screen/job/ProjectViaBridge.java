@@ -14,6 +14,7 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class ProjectViaBridge implements Job {
+    private final static int REMOVE_CONTENT_MODE_DESTROY = 2;
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private final int bridgeDisplayId;
     private final VirtualDisplayArgs virtualDisplayArgs;
@@ -32,6 +33,7 @@ public class ProjectViaBridge implements Job {
                 return;
             }
         }
+        ServiceUtils.getWindowManager().setRemoveContentMode(bridgeDisplayId, REMOVE_CONTENT_MODE_DESTROY);
         if (requestMediaProjectionPermission(State.currentActivity.get())) {
             Context context = State.currentActivity.get();
             Intent intent = new Intent(context, BridgeActivity.class);
