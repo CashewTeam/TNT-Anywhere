@@ -225,6 +225,9 @@ public class DisplayDetailFragment extends Fragment {
 
         // 添加桥接按钮
         Button bridgeButton = view.findViewById(R.id.bridge_button);
+        if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
+            bridgeButton.setVisibility(View.VISIBLE);
+        }
         bridgeButton.setOnClickListener(v -> showBridgeDialog());
 
         return view;
@@ -463,11 +466,27 @@ private void showRotationDialog() {
 
 private void showBridgeDialog() {
     View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_bridge, null);
+    
+    // 获取复选框引用
+    CheckBox rotatesWithContentCheckbox = dialogView.findViewById(R.id.rotatesWithContentCheckbox);
+    CheckBox skipMediaProjectionPermissionCheckbox = dialogView.findViewById(R.id.skipMediaProjectionPermissionCheckbox);
+    CheckBox autoBridgeCheckbox = dialogView.findViewById(R.id.autoBridgeCheckbox);
+    
+    // 从配置加载当前设置
+    BridgePref.load(getContext());
+    rotatesWithContentCheckbox.setChecked(BridgePref.rotatesWithContent);
+    skipMediaProjectionPermissionCheckbox.setChecked(BridgePref.skipMediaProjectionPermission);
+    autoBridgeCheckbox.setChecked(BridgePref.autoBridge);
 
     new AlertDialog.Builder(getContext())
             .setTitle("桥接设置")
             .setView(dialogView)
             .setPositiveButton("确定", (dialog, which) -> {
+                // 保存设置到配置
+                BridgePref.rotatesWithContent = rotatesWithContentCheckbox.isChecked();
+                BridgePref.skipMediaProjectionPermission = skipMediaProjectionPermissionCheckbox.isChecked();
+                BridgePref.autoBridge = autoBridgeCheckbox.isChecked();
+                BridgePref.save(getContext());
             })
             .setNegativeButton("取消", null)
             .show();
