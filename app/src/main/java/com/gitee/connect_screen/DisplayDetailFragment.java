@@ -489,7 +489,7 @@ private void showBridgeDialog() {
                 BridgePref.skipMediaProjectionPermission = skipMediaProjectionPermissionCheckbox.isChecked();
                 BridgePref.autoBridge = autoBridgeCheckbox.isChecked();
                 BridgePref.save(getContext());
-                State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("Bridge", display.getWidth(), display.getHeight(), display.getWidth(), 60, BridgePref.rotatesWithContent)));
+                State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs("Bridge", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
             })
             .setNegativeButton("取消", null)
             .show();

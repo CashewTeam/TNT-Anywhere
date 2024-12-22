@@ -44,9 +44,11 @@ public class ProjectViaBridge implements Job {
     }
 
     private boolean requestMediaProjectionPermission(Context context) throws YieldException {
+        if (BridgeActivity.virtualDisplay != null) {
+            return true;
+        }
         if (BridgePref.skipMediaProjectionPermission) {
             // 无需 media projection 授权
-            BridgeActivity.stopVirtualDisplay();
             return true;
         }
         if (State.mediaProjection != null) {
@@ -60,7 +62,6 @@ public class ProjectViaBridge implements Job {
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
-        BridgeActivity.stopVirtualDisplay();
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {
