@@ -20,6 +20,7 @@ import android.view.WindowManager;
 import android.view.IWindowManager;
 import android.widget.Toast;
 
+import com.gitee.connect_screen.BridgeActivity;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
 
@@ -97,8 +98,14 @@ public class ServiceUtils {
     }
 
     public static void launchPackage(Context context, String packageName, int targetDisplayId) {
-        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && State.virtualDisplayIds.containsKey(targetDisplayId)) {
-            launchAppWithShizuku(packageName, context, targetDisplayId);
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            if (State.virtualDisplayIds.containsKey(targetDisplayId)) {
+                launchAppWithShizuku(packageName, context, targetDisplayId);
+            } else if (State.bridgeVirtualDisplay != null && State.bridgeVirtualDisplay.getDisplay().getDisplayId() == targetDisplayId) {
+                launchAppWithShizuku(packageName, context, targetDisplayId);
+            } else {
+                launchAppNormally(packageName, context, targetDisplayId);
+            }
         } else {
             launchAppNormally(packageName, context, targetDisplayId);
         }

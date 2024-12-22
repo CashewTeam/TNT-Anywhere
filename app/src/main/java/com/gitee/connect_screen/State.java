@@ -2,6 +2,7 @@ package com.gitee.connect_screen;
 
 import android.content.ComponentName;
 import android.content.ServiceConnection;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.media.projection.MediaProjection;
 import android.os.IBinder;
@@ -35,6 +36,7 @@ public class State {
     public static Map<Integer, UsbDevice> virtualDisplayIds = new HashMap<>();
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
+    public static VirtualDisplay bridgeVirtualDisplay;
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 

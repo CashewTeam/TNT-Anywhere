@@ -1,8 +1,11 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityOptions;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.VirtualDisplay;
+import android.media.ImageReader;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -12,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Surface;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -28,15 +32,15 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class BridgeActivity extends AppCompatActivity {
 
-    public static VirtualDisplay virtualDisplay;
     private GLSurfaceView glSurfaceView;
+    private OpenGLRenderer renderer;
 
     public static void stopVirtualDisplay() {
-        if (virtualDisplay == null) {
+        if (State.bridgeVirtualDisplay == null) {
             return;
         }
-        virtualDisplay.release();
-        virtualDisplay = null;
+        State.bridgeVirtualDisplay.release();
+        State.bridgeVirtualDisplay = null;
     }
 
     @Override
@@ -73,14 +77,25 @@ public class BridgeActivity extends AppCompatActivity {
         glSurfaceView = new GLSurfaceView(this);
         glSurfaceView.setEGLContextClientVersion(2);
         VirtualDisplayArgs args = getIntent().getParcelableExtra("virtualDisplayArgs");
-        glSurfaceView.setRenderer(new OpenGLRenderer(glSurfaceView, args));
+        renderer = new OpenGLRenderer(glSurfaceView, args);
+        glSurfaceView.setRenderer(renderer);
         glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         setContentView(glSurfaceView);
     }
 
     @Override
     protected void onDestroy() {
+        Log.i("BridgeActivity", "BridgeActivity onDestroy");
+        if (renderer != null) {
+            renderer.release();
+            renderer = null;
+        }
         super.onDestroy();
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        ActivityOptions options = ActivityOptions.makeBasic();
+        options.setLaunchDisplayId(0);
+        this.startActivity(intent, options.toBundle());
     }
 
     private static class OpenGLRenderer implements GLSurfaceView.Renderer {
@@ -185,19 +200,19 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
             GLES20.glUniform1i(textureHandle, 0);
 
-            if (virtualDisplay == null) {
+            if (State.bridgeVirtualDisplay == null) {
                 State.currentActivity.get().runOnUiThread(() -> {
                     startProjection();
                 });
             } else {
-                virtualDisplay.setSurface(surface);
+                State.bridgeVirtualDisplay.setSurface(surface);
             }
         }
 
         private void startProjection() {
             // 使用传入的参数创建虚拟显示
             stopVirtualDisplay();
-            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
+            State.bridgeVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
         }
 
         @Override
@@ -207,12 +222,11 @@ public class BridgeActivity extends AppCompatActivity {
 
         @Override
         public void onDrawFrame(GL10 gl) {
-            if (virtualDisplay == null) {
+            if (State.bridgeVirtualDisplay == null) {
                 return;
             }
             try {
                 surfaceTexture.updateTexImage();
-
                 // 绘制
                 GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
             } catch (Throwable e) {
@@ -265,6 +279,31 @@ public class BridgeActivity extends AppCompatActivity {
             mvpMatrixHandle = GLES20.glGetUniformLocation(programHandle, "uMVPMatrix");
 
             return programHandle;
+        }
+
+        public void release() {
+            ImageReader imageReader = ImageReader.newInstance(args.monitorWidth, args.monitorHeight, 1, 2);
+            if (State.bridgeVirtualDisplay != null) {
+                State.bridgeVirtualDisplay.setSurface(imageReader.getSurface());
+            }
+            if (surface != null) {
+                surface.release();
+                surface = null;
+            }
+            if (surfaceTexture != null) {
+                surfaceTexture.setOnFrameAvailableListener(null);
+                surfaceTexture.release();
+                surfaceTexture = null;
+            }
+            if (textureId != 0) {
+                int[] textures = {textureId};
+                GLES20.glDeleteTextures(1, textures, 0);
+                textureId = 0;
+            }
+            if (program != 0) {
+                GLES20.glDeleteProgram(program);
+                program = 0;
+            }
         }
     }
 }
