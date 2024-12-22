@@ -116,19 +116,9 @@ public class InputDeviceListFragment extends Fragment {
     }
 
     private void showDeviceDetails(InputDevice device) {
-        // 显示设备详情，可以使用 Dialog 或启动新的 Activity
-        String details = String.format(
-            "设备名称：%s\n设备ID：%d\n产品ID：%d\n供应商ID：%d",
-            device.getName(),
-            device.getId(),
-            device.getProductId(),
-            device.getVendorId()
+        MainActivity activity = (MainActivity) getActivity();
+        activity.pushBreadcrumb(device.getName(), () -> 
+        InputDeviceDetailFragment.newInstance(device.getId())
         );
-        
-        new AlertDialog.Builder(requireContext())
-            .setTitle("设备详情")
-            .setMessage(details)
-            .setPositiveButton("确定", null)
-            .show();
     }
 } 
