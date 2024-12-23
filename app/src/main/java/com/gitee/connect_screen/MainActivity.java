@@ -53,45 +53,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final BroadcastReceiver usbDetachedReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
-            String action = intent.getAction();
-            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null && State.getUsbState(device.getDeviceName()) != null) {
-                    State.log("USB 设备已断开: " + device.getDeviceName());
-                    State.removeUsbState(device.getDeviceName());
-                    State.resumeJob();
-                }
-                DisplaylinkMonitor.onUsbDeviceDetached(device);
-            }
-        }
-    };
-
-    // 添加一个新的广播接收器来处理 USB 设备连接
-    private final BroadcastReceiver usbAttachedReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
-            String action = intent.getAction();
-            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                DisplaylinkMonitor.onUsbDeviceAttached(device);
-                if (device != null && device.getVendorId() == 6121) {
-                    State.log("USB 设备已连接: " + device.getDeviceName());
-                    if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
-                        State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new ProjectViaDisplaylink(device, State.getOrCreateUsbState(device).virtualDisplayArgs));
-                    } else {
-                        State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
-                    }
-                }
-            }
-        }
-    };
-
     
     private void onRequestPermissionsResult(int requestCode, int grantResult) {
         if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
@@ -161,14 +122,6 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
 
-        // 注册 USB 设备断开广播接收器
-        IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
-
-        // 注册 USB 设备连接广播接收器
-        IntentFilter attachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
-
         // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         DisplayMonitor.init(displayManager);
@@ -199,8 +152,6 @@ public class MainActivity extends AppCompatActivity {
 
         State.currentActivity = null;
         unregisterReceiver(usbPermissionReceiver);
-        unregisterReceiver(usbDetachedReceiver);
-        unregisterReceiver(usbAttachedReceiver);
     }
     
     @Override
