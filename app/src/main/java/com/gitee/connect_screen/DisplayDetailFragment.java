@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.opengl.Visibility;
 import android.os.Bundle;
@@ -236,7 +237,14 @@ public class DisplayDetailFragment extends Fragment {
                     BridgeActivity.getInstance().finish();
                 }
             });
-        } else if(displayId != Display.DEFAULT_DISPLAY && displayId != State.getDisplaylinkVirtualDisplayId() && ShizukuUtils.hasShizukuStarted()) {
+        } else if (displayId == State.getDisplaylinkVirtualDisplayId()) {
+            bridgeButton.setVisibility(View.VISIBLE);
+            bridgeButton.setText("退出 Displaylink 投屏");
+            bridgeButton.setOnClickListener(v -> {
+                State.displaylinkState.stopVirtualDisplay();
+                State.displaylinkState.destroy();
+            });
+        } else if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setOnClickListener(v -> showBridgeDialog());
         }
