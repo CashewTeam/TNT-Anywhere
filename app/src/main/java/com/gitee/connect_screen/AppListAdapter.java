@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 
 import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.List;
 import java.util.Collections;
@@ -89,8 +90,8 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.text2.setText(app.packageName);
         
         holder.btnLaunch.setOnClickListener(v -> {
-            if (sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app.packageName, 0) == 0) {
-                Toast.makeText(v.getContext(), "请先点一次 '回主屏' 按钮，再投屏该应用", Toast.LENGTH_SHORT).show();
+            if (!ShizukuUtils.hasPermission() && sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app.packageName, 0) == 0) {
+                Toast.makeText(v.getContext(), "请先点一次 '回手机' 按钮给予授权，然后再投屏该应用", Toast.LENGTH_SHORT).show();
                 return;
             }
             sharedPreferences.edit()

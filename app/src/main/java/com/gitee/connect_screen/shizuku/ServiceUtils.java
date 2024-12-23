@@ -98,6 +98,10 @@ public class ServiceUtils {
     }
 
     public static void launchPackage(Context context, String packageName, int targetDisplayId) {
+        if (ShizukuUtils.hasPermission()) {
+            launchAppWithShizuku(packageName, context, targetDisplayId);
+            return;
+        }
         try {
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 launchAppNormally(packageName, context, targetDisplayId);
