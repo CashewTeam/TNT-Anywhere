@@ -178,7 +178,7 @@ public class TouchpadActivity extends AppCompatActivity {
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
         
-        // 4. 最后设置内容视图
+        // 4. 最后设��内容视图
         setContentView(R.layout.activity_touchpad);
         
         // 设置触控板区域的帮助文案
@@ -363,7 +363,7 @@ public class TouchpadActivity extends AppCompatActivity {
             "• 双指滑动 - 滚动页面\n" +
             "• 返回按钮 - 在目标屏幕上按返回\n" +
             "• 主页按钮 - 再次打开列表中选择的应用\n" +
-            "• 月亮按钮 - 纯黑色屏幕省电\n" +
+            "• 月亮按钮 - 纯黑色屏幕��电\n" +
             "• 如果蓝牙手柄等控制不了显示器，请尝试用月亮按钮让主屏熄屏，从而把输入焦点转移到显示器"
         );
     }
@@ -537,7 +537,7 @@ public class TouchpadActivity extends AppCompatActivity {
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
         
-        // 复制每个触点的信��
+        // 复制每个触点的信
         for (int i = 0; i < pointerCount; i++) {
             // 复制触点属性
             properties[i] = new MotionEvent.PointerProperties();
@@ -574,5 +574,23 @@ public class TouchpadActivity extends AppCompatActivity {
         isCursorLocked = !isCursorLocked;
         toggleCursorButton.setText(isCursorLocked ? "解锁光标" : "锁定光标");
         updateHelp();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 隐藏光标
+        if (cursorView != null) {
+            cursorView.setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // 显示光标
+        if (cursorView != null) {
+            cursorView.setVisibility(View.VISIBLE);
+        }
     }
 }
