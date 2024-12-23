@@ -56,7 +56,8 @@ public class AboutFragment extends Fragment {
         try {
             String versionName = requireContext().getPackageManager()
                     .getPackageInfo(requireContext().getPackageName(), 0).versionName;
-            versionText.setText("版本：" + versionName);
+            String androidVersion = android.os.Build.VERSION.RELEASE;
+            versionText.setText("版本：" + versionName + " (Android系统 " + androidVersion + ")");
         } catch (Exception e) {
             versionText.setText("版本：未知");
         }

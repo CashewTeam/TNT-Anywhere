@@ -5,6 +5,13 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="桥接功能会创建一个虚拟显示器来做为应用投屏的宿主，从而使得我们可以控制旋转以及在物理显示器断开时仍然可以保持后台应用的存活。"
+        android:textSize="14sp"
+        android:lineSpacingExtra="4dp"/>
+
     <CheckBox
         android:id="@+id/rotatesWithContentCheckbox"
         android:layout_width="match_parent"

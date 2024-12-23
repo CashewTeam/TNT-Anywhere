@@ -160,7 +160,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:visibility="gone"
-            android:text="桥接"/>
+            android:text="桥接 (让竖屏应用自动旋转)"/>
 
     </LinearLayout>
 </ScrollView>
