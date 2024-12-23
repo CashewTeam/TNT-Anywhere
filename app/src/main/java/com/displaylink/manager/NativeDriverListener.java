@@ -24,15 +24,13 @@ public class NativeDriverListener {
     public void onDisplayDisconnected(long encoderId) {
         Log.i("displaylink", "onDisplayDisconnected");
         State.currentActivity.get().runOnUiThread(() -> {
-            DisplaylinkState displaylinkState = State.getUsbState(usbDeviceName);
+            DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState == null) {
                 State.log("Display已断开, 但找不到 USB 设备");
             } else {
                 State.log("Display已断开, 关闭 usb 对应的状态");
-                displaylinkState.stopVirtualDisplay();
                 displaylinkState.encoderId = 0;
                 displaylinkState.monitorInfo = null;
-                State.resumeJob();
             }
         });
     }
@@ -49,7 +47,7 @@ public class NativeDriverListener {
         Log.i("displaylink", "onUpdateMonitorInfo");
         State.currentActivity.get().runOnUiThread(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
-            DisplaylinkState displaylinkState = State.getUsbState(usbDeviceName);
+            DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState != null) {
                 boolean wasNoMonitor = displaylinkState.monitorInfo == null;
                 displaylinkState.encoderId = encoderId;

@@ -28,10 +28,9 @@ public class State {
     public static boolean hasService = false;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
-    public static Map<String, DisplaylinkState> usbStates = new HashMap<>();
+    public static DisplaylinkState displaylinkState = new DisplaylinkState();
     public static MediaProjection mediaProjection;
     public static int lastSingleAppDisplay;
-    public static Map<Integer, UsbDevice> virtualDisplayIds = new HashMap<>();
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
@@ -130,27 +129,6 @@ public class State {
         }
     }
 
-    public static DisplaylinkState getOrCreateUsbState(UsbDevice device) {
-        DisplaylinkState displaylinkState = usbStates.computeIfAbsent(device.getDeviceName(), k -> new DisplaylinkState());
-        displaylinkState.device = device;
-        return displaylinkState;
-    }
-
-    public static DisplaylinkState getUsbState(String deviceName) {
-        return usbStates.get(deviceName);
-    }
-
-    public static void removeUsbState(String deviceName) {
-        DisplaylinkState displaylinkState = usbStates.get(deviceName);
-        if (displaylinkState != null) {
-            displaylinkState.destroy();
-            usbStates.remove(deviceName);
-        }
-        if (deviceName.equals(displaylinkDeviceName)) {
-            displaylinkDeviceName = null;
-        }
-    }
-
     public static void unbindUserService() {
         try {
             if (userService == null) {
@@ -159,6 +137,13 @@ public class State {
         } catch (Exception e) {
             // ignore
         }
+    }
+
+    public static int getDisplaylinkVirtualDisplayId() {
+        if (displaylinkState.getVirtualDisplay() == null) {
+            return -1;
+        }
+        return displaylinkState.getVirtualDisplay().getDisplay().getDisplayId();
     }
 
     public static int getBridgeVirtualDisplayId() {

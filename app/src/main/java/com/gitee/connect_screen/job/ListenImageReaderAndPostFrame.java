@@ -53,8 +53,15 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
         displaylinkState.imageReader.setOnImageAvailableListener(this, displaylinkState.handler);
         Surface surface = displaylinkState.imageReader.getSurface();
-        VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
-        displaylinkState.createdVirtualDisplay(virtualDisplay);
+        VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+        if (virtualDisplay == null) {
+            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
+            displaylinkState.createdVirtualDisplay(virtualDisplay);
+        } else {
+            State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+            virtualDisplay.setSurface(surface);
+            return;
+        }
         int displayId = virtualDisplay.getDisplay().getDisplayId();
         if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
             MainActivity mainActivity = State.currentActivity.get();
@@ -79,7 +86,8 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     @Override
     public void onImageAvailable(ImageReader reader) {
-        if (displaylinkState.getVirtualDisplay() == null) {
+        if (displaylinkState.encoderId == 0) {
+            displaylinkState.imageReader.acquireNextImage().close();
             return;
         }
         displaylinkState.frameCounter++;

@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
             // 处理 USB 设备连接的逻辑
             if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
-                State.startNewJob(new ProjectViaDisplaylink(device, State.getOrCreateUsbState(device).virtualDisplayArgs));
+                State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
             }
         }
 
@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
         DisplayMonitor.init(displayManager);
         InputManager inputManager = (InputManager)getSystemService(Context.INPUT_SERVICE);
         InputDeviceMonitor.init(inputManager);
+        DisplaylinkMonitor.init(this);
 
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);

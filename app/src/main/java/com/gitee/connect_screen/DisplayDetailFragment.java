@@ -202,8 +202,17 @@ public class DisplayDetailFragment extends Fragment {
 
         // 添加 Displaylink 按钮相关逻辑
         gotoDisplaylinkButton = view.findViewById(R.id.goto_displaylink_button);
-        UsbDevice usbDevice = State.virtualDisplayIds.get(displayId);
-        if(usbDevice == null) {
+        if(displayId == State.getDisplaylinkVirtualDisplayId()) {
+            if (!ShizukuUtils.hasPermission()) {
+                launchButton.setVisibility(View.GONE);
+            }
+            gotoDisplaylinkButton.setVisibility(View.VISIBLE);
+            gotoDisplaylinkButton.setOnClickListener(v -> {
+                State.breadcrumbManager.pushBreadcrumb("Displaylink", () ->
+                        DisplaylinkFragment.newInstance()
+                );
+            });
+        } else {
             if (displayId != Display.DEFAULT_DISPLAY) {
                 autoOpenLastAppCheckbox.setVisibility(View.VISIBLE);
                 SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
@@ -213,16 +222,6 @@ public class DisplayDetailFragment extends Fragment {
                     appPreferences.edit().putBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), isChecked).apply();
                 });
             }
-        } else {
-            if (!ShizukuUtils.hasPermission()) {
-                launchButton.setVisibility(View.GONE);
-            }
-            gotoDisplaylinkButton.setVisibility(View.VISIBLE);
-            gotoDisplaylinkButton.setOnClickListener(v -> {
-                State.breadcrumbManager.pushBreadcrumb("Displaylink", () ->
-                    DisplaylinkFragment.newInstance()
-                );
-            });
         }
 
         // 添加桥接按钮
@@ -237,7 +236,7 @@ public class DisplayDetailFragment extends Fragment {
                     BridgeActivity.getInstance().finish();
                 }
             });
-        } else if(displayId != Display.DEFAULT_DISPLAY && !State.virtualDisplayIds.containsKey(displayId) && ShizukuUtils.hasShizukuStarted()) {
+        } else if(displayId != Display.DEFAULT_DISPLAY && displayId != State.getDisplaylinkVirtualDisplayId() && ShizukuUtils.hasShizukuStarted()) {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setOnClickListener(v -> showBridgeDialog());
         }

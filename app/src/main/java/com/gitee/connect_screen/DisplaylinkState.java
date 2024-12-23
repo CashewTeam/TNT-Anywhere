@@ -19,11 +19,11 @@ public class DisplaylinkState {
     public UsbDeviceConnection displaylinkConnection2;
     public NativeDriver nativeDriver;
     public NativeDriverListener nativeDriverListener;
-    public long encoderId = 0;
+    public volatile long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
     public VirtualDisplayArgs virtualDisplayArgs = new VirtualDisplayArgs();
-    private volatile VirtualDisplay virtualDisplay;
+    private VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
     public volatile int frameCounter = 0;
@@ -51,29 +51,32 @@ public class DisplaylinkState {
 
     public void createdVirtualDisplay(VirtualDisplay virtualDisplay) {
         this.virtualDisplay = virtualDisplay;
-        State.virtualDisplayIds.put(virtualDisplay.getDisplay().getDisplayId(), device);
-    }   
+    }
 
     public VirtualDisplay getVirtualDisplay() {
         return virtualDisplay;
     }   
 
     public void stopVirtualDisplay() {
-        VirtualDisplay toStop = virtualDisplay;
-        virtualDisplay = null;
-        if (toStop != null) {
-            State.virtualDisplayIds.remove(toStop.getDisplay().getDisplayId());
-        }
-        stopHandlerThread();
-        stopImageReader();
-        if (toStop != null) {
-            toStop.release();
+        if (virtualDisplay != null) {
+            virtualDisplay.release();
+            virtualDisplay = null;
         }
     }
 
     public void destroy() {
-        stopVirtualDisplay();
+        if (device == null) {
+            return;
+        }
+        if (virtualDisplay != null) {
+            virtualDisplay.setSurface(ImageReader.newInstance(1920, 1080, 1, 2).getSurface());
+        }
+        monitorInfo = null;
+        encoderId = 0;
+        stopHandlerThread();
+        stopImageReader();
         if (nativeDriver != null) {
+            State.log("停止 nativeDriver");
             nativeDriver.usbDeviceDetached(device.getDeviceName());
             if (displaylinkDevice2 != null) {
                 nativeDriver.usbDeviceDetached(displaylinkDevice2.getDeviceName());
@@ -83,11 +86,11 @@ public class DisplaylinkState {
         }
         if (usbConnection != null) {
             usbConnection.close();
+            usbConnection = null;
         }
         if (displaylinkConnection2 != null) {
             displaylinkConnection2.close();
+            displaylinkConnection2 = null;
         }
-        monitorInfo = null;
-        encoderId = 0;
     }
 }

@@ -65,7 +65,8 @@ public class DisplaylinkFragment extends Fragment {
             textView.setText("未找到 Displaylink 设备。USB 2.0 的手机需要插入 Displaylink 扩展坞才能接显示器。");
             return textView;
         }
-        displaylinkState = State.getOrCreateUsbState(device);
+        displaylinkState = State.displaylinkState;
+        displaylinkState.device = device;
         View view = inflater.inflate(R.layout.fragment_displaylink, container, false);
         rotatesWithContentCheckbox = view.findViewById(R.id.rotatesWithContentCheckbox);
         skipMediaProjectionPermissionCheckbox = view.findViewById(R.id.skipMediaProjectionPermissionCheckbox);

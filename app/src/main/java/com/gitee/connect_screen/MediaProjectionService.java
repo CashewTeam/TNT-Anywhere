@@ -27,22 +27,6 @@ public class MediaProjectionService extends Service {
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "MediaProjectionServiceChannel";
 
-    private final BroadcastReceiver usbDetachedReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            android.util.Log.d("MediaProjectionService", "received action: " + intent.getAction());
-            String action = intent.getAction();
-            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null && State.getUsbState(device.getDeviceName()) != null) {
-                    State.log("USB 设备已断开: " + device.getDeviceName());
-                    State.removeUsbState(device.getDeviceName());
-                    State.resumeJob();
-                }
-            }
-        }
-    };
-
     public class LocalBinder extends Binder {
         MediaProjectionService getService() {
             return MediaProjectionService.this;
@@ -56,10 +40,6 @@ public class MediaProjectionService extends Service {
         State.log("MediaProjectionService onCreate");
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
-
-        // 注册 USB 设备断开广播接收器
-        IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
     }
 
     @Override
@@ -86,7 +66,6 @@ public class MediaProjectionService extends Service {
         super.onDestroy();
         State.hasService = false;
         State.log("MediaProjectionService onDestroy");
-        unregisterReceiver(usbDetachedReceiver);
     }
 
     @Override

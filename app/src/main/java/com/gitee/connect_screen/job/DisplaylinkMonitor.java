@@ -23,11 +23,6 @@ public class DisplaylinkMonitor {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null && State.getUsbState(device.getDeviceName()) != null) {
-                    State.log("USB 设备已断开: " + device.getDeviceName());
-                    State.removeUsbState(device.getDeviceName());
-                    State.resumeJob();
-                }
                 DisplaylinkMonitor.onUsbDeviceDetached(device);
             }
         }
@@ -46,7 +41,7 @@ public class DisplaylinkMonitor {
                     State.log("USB 设备已连接: " + device.getDeviceName());
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                         State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new ProjectViaDisplaylink(device, State.getOrCreateUsbState(device).virtualDisplayArgs));
+                        State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
                     } else {
                         State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
                     }
@@ -56,6 +51,10 @@ public class DisplaylinkMonitor {
     };
 
     public static void init(Context context) {
+        UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        for (UsbDevice usbDevice : usbManager.getDeviceList().values()) {
+            handleDisplaylink(usbDevice);
+        }
         // 注册 USB 设备断开广播接收器
         IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
         context.registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
@@ -73,12 +72,16 @@ public class DisplaylinkMonitor {
             if (mainActivity != null) {
                 UsbManager usbManager = (UsbManager) mainActivity.getSystemService(Context.USB_SERVICE);
                 if (usbManager.getDeviceList().get(State.displaylinkDeviceName) == null) {
+                    State.displaylinkState.destroy();
                     State.displaylinkDeviceName = null;
+                    State.displaylinkState.device = null;
                 }
             }
         }
         if (device.getVendorId() == 6121 && State.displaylinkDeviceName == null) {
             State.displaylinkDeviceName = device.getDeviceName();
+            State.displaylinkState.device = device;
+            State.log("发现 Displaylink 设备：" + device.getProductName());
         }
     }
     public static void onUsbDeviceAttached(UsbDevice device) {
@@ -90,7 +93,11 @@ public class DisplaylinkMonitor {
 
     public static void onUsbDeviceDetached(UsbDevice device) {
         if (device != null && device.getDeviceName().equals(State.displaylinkDeviceName)) {
+            State.log("Displaylink设备断开：" + device.getProductName());
+            State.displaylinkState.destroy();
             State.displaylinkDeviceName = null;
+            State.displaylinkState.device = null;
+            State.breadcrumbManager.refreshCurrentFragment();
         }
     }
 

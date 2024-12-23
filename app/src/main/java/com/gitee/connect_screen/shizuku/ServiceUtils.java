@@ -102,9 +102,7 @@ public class ServiceUtils {
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 launchAppNormally(packageName, context, targetDisplayId);
             } else {
-                if (State.virtualDisplayIds.containsKey(targetDisplayId)) {
-                    launchAppWithShizuku(packageName, context, targetDisplayId);
-                } else if (State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                if (State.getDisplaylinkVirtualDisplayId() == targetDisplayId || State.getBridgeVirtualDisplayId() == targetDisplayId) {
                     launchAppWithShizuku(packageName, context, targetDisplayId);
                 } else {
                     launchAppNormally(packageName, context, targetDisplayId);

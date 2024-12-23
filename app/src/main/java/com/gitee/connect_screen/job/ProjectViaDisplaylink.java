@@ -30,7 +30,6 @@ public class ProjectViaDisplaylink implements Job {
     public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
         this.deviceName = device.getDeviceName();
         this.virtualDisplayArgs = virtualDisplayArgs;
-        State.getOrCreateUsbState(device);
     }
 
     public void start() throws YieldException {
@@ -40,7 +39,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-        DisplaylinkState displaylinkState = State.getUsbState(deviceName);
+        DisplaylinkState displaylinkState = State.displaylinkState;
 
         if (displaylinkState == null) {
             State.log("USB 设备 " + deviceName + " 状态不存在，跳过任务");
@@ -217,6 +216,9 @@ public class ProjectViaDisplaylink implements Job {
     }
 
     private boolean requestMediaProjectionPermission(Context context, DisplaylinkState displaylinkState) throws YieldException {
+        if (State.displaylinkState.getVirtualDisplay() != null) {
+            return true;
+        }
         if (DisplaylinkPref.skipMediaProjectionPermission) {
             // 无需 media projection 授权
             displaylinkState.stopVirtualDisplay();
@@ -246,12 +248,7 @@ public class ProjectViaDisplaylink implements Job {
     }
 
     private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState) {
-        if (displaylinkState.getVirtualDisplay() != null) {
-            State.log("虚拟显示已存在，跳过重复创建");
-            return;
-        }
         new ListenImageReaderAndPostFrame().startVirtualDisplay(displaylinkState, virtualDisplayArgs);
 //        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
-        State.log("虚拟显示已创建");
     }
 }
