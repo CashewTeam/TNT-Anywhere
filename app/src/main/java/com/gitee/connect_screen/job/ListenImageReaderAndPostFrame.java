@@ -90,41 +90,45 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             displaylinkState.imageReader.acquireNextImage().close();
             return;
         }
-        displaylinkState.frameCounter++;
-        Image thisImage = displaylinkState.imageReader.acquireNextImage();
-        Image.Plane plane = thisImage.getPlanes()[0];
-        if (!hasSetMode) {
-            hasSetMode = true;
-            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(monitorWidth, monitorHeight, refreshRate), plane.getRowStride(), 1);
-            int imageWidth = thisImage.getWidth();
-            pixelStride = plane.getPixelStride();
-            rowStride = plane.getRowStride();
-            startX = ((imageWidth - monitorWidth) / 2) * pixelStride;
-            rowDatas = new byte[monitorWidth * pixelStride];
-        }
-        ByteBuffer buffer = plane.getBuffer();
-        if (DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
-            for (int row = 0; row < monitorHeight; row++) {
-                buffer.position(row * rowStride + startX);
-                buffer.get(rowDatas, 0, monitorWidth * pixelStride);
-                buffer.position(row * rowStride);
-                buffer.put(rowDatas);
+        try {
+            displaylinkState.frameCounter++;
+            Image thisImage = displaylinkState.imageReader.acquireNextImage();
+            Image.Plane plane = thisImage.getPlanes()[0];
+            if (!hasSetMode) {
+                hasSetMode = true;
+                displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(monitorWidth, monitorHeight, refreshRate), plane.getRowStride(), 1);
+                int imageWidth = thisImage.getWidth();
+                pixelStride = plane.getPixelStride();
+                rowStride = plane.getRowStride();
+                startX = ((imageWidth - monitorWidth) / 2) * pixelStride;
+                rowDatas = new byte[monitorWidth * pixelStride];
             }
-            buffer.rewind();
-        }
-        int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
-        displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
-        if (resultCode < 0) {
-            Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
-        }
-        boolean buffered = resultCode != 1 && resultCode != -2;
-        if (buffered) {
-            if (lastImage != null) {
-                lastImage.close();
+            ByteBuffer buffer = plane.getBuffer();
+            if (DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
+                for (int row = 0; row < monitorHeight; row++) {
+                    buffer.position(row * rowStride + startX);
+                    buffer.get(rowDatas, 0, monitorWidth * pixelStride);
+                    buffer.position(row * rowStride);
+                    buffer.put(rowDatas);
+                }
+                buffer.rewind();
             }
-            lastImage = thisImage;
-        } else{
-            thisImage.close();
+            int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
+            displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
+            if (resultCode < 0) {
+                Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
+            }
+            boolean buffered = resultCode != 1 && resultCode != -2;
+            if (buffered) {
+                if (lastImage != null) {
+                    lastImage.close();
+                }
+                lastImage = thisImage;
+            } else{
+                thisImage.close();
+            }
+        } catch (Throwable e) {
+            Log.e("ImageReader", "failed to post frame", e);
         }
     }
 

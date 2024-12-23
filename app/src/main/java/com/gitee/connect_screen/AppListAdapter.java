@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
 import android.text.method.Touch;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -87,6 +89,10 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.text2.setText(app.packageName);
         
         holder.btnLaunch.setOnClickListener(v -> {
+            if (sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app.packageName, 0) == 0) {
+                Toast.makeText(v.getContext(), "请先点一次 '回主屏' 按钮，再投屏该应用", Toast.LENGTH_SHORT).show();
+                return;
+            }
             sharedPreferences.edit()
                     .putString("LAST_PACKAGE_NAME", app.packageName)
                     .apply();
@@ -95,9 +101,6 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();
             ServiceUtils.launchPackage(v.getContext(), app.packageName, targetDisplayId);
-            if (TouchpadActivity.startTouchpad(v.getContext(), targetDisplayId, true)) {
-                TouchpadActivity.startTouchpad(v.getContext(), targetDisplayId, false);
-            }
         });
         holder.btnLaunchToDefaultDisplay.setOnClickListener(v -> {
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);
