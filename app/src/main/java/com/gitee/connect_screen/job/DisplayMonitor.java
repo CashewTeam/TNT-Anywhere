@@ -12,11 +12,9 @@ import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class DisplayMonitor {
-    public static void init(Context context) {
-        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
-        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+    public static void init(DisplayManager displayManager) {
         for (Display display : displayManager.getDisplays()) {
-            handleNewDisplay(context, display, appPreferences);
+            handleNewDisplay(display);
         }
         displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
             @Override
@@ -24,7 +22,7 @@ public class DisplayMonitor {
                 State.log("新增显示器，displayId: " + displayId);
                 Display display = displayManager.getDisplay(displayId);
                 if (display != null) {
-                    handleNewDisplay(context, display, appPreferences);
+                    handleNewDisplay(display);
                 }
             }
 
@@ -41,10 +39,15 @@ public class DisplayMonitor {
     }
 
 
-    private static void handleNewDisplay(Context context, Display display, SharedPreferences appPreferences) {
+    private static void handleNewDisplay(Display display) {
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
             return;
         }
+        Context context = State.currentActivity.get();
+        if (context == null) {
+            return;
+        }
+        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
         boolean autoBridge = appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false);
         if (ShizukuUtils.hasPermission() && (autoBridge || display.getDisplayId() == State.bridgeDisplayId)) {
             new Handler().postDelayed(() -> {

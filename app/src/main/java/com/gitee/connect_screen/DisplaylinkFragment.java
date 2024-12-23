@@ -23,7 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.UsbMonitor;
+import com.gitee.connect_screen.job.DisplaylinkMonitor;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -57,7 +57,7 @@ public class DisplaylinkFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         UsbManager usbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
         for (UsbDevice usbDevice : usbManager.getDeviceList().values()) {
-            UsbMonitor.handleDisplaylink(usbDevice);
+            DisplaylinkMonitor.handleDisplaylink(usbDevice);
         }
         device = usbManager.getDeviceList().get(State.displaylinkDeviceName);
         if (device == null) {

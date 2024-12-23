@@ -11,7 +11,7 @@ import android.view.InputDevice;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
 
-public class UsbMonitor {
+public class DisplaylinkMonitor {
     public static void handleDisplaylink(UsbDevice device) {
         if (device == null) {
             return;

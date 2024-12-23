@@ -1,7 +1,6 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityManager;
-import android.app.ActivityOptions;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -9,14 +8,13 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Build;
-import android.os.Handler;
-import android.view.Display;
 import android.widget.FrameLayout;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -26,13 +24,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
-import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
 import com.gitee.connect_screen.job.DisplayMonitor;
-import com.gitee.connect_screen.job.ProjectViaBridge;
+import com.gitee.connect_screen.job.InputDeviceMonitor;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
-import com.gitee.connect_screen.job.UsbMonitor;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.job.DisplaylinkMonitor;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
@@ -43,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
     public static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
 
-    private FrameLayout fragmentContainer;
     private BreadcrumbManager breadcrumbManager;
     private RecyclerView logRecyclerView;
     private LogAdapter logAdapter;
@@ -71,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                     State.removeUsbState(device.getDeviceName());
                     State.resumeJob();
                 }
-                UsbMonitor.onUsbDeviceDetached(device);
+                DisplaylinkMonitor.onUsbDeviceDetached(device);
             }
         }
     };
@@ -84,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                UsbMonitor.onUsbDeviceAttached(device);
+                DisplaylinkMonitor.onUsbDeviceAttached(device);
                 if (device != null && device.getVendorId() == 6121) {
                     State.log("USB 设备已连接: " + device.getDeviceName());
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
@@ -155,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
             UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            UsbMonitor.onUsbDeviceAttached(device);
+            DisplaylinkMonitor.onUsbDeviceAttached(device);
             // 处理 USB 设备连接的逻辑
             if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
@@ -176,7 +170,10 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
 
         // 监听显示器变化
-        DisplayMonitor.init(this);
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        DisplayMonitor.init(displayManager);
+        InputManager inputManager = (InputManager)getSystemService(Context.INPUT_SERVICE);
+        InputDeviceMonitor.init(inputManager);
 
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
