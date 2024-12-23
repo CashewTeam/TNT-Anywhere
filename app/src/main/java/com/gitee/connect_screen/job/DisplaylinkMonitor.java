@@ -34,30 +34,6 @@ public class DisplaylinkMonitor {
             return;
         }
         handleDisplaylink(device);
-        if (isHid(device) && State.lastSingleAppDisplay > 0) {
-            MainActivity mainActivity = State.currentActivity.get();
-            if (mainActivity != null) {
-                InputManager inputManager = (InputManager) mainActivity.getSystemService(Context.INPUT_SERVICE);
-                DisplayManager displayManager = (DisplayManager) mainActivity.getSystemService(Context.DISPLAY_SERVICE);
-                Display display = displayManager.getDisplay(State.lastSingleAppDisplay);
-                if (display != null) {
-                    State.log("usb attached to bind input to display");
-                    InputDevice inputDevice = InputRouting.findInputDevice(inputManager, device);
-                    State.startNewJob(new BindInputToDisplay(inputDevice, display));
-                }
-            }
-        }
-    }
-
-    private static boolean isHid(UsbDevice device) {
-        if (device.getInterfaceCount() > 0) {
-            for (int i = 0; i < device.getInterfaceCount(); i++) {
-                if (device.getInterface(i).getInterfaceClass() == 3) { // HID class is 3
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     public static void onUsbDeviceDetached(UsbDevice device) {

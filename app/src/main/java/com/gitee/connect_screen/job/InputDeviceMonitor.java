@@ -14,7 +14,7 @@ public class InputDeviceMonitor {
         int[] deviceIds = inputManager.getInputDeviceIds();
         for (int deviceId : deviceIds) {
             android.view.InputDevice device = inputManager.getInputDevice(deviceId);
-            if (device != null && !device.isExternal()) {
+            if (device != null && device.isExternal()) {
                 State.log("初始外接设备名称: " + device.getName());
             }
         }
