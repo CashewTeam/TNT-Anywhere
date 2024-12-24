@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Display;
+import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.view.View;
 import android.view.Window;
@@ -24,12 +25,15 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.gitee.connect_screen.job.CreateVirtualDisplay;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import dev.rikka.tools.refine.Refine;
 
 public class BridgeActivity extends AppCompatActivity {
 
@@ -41,6 +45,41 @@ public class BridgeActivity extends AppCompatActivity {
 
     private GLSurfaceView glSurfaceView;
     private OpenGLRenderer renderer;
+
+
+    // 添加坐标调整方法
+    private static float[] adjustTouchCoordinates(float x, float y, int rotation,
+                                                  int targetWidth, int targetHeight, int sourceWidth, int sourceHeight) {
+        // 计算缩放比例
+        float scaleX = (float) targetWidth / sourceWidth;
+        float scaleY = (float) targetHeight / sourceHeight;
+
+        // 应用缩放
+        x *= scaleX;
+        y *= scaleY;
+
+        // 根据旋转角度调整坐标
+        float[] result = new float[2];
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                result[0] = x;
+                result[1] = y;
+                break;
+            case Surface.ROTATION_90:
+                result[0] = y;
+                result[1] = targetWidth - x;
+                break;
+            case Surface.ROTATION_180:
+                result[0] = targetWidth - x;
+                result[1] = targetHeight - y;
+                break;
+            case Surface.ROTATION_270:
+                result[0] = targetHeight - y;
+                result[1] = x;
+                break;
+        }
+        return result;
+    }
 
     public static void stopVirtualDisplay() {
         if (State.bridgeVirtualDisplay == null) {
@@ -89,6 +128,39 @@ public class BridgeActivity extends AppCompatActivity {
         renderer = new OpenGLRenderer(glSurfaceView, args);
         glSurfaceView.setRenderer(renderer);
         glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        
+        // 添加触摸事件监听
+        glSurfaceView.setOnTouchListener((v, event) -> {
+            if (State.bridgeVirtualDisplay != null) {
+                // 获取显示ID和旋转角度
+                Display virtualDisplay = State.bridgeVirtualDisplay.getDisplay();
+                int rotation = virtualDisplay.getRotation();
+                int displayId = virtualDisplay.getDisplayId();
+
+                // 获取原始坐标
+                float x = event.getX();
+                float y = event.getY();
+                
+                // 根据旋转角度调整坐标
+                float[] adjustedCoords = adjustTouchCoordinates(x, y, rotation, 
+                    args.monitorWidth, args.monitorHeight, 
+                    glSurfaceView.getWidth(), glSurfaceView.getHeight());
+                
+                // 设置调整后的坐标
+                event.setLocation(adjustedCoords[0], adjustedCoords[1]);
+                
+                // 设置显示ID并注入事件
+                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+                motionEventHidden.setDisplayId(displayId);
+                try {
+                    ServiceUtils.getInputManager().injectInputEvent(event, 0);
+                } catch (Exception e) {
+                    Log.e("BridgeActivity", "注入触摸事件失败", e);
+                }
+            }
+            return true;
+        });
+        
         setContentView(glSurfaceView);
     }
 
@@ -163,7 +235,7 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
 
-            // 初始化顶点和��理坐标
+            // 初始化顶点和纹理坐标
             float[] vertices = {
                     -1.0f, -1.0f, // 左下
                     1.0f, -1.0f, // 右下
@@ -317,5 +389,6 @@ public class BridgeActivity extends AppCompatActivity {
                 program = 0;
             }
         }
+
     }
 }
