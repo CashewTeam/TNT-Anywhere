@@ -10,7 +10,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
@@ -21,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -32,6 +35,7 @@ import android.view.MotionEvent;
 import android.view.MotionEventHidden;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -158,27 +162,8 @@ public class TouchpadActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
-        
-        getWindow().setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-        
-        Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false);
-        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-            window.setAttributes(layoutParams);
-        }
-
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
-        
-        // 4. 最后设��内容视图
+        // 4. 最后设内容视图
         setContentView(R.layout.activity_touchpad);
         
         // 设置触控板区域的帮助文案
@@ -194,6 +179,9 @@ public class TouchpadActivity extends AppCompatActivity {
         // 计算屏幕尺寸
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display targetDisplay = displayManager.getDisplay(displayId);
+        if (targetDisplay == null) {
+            finish();
+        }
 
         // 计算屏幕边界（以屏幕中心为原点）
         halfWidth = targetDisplay.getWidth() / 2.0f;
