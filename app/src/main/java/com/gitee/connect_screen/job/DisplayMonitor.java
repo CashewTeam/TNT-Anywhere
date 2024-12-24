@@ -50,6 +50,7 @@ public class DisplayMonitor {
         SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
         boolean autoBridge = appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false);
         if (ShizukuUtils.hasPermission() && (autoBridge || display.getDisplayId() == State.bridgeDisplayId)) {
+            BridgePref.load(context);
             new Handler().postDelayed(() -> {
                 State.startNewJob(new ProjectViaBridge(display.getDisplayId(), new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
             }, 500);
