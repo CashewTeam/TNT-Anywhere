@@ -16,6 +16,7 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Build;
+import android.permission.IPermissionManager;
 import android.view.WindowManager;
 import android.view.IWindowManager;
 import android.widget.Toast;
@@ -38,6 +39,7 @@ public class ServiceUtils {
     private static IWindowManager windowManager;
     private static IDisplayManager displayManager;
     private static IInputManager inputManager;
+    private static IPermissionManager permissionManager;
 
     private static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
@@ -45,6 +47,7 @@ public class ServiceUtils {
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
         displayManager = IDisplayManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE)));
         inputManager = IInputManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.INPUT_SERVICE)));
+        permissionManager = IPermissionManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("permissionmgr")));
     }
 
     /**
@@ -201,5 +204,12 @@ public class ServiceUtils {
             initWithShizuku();
         }
         return activityTaskManager;
+    }
+
+    public static IPermissionManager getPermissionManager() {
+        if (permissionManager == null) {
+            initWithShizuku();
+        }
+        return permissionManager;
     }
 }

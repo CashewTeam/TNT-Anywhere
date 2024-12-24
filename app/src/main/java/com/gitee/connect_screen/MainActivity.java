@@ -15,6 +15,10 @@ import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Process;
+import android.os.UserHandle;
+import android.os.UserHandleHidden;
+import android.permission.IPermissionManager;
 import android.widget.FrameLayout;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -28,10 +32,12 @@ import com.gitee.connect_screen.job.DisplayMonitor;
 import com.gitee.connect_screen.job.InputDeviceMonitor;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.job.DisplaylinkMonitor;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
 
+import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.Shizuku;
 
 public class MainActivity extends AppCompatActivity {
@@ -102,6 +108,12 @@ public class MainActivity extends AppCompatActivity {
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
 
+        // 初始化日志列表
+        logRecyclerView = findViewById(R.id.logRecyclerView);
+        logAdapter = new LogAdapter(State.logs);
+        logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        logRecyclerView.setAdapter(logAdapter);
+
         // 获取启动 Intent 并打印其 Action 到日志
         Intent intent = getIntent();
         String action = intent.getAction();
@@ -128,12 +140,6 @@ public class MainActivity extends AppCompatActivity {
         InputManager inputManager = (InputManager)getSystemService(Context.INPUT_SERVICE);
         InputDeviceMonitor.init(inputManager);
         DisplaylinkMonitor.init(this);
-
-        // 初始化日志列表
-        logRecyclerView = findViewById(R.id.logRecyclerView);
-        logAdapter = new LogAdapter(State.logs);
-        logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        logRecyclerView.setAdapter(logAdapter);
     }
 
 

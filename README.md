@@ -54,3 +54,4 @@
 * https://github.com/WuDi-ZhanShen/AndroidUHidPureJava
 * https://github.com/WuDi-ZhanShen/ScreenOff
 * https://blog.csdn.net/liaosongmao1/article/details/136129774
+* https://github.com/keymapperorg/KeyMapper/
