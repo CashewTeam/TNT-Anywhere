@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserHandleHidden;
 import android.permission.IPermissionManager;
+import android.provider.Settings;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -25,7 +27,10 @@ public class PureBlackActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         if (grantWriteSecureSettings()) {
-            
+            Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "com.gitee.connect_screen/.TouchpadAccessibilityService");
+            Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+            startService(serviceIntent);
         }
 
         // 隐藏标题栏
