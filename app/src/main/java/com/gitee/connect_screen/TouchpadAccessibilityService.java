@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
+import android.view.KeyEvent;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
@@ -21,6 +22,24 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     private boolean isScrolling = false;
     private static final int SCROLL_DURATION = 50;
 
+    // 添加键盘事件回调接口
+    public interface KeyEventListener {
+        boolean onKeyEvent(KeyEvent event);
+    }
+    
+    private KeyEventListener keyEventListener;
+    
+    // 设置键盘事件监听器
+    public void setKeyEventListener(KeyEventListener listener) {
+        this.keyEventListener = listener;
+    }
+    
+    @Override
+    protected boolean onKeyEvent(KeyEvent event) {
+        Log.i("Acces", "on key event: " + event);
+        return true;
+    }
+    
     private static class ScrollRequest {
         final int displayId;
         final float x;
