@@ -32,6 +32,7 @@ import com.gitee.connect_screen.job.DisplayMonitor;
 import com.gitee.connect_screen.job.InputDeviceMonitor;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.job.DisplaylinkMonitor;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -126,6 +127,8 @@ public class MainActivity extends AppCompatActivity {
             // 处理 USB 设备连接的逻辑
             if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
                 State.log("USB 设备已连接: " + device.getDeviceName());
+                DisplaylinkPref.load(this);
+                State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
                 State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
             }
         }

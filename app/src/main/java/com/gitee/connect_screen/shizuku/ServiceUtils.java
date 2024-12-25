@@ -152,6 +152,7 @@ public class ServiceUtils {
             } else {
                 State.log("使用 Shizuku 启动应用成功: " + packageName);
             }
+            State.startNewJob(new BindAllExternalInputToDisplay(targetDisplayId));
         } catch (Exception e) {
             Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();
             State.log("使用 Shizuku 启动应用失败: " + e.getMessage());

@@ -67,7 +67,8 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
             String lowerQuery = query.toLowerCase();
             for (ApplicationInfo app : appList) {
                 String appName = app.loadLabel(packageManager).toString().toLowerCase();
-                if (appName.contains(lowerQuery)) {
+                String packageName = app.packageName.toLowerCase();
+                if (appName.contains(lowerQuery) || packageName.contains(lowerQuery)) {
                     filteredList.add(app);
                 }
             }

@@ -217,9 +217,11 @@ public class ProjectViaDisplaylink implements Job {
 
     private boolean requestMediaProjectionPermission(Context context, DisplaylinkState displaylinkState) throws YieldException {
         if (State.displaylinkState.getVirtualDisplay() != null) {
+            State.log("已存在 virtual display 跳过询问投屏权限");
             return true;
         }
-        if (DisplaylinkPref.skipMediaProjectionPermission) {
+        if (ShizukuUtils.hasPermission() && DisplaylinkPref.skipMediaProjectionPermission) {
+            State.log("按设置要求跳过询问投屏权限");
             // 无需 media projection 授权
             displaylinkState.stopVirtualDisplay();
             return true;
