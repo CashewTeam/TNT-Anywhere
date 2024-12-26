@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.concurrent.TimeUnit;
@@ -36,9 +37,15 @@ public class HomeFragment extends Fragment {
             startActivity(intent);
         });
 
+        // 添加授权按钮
+        Button shizukuPermissionBtn = view.findViewById(R.id.shizukuPermissionBtn);
+        shizukuPermissionBtn.setOnClickListener(v -> {
+            State.startNewJob(new AcquireShizuku());
+        });
+
         // 更新Shizuku状态
         TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
-        updateShizukuStatus(shizukuStatus);
+        updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
 
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
         Button displaylinkBtn = view.findViewById(R.id.displaylinkBtn);
@@ -72,17 +79,20 @@ public class HomeFragment extends Fragment {
         return view;
     }
 
-    private void updateShizukuStatus(TextView statusView) {
+    private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
         boolean started = ShizukuUtils.hasShizukuStarted();
         boolean hasPermission = ShizukuUtils.hasPermission();
         
         String status;
         if (!started) {
             status = "未启动";
+            permissionBtn.setVisibility(View.GONE);
         } else if (!hasPermission) {
             status = "已启动未授权";
+            permissionBtn.setVisibility(View.VISIBLE);
         } else {
             status = "已授权";
+            permissionBtn.setVisibility(View.GONE);
         }
         
         statusView.setText(status);

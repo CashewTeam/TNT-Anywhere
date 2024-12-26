@@ -2,6 +2,7 @@ package com.gitee.connect_screen.job;
 
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import android.content.Context;
 import android.hardware.input.IInputManager;
@@ -70,7 +71,7 @@ public class InputRouting {
                         State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputPort + " => " + displayPort);
                     } catch(Throwable e3) {
                         State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice.getName() + ", " + e3.getMessage());
-                        if (State.currentActivity.get() != null) {
+                        if (ShizukuUtils.hasPermission() && State.currentActivity.get() != null) {
                             Toast.makeText(State.currentActivity.get(), "由于操作系统版本的限制，需要点击'模拟熄屏'按钮才可以使用触摸屏", Toast.LENGTH_SHORT).show();
                         }
                     }
