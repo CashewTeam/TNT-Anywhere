@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -68,7 +69,11 @@ public class HomeFragment extends Fragment {
         });
 
         inputDeviceBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
+            if (ShizukuUtils.hasPermission()) {
+                State.breadcrumbManager.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
+            } else {
+                Toast.makeText(requireContext(), "需要先授权 Shizuku", Toast.LENGTH_SHORT).show();
+            }
         });
 
         aboutBtn.setOnClickListener(v -> {

@@ -44,14 +44,6 @@ public class PureBlackActivity extends AppCompatActivity {
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        // if (grantWriteSecureSettings()) {
-        //     Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        //             "com.gitee.connect_screen/.TouchpadAccessibilityService");
-        //     Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
-        //     Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-        //     startService(serviceIntent);
-        // }
-
         // 隐藏标题栏
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
@@ -139,35 +131,6 @@ public class PureBlackActivity extends AppCompatActivity {
             finish();
             return true;
         });
-    }
-
-    private boolean grantWriteSecureSettings() {
-        if (hasShizukuPermission) {
-            IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
-            UserHandle userHandle = Process.myUserHandle();
-            UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-            String packageName = getPackageName();
-            try {
-                permissionManager.grantRuntimePermission(
-                        packageName,
-                        "android.permission.WRITE_SECURE_SETTINGS",
-                        "0", userHandleHidden.getIdentifier());
-                State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
-                return true;
-            } catch (Throwable e) {
-                try {
-                    permissionManager.grantRuntimePermission(
-                            packageName,
-                            "android.permission.WRITE_SECURE_SETTINGS",
-                            userHandleHidden.getIdentifier());
-                    State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
-                    return true;
-                } catch (Throwable e2) {
-                    State.log("授予权限失败: " + e2.getMessage());
-                }
-            }
-        }
-        return false;
     }
 
     private boolean isExternalDevice(MotionEvent event) {

@@ -168,7 +168,7 @@ public class ProjectViaDisplaylink implements Job {
                 }
                 displaylinkState.displaylinkConnection2 = usbManager.openDevice(displaylinkState.displaylinkDevice2);
                 if (displaylinkState.displaylinkConnection2 == null) {
-                    throw new RuntimeException("无法打开第二�� USB 设备连接");
+                    throw new RuntimeException("无法打开第二个 USB 设备连接");
                 } else {
                     State.log("成功打开第二个 USB 设备连接");
                 }

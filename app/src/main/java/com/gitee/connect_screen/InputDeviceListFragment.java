@@ -1,7 +1,13 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Process;
+import android.os.UserHandle;
+import android.os.UserHandleHidden;
+import android.permission.IPermissionManager;
+import android.provider.Settings;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.LayoutInflater;
@@ -24,11 +30,14 @@ import android.hardware.input.InputManager;
 import android.hardware.display.DisplayManager;
 
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import dev.rikka.tools.refine.Refine;
 
 public class InputDeviceListFragment extends Fragment {
     private List<Display> displayList;
@@ -50,6 +59,12 @@ public class InputDeviceListFragment extends Fragment {
         initializeDisplaySpinner();
         setupBindButton();
         setupDeviceLists();
+
+        if (grantWriteSecureSettings()) {
+//             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+//                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
+//             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+        }
         
         return view;
     }
@@ -120,4 +135,31 @@ public class InputDeviceListFragment extends Fragment {
         InputDeviceDetailFragment.newInstance(device.getId())
         );
     }
-} 
+
+    private boolean grantWriteSecureSettings() {
+        IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
+        UserHandle userHandle = Process.myUserHandle();
+        UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
+        String packageName = getActivity().getPackageName();
+        try {
+            permissionManager.grantRuntimePermission(
+                    packageName,
+                    "android.permission.WRITE_SECURE_SETTINGS",
+                    "0", userHandleHidden.getIdentifier());
+            State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
+            return true;
+        } catch (Throwable e) {
+            try {
+                permissionManager.grantRuntimePermission(
+                        packageName,
+                        "android.permission.WRITE_SECURE_SETTINGS",
+                        userHandleHidden.getIdentifier());
+                State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
+                return true;
+            } catch (Throwable e2) {
+                State.log("授予权限失败: " + e2.getMessage());
+            }
+        }
+        return false;
+    }
+}
