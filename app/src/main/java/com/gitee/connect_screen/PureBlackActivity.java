@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
@@ -34,57 +35,14 @@ import java.util.Set;
 public class PureBlackActivity extends AppCompatActivity {
     // 添加 Set 来存储外部设备 ID
     private final Set<Integer> externalDeviceIds = new HashSet<>();
+    private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
 
-    // 添加坐标调整方法
-    private static float[] adjustTouchCoordinates(float x, float y,
-            int targetRotation,
-            int targetWidth, int targetHeight,
-            int sourceWidth, int sourceHeight) {
-        // 打印原始坐标
-        State.log(String.format("原始坐标: x=%.2f, y=%.2f", x, y));
-        
-        // 计算缩放比例
-        float scaleX = (float) targetWidth / sourceWidth;
-        float scaleY = (float) targetHeight / sourceHeight;
-
-        // 应用缩放
-        x *= scaleX;
-        y *= scaleY;
-
-        // 根据目标旋转角度调整坐标
-        float[] result = new float[2];
-        switch (targetRotation) {
-            case Surface.ROTATION_0:
-                result[0] = x;
-                result[1] = y;
-                break;
-            case Surface.ROTATION_90:
-                result[0] = y;
-                result[1] = targetWidth - x;
-                break;
-            case Surface.ROTATION_180:
-                result[0] = targetWidth - x;
-                result[1] = targetHeight - y;
-                break;
-            case Surface.ROTATION_270:
-                result[0] = targetHeight - y;
-                result[1] = x;
-                break;
-        }
-        
-        // 打印调整后的坐标和旋转角度
-        State.log(String.format("旋转角度: %d", targetRotation));
-        State.log(String.format("调整后坐标: x=%.2f, y=%.2f", result[0], result[1]));
-        
-        return result;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 强制横屏
-        setRequestedOrientation(SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         if (grantWriteSecureSettings()) {
             Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
@@ -125,39 +83,36 @@ public class PureBlackActivity extends AppCompatActivity {
         view.setBackgroundColor(Color.BLACK);
         setContentView(view);
 
+        DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+
         // 修改触摸监听器
         view.setOnTouchListener((v, event) -> {
             if (isExternalDevice(event)) {
-                DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
                 Display targetDisplay = displayManager.getDisplay(State.lastSingleAppDisplay);
                 if (targetDisplay == null)
                     return true;
 
-                // 添加源显示器和目标显示器的旋转角度日志
-                State.log(String.format("源显示器旋转角度: %d", getWindowManager().getDefaultDisplay().getRotation()));
-                State.log(String.format("目标显示器旋转角度: %d", targetDisplay.getRotation()));
-
-                // 添加源显示器和目标显示器尺寸的日志
-                State.log(String.format("源显示器尺寸: %dx%d",
-                    getWindow().getDecorView().getWidth(),
-                    getWindow().getDecorView().getHeight()));
-                State.log(String.format("目标显示器尺寸: %dx%d",
-                    targetDisplay.getWidth(),
-                    targetDisplay.getHeight()));
-
                 // 获取原始坐标
                 float x = event.getX();
                 float y = event.getY();
+                State.log(String.format("原始坐标: (%.2f, %.2f)", x, y));
 
-                // 只需要目标显示器的旋转角度
-                float[] adjustedCoords = adjustTouchCoordinates(x, y,
-                        targetDisplay.getRotation(),
-                        targetDisplay.getWidth(), targetDisplay.getHeight(),
-                        getWindow().getDecorView().getWidth(),
-                        getWindow().getDecorView().getHeight());
+                // 计算缩放比例
+                float targetWidth = targetDisplay.getWidth();
+                float targetHeight = targetDisplay.getHeight();
+                float sourceDisplayWidth = getWindow().getDecorView().getWidth();
+                float sourceDisplayHeight = getWindow().getDecorView().getHeight();
+                float relativeX = x / sourceDisplayWidth;
+                float relativeY = y / sourceDisplayHeight;
+                State.log(String.format("relative: (%.2f, %.2f)", relativeX, relativeY));
+
+                // 应用缩放
+                x = relativeX * targetWidth;
+                y = relativeY * targetHeight;
+                State.log(String.format("缩放后坐标: (%.2f, %.2f)", x, y));
 
                 // 设置调整后的坐标
-                event.setLocation(adjustedCoords[0], adjustedCoords[1]);
+                event.setLocation(x, y);
 
                 MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
                 motionEventHidden.setDisplayId(State.lastSingleAppDisplay);
@@ -170,7 +125,7 @@ public class PureBlackActivity extends AppCompatActivity {
     }
 
     private boolean grantWriteSecureSettings() {
-        if (ShizukuUtils.hasPermission()) {
+        if (hasShizukuPermission) {
             IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
             UserHandle userHandle = Process.myUserHandle();
             UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
@@ -198,8 +153,10 @@ public class PureBlackActivity extends AppCompatActivity {
         return false;
     }
 
-    // 添加新的辅助方法
     private boolean isExternalDevice(MotionEvent event) {
+        if (!hasShizukuPermission) {
+            return false;
+        }
         int deviceId = event.getDeviceId();
         if (externalDeviceIds.contains(deviceId)) {
             return true;
