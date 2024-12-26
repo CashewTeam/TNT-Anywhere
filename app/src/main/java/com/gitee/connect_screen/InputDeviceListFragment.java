@@ -47,6 +47,7 @@ public class InputDeviceListFragment extends Fragment {
     private RecyclerView rvExternalDevices;
     private RecyclerView rvInternalDevices;
     private CheckBox cbForceDesktop;
+    private CheckBox cbForceResizable;
 
     @Nullable
     @Override
@@ -54,6 +55,7 @@ public class InputDeviceListFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_input_device_list, container, false);
         
         cbForceDesktop = view.findViewById(R.id.cbForceDesktop);
+        cbForceResizable = view.findViewById(R.id.cbForceResizable);
         spinnerDisplays = view.findViewById(R.id.spinnerDisplays);
         btnBind = view.findViewById(R.id.btnBind);
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
@@ -65,11 +67,13 @@ public class InputDeviceListFragment extends Fragment {
 
         if (grantWriteSecureSettings()) {
             setupForceDesktopCheckbox();
+            setupForceResizableCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
         } else {
             cbForceDesktop.setVisibility(View.GONE);
+            cbForceResizable.setVisibility(View.GONE);
         }
         
         return view;
@@ -179,6 +183,25 @@ public class InputDeviceListFragment extends Fragment {
             try {
                 Settings.Global.putInt(requireContext().getContentResolver(),
                         "force_desktop_mode_on_external_displays", isChecked ? 1 : 0);
+                        
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                "force_desktop_mode_on_external_displays", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
+    }
+
+    private void setupForceResizableCheckbox() {
+        // 读取当前设置
+        boolean isForceResizable = Settings.Global.getInt(requireContext().getContentResolver(),
+                "force_resizable_activities", 0) == 1;
+        cbForceResizable.setChecked(isForceResizable);
+
+        cbForceResizable.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "force_resizable_activities", isChecked ? 1 : 0);
             } catch (SecurityException e) {
                 State.log("failed: " + e);
             }
