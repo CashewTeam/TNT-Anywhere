@@ -1,5 +1,7 @@
 package com.gitee.connect_screen;
 
+import android.app.ActivityOptions;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.View;
@@ -108,5 +110,12 @@ public class LauncherActivity extends AppCompatActivity {
         
         // 应用新的配置
         resources.updateConfiguration(configuration, displayMetrics);
+
+        // 添加模拟熄屏按钮的点击监听器
+        findViewById(R.id.btn_screen_off).setOnClickListener(v -> {
+            Intent intent = new Intent(this, PureBlackActivity.class);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            startActivity(intent, options.toBundle());
+        });
     }
 }
