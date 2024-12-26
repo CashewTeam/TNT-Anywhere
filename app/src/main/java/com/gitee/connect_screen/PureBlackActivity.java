@@ -44,13 +44,13 @@ public class PureBlackActivity extends AppCompatActivity {
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        if (grantWriteSecureSettings()) {
-            Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-                    "com.gitee.connect_screen/.TouchpadAccessibilityService");
-            Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
-            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-            startService(serviceIntent);
-        }
+        // if (grantWriteSecureSettings()) {
+        //     Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        //             "com.gitee.connect_screen/.TouchpadAccessibilityService");
+        //     Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+        //     Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+        //     startService(serviceIntent);
+        // }
 
         // 隐藏标题栏
         if (getSupportActionBar() != null) {
