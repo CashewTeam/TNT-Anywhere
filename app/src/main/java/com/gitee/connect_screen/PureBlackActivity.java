@@ -95,24 +95,41 @@ public class PureBlackActivity extends AppCompatActivity {
                 // 获取原始坐标
                 float x = event.getX();
                 float y = event.getY();
-                State.log(String.format("原始坐标: (%.2f, %.2f)", x, y));
+                
+                // 计算相对坐标
+                float relativeX = x / v.getWidth();
+                float relativeY = y / v.getHeight();
 
-                // 计算缩放比例
+                // 获取目标显示器的旋转角度
+                int rotation = targetDisplay.getRotation();
+                State.log(String.format("显示器旋转角度: %d", rotation));
                 float targetWidth = targetDisplay.getWidth();
                 float targetHeight = targetDisplay.getHeight();
-                float sourceDisplayWidth = getWindow().getDecorView().getWidth();
-                float sourceDisplayHeight = getWindow().getDecorView().getHeight();
-                float relativeX = x / sourceDisplayWidth;
-                float relativeY = y / sourceDisplayHeight;
-                State.log(String.format("relative: (%.2f, %.2f)", relativeX, relativeY));
-
-                // 应用缩放
-                x = relativeX * targetWidth;
-                y = relativeY * targetHeight;
-                State.log(String.format("缩放后坐标: (%.2f, %.2f)", x, y));
-
-                // 设置调整后的坐标
-                event.setLocation(x, y);
+                
+                // 根据旋转角度调整坐标映射
+                float mappedX, mappedY;
+                switch (rotation) {
+                    case Surface.ROTATION_270:
+                        mappedX = (1 - relativeY) * targetWidth;
+                        mappedY = relativeX * targetHeight;
+                        break;
+                    case Surface.ROTATION_180:
+                        mappedX = (1 - relativeX) * targetWidth;
+                        mappedY = (1 - relativeY) * targetHeight;
+                        break;
+                    case Surface.ROTATION_90:
+                        mappedX = relativeY * targetWidth;
+                        mappedY = (1 - relativeX) * targetHeight;
+                        break;
+                    default: // Surface.ROTATION_0
+                        mappedX = relativeX * targetWidth;
+                        mappedY = relativeY * targetHeight;
+                        break;
+                }
+                State.log(String.format("原始坐标: (%.2f, %.2f)", x, y));
+                State.log(String.format("映射后坐标: (%.2f, %.2f)", mappedX, mappedY));
+                // 设置整后的坐标
+                event.setLocation(mappedX, mappedY);
 
                 MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
                 motionEventHidden.setDisplayId(State.lastSingleAppDisplay);

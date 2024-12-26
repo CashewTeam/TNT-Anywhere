@@ -243,6 +243,7 @@ public class DisplayDetailFragment extends Fragment {
             bridgeButton.setOnClickListener(v -> {
                 State.displaylinkState.stopVirtualDisplay();
                 State.displaylinkState.destroy();
+                State.breadcrumbManager.popBreadcrumb();
             });
         } else if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
             bridgeButton.setVisibility(View.VISIBLE);
