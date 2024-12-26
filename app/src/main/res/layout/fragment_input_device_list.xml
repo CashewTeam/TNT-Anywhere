@@ -19,6 +19,20 @@
         android:text="强制将 activity 设为可调整大小"
         android:layout_marginBottom="8dp"/>
 
+    <CheckBox
+        android:id="@+id/cbEnableFreeform"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="启用可自由调整的窗口"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbEnableNonResizable"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="允许以多窗口模式显示不可调整大小的应用"
+        android:layout_marginBottom="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

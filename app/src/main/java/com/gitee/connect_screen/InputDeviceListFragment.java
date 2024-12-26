@@ -48,6 +48,8 @@ public class InputDeviceListFragment extends Fragment {
     private RecyclerView rvInternalDevices;
     private CheckBox cbForceDesktop;
     private CheckBox cbForceResizable;
+    private CheckBox cbEnableFreeform;
+    private CheckBox cbEnableNonResizable;
 
     @Nullable
     @Override
@@ -56,6 +58,8 @@ public class InputDeviceListFragment extends Fragment {
         
         cbForceDesktop = view.findViewById(R.id.cbForceDesktop);
         cbForceResizable = view.findViewById(R.id.cbForceResizable);
+        cbEnableFreeform = view.findViewById(R.id.cbEnableFreeform);
+        cbEnableNonResizable = view.findViewById(R.id.cbEnableNonResizable);
         spinnerDisplays = view.findViewById(R.id.spinnerDisplays);
         btnBind = view.findViewById(R.id.btnBind);
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
@@ -68,12 +72,16 @@ public class InputDeviceListFragment extends Fragment {
         if (grantWriteSecureSettings()) {
             setupForceDesktopCheckbox();
             setupForceResizableCheckbox();
+            setupEnableFreeformCheckbox();
+            setupEnableNonResizableCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
         } else {
             cbForceDesktop.setVisibility(View.GONE);
             cbForceResizable.setVisibility(View.GONE);
+            cbEnableFreeform.setVisibility(View.GONE);
+            cbEnableNonResizable.setVisibility(View.GONE);
         }
         
         return view;
@@ -202,6 +210,36 @@ public class InputDeviceListFragment extends Fragment {
             try {
                 Settings.Global.putInt(requireContext().getContentResolver(),
                         "force_resizable_activities", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
+    }
+
+    private void setupEnableFreeformCheckbox() {
+        boolean isEnableFreeform = Settings.Global.getInt(requireContext().getContentResolver(),
+                "enable_freeform_support", 0) == 1;
+        cbEnableFreeform.setChecked(isEnableFreeform);
+
+        cbEnableFreeform.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "enable_freeform_support", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
+    }
+
+    private void setupEnableNonResizableCheckbox() {
+        boolean isEnableNonResizable = Settings.Global.getInt(requireContext().getContentResolver(),
+                "enable_non_resizable_multi_window", 0) == 1;
+        cbEnableNonResizable.setChecked(isEnableNonResizable);
+
+        cbEnableNonResizable.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "enable_non_resizable_multi_window", isChecked ? 1 : 0);
             } catch (SecurityException e) {
                 State.log("failed: " + e);
             }
