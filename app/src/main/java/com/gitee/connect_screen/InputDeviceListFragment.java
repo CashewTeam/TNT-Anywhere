@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,12 +46,14 @@ public class InputDeviceListFragment extends Fragment {
     private Button btnBind;
     private RecyclerView rvExternalDevices;
     private RecyclerView rvInternalDevices;
+    private CheckBox cbForceDesktop;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_input_device_list, container, false);
         
+        cbForceDesktop = view.findViewById(R.id.cbForceDesktop);
         spinnerDisplays = view.findViewById(R.id.spinnerDisplays);
         btnBind = view.findViewById(R.id.btnBind);
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
@@ -61,9 +64,12 @@ public class InputDeviceListFragment extends Fragment {
         setupDeviceLists();
 
         if (grantWriteSecureSettings()) {
+            setupForceDesktopCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+        } else {
+            cbForceDesktop.setVisibility(View.GONE);
         }
         
         return view;
@@ -161,5 +167,21 @@ public class InputDeviceListFragment extends Fragment {
             }
         }
         return false;
+    }
+
+    private void setupForceDesktopCheckbox() {
+        // 读取当前设置
+        boolean isForceDesktop = Settings.Global.getInt(requireContext().getContentResolver(),
+                "force_desktop_mode_on_external_displays", 0) == 1;
+        cbForceDesktop.setChecked(isForceDesktop);
+
+        cbForceDesktop.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "force_desktop_mode_on_external_displays", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
     }
 }
