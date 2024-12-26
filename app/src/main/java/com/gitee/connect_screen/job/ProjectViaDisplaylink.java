@@ -18,6 +18,12 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 public class ProjectViaDisplaylink implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean usbRequested = false;
@@ -80,6 +86,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         openUsbConnection(context, usbManager, displaylinkState);
+        copyFirmwares(context);
         if (!initializeNativeDriver(context, displaylinkState)) {
             return;
         }
@@ -87,6 +94,38 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         createVirtualDisplay(context, displaylinkState);
+    }
+
+    private void copyFirmwares(Context context) {
+        try {
+            String[] files = context.getAssets().list("");
+            if (files == null) {
+                return;
+            }
+            for (String file : files) {
+                if (!file.endsWith(".spkg")) {
+                    continue;
+                }
+                File targetFile = new File(context.getFilesDir(), file);
+                if (targetFile.exists() && targetFile.length() > 0) {
+                    State.log("固件文件已存在，跳过: " + file);
+                    continue;
+                }
+                try (InputStream in = context.getAssets().open(file);
+                     FileOutputStream out = context.openFileOutput(file, Context.MODE_PRIVATE)) {
+                    byte[] buffer = new byte[4096];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    State.log("成功复制固件文件: " + file);
+                } catch (IOException e) {
+                    State.log("复制固件文件失败: " + file + ", 错误: " + e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            State.log("复制固件失败: " + e.getMessage());
+        }
     }
 
     private boolean requestUsbPermission(Context context, UsbManager usbManager, UsbDevice device) throws YieldException {
@@ -129,7 +168,7 @@ public class ProjectViaDisplaylink implements Job {
                 }
                 displaylinkState.displaylinkConnection2 = usbManager.openDevice(displaylinkState.displaylinkDevice2);
                 if (displaylinkState.displaylinkConnection2 == null) {
-                    throw new RuntimeException("无法打开第二个 USB 设备连接");
+                    throw new RuntimeException("无法打开第二�� USB 设备连接");
                 } else {
                     State.log("成功打开第二个 USB 设备连接");
                 }
@@ -180,7 +219,7 @@ public class ProjectViaDisplaylink implements Job {
             displaylinkState.nativeDriver = new NativeDriver();
             displaylinkState.nativeDriverListener = new NativeDriverListener(deviceName);
             displaylinkState.nativeDriver.destroy();
-            int resultCode = displaylinkState.nativeDriver.create(displaylinkState.nativeDriverListener, context.getFilesDir().toString(), false);
+            int resultCode = displaylinkState.nativeDriver.create(displaylinkState.nativeDriverListener, context.getFilesDir().toString(), true);
             if (resultCode != 0) {
                 throw new RuntimeException("创建NativeDriver失败: " + resultCode);
             } else {

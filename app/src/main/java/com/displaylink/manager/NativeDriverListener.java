@@ -37,6 +37,9 @@ public class NativeDriverListener {
 
     public void onError(int i) {
         Log.i("displaylink", "onError: " + i);
+        State.currentActivity.get().runOnUiThread(() -> {
+            State.log("Displaylink 报告故障码：" + i);
+        });
     }
 
     public void onFirmwareUpdateInfo(boolean z) {
