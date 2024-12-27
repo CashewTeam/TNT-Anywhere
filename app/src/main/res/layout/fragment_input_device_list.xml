@@ -9,7 +9,7 @@
         android:id="@+id/cbForceDesktop"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="强制桌面模式（绑定鼠标到外接显示器，可能需重启）"
+        android:text="强制桌面模式（安卓14以及以下的系统绑定鼠标到外接显示器，可能需重启）"
         android:layout_marginBottom="8dp"/>
 
     <CheckBox

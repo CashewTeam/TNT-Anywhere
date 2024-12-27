@@ -4,6 +4,7 @@ import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.VirtualDisplay;
+import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 
 import com.gitee.connect_screen.BridgeActivity;
@@ -66,7 +67,12 @@ public class ProjectViaBridge implements Job {
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {
-            Intent captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            Intent captureIntent = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                captureIntent = mediaProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay());
+            } else {
+                captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            }
             State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
             throw new YieldException("等待用户投屏授权");
         } else {
