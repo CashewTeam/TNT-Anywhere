@@ -10,8 +10,10 @@ import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
+import android.net.Uri;
 import android.opengl.Visibility;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
@@ -414,5 +416,25 @@ private void showBridgeDialog() {
 
 private void updateFloatingBackButtonText(boolean isEnabled) {
     floatingBackButton.setText(isEnabled ? "隐藏悬浮返回键" : "展示悬浮返回键");
+    
+    // 检查悬浮窗权限
+    if (isEnabled && !Settings.canDrawOverlays(getContext())) {
+        // 请求悬浮窗权限
+        Intent intent = new Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:" + getContext().getPackageName())
+        );
+        startActivity(intent);
+        return;
+    }
+    
+    Intent serviceIntent = new Intent(getContext(), FloatingBackService.class);
+    serviceIntent.putExtra("display_id", displayId);
+    
+    if (isEnabled) {
+        getContext().startService(serviceIntent);
+    } else {
+        getContext().stopService(serviceIntent);
+    }
 }
 }

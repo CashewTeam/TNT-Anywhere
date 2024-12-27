@@ -101,6 +101,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
         
+        <service
+            android:name=".FloatingBackService"
+            android:enabled="true"
+            android:exported="false" />
+        
     </application>
 
     <queries>
