@@ -44,6 +44,7 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
 import com.gitee.connect_screen.dialog.ResolutionDialog;
 import com.gitee.connect_screen.dialog.BridgeDialog;
+import com.gitee.connect_screen.dialog.DpiDialog;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -185,7 +186,7 @@ public class DisplayDetailFragment extends Fragment {
         if(ShizukuUtils.hasShizukuStarted()) {
             editDpiButton.setVisibility(View.VISIBLE);
             editDpiButton.setOnClickListener(v -> {
-                showDpiDialog(metrics.densityDpi);
+                DpiDialog.show(getContext(), displayId, metrics.densityDpi);
             });
         }
 
@@ -340,32 +341,6 @@ public class DisplayDetailFragment extends Fragment {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
         }
-    }
-
-    private void showDpiDialog(int currentDpi) {
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_dpi, null);
-        EditText dpiInput = dialogView.findViewById(R.id.dpi_input);
-        
-        dpiInput.setText(String.valueOf(currentDpi));
-
-        new AlertDialog.Builder(getContext())
-                .setTitle("修改DPI")
-                .setView(dialogView)
-                .setPositiveButton("确定", (dialog, which) -> {
-                    try {
-                        int newDpi = Integer.parseInt(dpiInput.getText().toString());
-                        
-                        if (newDpi <= 0) {
-                            showToast("请输入有效的DPI值");
-                            return;
-                        }
-                        State.startNewJob(new ChangeDPI(displayId, newDpi));
-                    } catch (NumberFormatException e) {
-                        showToast("请输入有效的数字");
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
     }
 
     private void setupDisplayModes(Display.Mode[] supportedModes) {
