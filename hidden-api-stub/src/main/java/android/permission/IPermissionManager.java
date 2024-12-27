@@ -1,6 +1,5 @@
 package android.permission;
 
-import android.hardware.input.IInputManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;

@@ -2,6 +2,7 @@ package com.gitee.connect_screen;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.IPackageManager;
 import android.os.Bundle;
 import android.os.Process;
 import android.os.UserHandle;
@@ -155,27 +156,43 @@ public class InputDeviceListFragment extends Fragment {
     }
 
     private boolean grantWriteSecureSettings() {
-        IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
+        try {
+            return _grantWriteSecureSettings();
+        } catch(Throwable e) {
+            State.log("授权失败: " + e);
+            return false;
+        }
+    }
+    private boolean _grantWriteSecureSettings() {
         UserHandle userHandle = Process.myUserHandle();
         UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
         String packageName = getActivity().getPackageName();
-        try {
-            permissionManager.grantRuntimePermission(
-                    packageName,
-                    "android.permission.WRITE_SECURE_SETTINGS",
-                    "0", userHandleHidden.getIdentifier());
+        IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
+        String permissionName = "android.permission.WRITE_SECURE_SETTINGS";
+        if (permissionManager == null) {
+            IPackageManager packageManager = ServiceUtils.getPackageManager();
+            packageManager.grantRuntimePermission(packageName, permissionName, userHandleHidden.getIdentifier());
             State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
             return true;
-        } catch (Throwable e) {
+        } else {
             try {
                 permissionManager.grantRuntimePermission(
                         packageName,
-                        "android.permission.WRITE_SECURE_SETTINGS",
-                        userHandleHidden.getIdentifier());
+                        permissionName,
+                        "0", userHandleHidden.getIdentifier());
                 State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
                 return true;
-            } catch (Throwable e2) {
-                State.log("授予权限失败: " + e2.getMessage());
+            } catch (Throwable e) {
+                try {
+                    permissionManager.grantRuntimePermission(
+                            packageName,
+                            permissionName,
+                            userHandleHidden.getIdentifier());
+                    State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
+                    return true;
+                } catch (Throwable e2) {
+                    State.log("授予权限失败: " + e2.getMessage());
+                }
             }
         }
         return false;

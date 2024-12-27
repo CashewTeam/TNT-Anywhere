@@ -11,6 +11,7 @@ import android.app.IActivityTaskManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
@@ -40,6 +41,7 @@ public class ServiceUtils {
     private static IDisplayManager displayManager;
     private static IInputManager inputManager;
     private static IPermissionManager permissionManager;
+    private static IPackageManager packageManager;
 
     private static void initWithShizuku() {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
@@ -47,7 +49,12 @@ public class ServiceUtils {
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
         displayManager = IDisplayManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE)));
         inputManager = IInputManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.INPUT_SERVICE)));
-        permissionManager = IPermissionManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("permissionmgr")));
+        try {
+            permissionManager = IPermissionManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("permissionmgr")));
+        } catch(Throwable e) {
+            // ignore;
+        }
+        packageManager = IPackageManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("package")));
     }
 
     /**
@@ -212,5 +219,12 @@ public class ServiceUtils {
             initWithShizuku();
         }
         return permissionManager;
+    }
+
+    public static IPackageManager getPackageManager() {
+        if (packageManager == null) {
+            initWithShizuku();
+        }
+        return packageManager;
     }
 }
