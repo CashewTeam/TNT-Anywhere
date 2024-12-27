@@ -42,6 +42,7 @@ import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
+import com.gitee.connect_screen.dialog.ResolutionDialog;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -172,7 +173,7 @@ public class DisplayDetailFragment extends Fragment {
         if(ShizukuUtils.hasShizukuStarted()) {
             editResolutionButton.setVisibility(View.VISIBLE);
             editResolutionButton.setOnClickListener(v -> {
-                showResolutionDialog(display.getWidth(), display.getHeight());
+                ResolutionDialog.show(getContext(), displayId, display.getWidth(), display.getHeight());
             });
         }
 
@@ -338,36 +339,6 @@ public class DisplayDetailFragment extends Fragment {
             shizukuStatusText.setText("Shizuku权限状态: 未授权");
             State.log("获取 Shizuku 权限失败：" + e.getMessage());
         }
-    }
-
-    private void showResolutionDialog(int currentWidth, int currentHeight) {
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_resolution, null);
-        EditText widthInput = dialogView.findViewById(R.id.width_input);
-        EditText heightInput = dialogView.findViewById(R.id.height_input);
-        
-        // 设置当前分辨率作为默认值
-        widthInput.setText(String.valueOf(currentWidth));
-        heightInput.setText(String.valueOf(currentHeight));
-
-        new AlertDialog.Builder(getContext())
-                .setTitle("修改分辨率（大概率无效）")
-                .setView(dialogView)
-                .setPositiveButton("确定", (dialog, which) -> {
-                    try {
-                        int newWidth = Integer.parseInt(widthInput.getText().toString());
-                        int newHeight = Integer.parseInt(heightInput.getText().toString());
-                        
-                        if (newWidth <= 0 || newHeight <= 0) {
-                            showToast("请输入有效的分辨率");
-                            return;
-                        }
-                        State.startNewJob(new ChangeResolution(displayId, newWidth, newHeight));
-                    } catch (NumberFormatException e) {
-                        showToast("请输入有效的数字");
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
     }
 
     private void showDpiDialog(int currentDpi) {
