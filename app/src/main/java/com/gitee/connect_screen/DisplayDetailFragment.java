@@ -58,6 +58,7 @@ public class DisplayDetailFragment extends Fragment {
     private Button gotoDisplaylinkButton;
     private Button setImePolicyButton;
     private CheckBox autoOpenLastAppCheckbox;
+    private Button floatingBackButton;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -253,6 +254,22 @@ public class DisplayDetailFragment extends Fragment {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setOnClickListener(v -> showBridgeDialog());
         }
+
+        floatingBackButton = view.findViewById(R.id.floating_back_button);
+        if (displayId != Display.DEFAULT_DISPLAY) {
+            floatingBackButton.setVisibility(View.VISIBLE);
+            SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
+            boolean isFloatingBackEnabled = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
+            updateFloatingBackButtonText(isFloatingBackEnabled);
+            
+            floatingBackButton.setOnClickListener(v -> {
+                boolean currentState = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
+                boolean newState = !currentState;
+                appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), newState).apply();
+                updateFloatingBackButtonText(newState);
+            });
+        }
+
         return view;
     }
 
@@ -393,5 +410,9 @@ private void showRotationDialog() {
 
 private void showBridgeDialog() {
     BridgeDialog.show(getContext(), display, displayId);
+}
+
+private void updateFloatingBackButtonText(boolean isEnabled) {
+    floatingBackButton.setText(isEnabled ? "隐藏悬浮返回键" : "展示悬浮返回键");
 }
 }
