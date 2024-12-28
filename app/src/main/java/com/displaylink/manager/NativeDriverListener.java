@@ -1,11 +1,15 @@
 package com.displaylink.manager;
 
+import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
 
 import com.displaylink.manager.display.MonitorInfo;
+import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
+import com.gitee.connect_screen.job.VirtualDisplayArgs;
 
 public class NativeDriverListener {
     private final String usbDeviceName;
@@ -48,7 +52,11 @@ public class NativeDriverListener {
 
     public void onUpdateMonitorInfo(long encoderId, MonitorInfo monitorInfo) {
         Log.i("displaylink", "onUpdateMonitorInfo");
-        State.currentActivity.get().runOnUiThread(() -> {
+        Activity context = State.currentActivity.get();
+        if (context == null) {
+            return;
+        }
+        context.runOnUiThread(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
             DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState != null) {
@@ -56,6 +64,8 @@ public class NativeDriverListener {
                 displaylinkState.encoderId = encoderId;
                 displaylinkState.monitorInfo = monitorInfo;
                 if (!State.isJobRunning() && wasNoMonitor) {
+                    DisplaylinkPref.load(context);
+                    State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
                     State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs));
                 }
             }
