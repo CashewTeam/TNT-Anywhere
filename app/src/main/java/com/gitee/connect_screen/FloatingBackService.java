@@ -28,6 +28,7 @@ public class FloatingBackService extends Service {
     private Runnable fadeOutRunnable;
     private android.os.Handler handler;
     private float currentAlpha = 1.0f;
+    private boolean isReady = true;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -81,7 +82,7 @@ public class FloatingBackService extends Service {
             return;
         }
         
-        // 使用正确的显示器上下文���建 WindowManager
+        // 使用正确的显示器上下文建 WindowManager
         Context displayContext = createDisplayContext(display);
         windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
 
@@ -97,6 +98,7 @@ public class FloatingBackService extends Service {
         floatingView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                boolean isVisible = currentAlpha >= 1.0f;
                 // 触摸时重置透明度
                 resetButtonVisibility();
                 
@@ -117,8 +119,13 @@ public class FloatingBackService extends Service {
                     case MotionEvent.ACTION_UP:
                         if (Math.abs(event.getRawX() - initialTouchX) < 10 
                                 && Math.abs(event.getRawY() - initialTouchY) < 10) {
-                            // 模拟返回键点击
-                            State.currentActivity.get().onBackPressed();
+                            if (!isReady) {
+                                // 如果按钮未就绪（隐藏状态），则只显示按钮
+                                resetButtonVisibility();
+                            } else {
+                                // 按钮已就绪（完全显示状态），执行返回操作
+                                State.currentActivity.get().onBackPressed();
+                            }
                         } else {
                             // 保存新的位置
                             SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
@@ -145,6 +152,12 @@ public class FloatingBackService extends Service {
         floatingView.animate()
                 .alpha(0.0f)
                 .setDuration(500)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        isReady = false;
+                    }
+                })
                 .start();
         currentAlpha = 0.0f;
     }
@@ -154,6 +167,12 @@ public class FloatingBackService extends Service {
         floatingView.animate()
                 .alpha(1.0f)
                 .setDuration(200)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        isReady = true;
+                    }
+                })
                 .start();
         currentAlpha = 1.0f;
         startFadeOutTimer();
