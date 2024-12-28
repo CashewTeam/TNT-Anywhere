@@ -109,7 +109,7 @@ public class TouchpadActivity extends AppCompatActivity {
         }
         
         // 检查无障碍服务权限并尝试启动服务
-        if (!isAccessibilityServiceEnabled(context)) {
+        if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(context)) {
             if (!dryRun) {
                 Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 context.startActivity(intent);
@@ -139,22 +139,6 @@ public class TouchpadActivity extends AppCompatActivity {
         return true;
     }
 
-    
-
-    // 检查无障碍服务是否启用
-    private static boolean isAccessibilityServiceEnabled(Context context) {
-        String serviceName = context.getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
-        String enabledServices = Settings.Secure.getString(
-            context.getContentResolver(),
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        );
-        
-        if (enabledServices != null) {
-            return enabledServices.contains(serviceName);
-        }
-        return false;
-    }
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -2,8 +2,10 @@ package com.gitee.connect_screen;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Path;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
@@ -21,7 +23,21 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     private final Queue<ScrollRequest> scrollQueue = new LinkedList<>();
     private boolean isScrolling = false;
     private static final int SCROLL_DURATION = 50;
-    
+
+    // 检查无障碍服务是否启用
+    public static boolean isAccessibilityServiceEnabled(Context context) {
+        String serviceName = context.getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(
+                context.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+
+        if (enabledServices != null) {
+            return enabledServices.contains(serviceName);
+        }
+        return false;
+    }
+
     private static class ScrollRequest {
         final int displayId;
         final float x;
@@ -88,6 +104,8 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         
         if (root.isFocusable()) {
             results.add(root);
+        } else {
+            Log.i("AccessibilityService", "node: " + root);
         }
         
         for (int i = 0; i < root.getChildCount(); i++) {
@@ -117,6 +135,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             int topLayer = -1;
             
             for (AccessibilityWindowInfo window : targetDisplayWindows) {
+                if (window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) {
+                    continue;
+                }
                 if (window.getDisplayId() == displayId) {
                     if (window.getLayer() > topLayer) {
                         topLayer = window.getLayer();

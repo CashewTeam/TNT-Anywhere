@@ -261,14 +261,28 @@ public class DisplayDetailFragment extends Fragment {
         if (displayId != Display.DEFAULT_DISPLAY) {
             floatingBackButton.setVisibility(View.VISIBLE);
             SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
-            boolean isFloatingBackEnabled = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
-            updateFloatingBackButtonText(isFloatingBackEnabled);
-            
+            if (appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false)) {
+                if (FloatingBackService.startFloating(getContext(), displayId, true)) {
+                    updateFloatingBackButtonText(true);
+                    FloatingBackService.startFloating(getContext(), displayId, false);
+                } else {
+                    appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false).apply();
+                    updateFloatingBackButtonText(false);
+                }
+            }
             floatingBackButton.setOnClickListener(v -> {
-                boolean currentState = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
-                boolean newState = !currentState;
-                appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), newState).apply();
-                updateFloatingBackButtonText(newState);
+                boolean isEnabled = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
+                if (isEnabled) {
+                    Intent serviceIntent = new Intent(getContext(), FloatingBackService.class);
+                    getContext().stopService(serviceIntent);
+                    isEnabled = false;
+                } else {
+                    if (FloatingBackService.startFloating(getContext(), displayId, false)) {
+                        isEnabled = true;
+                    }
+                }
+                appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), isEnabled).apply();
+                updateFloatingBackButtonText(isEnabled);
             });
         }
 
@@ -363,7 +377,7 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void setupDisplayModes(Display.Mode[] supportedModes) {
-        // 设置支持的显示模式文本
+        // 设置支持的���示模式文本
         StringBuilder supportedModesStr = new StringBuilder();
         for (Display.Mode mode : supportedModes) {
             supportedModesStr.append(String.format("模式ID: %d, 分辨率: %dx%d, 刷新率: %.1f Hz\n",
@@ -416,25 +430,5 @@ private void showBridgeDialog() {
 
 private void updateFloatingBackButtonText(boolean isEnabled) {
     floatingBackButton.setText(isEnabled ? "隐藏悬浮返回键" : "展示悬浮返回键");
-    
-    // 检查悬浮窗权限
-    if (isEnabled && !Settings.canDrawOverlays(getContext())) {
-        // 请求悬浮窗权限
-        Intent intent = new Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:" + getContext().getPackageName())
-        );
-        startActivity(intent);
-        return;
-    }
-    
-    Intent serviceIntent = new Intent(getContext(), FloatingBackService.class);
-    serviceIntent.putExtra("display_id", displayId);
-    
-    if (isEnabled) {
-        getContext().startService(serviceIntent);
-    } else {
-        getContext().stopService(serviceIntent);
-    }
 }
 }

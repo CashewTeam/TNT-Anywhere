@@ -5,7 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
+import android.net.Uri;
+import android.os.Handler;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -29,6 +32,52 @@ public class FloatingBackService extends Service {
     private android.os.Handler handler;
     private float currentAlpha = 1.0f;
     private boolean isReady = true;
+
+    public static boolean startFloating(Context context, int displayId, boolean dryRun) {
+        // 检查悬浮窗权限
+        if (!Settings.canDrawOverlays(context)) {
+            if (dryRun) {
+                return false;
+            }
+            // 请求悬浮窗权限
+            Intent intent = new Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + context.getPackageName())
+            );
+            context.startActivity(intent);
+            return false;
+        }
+
+
+        // 检查无障碍服务权限并尝试启动服务
+        if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(context)) {
+            if (!dryRun) {
+                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                context.startActivity(intent);
+            }
+            return false;
+        }
+
+        if (dryRun) {
+            return true;
+        }
+        // 启动无障碍服务
+        Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
+        context.startService(serviceIntent);
+
+        // 延迟1秒后启动触控板
+        new Handler().postDelayed(() -> {
+            if (TouchpadAccessibilityService.getInstance() == null) {
+                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                context.startActivity(intent);
+            } else {
+                Intent serviceIntent2 = new Intent(context, FloatingBackService.class);
+                serviceIntent2.putExtra("display_id", displayId);
+                context.startService(serviceIntent2);
+            }
+        }, 1000);
+        return true;
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -124,7 +173,10 @@ public class FloatingBackService extends Service {
                                 resetButtonVisibility();
                             } else {
                                 // 按钮已就绪（完全显示状态），执行返回操作
-                                State.currentActivity.get().onBackPressed();
+                                TouchpadAccessibilityService service = TouchpadAccessibilityService.getInstance();
+                                if (service != null) {
+                                    service.performBackGesture(displayId);
+                                }
                             }
                         } else {
                             // 保存新的位置
