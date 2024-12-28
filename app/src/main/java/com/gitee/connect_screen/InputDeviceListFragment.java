@@ -1,13 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.IPackageManager;
 import android.os.Bundle;
-import android.os.Process;
-import android.os.UserHandle;
-import android.os.UserHandleHidden;
-import android.permission.IPermissionManager;
 import android.provider.Settings;
 import android.view.Display;
 import android.view.InputDevice;
@@ -18,12 +12,10 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,14 +24,12 @@ import android.hardware.input.InputManager;
 import android.hardware.display.DisplayManager;
 
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.PermissionManager;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import dev.rikka.tools.refine.Refine;
 
 public class InputDeviceListFragment extends Fragment {
     private List<Display> displayList;
@@ -70,7 +60,7 @@ public class InputDeviceListFragment extends Fragment {
         setupBindButton();
         setupDeviceLists();
 
-        if (grantWriteSecureSettings()) {
+        if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
             setupForceDesktopCheckbox();
             setupForceResizableCheckbox();
             setupEnableFreeformCheckbox();
@@ -153,49 +143,6 @@ public class InputDeviceListFragment extends Fragment {
         State.breadcrumbManager.pushBreadcrumb(device.getName(), () ->
         InputDeviceDetailFragment.newInstance(device.getId())
         );
-    }
-
-    private boolean grantWriteSecureSettings() {
-        try {
-            return _grantWriteSecureSettings();
-        } catch(Throwable e) {
-            State.log("授权失败: " + e);
-            return false;
-        }
-    }
-    private boolean _grantWriteSecureSettings() {
-        UserHandle userHandle = Process.myUserHandle();
-        UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-        String packageName = getActivity().getPackageName();
-        IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
-        String permissionName = "android.permission.WRITE_SECURE_SETTINGS";
-        if (permissionManager == null) {
-            IPackageManager packageManager = ServiceUtils.getPackageManager();
-            packageManager.grantRuntimePermission(packageName, permissionName, userHandleHidden.getIdentifier());
-            State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
-            return true;
-        } else {
-            try {
-                permissionManager.grantRuntimePermission(
-                        packageName,
-                        permissionName,
-                        "0", userHandleHidden.getIdentifier());
-                State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
-                return true;
-            } catch (Throwable e) {
-                try {
-                    permissionManager.grantRuntimePermission(
-                            packageName,
-                            permissionName,
-                            userHandleHidden.getIdentifier());
-                    State.log("成功授予 WRITE_SECURE_SETTINGS 权限");
-                    return true;
-                } catch (Throwable e2) {
-                    State.log("授予权限失败: " + e2.getMessage());
-                }
-            }
-        }
-        return false;
     }
 
     private void setupForceDesktopCheckbox() {

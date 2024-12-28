@@ -1,18 +1,10 @@
 package com.gitee.connect_screen;
 
-import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Process;
-import android.os.UserHandle;
-import android.os.UserHandleHidden;
-import android.permission.IPermissionManager;
-import android.provider.Settings;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.MotionEvent;

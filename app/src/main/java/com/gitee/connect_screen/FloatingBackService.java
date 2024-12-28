@@ -18,6 +18,9 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
+import com.gitee.connect_screen.shizuku.PermissionManager;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
+
 public class FloatingBackService extends Service {
     private WindowManager windowManager;
     private View floatingView;
