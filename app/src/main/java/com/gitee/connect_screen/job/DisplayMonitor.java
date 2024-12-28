@@ -60,18 +60,6 @@ public class DisplayMonitor {
             return;
         }
         handleAutoOpenLastApp(context, display);
-        handleFloatingButton(context, display);
-    }
-
-    private static void handleFloatingButton(Context context, Display display) {
-        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
-        if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
-            if (FloatingButtonService.startFloating(context, display.getDisplayId(), true)) {
-                FloatingButtonService.startFloating(context, display.getDisplayId(), false);
-            } else {
-                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
-            }
-        }
     }
 
     private static void handleAutoOpenLastApp(Context context, Display display) {

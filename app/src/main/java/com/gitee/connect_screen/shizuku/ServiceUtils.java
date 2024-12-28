@@ -11,6 +11,7 @@ import android.app.IActivityTaskManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
@@ -18,11 +19,13 @@ import android.hardware.display.IDisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.permission.IPermissionManager;
+import android.view.Display;
 import android.view.WindowManager;
 import android.view.IWindowManager;
 import android.widget.Toast;
 
 import com.gitee.connect_screen.BridgeActivity;
+import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
 
@@ -111,6 +114,22 @@ public class ServiceUtils {
     }
 
     public static void launchPackage(Context context, String packageName, int targetDisplayId) {
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        Display display = displayManager.getDisplay(targetDisplayId);
+        if (display == null) {
+            return;
+        }
+        _launchPackage(context, packageName, targetDisplayId);
+        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
+        if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
+            if (FloatingButtonService.startFloating(context, targetDisplayId, true)) {
+                FloatingButtonService.startFloating(context, targetDisplayId, false);
+            } else {
+                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
+            }
+        }
+    }
+    public static void _launchPackage(Context context, String packageName, int targetDisplayId) {
         if (ShizukuUtils.hasPermission()) {
             launchAppWithShizuku(packageName, context, targetDisplayId);
             return;
