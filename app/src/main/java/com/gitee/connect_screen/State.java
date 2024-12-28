@@ -35,6 +35,7 @@ public class State {
     public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
     public static int bridgeDisplayId = -1;
+    public static FloatingButtonService floatingButtonService;
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 

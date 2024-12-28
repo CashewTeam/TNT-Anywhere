@@ -18,6 +18,10 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
+import com.gitee.connect_screen.job.StartFloatingButton;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.gitee.connect_screen.shizuku.ShizukuUtils;
+
 public class FloatingButtonService extends Service {
     private WindowManager windowManager;
     private View floatingView;
@@ -48,6 +52,12 @@ public class FloatingButtonService extends Service {
             return false;
         }
 
+        if (ShizukuUtils.hasShizukuStarted()) {
+            if (!dryRun) {
+                State.startNewJob(new StartFloatingButton(displayId, context));
+            }
+            return true;
+        }
 
         // 检查无障碍服务权限并尝试启动服务
         if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(context)) {
@@ -86,13 +96,27 @@ public class FloatingButtonService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        State.floatingButtonService = this;
         if (intent != null) {
             displayId = intent.getIntExtra("display_id", -1);
-            if (displayId != -1 && floatingView == null) {
+            if (displayId != -1) {
+                if (floatingView != null) {
+                    this.onDestroy();
+                }
                 createFloatingButton();
             }
         }
         return START_STICKY;
+    }
+
+    public void onDisplayRemoved(int displayId) {
+        if (this.displayId == displayId) {
+            stopSelf();
+        }
+    }
+
+    public void onSingleAppLaunched() {
+        resetButtonVisibility();
     }
 
     private void createFloatingButton() {
@@ -122,6 +146,12 @@ public class FloatingButtonService extends Service {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         params.x = prefs.getInt(KEY_X, 0);
         params.y = prefs.getInt(KEY_Y, 100);
+        if (params.x < 0) {
+            params.x = 0;
+        }
+        if (params.y < 0) {
+            params.y = 0;
+        }
 
         // 获取目标显示器的 WindowManager
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
@@ -130,13 +160,14 @@ public class FloatingButtonService extends Service {
             stopSelf();
             return;
         }
-        
+
         // 使用正确的显示器上下文建 WindowManager
         Context displayContext = createDisplayContext(display);
         windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
 
         try {
             windowManager.addView(floatingView, params);
+            State.log("添加悬浮窗于 (" + params.x + "," + params.y + ")");
         } catch (Exception e) {
             State.log("添加悬浮窗失败: " + e.getMessage());
             stopSelf();
@@ -144,51 +175,42 @@ public class FloatingButtonService extends Service {
         }
 
         // 添加触摸事件处理
-        floatingView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                boolean isVisible = currentAlpha >= 1.0f;
-                // 触摸时重置透明度
-                resetButtonVisibility();
-                
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        initialX = params.x;
-                        initialY = params.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
-                        return true;
+        floatingView.setOnTouchListener((v, event) -> {
+            // 触摸时重置透明度
+            resetButtonVisibility();
 
-                    case MotionEvent.ACTION_MOVE:
-                        params.x = (int) (initialX + (event.getRawX() - initialTouchX));
-                        params.y = (int) (initialY + (event.getRawY() - initialTouchY));
-                        windowManager.updateViewLayout(floatingView, params);
-                        return true;
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    initialX = params.x;
+                    initialY = params.y;
+                    initialTouchX = event.getRawX();
+                    initialTouchY = event.getRawY();
+                    return true;
 
-                    case MotionEvent.ACTION_UP:
-                        if (Math.abs(event.getRawX() - initialTouchX) < 10 
-                                && Math.abs(event.getRawY() - initialTouchY) < 10) {
-                            if (!isReady) {
-                                // 如果按钮未就绪（隐藏状态），则只显示按钮
-                                resetButtonVisibility();
-                            } else {
-                                // 按钮已就绪（完全显示状态），执行返回操作
-                                TouchpadAccessibilityService service = TouchpadAccessibilityService.getInstance();
-                                if (service != null) {
-                                    service.performBackGesture(displayId);
-                                }
-                            }
+                case MotionEvent.ACTION_MOVE:
+                    params.x = (int) (initialX + (event.getRawX() - initialTouchX));
+                    params.y = (int) (initialY + (event.getRawY() - initialTouchY));
+                    windowManager.updateViewLayout(floatingView, params);
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                    if (Math.abs(event.getRawX() - initialTouchX) < 10
+                            && Math.abs(event.getRawY() - initialTouchY) < 10) {
+                        if (!isReady) {
+                            resetButtonVisibility();
                         } else {
-                            // 保存新的位置
-                            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
-                            editor.putInt(KEY_X, params.x);
-                            editor.putInt(KEY_Y, params.y);
-                            editor.apply();
+                            TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
                         }
-                        return true;
-                }
-                return false;
+                    } else {
+                        // 保存新的位置
+                        SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                        editor.putInt(KEY_X, params.x);
+                        editor.putInt(KEY_Y, params.y);
+                        editor.apply();
+                    }
+                    return true;
             }
+            return false;
         });
 
         // 初始启动淡出计时器
@@ -240,5 +262,6 @@ public class FloatingButtonService extends Service {
             windowManager.removeView(floatingView);
             floatingView = null;
         }
+        State.floatingButtonService = null;
     }
 } 

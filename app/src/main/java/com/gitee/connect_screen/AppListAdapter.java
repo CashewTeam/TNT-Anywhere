@@ -103,6 +103,9 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();
             ServiceUtils.launchPackage(v.getContext(), app.packageName, targetDisplayId);
+            if (State.floatingButtonService != null) {
+                State.floatingButtonService.onSingleAppLaunched();
+            }
         });
         holder.btnLaunchToDefaultDisplay.setOnClickListener(v -> {
             Intent launchIntent = packageManager.getLaunchIntentForPackage(app.packageName);

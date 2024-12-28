@@ -6,13 +6,19 @@ import android.hardware.display.DisplayManager;
 import android.os.Handler;
 import android.view.Display;
 
+import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 public class DisplayMonitor {
+    private static boolean registered = false;
     public static void init(DisplayManager displayManager) {
+        if (registered) {
+            return;
+        }
+        registered = true;
         for (Display display : displayManager.getDisplays()) {
             handleNewDisplay(display);
         }
@@ -29,6 +35,9 @@ public class DisplayMonitor {
             @Override
             public void onDisplayRemoved(int displayId) {
                 State.log("移除显示器，displayId: " + displayId);
+                if (State.floatingButtonService != null) {
+                    State.floatingButtonService.onDisplayRemoved(displayId);
+                }
             }
 
             @Override
@@ -38,7 +47,6 @@ public class DisplayMonitor {
         }, null);
     }
 
-
     private static void handleNewDisplay(Display display) {
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
             return;
@@ -47,6 +55,22 @@ public class DisplayMonitor {
         if (context == null) {
             return;
         }
+        handleAutoOpenLastApp(context, display);
+        handleFloatingButton(context, display);
+    }
+
+    private static void handleFloatingButton(Context context, Display display) {
+        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
+        if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
+            if (FloatingButtonService.startFloating(context, display.getDisplayId(), true)) {
+                FloatingButtonService.startFloating(context, display.getDisplayId(), false);
+            } else {
+                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
+            }
+        }
+    }
+
+    private static void handleAutoOpenLastApp(Context context, Display display) {
         SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
         boolean autoBridge = appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false);
         if (ShizukuUtils.hasPermission() && (autoBridge || display.getDisplayId() == State.bridgeDisplayId)) {

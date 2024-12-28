@@ -244,15 +244,7 @@ public class DisplayDetailFragment extends Fragment {
         if (displayId != Display.DEFAULT_DISPLAY) {
             floatingButtonToggle.setVisibility(View.VISIBLE);
             SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
-            if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
-                if (FloatingButtonService.startFloating(getContext(), displayId, true)) {
-                    updateFloatingBackButtonText(true);
-                    FloatingButtonService.startFloating(getContext(), displayId, false);
-                } else {
-                    appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
-                    updateFloatingBackButtonText(false);
-                }
-            }
+            updateFloatingBackButtonText(appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false));
             floatingButtonToggle.setOnClickListener(v -> {
                 boolean isEnabled = appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
                 if (isEnabled) {

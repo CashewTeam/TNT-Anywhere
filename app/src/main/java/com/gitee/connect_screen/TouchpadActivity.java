@@ -17,6 +17,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
+import android.hardware.input.InputManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -103,7 +104,7 @@ public class TouchpadActivity extends AppCompatActivity {
         
         if (ShizukuUtils.hasShizukuStarted()) {
             if (!dryRun) {
-                State.startNewJob(new StartTouchPad(displayId));
+                State.startNewJob(new StartTouchPad(displayId, context));
             }
             return true;
         }
@@ -291,12 +292,7 @@ public class TouchpadActivity extends AppCompatActivity {
         // 添加返回按钮的点击监听器
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> {
-            if (inputManager != null) {
-                injectKeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
-                injectKeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
-                return;
-            }
-            performBackGesture();
+            performBackGesture(inputManager, displayId);
         });
 
         // 添加Home按钮的点击监听器
@@ -319,7 +315,7 @@ public class TouchpadActivity extends AppCompatActivity {
         toggleCursorButton.setOnClickListener(v -> toggleCursorLock());
 
         if (ShizukuUtils.hasPermission()) {
-            setFocus();
+            setFocus(inputManager, displayId);
         }
     }
 
@@ -345,7 +341,7 @@ public class TouchpadActivity extends AppCompatActivity {
             return;
         }
 
-        setFocus();
+        setFocus(inputManager, displayId);
 
         // 直重放已经计算好偏移量的事件
         for (int i = gestureState.lastReplayed; i < gestureState.allMotionEvents.size(); i++) {
@@ -363,8 +359,8 @@ public class TouchpadActivity extends AppCompatActivity {
         gestureState.lastReplayed = gestureState.allMotionEvents.size();
     }
 
-    private void injectKeyEvent(int action, int keyCode, int repeat, int metaState, int injectMode) {
-        setFocus();
+    private static void injectKeyEvent(IInputManager inputManager, int displayId, int action, int keyCode, int repeat, int metaState, int injectMode) {
+        setFocus(inputManager, displayId);
         long now = SystemClock.uptimeMillis();
         KeyEvent event = new KeyEvent(now, now, action, keyCode, repeat, metaState, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                 InputDevice.SOURCE_KEYBOARD);
@@ -445,7 +441,12 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     // 添加执行返回手势的方法
-    private void performBackGesture() {
+    public static void performBackGesture(IInputManager inputManager, int displayId) {
+        if (inputManager != null) {
+            injectKeyEvent(inputManager, displayId, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
+            injectKeyEvent(inputManager, displayId, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK, 0, 0, INJECT_INPUT_EVENT_MODE_ASYNC);
+            return;
+        }
         TouchpadAccessibilityService accessibilityService = TouchpadAccessibilityService.getInstance();
         if (accessibilityService != null) {
             accessibilityService.performBackGesture(displayId);
@@ -456,10 +457,10 @@ public class TouchpadActivity extends AppCompatActivity {
         Intent intent = new Intent(this, PureBlackActivity.class);
         ActivityOptions options = ActivityOptions.makeBasic();
         startActivity(intent, options.toBundle());
-        setFocus();
+        setFocus(inputManager, displayId);
     }
 
-    private void setFocus() {
+    private static void setFocus(IInputManager inputManager, int displayId) {
         try {
             if (inputManager != null) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

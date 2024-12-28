@@ -44,6 +44,9 @@ public class ServiceUtils {
     private static IPackageManager packageManager;
 
     private static void initWithShizuku() {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
         activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.ACTIVITY_SERVICE)));
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));

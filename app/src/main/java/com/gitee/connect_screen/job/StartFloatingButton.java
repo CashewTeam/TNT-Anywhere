@@ -3,15 +3,14 @@ package com.gitee.connect_screen.job;
 import android.content.Context;
 import android.content.Intent;
 
-import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.TouchpadActivity;
+import com.gitee.connect_screen.FloatingButtonService;
 
-public class StartTouchPad implements Job {
+public class StartFloatingButton implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private final int displayId;
     private final Context context;
 
-    public StartTouchPad(int displayId, Context context) {
+    public StartFloatingButton(int displayId, Context context) {
         this.displayId = displayId;
         this.context = context;
     }
@@ -22,9 +21,8 @@ public class StartTouchPad implements Job {
         if (!acquireShizuku.acquired) {
             return;
         }
-        Intent intent = new Intent(context, TouchpadActivity.class);
-        intent.putExtra("display_id", displayId);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+        Intent serviceIntent = new Intent(context, FloatingButtonService.class);
+        serviceIntent.putExtra("display_id", displayId);
+        context.startService(serviceIntent);
     }
 }
