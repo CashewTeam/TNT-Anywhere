@@ -36,6 +36,8 @@ public class FloatingButtonService extends Service {
     private android.os.Handler handler;
     private float currentAlpha = 1.0f;
     private boolean isReady = true;
+    private static final long DOUBLE_CLICK_TIME_DELTA = 300; //双击间隔时间（毫秒）
+    private long lastClickTime = 0;
 
     public static boolean startFloating(Context context, int displayId, boolean dryRun) {
         // 检查悬浮窗权限
@@ -196,10 +198,18 @@ public class FloatingButtonService extends Service {
                 case MotionEvent.ACTION_UP:
                     if (Math.abs(event.getRawX() - initialTouchX) < 10
                             && Math.abs(event.getRawY() - initialTouchY) < 10) {
-                        if (!isReady) {
-                            resetButtonVisibility();
+                        long clickTime = System.currentTimeMillis();
+                        if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                            TouchpadActivity.launchLastPackage(this, displayId);
+                            lastClickTime = 0; // 重置最后点击时间
                         } else {
-                            TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
+                            // 单击事件
+                            if (!isReady) {
+                                resetButtonVisibility();
+                            } else {
+                                TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
+                            }
+                            lastClickTime = clickTime;
                         }
                     } else {
                         // 保存新的位置
@@ -264,4 +274,10 @@ public class FloatingButtonService extends Service {
         }
         State.floatingButtonService = null;
     }
-} 
+
+    public void onDisplayChanged(int displayId) {
+        if (this.displayId == displayId) {
+            resetButtonVisibility();
+        }
+    }
+}

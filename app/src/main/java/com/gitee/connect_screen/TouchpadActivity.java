@@ -298,12 +298,7 @@ public class TouchpadActivity extends AppCompatActivity {
         // 添加Home按钮的点击监听器
         ImageButton homeButton = findViewById(R.id.homeButton);
         homeButton.setOnClickListener(v -> {
-            SharedPreferences appPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE);
-            String lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
-            if (lastPackageName == null) {
-                return;
-            }
-            ServiceUtils.launchPackage(this, lastPackageName, displayId);
+            launchLastPackage(this, displayId);
         });
 
         // 添加退出按钮的点击监听器
@@ -317,6 +312,15 @@ public class TouchpadActivity extends AppCompatActivity {
         if (ShizukuUtils.hasPermission()) {
             setFocus(inputManager, displayId);
         }
+    }
+
+    public static void launchLastPackage(Context context, int displayId) {
+        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", MODE_PRIVATE);
+        String lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+        if (lastPackageName == null) {
+            return;
+        }
+        ServiceUtils.launchPackage(context, lastPackageName, displayId);
     }
 
     private void updateHelp() {

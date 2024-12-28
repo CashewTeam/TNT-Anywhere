@@ -43,6 +43,9 @@ public class DisplayMonitor {
             @Override
             public void onDisplayChanged(int displayId) {
                 // 显示器状态变化时的处理
+                if (State.floatingButtonService != null) {
+                    State.floatingButtonService.onDisplayChanged(displayId);
+                }
             }
         }, null);
     }
