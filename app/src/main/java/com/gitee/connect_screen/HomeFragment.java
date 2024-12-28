@@ -70,7 +70,7 @@ public class HomeFragment extends Fragment {
 
         inputDeviceBtn.setOnClickListener(v -> {
             if (ShizukuUtils.hasPermission()) {
-                State.breadcrumbManager.pushBreadcrumb("输入设备", () -> new InputDeviceListFragment());
+                State.breadcrumbManager.pushBreadcrumb("设置", () -> new InputDeviceListFragment());
             } else {
                 Toast.makeText(requireContext(), "需要先授权 Shizuku", Toast.LENGTH_SHORT).show();
             }

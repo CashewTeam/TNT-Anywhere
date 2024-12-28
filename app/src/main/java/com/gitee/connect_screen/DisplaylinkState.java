@@ -19,15 +19,15 @@ public class DisplaylinkState {
     public UsbDeviceConnection displaylinkConnection2;
     public NativeDriver nativeDriver;
     public NativeDriverListener nativeDriverListener;
-    public volatile long encoderId = 0;
+    public long encoderId = 0;
     public MonitorInfo monitorInfo;
     public ImageReader imageReader;
     public VirtualDisplayArgs virtualDisplayArgs = new VirtualDisplayArgs();
     private VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
-    public volatile int frameCounter = 0;
-    public volatile int[] recentPostFrameResultCodes = new int[8];
+    public int frameCounter = 0;
+    public int[] recentPostFrameResultCodes = new int[8];
 
     public void stopHandlerThread() {
         if (handlerThread != null) {

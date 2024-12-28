@@ -1,28 +1,15 @@
 package com.gitee.connect_screen.job;
 
-import static android.content.Context.MODE_PRIVATE;
-
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.hardware.display.IVirtualDisplayCallback;
-import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
-import android.view.Surface;
 
 import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.DisplaylinkPref;
-import com.gitee.connect_screen.LauncherActivity;
-import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.nio.ByteBuffer;
 

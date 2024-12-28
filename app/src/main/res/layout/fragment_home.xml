@@ -48,15 +48,6 @@
         android:layout_marginBottom="16dp"
         android:minWidth="200dp"
         android:text="Displaylink" />
-
-
-    <Button
-        android:id="@+id/inputDeviceBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:minWidth="200dp"
-        android:text="输入设备" />
     
     <Button
         android:id="@+id/simulateScreenOffBtn"
@@ -65,6 +56,14 @@
         android:layout_marginBottom="16dp"
         android:minWidth="200dp"
         android:text="模拟熄屏" />
+
+    <Button
+        android:id="@+id/inputDeviceBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:minWidth="200dp"
+        android:text="设置" />
 
     <Button
         android:id="@+id/aboutBtn"
