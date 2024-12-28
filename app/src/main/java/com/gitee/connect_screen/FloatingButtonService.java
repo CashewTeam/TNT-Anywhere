@@ -18,10 +18,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
-import com.gitee.connect_screen.shizuku.PermissionManager;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
-
-public class FloatingBackService extends Service {
+public class FloatingButtonService extends Service {
     private WindowManager windowManager;
     private View floatingView;
     private int displayId;
@@ -74,7 +71,7 @@ public class FloatingBackService extends Service {
                 Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 context.startActivity(intent);
             } else {
-                Intent serviceIntent2 = new Intent(context, FloatingBackService.class);
+                Intent serviceIntent2 = new Intent(context, FloatingButtonService.class);
                 serviceIntent2.putExtra("display_id", displayId);
                 context.startService(serviceIntent2);
             }

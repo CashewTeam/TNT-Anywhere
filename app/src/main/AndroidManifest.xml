@@ -101,7 +101,7 @@
         </provider>
         
         <service
-            android:name=".FloatingBackService"
+            android:name=".FloatingButtonService"
             android:enabled="true"
             android:exported="false" />
         

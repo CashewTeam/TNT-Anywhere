@@ -2,18 +2,12 @@ package com.gitee.connect_screen;
 
 import static android.content.Context.MODE_PRIVATE;
 
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
-import android.hardware.usb.UsbDevice;
-import android.net.Uri;
-import android.opengl.Visibility;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.DisplayCutout;
@@ -23,24 +17,13 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
-import java.net.ServerSocket;
-
-import com.gitee.connect_screen.job.ChangeDPI;
-import com.gitee.connect_screen.job.ChangeResolution;
-import com.gitee.connect_screen.job.ChangeRotation;
-import com.gitee.connect_screen.job.ProjectViaBridge;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
@@ -60,7 +43,7 @@ public class DisplayDetailFragment extends Fragment {
     private Button gotoDisplaylinkButton;
     private Button setImePolicyButton;
     private CheckBox autoOpenLastAppCheckbox;
-    private Button floatingBackButton;
+    private Button floatingButtonToggle;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -257,31 +240,31 @@ public class DisplayDetailFragment extends Fragment {
             bridgeButton.setOnClickListener(v -> showBridgeDialog());
         }
 
-        floatingBackButton = view.findViewById(R.id.floating_back_button);
+        floatingButtonToggle = view.findViewById(R.id.floating_button_toggle);
         if (displayId != Display.DEFAULT_DISPLAY) {
-            floatingBackButton.setVisibility(View.VISIBLE);
+            floatingButtonToggle.setVisibility(View.VISIBLE);
             SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
-            if (appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false)) {
-                if (FloatingBackService.startFloating(getContext(), displayId, true)) {
+            if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
+                if (FloatingButtonService.startFloating(getContext(), displayId, true)) {
                     updateFloatingBackButtonText(true);
-                    FloatingBackService.startFloating(getContext(), displayId, false);
+                    FloatingButtonService.startFloating(getContext(), displayId, false);
                 } else {
-                    appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false).apply();
+                    appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
                     updateFloatingBackButtonText(false);
                 }
             }
-            floatingBackButton.setOnClickListener(v -> {
-                boolean isEnabled = appPreferences.getBoolean("FLOATING_BACK_BUTTON_" + display.getName(), false);
+            floatingButtonToggle.setOnClickListener(v -> {
+                boolean isEnabled = appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
                 if (isEnabled) {
-                    Intent serviceIntent = new Intent(getContext(), FloatingBackService.class);
+                    Intent serviceIntent = new Intent(getContext(), FloatingButtonService.class);
                     getContext().stopService(serviceIntent);
                     isEnabled = false;
                 } else {
-                    if (FloatingBackService.startFloating(getContext(), displayId, false)) {
+                    if (FloatingButtonService.startFloating(getContext(), displayId, false)) {
                         isEnabled = true;
                     }
                 }
-                appPreferences.edit().putBoolean("FLOATING_BACK_BUTTON_" + display.getName(), isEnabled).apply();
+                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), isEnabled).apply();
                 updateFloatingBackButtonText(isEnabled);
             });
         }
@@ -429,6 +412,6 @@ private void showBridgeDialog() {
 }
 
 private void updateFloatingBackButtonText(boolean isEnabled) {
-    floatingBackButton.setText(isEnabled ? "隐藏悬浮返回键" : "展示悬浮返回键");
+    floatingButtonToggle.setText(isEnabled ? "隐藏悬浮返回键" : "展示悬浮返回键");
 }
 }

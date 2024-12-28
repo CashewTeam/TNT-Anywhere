@@ -141,7 +141,7 @@
             android:text="触控板"/>
 
         <Button
-            android:id="@+id/floating_back_button"
+            android:id="@+id/floating_button_toggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
