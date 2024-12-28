@@ -41,6 +41,7 @@ public class DisplaylinkFragment extends Fragment {
     private CheckBox autoOpenLastAppCheckbox;
     private View frameRateLayout;
     private View launchAppButton;
+    private EditText dpiInput;
 
     public static DisplaylinkFragment newInstance() {
         DisplaylinkFragment fragment = new DisplaylinkFragment();
@@ -309,6 +310,27 @@ public class DisplaylinkFragment extends Fragment {
             viewVirtualDisplayButton.setVisibility(View.GONE);
         }
 
+        dpiInput = view.findViewById(R.id.dpiInput);
+        dpiInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                try {
+                    int dpi = Integer.parseInt(s.toString());
+                    DisplaylinkPref.dpi = dpi;
+                    updateView();
+                } catch (NumberFormatException e) {
+                    // 忽略无效输入
+                }
+            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
+        
+        // 如果已有DPI值，则显示在输入框中
+        if (DisplaylinkPref.dpi > 0) {
+            dpiInput.setText(String.valueOf(DisplaylinkPref.dpi));
+        }
+
         updateView();
 
         return view;
@@ -357,13 +379,29 @@ public class DisplaylinkFragment extends Fragment {
                 explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
                 explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
 
-                displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", monitorWidth, monitorHeight, virtualDisplayWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
+                displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs(
+                    "DisplayLink", 
+                    DisplaylinkPref.monitorWidth, 
+                    DisplaylinkPref.monitorHeight,
+                    is16_9Mode ? virtualDisplayWidth : DisplaylinkPref.monitorWidth,
+                    DisplaylinkPref.refreshRate,
+                    DisplaylinkPref.dpi,
+                    DisplaylinkPref.rotatesWithContent
+                );
                 ((TextView) aspectRatioExplanation).setText(explanation.toString());
             } catch (NumberFormatException e) {
                 // 忽略无效输入
             }
         } else {
-            displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.rotatesWithContent);
+            displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs(
+                "DisplayLink", 
+                DisplaylinkPref.monitorWidth, 
+                DisplaylinkPref.monitorHeight, 
+                DisplaylinkPref.monitorWidth, 
+                DisplaylinkPref.refreshRate,
+                DisplaylinkPref.dpi,
+                DisplaylinkPref.rotatesWithContent
+            );
         }
         aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
     }

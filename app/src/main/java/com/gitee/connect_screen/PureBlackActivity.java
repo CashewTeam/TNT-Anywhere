@@ -86,7 +86,6 @@ public class PureBlackActivity extends AppCompatActivity {
 
                 // 获取目标显示器的旋转角度
                 int rotation = targetDisplay.getRotation();
-                State.log(String.format("显示器旋转角度: %d", rotation));
                 float targetWidth = targetDisplay.getWidth();
                 float targetHeight = targetDisplay.getHeight();
                 
@@ -110,8 +109,6 @@ public class PureBlackActivity extends AppCompatActivity {
                         mappedY = relativeY * targetHeight;
                         break;
                 }
-                State.log(String.format("原始坐标: (%.2f, %.2f)", x, y));
-                State.log(String.format("映射后坐标: (%.2f, %.2f)", mappedX, mappedY));
                 // 设置整后的坐标
                 event.setLocation(mappedX, mappedY);
 

@@ -2,6 +2,7 @@ package com.gitee.connect_screen.dialog;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,12 +44,16 @@ public class BridgeDialog {
                     if (autoBridge) {
                         appPreferences.edit().putBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false).apply();
                     }
+
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    display.getMetrics(metrics);
                     State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs(
                             "桥接屏幕", 
                             display.getWidth(), 
                             display.getHeight(), 
                             display.getWidth(), 
-                            (int) display.getRefreshRate(), 
+                            (int) display.getRefreshRate(),
+                            metrics.densityDpi,
                             BridgePref.rotatesWithContent)));
                 })
                 .setNegativeButton("取消", null)

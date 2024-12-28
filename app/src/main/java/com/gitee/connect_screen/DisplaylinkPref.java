@@ -10,6 +10,7 @@ public class DisplaylinkPref {
     public static int sourceWidth;
     public static int sourceHeight;
     public static int refreshRate;
+    public static int dpi;
     public static boolean rotatesWithContent = true;
     public static boolean skipMediaProjectionPermission = false;
     public static boolean autoOpenLastApp = false;
@@ -24,6 +25,7 @@ public class DisplaylinkPref {
         editor.putInt("source_width", sourceWidth);
         editor.putInt("source_height", sourceHeight);
         editor.putInt("refresh_rate", refreshRate);
+        editor.putInt("dpi", dpi);
         editor.putBoolean("rotates_with_content", rotatesWithContent);
         editor.putBoolean("skip_media_projection_permission", skipMediaProjectionPermission);
         editor.putBoolean("auto_open_last_app", autoOpenLastApp);
@@ -41,6 +43,7 @@ public class DisplaylinkPref {
         sourceWidth = prefs.getInt("source_width", 1920);
         sourceHeight = prefs.getInt("source_height", 1080);
         refreshRate = prefs.getInt("refresh_rate", 60);
+        dpi = prefs.getInt("dpi", 160);
         rotatesWithContent = prefs.getBoolean("rotates_with_content", true);
         skipMediaProjectionPermission = prefs.getBoolean("skip_media_projection_permission", false);
         autoOpenLastApp = prefs.getBoolean("auto_open_last_app", false);

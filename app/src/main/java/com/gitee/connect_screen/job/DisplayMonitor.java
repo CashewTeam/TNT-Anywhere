@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.os.Handler;
+import android.util.DisplayMetrics;
 import android.view.Display;
 
 import com.gitee.connect_screen.FloatingButtonService;
@@ -79,7 +80,9 @@ public class DisplayMonitor {
         if (ShizukuUtils.hasPermission() && (autoBridge || display.getDisplayId() == State.bridgeDisplayId)) {
             BridgePref.load(context);
             new Handler().postDelayed(() -> {
-                State.startNewJob(new ProjectViaBridge(display.getDisplayId(), new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), BridgePref.rotatesWithContent)));
+                DisplayMetrics metrics = new DisplayMetrics();
+                display.getMetrics(metrics);
+                State.startNewJob(new ProjectViaBridge(display.getDisplayId(), new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), metrics.densityDpi, BridgePref.rotatesWithContent)));
             }, 500);
             return;
         }
