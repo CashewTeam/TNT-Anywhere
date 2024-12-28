@@ -1,20 +1,30 @@
 package com.gitee.connect_screen.job;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.ImageReader;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.view.Surface;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.gitee.connect_screen.DisplaylinkPref;
+import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
@@ -295,7 +305,40 @@ public class ProjectViaDisplaylink implements Job {
     }
 
     private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState) {
-        new ListenImageReaderAndPostFrame().startVirtualDisplay(displaylinkState, virtualDisplayArgs);
-//        new ListenOpenglAndPostFrame().startVirtualDisplay(usbState);
+        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
+        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 1, 2);
+        displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
+        displaylinkState.handlerThread.start();
+        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
+
+        displaylinkState.imageReader.setOnImageAvailableListener(new ListenImageReaderAndPostFrame(virtualDisplayArgs), displaylinkState.handler);
+        Surface surface = displaylinkState.imageReader.getSurface();
+        VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+        if (virtualDisplay == null) {
+            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
+            displaylinkState.createdVirtualDisplay(virtualDisplay);
+        } else {
+            State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+            virtualDisplay.setSurface(surface);
+            return;
+        }
+        int displayId = virtualDisplay.getDisplay().getDisplayId();
+        if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
+            MainActivity mainActivity = State.currentActivity.get();
+            String lastPackageName = null;
+            if (mainActivity != null) {
+                SharedPreferences appPreferences = mainActivity.getSharedPreferences("app_preferences", MODE_PRIVATE);
+                lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+            }
+            if (DisplaylinkPref.autoOpenLastApp && lastPackageName != null) {
+                ServiceUtils.launchPackage(context, lastPackageName, displayId);
+                InputRouting.bindAllExternalInputToDisplay(displayId);
+            } else {
+                Intent intent = new Intent(context, LauncherActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
+                context.startActivity(intent);
+            }
+        }
     }
 }

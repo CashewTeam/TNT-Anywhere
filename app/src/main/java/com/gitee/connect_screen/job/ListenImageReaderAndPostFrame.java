@@ -39,49 +39,11 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private int monitorHeight;
     private int refreshRate;
 
-    public void startVirtualDisplay(DisplaylinkState displaylinkState, VirtualDisplayArgs virtualDisplayArgs) {
-        this.displaylinkState = displaylinkState;
+    public ListenImageReaderAndPostFrame(VirtualDisplayArgs virtualDisplayArgs) {
+        this.displaylinkState = State.displaylinkState;
         this.monitorWidth = virtualDisplayArgs.monitorWidth;
         this.monitorHeight = virtualDisplayArgs.monitorHeight;
         this.refreshRate = virtualDisplayArgs.refreshRate;
-        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
-
-        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, monitorHeight, 1, 2);
-        displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
-        displaylinkState.handlerThread.start();
-        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
-
-        displaylinkState.imageReader.setOnImageAvailableListener(this, displaylinkState.handler);
-        Surface surface = displaylinkState.imageReader.getSurface();
-        VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
-        if (virtualDisplay == null) {
-            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
-            displaylinkState.createdVirtualDisplay(virtualDisplay);
-        } else {
-            State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
-            virtualDisplay.setSurface(surface);
-            return;
-        }
-        int displayId = virtualDisplay.getDisplay().getDisplayId();
-        if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
-            MainActivity mainActivity = State.currentActivity.get();
-            String lastPackageName = null;
-            if (mainActivity != null) {
-                SharedPreferences appPreferences = mainActivity.getSharedPreferences("app_preferences", MODE_PRIVATE);
-                lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
-            }
-            if (DisplaylinkPref.autoOpenLastApp && lastPackageName != null) {
-                Context context = State.currentActivity.get();
-                ServiceUtils.launchPackage(context, lastPackageName, displayId);
-                InputRouting.bindAllExternalInputToDisplay(displayId);
-            } else {
-                Context context = State.currentActivity.get();
-                Intent intent = new Intent(context, LauncherActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-                context.startActivity(intent);
-            }
-        }
     }
 
     @Override
