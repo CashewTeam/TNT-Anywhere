@@ -24,6 +24,10 @@ public class FloatingBackService extends Service {
     private static final String PREFS_NAME = "FloatingButtonPrefs";
     private static final String KEY_X = "button_x";
     private static final String KEY_Y = "button_y";
+    private static final int FADE_DELAY = 5000; // 5秒
+    private Runnable fadeOutRunnable;
+    private android.os.Handler handler;
+    private float currentAlpha = 1.0f;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -42,6 +46,14 @@ public class FloatingBackService extends Service {
     }
 
     private void createFloatingButton() {
+        handler = new android.os.Handler();
+        fadeOutRunnable = new Runnable() {
+            @Override
+            public void run() {
+                fadeOutButton();
+            }
+        };
+
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         floatingView = LayoutInflater.from(this).inflate(R.layout.floating_back_button, null);
         ImageView backButton = floatingView.findViewById(R.id.floating_back_image);
@@ -69,7 +81,7 @@ public class FloatingBackService extends Service {
             return;
         }
         
-        // 使用正确的显示器上下文创建 WindowManager
+        // 使用正确的显示器上下文���建 WindowManager
         Context displayContext = createDisplayContext(display);
         windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
 
@@ -85,6 +97,9 @@ public class FloatingBackService extends Service {
         floatingView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // 触摸时重置透明度
+                resetButtonVisibility();
+                
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         initialX = params.x;
@@ -116,10 +131,39 @@ public class FloatingBackService extends Service {
                 return false;
             }
         });
+
+        // 初始启动淡出计时器
+        startFadeOutTimer();
+    }
+
+    private void startFadeOutTimer() {
+        handler.removeCallbacks(fadeOutRunnable);
+        handler.postDelayed(fadeOutRunnable, FADE_DELAY);
+    }
+
+    private void fadeOutButton() {
+        floatingView.animate()
+                .alpha(0.0f)
+                .setDuration(500)
+                .start();
+        currentAlpha = 0.0f;
+    }
+
+    private void resetButtonVisibility() {
+        handler.removeCallbacks(fadeOutRunnable);
+        floatingView.animate()
+                .alpha(1.0f)
+                .setDuration(200)
+                .start();
+        currentAlpha = 1.0f;
+        startFadeOutTimer();
     }
 
     @Override
     public void onDestroy() {
+        if (handler != null) {
+            handler.removeCallbacks(fadeOutRunnable);
+        }
         super.onDestroy();
         if (floatingView != null && windowManager != null) {
             windowManager.removeView(floatingView);
