@@ -1,7 +1,10 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.View;
@@ -35,27 +38,51 @@ public class LauncherActivity extends AppCompatActivity {
     public static final String EXTRA_TARGET_DISPLAY_ID = "target_display_id";
     
     private AppListAdapter adapter;
-    
+    private Button floatingButtonToggle;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
         // 获取目标显示器ID
-        int targetDisplayId = getIntent().getIntExtra(EXTRA_TARGET_DISPLAY_ID, Display.DEFAULT_DISPLAY);
+        int displayId = getIntent().getIntExtra(EXTRA_TARGET_DISPLAY_ID, Display.DEFAULT_DISPLAY);
         
         getSupportActionBar().hide();
 
         setContentView(R.layout.activity_launcher);
-        
-        // 添加退出按钮的点击监听器
-        findViewById(R.id.btn_exit).setOnClickListener(v -> finish());
 
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        Display display = displayManager.getDisplay(displayId);
+        if (display == null) {
+            finish();
+            return;
+        }
+        floatingButtonToggle = findViewById(R.id.floating_button_toggle);
+        if (displayId != Display.DEFAULT_DISPLAY) {
+            floatingButtonToggle.setVisibility(View.VISIBLE);
+            SharedPreferences appPreferences = this.getSharedPreferences("app_preferences", MODE_PRIVATE);
+            updateFloatingBackButtonText(appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false));
+            floatingButtonToggle.setOnClickListener(v -> {
+                boolean isEnabled = appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
+                if (isEnabled) {
+                    Intent serviceIntent = new Intent(this, FloatingButtonService.class);
+                    this.stopService(serviceIntent);
+                    isEnabled = false;
+                } else {
+                    if (FloatingButtonService.startFloating(this, displayId, false)) {
+                        isEnabled = true;
+                    }
+                }
+                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), isEnabled).apply();
+                updateFloatingBackButtonText(isEnabled);
+            });
+        }
         Button touchpadButton = findViewById(R.id.btn_touchpad);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R || ShizukuUtils.hasPermission()) {
             touchpadButton.setVisibility(View.VISIBLE);
         }
         touchpadButton.setOnClickListener(v -> {
-            TouchpadActivity.startTouchpad(this, targetDisplayId, false);
+            TouchpadActivity.startTouchpad(this, displayId, false);
         });
         
         RecyclerView recyclerView = findViewById(R.id.app_list);
@@ -95,7 +122,7 @@ public class LauncherActivity extends AppCompatActivity {
         adapter = new AppListAdapter(
             userApps, 
             pm, 
-            targetDisplayId,
+            displayId,
             getSharedPreferences("app_preferences", MODE_PRIVATE)
         );
         recyclerView.setAdapter(adapter);
@@ -117,5 +144,8 @@ public class LauncherActivity extends AppCompatActivity {
             ActivityOptions options = ActivityOptions.makeBasic();
             startActivity(intent, options.toBundle());
         });
+    }
+    private void updateFloatingBackButtonText(boolean isEnabled) {
+        floatingButtonToggle.setText(isEnabled ? "关悬浮" : "开悬浮");
     }
 }
