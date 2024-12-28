@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.os.IBinder;
 import android.view.Display;
@@ -20,6 +21,9 @@ public class FloatingBackService extends Service {
     private int displayId;
     private float initialX, initialY;
     private float initialTouchX, initialTouchY;
+    private static final String PREFS_NAME = "FloatingButtonPrefs";
+    private static final String KEY_X = "button_x";
+    private static final String KEY_Y = "button_y";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -51,9 +55,12 @@ public class FloatingBackService extends Service {
                 PixelFormat.TRANSLUCENT
         );
         params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 0;
-        params.y = 100;
         
+        // 读取上次保存的位置
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        params.x = prefs.getInt(KEY_X, 0);
+        params.y = prefs.getInt(KEY_Y, 100);
+
         // 获取目标显示器的 WindowManager
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         Display display = displayManager.getDisplay(displayId);
@@ -97,6 +104,12 @@ public class FloatingBackService extends Service {
                                 && Math.abs(event.getRawY() - initialTouchY) < 10) {
                             // 模拟返回键点击
                             State.currentActivity.get().onBackPressed();
+                        } else {
+                            // 保存新的位置
+                            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                            editor.putInt(KEY_X, params.x);
+                            editor.putInt(KEY_Y, params.y);
+                            editor.apply();
                         }
                         return true;
                 }
