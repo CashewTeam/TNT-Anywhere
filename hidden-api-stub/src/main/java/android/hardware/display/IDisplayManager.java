@@ -4,6 +4,7 @@ import android.media.projection.IMediaProjection;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.Surface;
 
@@ -14,6 +15,7 @@ public interface IDisplayManager extends IInterface {
             throw new RuntimeException("Stub!");
         }
     }
+    void setUserPreferredDisplayMode(int displayId, Display.Mode mode);
     DisplayInfo getDisplayInfo(int displayId);
     int createVirtualDisplay(VirtualDisplayConfig config, IVirtualDisplayCallback callback, IMediaProjection mediaProjection, String packageName);
     int createVirtualDisplay(IVirtualDisplayCallback callback,

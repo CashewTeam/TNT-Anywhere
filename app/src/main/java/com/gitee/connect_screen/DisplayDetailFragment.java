@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.IDisplayManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -33,7 +34,7 @@ import com.gitee.connect_screen.dialog.DpiDialog;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
-    
+
     private TextView shizukuStatusText;
     private Button launchButton;
     private int displayId;
@@ -52,11 +53,11 @@ public class DisplayDetailFragment extends Fragment {
         fragment.setArguments(args);
         return fragment;
     }
-    
+
     private String getDisplayFlags(Display display) {
         int flags = display.getFlags();
         StringBuilder flagsStr = new StringBuilder();
-        
+
         if ((flags & Display.FLAG_SECURE) != 0) flagsStr.append("FLAG_SECURE, ");
         if ((flags & Display.FLAG_SUPPORTS_PROTECTED_BUFFERS) != 0) flagsStr.append("FLAG_SUPPORTS_PROTECTED_BUFFERS, ");
         if ((flags & Display.FLAG_PRIVATE) != 0) flagsStr.append("FLAG_PRIVATE, ");
@@ -66,7 +67,7 @@ public class DisplayDetailFragment extends Fragment {
         if (flagsStr.length() > 0) {
             flagsStr.setLength(flagsStr.length() - 2);
         }
-        
+
         return flagsStr.length() > 0 ? flagsStr.toString() : "无";
     }
 
@@ -100,13 +101,13 @@ public class DisplayDetailFragment extends Fragment {
             }
             cutoutInfo = cutoutDetails.toString();
         }
-        
+
         DisplayMetrics metrics = new DisplayMetrics();
         display.getMetrics(metrics);
-        
+
         TextView detailText = view.findViewById(R.id.detail_text);
         TextView resolutionText = view.findViewById(R.id.resolution_text);
-        
+
         // 设置分辨率文本
         String resolution = String.format("分辨率: %dx%d", display.getWidth(), display.getHeight());
         resolutionText.setText(resolution);
@@ -127,7 +128,7 @@ public class DisplayDetailFragment extends Fragment {
             getDisplayFlags(display),
             cutoutInfo
         );
-        
+
         // 添加显示模式信息到状态文本
         setupDisplayModes(display.getSupportedModes());
         detailText.setText(details);
@@ -352,7 +353,6 @@ public class DisplayDetailFragment extends Fragment {
     }
 
     private void setupDisplayModes(Display.Mode[] supportedModes) {
-        // 设置支持的���示模式文本
         StringBuilder supportedModesStr = new StringBuilder();
         for (Display.Mode mode : supportedModes) {
             supportedModesStr.append(String.format("模式ID: %d, 分辨率: %dx%d, 刷新率: %.1f Hz\n",
@@ -362,6 +362,20 @@ public class DisplayDetailFragment extends Fragment {
                     mode.getRefreshRate()));
         }
         supportedModesText.setText(supportedModesStr.toString());
+
+        // 添加双击事件
+        supportedModesText.setOnClickListener(new View.OnClickListener() {
+            private long lastClickTime = 0;
+            @Override
+            public void onClick(View v) {
+                long clickTime = System.currentTimeMillis();
+                if (clickTime - lastClickTime < 300) { // 双击判断
+                    showDisplayModeDialog(supportedModes);
+                }
+                lastClickTime = clickTime;
+            }
+        });
+
         // 设置点击展开/收起事件
         supportedModesToggle.setOnClickListener(v -> {
             boolean isVisible = supportedModesText.getVisibility() == View.VISIBLE;
@@ -369,6 +383,38 @@ public class DisplayDetailFragment extends Fragment {
             supportedModesToggle.setText("支持的显示模式 " + (isVisible ? "▼" : "▲"));
             supportedModesText.requestLayout();
         });
+    }
+
+    private void showDisplayModeDialog(Display.Mode[] supportedModes) {
+        if (!ShizukuUtils.hasShizukuStarted()) {
+            showToast("需要 Shizuku 权限");
+            return;
+        }
+
+        String[] items = new String[supportedModes.length];
+        for (int i = 0; i < supportedModes.length; i++) {
+            Display.Mode mode = supportedModes[i];
+            items[i] = String.format("ID:%d %dx%d %.1fHz",
+                    mode.getModeId(),
+                    mode.getPhysicalWidth(),
+                    mode.getPhysicalHeight(),
+                    mode.getRefreshRate());
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(getContext())
+            .setTitle("选择显示模式")
+            .setItems(items, (dialog, which) -> {
+                Display.Mode selectedMode = supportedModes[which];
+                try {
+                    IDisplayManager displayManager = ServiceUtils.getDisplayManager();
+                    displayManager.setUserPreferredDisplayMode(displayId, selectedMode);
+                    showToast("设置是设置了，但是大概率无效");
+                } catch (Exception e) {
+                    State.log("设置显示模式失败: " + e);
+                }
+            })
+            .setNegativeButton("取消", null)
+            .show();
     }
 
     
