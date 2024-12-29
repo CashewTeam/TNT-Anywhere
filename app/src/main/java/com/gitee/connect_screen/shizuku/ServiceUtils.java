@@ -5,7 +5,6 @@ import android.app.ActivityOptions;
 import android.app.ActivityOptionsHidden;
 import android.app.PendingIntentHidden;
 import android.content.ComponentName;
-import android.content.ContextHidden;
 import android.app.IActivityManager;
 import android.app.IActivityTaskManager;
 import android.app.PendingIntent;
@@ -17,14 +16,13 @@ import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
 import android.hardware.input.IInputManager;
+import android.media.IAudioService;
 import android.os.Build;
 import android.permission.IPermissionManager;
 import android.view.Display;
-import android.view.WindowManager;
 import android.view.IWindowManager;
 import android.widget.Toast;
 
-import com.gitee.connect_screen.BridgeActivity;
 import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
@@ -45,6 +43,7 @@ public class ServiceUtils {
     private static IInputManager inputManager;
     private static IPermissionManager permissionManager;
     private static IPackageManager packageManager;
+    private static IAudioService audioManager;
 
     private static void initWithShizuku() {
         if (!ShizukuUtils.hasPermission()) {
@@ -61,6 +60,7 @@ public class ServiceUtils {
             // ignore;
         }
         packageManager = IPackageManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("package")));
+        audioManager = IAudioService.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.AUDIO_SERVICE)));
     }
 
     /**
@@ -248,5 +248,12 @@ public class ServiceUtils {
             initWithShizuku();
         }
         return packageManager;
+    }
+
+    public static IAudioService getAudioManager() {
+        if (audioManager == null) {
+            initWithShizuku();
+        }
+        return audioManager;
     }
 }
