@@ -184,7 +184,9 @@ public class DisplayDetailFragment extends Fragment {
         updateUserRotationText(userRotationText);
 
         if(ShizukuUtils.hasShizukuStarted()) {
-            editRotationButton.setVisibility(View.VISIBLE);
+            if (displayId != Display.DEFAULT_DISPLAY) {
+                editRotationButton.setVisibility(View.VISIBLE);
+            }
             editRotationButton.setOnClickListener(v -> {
                 showRotationDialog();
             });
