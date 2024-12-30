@@ -281,7 +281,7 @@ public class BridgeActivity extends AppCompatActivity {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
             GLES20.glUniform1i(textureHandle, 0);
-            State.currentActivity.get().runOnUiThread(() -> {
+            instance.runOnUiThread(() -> {
                 startProjection();
             });
         }
@@ -291,8 +291,10 @@ public class BridgeActivity extends AppCompatActivity {
                 // 使用传入的参数创建虚拟显示
                 stopVirtualDisplay();
                 State.bridgeVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
+                State.log("Bridge Activity 创建了新的虚拟显示器");
             } else {
                 State.bridgeVirtualDisplay.setSurface(surface);
+                State.log("Bridge Activity 复用了已有的虚拟显示器");
             }
             State.breadcrumbManager.popBreadcrumb();
             Display jumpToDisplay = State.bridgeVirtualDisplay.getDisplay();

@@ -47,7 +47,7 @@ public class BridgeDialog {
 
                     DisplayMetrics metrics = new DisplayMetrics();
                     display.getMetrics(metrics);
-                    State.startNewJob(new ProjectViaBridge(displayId, new VirtualDisplayArgs(
+                    State.startNewJob(new ProjectViaBridge(display, new VirtualDisplayArgs(
                             "桥接屏幕", 
                             display.getWidth(), 
                             display.getHeight(), 

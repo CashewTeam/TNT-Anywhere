@@ -3,25 +3,28 @@ package com.gitee.connect_screen.job;
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.view.Display;
+import android.view.DisplayHidden;
 
 import com.gitee.connect_screen.BridgeActivity;
 import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
+import dev.rikka.tools.refine.Refine;
+
 public class ProjectViaBridge implements Job {
+    private static int TYPE_WIFI = 3;
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
-    private final int bridgeDisplayId;
+    private final Display bridgeDisplay;
     private final VirtualDisplayArgs virtualDisplayArgs;
     private boolean mediaProjectionRequested;
 
-    public ProjectViaBridge(int bridgeDisplayId, VirtualDisplayArgs virtualDisplayArgs) {
-        this.bridgeDisplayId = bridgeDisplayId;
+    public ProjectViaBridge(Display bridgeDisplay, VirtualDisplayArgs virtualDisplayArgs) {
+        this.bridgeDisplay = bridgeDisplay;
         this.virtualDisplayArgs = virtualDisplayArgs;
     }
 
@@ -33,23 +36,24 @@ public class ProjectViaBridge implements Job {
                 return;
             }
         }
-        if (requestMediaProjectionPermission(State.currentActivity.get())) {
+        DisplayHidden displayHidden = Refine.unsafeCast(bridgeDisplay);
+        if (requestMediaProjectionPermission(State.currentActivity.get(), displayHidden.getType() == TYPE_WIFI)) {
             Context context = State.currentActivity.get();
             Intent intent = new Intent(context, BridgeActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra("virtualDisplayArgs", virtualDisplayArgs);
             ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(bridgeDisplayId);
+            options.setLaunchDisplayId(bridgeDisplay.getDisplayId());
             context.startActivity(intent, options.toBundle());
         }
-        State.bridgeDisplayId = bridgeDisplayId;
+        State.bridgeDisplayId = bridgeDisplay.getDisplayId();
     }
 
-    private boolean requestMediaProjectionPermission(Context context) throws YieldException {
+    private boolean requestMediaProjectionPermission(Context context, boolean isWifiDisplay) throws YieldException {
         if (State.bridgeVirtualDisplay != null) {
             return true;
         }
-        if (BridgePref.skipMediaProjectionPermission) {
+        if (BridgePref.skipMediaProjectionPermission || isWifiDisplay) {
             // 无需 media projection 授权
             return true;
         }
