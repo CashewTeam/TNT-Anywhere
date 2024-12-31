@@ -41,6 +41,7 @@ public class SettingsFragment extends Fragment {
     private CheckBox cbForceResizable;
     private CheckBox cbEnableFreeform;
     private CheckBox cbEnableNonResizable;
+    private CheckBox cbDisableScreenShareProtection;
 
     @Nullable
     @Override
@@ -51,6 +52,7 @@ public class SettingsFragment extends Fragment {
         cbForceResizable = view.findViewById(R.id.cbForceResizable);
         cbEnableFreeform = view.findViewById(R.id.cbEnableFreeform);
         cbEnableNonResizable = view.findViewById(R.id.cbEnableNonResizable);
+        cbDisableScreenShareProtection = view.findViewById(R.id.cbDisableScreenShareProtection);
         spinnerDisplays = view.findViewById(R.id.spinnerDisplays);
         btnBind = view.findViewById(R.id.btnBind);
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
@@ -61,6 +63,7 @@ public class SettingsFragment extends Fragment {
         setupDeviceLists();
 
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+            setupDisableScreenShareProtectionCheckbox();
             setupForceDesktopCheckbox();
             setupForceResizableCheckbox();
             setupEnableFreeformCheckbox();
@@ -69,6 +72,7 @@ public class SettingsFragment extends Fragment {
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
         } else {
+            cbDisableScreenShareProtection.setVisibility(View.GONE);
             cbForceDesktop.setVisibility(View.GONE);
             cbForceResizable.setVisibility(View.GONE);
             cbEnableFreeform.setVisibility(View.GONE);
@@ -204,6 +208,21 @@ public class SettingsFragment extends Fragment {
             try {
                 Settings.Global.putInt(requireContext().getContentResolver(),
                         "enable_non_resizable_multi_window", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
+    }
+
+    private void setupDisableScreenShareProtectionCheckbox() {
+        boolean isDisabled = Settings.Global.getInt(requireContext().getContentResolver(),
+                "disable_screen_share_protections_for_apps_and_notifications", 0) == 1;
+        cbDisableScreenShareProtection.setChecked(isDisabled);
+
+        cbDisableScreenShareProtection.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "disable_screen_share_protections_for_apps_and_notifications", isChecked ? 1 : 0);
             } catch (SecurityException e) {
                 State.log("failed: " + e);
             }

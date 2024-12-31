@@ -33,6 +33,13 @@
         android:text="允许以多窗口模式显示不可调整大小的应用"
         android:layout_marginBottom="8dp"/>
 
+    <CheckBox
+        android:id="@+id/cbDisableScreenShareProtection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="停用屏幕共享防护"
+        android:layout_marginBottom="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
