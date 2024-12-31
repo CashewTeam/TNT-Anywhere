@@ -450,7 +450,6 @@ private void showRotationDialog() {
 private void showBridgeDialog() {
     if (android.os.Build.VERSION.SDK_INT >= 34) {
         Toast.makeText(getContext(), "安卓15可以直接修改旋转角度，无需桥接", Toast.LENGTH_SHORT).show();
-        return;
     }
     BridgeDialog.show(getContext(), display, displayId);
 }
