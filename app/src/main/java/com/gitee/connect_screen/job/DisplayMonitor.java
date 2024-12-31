@@ -3,6 +3,11 @@ package com.gitee.connect_screen.job;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
+import android.media.AudioAttributes;
+import android.media.AudioDeviceAttributes;
+import android.media.AudioDeviceInfo;
+import android.media.IAudioService;
+import android.os.Build;
 import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -12,6 +17,8 @@ import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
+
+import java.util.List;
 
 public class DisplayMonitor {
     private static boolean registered = false;
@@ -60,6 +67,39 @@ public class DisplayMonitor {
             return;
         }
         handleAutoOpenLastApp(context, display);
+        handleDisableUsbAudio(context);
+    }
+
+    private static void handleDisableUsbAudio(Context context) {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        boolean isDisabled = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("usb_audio_disabled", false);
+//        if (!isDisabled) {
+//            return;
+//        }
+        IAudioService audioManager = ServiceUtils.getAudioManager();
+        List<AudioDeviceAttributes> devices = audioManager.getDevicesForAttributes(new AudioAttributes.Builder().build());
+        if (!devices.isEmpty()) {
+            AudioDeviceAttributes device = devices.get(0);
+            if (device.getType() == AudioDeviceInfo.TYPE_USB_HEADSET || device.getType() == AudioDeviceInfo.TYPE_HDMI) {
+                State.log("尝试禁用音频输出设备：" + device);
+                try {
+                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        audioManager.setWiredDeviceConnectionState(device, 0, "com.android.shell");
+                    } else {
+                        audioManager.setWiredDeviceConnectionState(device.getType(), 0, device.getAddress(), "", "com.android.shell");
+                    }
+                } catch(Throwable e) {
+                    State.log("禁用音频输出设备失败: " + e);
+                }
+            } else {
+                State.log("音频输出设备不可禁用：" + device);
+            }
+        } else {
+            State.log("音频输出设备为空");
+        }
     }
 
     private static void handleAutoOpenLastApp(Context context, Display display) {

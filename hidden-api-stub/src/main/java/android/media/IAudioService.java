@@ -14,6 +14,8 @@ public interface IAudioService extends IInterface {
             throw new RuntimeException("Stub!");
         }
     }
+    void setWiredDeviceConnectionState(int type, int state, String address, String name,
+                                       String caller);
     void setWiredDeviceConnectionState(AudioDeviceAttributes aa, int state, String caller);
     List<AudioDeviceAttributes> getDevicesForAttributes(AudioAttributes attributes);
     List<AudioProductStrategy> getAudioProductStrategies();
