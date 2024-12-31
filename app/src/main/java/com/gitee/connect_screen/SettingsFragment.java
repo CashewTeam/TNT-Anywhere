@@ -42,6 +42,7 @@ public class SettingsFragment extends Fragment {
     private CheckBox cbEnableFreeform;
     private CheckBox cbEnableNonResizable;
     private CheckBox cbDisableScreenShareProtection;
+    private CheckBox cbDisableUsbAudio;
 
     @Nullable
     @Override
@@ -57,6 +58,7 @@ public class SettingsFragment extends Fragment {
         btnBind = view.findViewById(R.id.btnBind);
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
         rvInternalDevices = view.findViewById(R.id.rvInternalDevices);
+        cbDisableUsbAudio = view.findViewById(R.id.cbDisableUsbAudio);
         
         initializeDisplaySpinner();
         setupBindButton();
@@ -68,6 +70,7 @@ public class SettingsFragment extends Fragment {
             setupForceResizableCheckbox();
             setupEnableFreeformCheckbox();
             setupEnableNonResizableCheckbox();
+            setupDisableUsbAudioCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
@@ -77,6 +80,7 @@ public class SettingsFragment extends Fragment {
             cbForceResizable.setVisibility(View.GONE);
             cbEnableFreeform.setVisibility(View.GONE);
             cbEnableNonResizable.setVisibility(View.GONE);
+            cbDisableUsbAudio.setVisibility(View.GONE);
         }
         
         return view;
@@ -223,6 +227,30 @@ public class SettingsFragment extends Fragment {
             try {
                 Settings.Global.putInt(requireContext().getContentResolver(),
                         "disable_screen_share_protections_for_apps_and_notifications", isChecked ? 1 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
+        });
+    }
+
+    private void setupDisableUsbAudioCheckbox() {
+        // 从 SharedPreferences 读取保存的设置
+        boolean isDisabled = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("usb_audio_disabled", false);
+                
+        cbDisableUsbAudio.setChecked(isDisabled);
+
+        cbDisableUsbAudio.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                // 更新系统设置
+                Settings.Secure.putInt(requireContext().getContentResolver(),
+                        "usb_audio_automatic_routing_disabled", isChecked ? 1 : 0);
+                        
+                // 保存到 SharedPreferences
+                requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .edit()
+                        .putBoolean("usb_audio_disabled", isChecked)
+                        .apply();
             } catch (SecurityException e) {
                 State.log("failed: " + e);
             }
