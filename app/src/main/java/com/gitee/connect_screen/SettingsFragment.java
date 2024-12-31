@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class InputDeviceListFragment extends Fragment {
+public class SettingsFragment extends Fragment {
     private List<Display> displayList;
     private Spinner spinnerDisplays;
     private Button btnBind;
@@ -45,7 +45,7 @@ public class InputDeviceListFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_input_device_list, container, false);
+        View view = inflater.inflate(R.layout.fragment_settings, container, false);
         
         cbForceDesktop = view.findViewById(R.id.cbForceDesktop);
         cbForceResizable = view.findViewById(R.id.cbForceResizable);
