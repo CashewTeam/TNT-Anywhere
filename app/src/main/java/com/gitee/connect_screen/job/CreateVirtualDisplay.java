@@ -42,12 +42,16 @@ public class CreateVirtualDisplay {
     public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
         if (ShizukuUtils.hasPermission()) {
             try {
-                return createByShizuku(virtualDisplayArgs, surface);
+                return createByShizuku(virtualDisplayArgs, surface, false);
             } catch(RuntimeException e) {
-                if (State.mediaProjection != null) {
-                    return createByMediaProjection(virtualDisplayArgs, surface);
+                try {
+                    return createByShizuku(virtualDisplayArgs, surface, true);
+                } catch(RuntimeException e2) {
+                    if (State.mediaProjection != null) {
+                        return createByMediaProjection(virtualDisplayArgs, surface);
+                    }
+                    throw e2;
                 }
-                throw e;
             }
         } else {
             return createByMediaProjection(virtualDisplayArgs, surface);
@@ -64,12 +68,15 @@ public class CreateVirtualDisplay {
         return virtualDisplay;
     }
 
-    private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
+    private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly) {
         int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
         IDisplayManager displayManager = ServiceUtils.getDisplayManager();
         int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
                 | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
         //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
+        if (ownContentOnly) {
+            flags |= VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
+        }
         if (virtualDisplayArgs.rotatesWithContent) {
             flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
         }
