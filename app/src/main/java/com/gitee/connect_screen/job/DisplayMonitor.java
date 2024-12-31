@@ -6,6 +6,7 @@ import android.hardware.display.DisplayManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceAttributes;
 import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.media.IAudioService;
 import android.os.Build;
 import android.os.Handler;
@@ -76,29 +77,41 @@ public class DisplayMonitor {
         }
         boolean isDisabled = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 .getBoolean("usb_audio_disabled", false);
-//        if (!isDisabled) {
-//            return;
-//        }
+        if (!isDisabled) {
+            return;
+        }
         IAudioService audioManager = ServiceUtils.getAudioManager();
-        List<AudioDeviceAttributes> devices = audioManager.getDevicesForAttributes(new AudioAttributes.Builder().build());
-        if (!devices.isEmpty()) {
-            AudioDeviceAttributes device = devices.get(0);
-            if (device.getType() == AudioDeviceInfo.TYPE_USB_HEADSET || device.getType() == AudioDeviceInfo.TYPE_HDMI) {
-                State.log("尝试禁用音频输出设备：" + device);
-                try {
-                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            List<AudioDeviceAttributes> devices = audioManager.getDevicesForAttributes(new AudioAttributes.Builder().build());
+            for (AudioDeviceAttributes device : devices) {
+                if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
+                    try {
                         audioManager.setWiredDeviceConnectionState(device, 0, "com.android.shell");
-                    } else {
-                        audioManager.setWiredDeviceConnectionState(device.getType(), 0, device.getAddress(), "", "com.android.shell");
+                        State.log("禁用音频输出设备：" + device);
+                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备失败: " + e);
                     }
-                } catch(Throwable e) {
-                    State.log("禁用音频输出设备失败: " + e);
                 }
-            } else {
-                State.log("音频输出设备不可禁用：" + device);
             }
         } else {
-            State.log("音频输出设备为空");
+            AudioManager audioManager2 = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            for (AudioDeviceInfo device : audioManager2.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
+                    try {
+                        audioManager.setWiredDeviceConnectionState(device.getType(), 0, device.getAddress(), "", "com.android.shell");
+                        State.log("禁用音频输出设备：" + device.getType() + ", " + device.getProductName());
+                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备失败: " + e);
+                    }
+                } else if (device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
+                    try {
+                        audioManager.setWiredDeviceConnectionState(device.getType(), 1, device.getAddress(), "", "com.android.shell");
+                        State.log("启用音频输出设备：" + device.getType() + ", " + device.getProductName());
+                    } catch(Throwable e) {
+                        State.log("启用音频输出设备失败: " + e);
+                    }
+                }
+            }
         }
     }
 

@@ -32,7 +32,7 @@ public class RotationDialog {
         rotationSpinner.setAdapter(adapter);
 
         new AlertDialog.Builder(context)
-                .setTitle("修改旋转方向（仅在澎湃2安卓15上测试有效）")
+                .setTitle("修改旋转方向（仅在安卓15上测试有效）")
                 .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     int position = rotationSpinner.getSelectedItemPosition();
