@@ -120,6 +120,9 @@ public class ServiceUtils {
             return;
         }
         _launchPackage(context, packageName, targetDisplayId);
+        if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            _launchPackage(context, packageName, targetDisplayId);
+        }
         SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
         if (appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false)) {
             if (FloatingButtonService.startFloating(context, targetDisplayId, true)) {
