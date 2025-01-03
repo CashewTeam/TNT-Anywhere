@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,9 +13,15 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.RadioGroup;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 public class ShizukuFragment extends Fragment {
@@ -43,6 +50,28 @@ public class ShizukuFragment extends Fragment {
                 wiredDesc.setVisibility(View.GONE);
                 wirelessDesc.setVisibility(View.VISIBLE);
                 installButton.setVisibility(View.VISIBLE);
+            }
+        });
+
+        installButton.setOnClickListener(v -> {
+            try {
+                String fileName = "moe.shizuku.privileged.api_1049.apk";
+                File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                File outputFile = new File(downloadDir, "shizuku.apk");
+                
+                try (InputStream in = requireContext().getAssets().open(fileName);
+                     OutputStream out = new FileOutputStream(outputFile)) {
+                    byte[] buffer = new byte[1024];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    Toast.makeText(requireContext(), "APK已保存到手机的下载目录，文件名是 shizuku.apk", 
+                        Toast.LENGTH_LONG).show();
+                }
+            } catch (Throwable e) {
+                Toast.makeText(requireContext(), "保存失败: " + e.getMessage(), 
+                    Toast.LENGTH_SHORT).show();
             }
         });
 
