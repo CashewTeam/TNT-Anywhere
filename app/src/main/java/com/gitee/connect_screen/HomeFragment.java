@@ -32,10 +32,7 @@ public class HomeFragment extends Fragment {
         shizukuStatusPrefix.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
         shizukuStatusPrefix.setPaintFlags(shizukuStatusPrefix.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         shizukuStatusPrefix.setOnClickListener(v -> {
-            String url = "https://shizuku.rikka.app/";
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setData(Uri.parse(url));
-            startActivity(intent);
+            State.breadcrumbManager.pushBreadcrumb("什么是 Shizuku?", () -> new ShizukuFragment());
         });
 
         // 添加授权按钮
