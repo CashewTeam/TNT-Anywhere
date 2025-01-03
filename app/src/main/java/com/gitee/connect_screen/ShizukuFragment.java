@@ -34,14 +34,15 @@ public class ShizukuFragment extends Fragment {
     private HttpServer server;
     private static final int PORT = 8888;
     private String serverUrl;
+    private String lanIp;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_shizuku, container, false);
 
-        String lanIp = getLocalIpAddress();
-        serverUrl = ("http://" + lanIp + ":" + PORT);
+        lanIp = getLocalIpAddress();
+        serverUrl = ("https://" + lanIp + ":" + PORT);
         startHttpServer();
         
         TextView descriptionText = view.findViewById(R.id.shizukuDescription);
@@ -112,7 +113,7 @@ public class ShizukuFragment extends Fragment {
 
     private void startHttpServer() {
         try {
-            server = new HttpServer(PORT, requireContext().getAssets());
+            server = new HttpServer(lanIp, PORT, requireContext().getAssets());
             server.start();
             State.log("HTTP Server started on: " + serverUrl);
         } catch (IOException e) {
