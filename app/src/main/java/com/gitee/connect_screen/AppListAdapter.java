@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -90,6 +91,12 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         holder.text1.setText(app.loadLabel(packageManager));
         holder.text2.setText(app.packageName);
         
+        try {
+            holder.appIcon.setImageDrawable(packageManager.getApplicationIcon(app.packageName));
+        } catch (PackageManager.NameNotFoundException e) {
+            holder.appIcon.setImageResource(android.R.drawable.sym_def_app_icon);
+        }
+
         holder.btnLaunch.setOnClickListener(v -> {
             if (!ShizukuUtils.hasPermission() && sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app.packageName, 0) == 0) {
                 Toast.makeText(v.getContext(), "请先点一次 '回手机' 按钮给予授权，然后再投屏该应用", Toast.LENGTH_SHORT).show();
@@ -125,6 +132,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
+        ImageView appIcon;
         TextView text1;
         TextView text2;
         Button btnLaunch;
@@ -132,6 +140,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
 
         ViewHolder(View view) {
             super(view);
+            appIcon = view.findViewById(R.id.app_icon);
             text1 = view.findViewById(R.id.text1);
             text2 = view.findViewById(R.id.text2);
             btnLaunch = view.findViewById(R.id.btn_launch);
