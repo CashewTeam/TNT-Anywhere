@@ -29,6 +29,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
+import android.graphics.Bitmap;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.common.BitMatrix;
+import android.graphics.Color;
+import android.widget.ImageView;
 
 public class ShizukuFragment extends Fragment {
     private HttpServer server;
@@ -54,7 +60,7 @@ public class ShizukuFragment extends Fragment {
 
         descriptionText.setText("Shizuku 是一个帮助应用获取 adb 权限的工具。安卓屏连的 Displaylink 单应用投屏，竖屏旋转，以及绑定外设到指定显示器等功能需要获得 adb 权限才能工作。虚拟触控板，和悬浮返回键用无障碍权限也能工作，但是有 adb 权限之后会工作得更稳定。");
         
-        wiredDesc.setText("请将手机通过 USB 数据线连接到电脑（或者其他能打开网页并有 USB 口的设备），然后在电脑上打开下面这个网页地址。");
+        wiredDesc.setText("请将手机通过 USB 数据线连接到电脑（或者其他能打开网页并有 USB 口的设备），然后在电脑上打开下面这个网页地址。因为局域网地址的 https 证书是自己签发的，打开的时候会有安全警告，需要手工强制访问才能打开。");
         wirelessDesc.setText("安装 shizuku 应用，并按照 shizuku 应用内的提示启用无线调试激活 shizuku 服务。");
 
         activationGroup.setOnCheckedChangeListener((group, checkedId) -> {
@@ -101,6 +107,9 @@ public class ShizukuFragment extends Fragment {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(serverUrl));
             startActivity(intent);
         });
+
+        ImageView qrCodeImage = view.findViewById(R.id.qrCodeImage);
+        generateQRCode(serverUrl, qrCodeImage);
 
         return view;
     }
@@ -158,5 +167,31 @@ public class ShizukuFragment extends Fragment {
             return "localhost";  // 如果获取失败则返回 localhost
         }
         return "localhost";  // 如果获取失败则返回 localhost
+    }
+
+    private void generateQRCode(String text, ImageView imageView) {
+        try {
+            BitMatrix bitMatrix = new MultiFormatWriter().encode(
+                text, 
+                BarcodeFormat.QR_CODE, 
+                512, 512
+            );
+            
+            int width = bitMatrix.getWidth();
+            int height = bitMatrix.getHeight();
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            
+            imageView.setImageBitmap(bitmap);
+        } catch (Exception e) {
+            String errorMsg = "生成二维码失败: " + e.getMessage();
+            Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
+            State.log(errorMsg);
+        }
     }
 }

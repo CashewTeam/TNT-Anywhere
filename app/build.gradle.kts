@@ -69,6 +69,7 @@ dependencies {
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation("org.bouncycastle:bcprov-jdk15on:1.68")
+    implementation("com.google.zxing:core:3.5.2")
 }
 
 tasks.withType<JavaCompile> {
