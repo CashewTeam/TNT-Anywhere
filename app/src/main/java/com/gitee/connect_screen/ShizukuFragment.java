@@ -4,6 +4,7 @@ import android.app.ActivityOptions;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
@@ -18,6 +19,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.Enumeration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,14 +31,23 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 public class ShizukuFragment extends Fragment {
+    private HttpServer server;
+    private static final int PORT = 8888;
+    private String serverUrl;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_shizuku, container, false);
+
+        String lanIp = getLocalIpAddress();
+        serverUrl = ("http://" + lanIp + ":" + PORT);
+        startHttpServer();
         
         TextView descriptionText = view.findViewById(R.id.shizukuDescription);
         TextView wiredDesc = view.findViewById(R.id.wiredDescription);
         TextView wirelessDesc = view.findViewById(R.id.wirelessDescription);
+        TextView serverUrlText = view.findViewById(R.id.serverUrl);
         Button installButton = view.findViewById(R.id.installButton);
         RadioGroup activationGroup = view.findViewById(R.id.activationGroup);
 
@@ -68,13 +83,79 @@ public class ShizukuFragment extends Fragment {
                     }
                     Toast.makeText(requireContext(), "APK已保存到手机的下载目录，文件名是 shizuku.apk", 
                         Toast.LENGTH_LONG).show();
+                    State.log("APK已保存到手机的下载目录，文件名是 shizuku.apk");
                 }
             } catch (Throwable e) {
-                Toast.makeText(requireContext(), "保存失败: " + e.getMessage(), 
+                String errorMsg = "保存失败: " + e.getMessage();
+                Toast.makeText(requireContext(), errorMsg, 
                     Toast.LENGTH_SHORT).show();
+                State.log(errorMsg);
             }
+        });
+
+        serverUrlText.setText(serverUrl);
+        serverUrlText.setPaintFlags(serverUrlText.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        serverUrlText.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
+        serverUrlText.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(serverUrl));
+            startActivity(intent);
         });
 
         return view;
     }
-} 
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        stopHttpServer();
+    }
+
+    private void startHttpServer() {
+        try {
+            server = new HttpServer(PORT, requireContext().getAssets());
+            server.start();
+            State.log("HTTP Server started on: " + serverUrl);
+        } catch (IOException e) {
+            String errorMsg = "HTTP服务器启动失败: " + e.getMessage();
+            Toast.makeText(requireContext(), errorMsg, 
+                Toast.LENGTH_SHORT).show();
+            State.log(errorMsg);
+        }
+    }
+
+    private void stopHttpServer() {
+        if (server != null) {
+            server.stop();
+            server = null;
+        }
+    }
+
+    private static String getLocalIpAddress() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                    for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
+                        if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
+                            return inetAddress.getHostAddress();
+                        }
+                    }
+                }
+            } else {
+                Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                while (interfaces.hasMoreElements()) {
+                    NetworkInterface networkInterface = interfaces.nextElement();
+                    Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                    while (addresses.hasMoreElements()) {
+                        InetAddress address = addresses.nextElement();
+                        if (!address.isLoopbackAddress() && address instanceof Inet4Address) {
+                            return address.getHostAddress();
+                        }
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            return "localhost";  // 如果获取失败则返回 localhost
+        }
+        return "localhost";  // 如果获取失败则返回 localhost
+    }
+}

@@ -67,6 +67,7 @@ dependencies {
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("dev.rikka.tools.refine:runtime:4.4.0")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
 }
 
 tasks.withType<JavaCompile> {
