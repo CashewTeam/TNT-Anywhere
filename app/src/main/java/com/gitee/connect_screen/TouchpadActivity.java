@@ -119,6 +119,12 @@ public class TouchpadActivity extends AppCompatActivity {
         }
         
         if (!dryRun) {
+            if(TouchpadAccessibilityService.getInstance() != null) {
+                Intent touchpadIntent = new Intent(context, TouchpadActivity.class);
+                touchpadIntent.putExtra("display_id", displayId);
+                context.startActivity(touchpadIntent);
+                return true;
+            }
             // 启动无障碍服务
             Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
             context.startService(serviceIntent);

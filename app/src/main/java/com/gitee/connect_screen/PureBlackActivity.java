@@ -1,11 +1,14 @@
 package com.gitee.connect_screen;
 
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.provider.Settings;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.MotionEvent;
@@ -121,11 +124,18 @@ public class PureBlackActivity extends AppCompatActivity {
             finish();
             return true;
         });
-        IInputManager inputManager = null;
         if (ShizukuUtils.hasPermission()) {
-            inputManager = ServiceUtils.getInputManager();
+            IInputManager inputManager = ServiceUtils.getInputManager();
+            TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+        } else if(TouchpadAccessibilityService.getInstance() != null) {
+            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+            this.startService(serviceIntent);
+            new Handler().postDelayed(() -> {
+                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+            }, 500);
         }
-        TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
     }
 
     private boolean isExternalDevice(MotionEvent event) {
