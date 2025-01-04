@@ -104,14 +104,18 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         
         if (root.isFocusable()) {
             results.add(root);
-        } else {
-            Log.i("AccessibilityService", "node: " + root);
+            if (results.size() >= 3) {
+                return results;
+            }
         }
         
         for (int i = 0; i < root.getChildCount(); i++) {
             AccessibilityNodeInfo child = root.getChild(i);
             if (child != null) {
                 findFocusableNodes(child, results);
+                if (results.size() >= 3) {
+                    return results;
+                }
             }
         }
         
@@ -149,6 +153,10 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 android.util.Log.d("AccessibilityService", "为你能找到最上层窗口");
                 return false;
             }
+            if (topWindow.isFocused()) {
+                android.util.Log.d("AccessibilityService", "已经有焦点了，无需再设置焦点");
+                return false;
+            }
             android.util.Log.d("AccessibilityService", "找到最上层窗口，层级: " + topLayer);
             
             // 获取并聚焦窗口的根节点
@@ -175,6 +183,8 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                                 if (focusResult) {
                                     focusSuccess = true;
                                     break;
+                                } else {
+                                    // add to blacklist
                                 }
                             }
                         } catch(Throwable e) {
