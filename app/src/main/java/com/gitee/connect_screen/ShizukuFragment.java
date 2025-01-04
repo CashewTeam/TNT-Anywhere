@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Build;
@@ -38,6 +39,9 @@ import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
 import android.graphics.Color;
 import android.widget.ImageView;
+import android.content.ContentValues;
+import android.content.ContentResolver;
+import android.provider.MediaStore;
 
 public class ShizukuFragment extends Fragment {
     private HttpServer server;
@@ -84,27 +88,19 @@ public class ShizukuFragment extends Fragment {
         });
 
         installButton.setOnClickListener(v -> {
-            try {
-                String fileName = "moe.shizuku.privileged.api_1049.apk";
-                File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                File outputFile = new File(downloadDir, "shizuku.apk");
-                
-                try (InputStream in = requireContext().getAssets().open(fileName);
-                     OutputStream out = new FileOutputStream(outputFile)) {
-                    byte[] buffer = new byte[1024];
-                    int read;
-                    while ((read = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, read);
-                    }
-                    Toast.makeText(requireContext(), "APK已保存到手机的下载目录，文件名是 shizuku.apk", 
-                        Toast.LENGTH_LONG).show();
-                    State.log("APK已保存到手机的下载目录，文件名是 shizuku.apk。请手工前往文件管理器安装。");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                saveApkFile();
+            } else {
+                // 检查并请求存储权限
+                if (requireActivity().checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(
+                        new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        1001
+                    );
+                } else {
+                    saveApkFile();
                 }
-            } catch (Throwable e) {
-                String errorMsg = "保存失败: " + e.getMessage();
-                Toast.makeText(requireContext(), errorMsg, 
-                    Toast.LENGTH_SHORT).show();
-                State.log(errorMsg);
             }
         });
 
@@ -202,6 +198,65 @@ public class ShizukuFragment extends Fragment {
             String errorMsg = "生成二维码失败: " + e.getMessage();
             Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
             State.log(errorMsg);
+        }
+    }
+
+    private void saveApkFile() {
+        try {
+            String fileName = "moe.shizuku.privileged.api_1049.apk";
+            File outputFile;
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME, "shizuku.apk");
+                values.put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive");
+                
+                ContentResolver resolver = requireContext().getContentResolver();
+                Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                
+                if (uri != null) {
+                    try (InputStream in = requireContext().getAssets().open(fileName);
+                         OutputStream out = resolver.openOutputStream(uri)) {
+                        copyStream(in, out);
+                    }
+                }
+            } else {
+                File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                outputFile = new File(downloadDir, "shizuku.apk");
+                
+                try (InputStream in = requireContext().getAssets().open(fileName);
+                     OutputStream out = new FileOutputStream(outputFile)) {
+                    copyStream(in, out);
+                }
+            }
+            
+            Toast.makeText(requireContext(), "APK已保存到手机的下载目录，文件名是 shizuku.apk", 
+                Toast.LENGTH_LONG).show();
+            State.log("APK已保存到手机的下载目录，文件名是 shizuku.apk。请手工前往文件管理器安装。");
+            
+        } catch (Throwable e) {
+            String errorMsg = "保存失败: " + e.getMessage();
+            Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_SHORT).show();
+            State.log(errorMsg);
+        }
+    }
+
+    private void copyStream(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == 1001) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                saveApkFile();
+            } else {
+                Toast.makeText(requireContext(), "需要存储权限才能保存APK文件", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }

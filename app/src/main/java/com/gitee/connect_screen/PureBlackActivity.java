@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
@@ -120,6 +121,11 @@ public class PureBlackActivity extends AppCompatActivity {
             finish();
             return true;
         });
+        IInputManager inputManager = null;
+        if (ShizukuUtils.hasPermission()) {
+            inputManager = ServiceUtils.getInputManager();
+        }
+        TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
     }
 
     private boolean isExternalDevice(MotionEvent event) {

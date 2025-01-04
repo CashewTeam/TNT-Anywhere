@@ -461,10 +461,9 @@ public class TouchpadActivity extends AppCompatActivity {
         Intent intent = new Intent(this, PureBlackActivity.class);
         ActivityOptions options = ActivityOptions.makeBasic();
         startActivity(intent, options.toBundle());
-        setFocus(inputManager, displayId);
     }
 
-    private static void setFocus(IInputManager inputManager, int displayId) {
+    public static void setFocus(IInputManager inputManager, int displayId) {
         try {
             if (inputManager != null) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
