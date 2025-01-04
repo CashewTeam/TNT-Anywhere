@@ -49,6 +49,7 @@ public class HomeFragment extends Fragment {
         Button displaylinkBtn = view.findViewById(R.id.displaylinkBtn);
         Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
         Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
+        Button shizukuBtn = view.findViewById(R.id.shizukuBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
         displayDeviceBtn.setOnClickListener(v -> {
@@ -71,6 +72,10 @@ public class HomeFragment extends Fragment {
             } else {
                 Toast.makeText(requireContext(), "需要先授权 Shizuku", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        shizukuBtn.setOnClickListener(v -> {
+            State.breadcrumbManager.pushBreadcrumb("Shizuku", () -> new ShizukuFragment());
         });
 
         aboutBtn.setOnClickListener(v -> {

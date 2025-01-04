@@ -1,6 +1,9 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
@@ -55,21 +58,26 @@ public class ShizukuFragment extends Fragment {
         TextView wiredDesc = view.findViewById(R.id.wiredDescription);
         TextView wirelessDesc = view.findViewById(R.id.wirelessDescription);
         TextView serverUrlText = view.findViewById(R.id.serverUrl);
+        ImageView qrCodeImage = view.findViewById(R.id.qrCodeImage);
         Button installButton = view.findViewById(R.id.installButton);
         RadioGroup activationGroup = view.findViewById(R.id.activationGroup);
 
-        descriptionText.setText("Shizuku 是一个帮助应用获取 adb 权限的工具。安卓屏连的 Displaylink 单应用投屏，竖屏旋转，以及绑定外设到指定显示器等功能需要获得 adb 权限才能工作。虚拟触控板，和悬浮返回键用无障碍权限也能工作，但是有 adb 权限之后会工作得更稳定。");
+        descriptionText.setText("Shizuku 是一个帮助应用获取 adb 权限的工具。Shizuku 不是 ROOT，不需要手机刷机。安卓屏连的 Displaylink 单应用投屏，竖屏旋转，以及绑定外设到指定显示器等功能需要获得 adb 权限才能工作。虚拟触控板，和悬浮返回键用无障碍权限也能工作，但是有 adb 权限之后会工作得更稳定。");
         
-        wiredDesc.setText("请将手机通过 USB 数据线连接到电脑（或者其他能打开网页并有 USB 口的设备），然后在电脑上打开下面这个网页地址。因为局域网地址的 https 证书是自己签发的，打开的时候会有安全警告，需要手工强制访问才能打开。");
+        wiredDesc.setText("请将手机通过 USB 数据线连接到电脑（Windows，Mac等均可以），然后在电脑上打开下面这个网页地址。因为局域网地址的 https 证书是自己签发的，打开的时候会有安全警告，需要手工强制访问才能打开。");
         wirelessDesc.setText("安装 shizuku 应用，并按照 shizuku 应用内的提示启用无线调试激活 shizuku 服务。");
 
         activationGroup.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.wiredActivation) {
                 wiredDesc.setVisibility(View.VISIBLE);
+                serverUrlText.setVisibility(View.VISIBLE);
+                qrCodeImage.setVisibility(View.VISIBLE);
                 wirelessDesc.setVisibility(View.GONE);
                 installButton.setVisibility(View.GONE);
             } else {
                 wiredDesc.setVisibility(View.GONE);
+                serverUrlText.setVisibility(View.GONE);
+                qrCodeImage.setVisibility(View.GONE);
                 wirelessDesc.setVisibility(View.VISIBLE);
                 installButton.setVisibility(View.VISIBLE);
             }
@@ -90,7 +98,7 @@ public class ShizukuFragment extends Fragment {
                     }
                     Toast.makeText(requireContext(), "APK已保存到手机的下载目录，文件名是 shizuku.apk", 
                         Toast.LENGTH_LONG).show();
-                    State.log("APK已保存到手机的下载目录，文件名是 shizuku.apk");
+                    State.log("APK已保存到手机的下载目录，文件名是 shizuku.apk。请手工前往文件管理器安装。");
                 }
             } catch (Throwable e) {
                 String errorMsg = "保存失败: " + e.getMessage();
@@ -104,11 +112,13 @@ public class ShizukuFragment extends Fragment {
         serverUrlText.setPaintFlags(serverUrlText.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         serverUrlText.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
         serverUrlText.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(serverUrl));
-            startActivity(intent);
+            ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("url", serverUrl);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(requireContext(), "链接已经复制到剪贴板。请在电脑上打开该链接。",
+                    Toast.LENGTH_LONG).show();
         });
 
-        ImageView qrCodeImage = view.findViewById(R.id.qrCodeImage);
         generateQRCode(serverUrl, qrCodeImage);
 
         return view;

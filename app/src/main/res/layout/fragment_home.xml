@@ -66,6 +66,14 @@
         android:text="设置" />
 
     <Button
+        android:id="@+id/shizukuBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:minWidth="200dp"
+        android:text="Shizuku" />
+
+    <Button
         android:id="@+id/aboutBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

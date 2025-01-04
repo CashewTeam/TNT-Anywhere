@@ -45,22 +45,6 @@
             android:textSize="16sp"/>
 
         <TextView
-            android:id="@+id/wirelessDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"
-            android:textSize="16sp"/>
-
-        <Button
-            android:id="@+id/installButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="安装 shizuku"
-            android:layout_marginTop="16dp"
-            android:visibility="gone"/>
-
-        <TextView
             android:id="@+id/serverUrl"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -75,6 +59,22 @@
             android:layout_height="200dp"
             android:layout_marginTop="16dp"
             android:layout_gravity="center"/>
+
+        <TextView
+            android:id="@+id/wirelessDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            android:textSize="16sp"/>
+
+        <Button
+            android:id="@+id/installButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="安装 shizuku"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"/>
 
     </LinearLayout>
 </ScrollView> 
