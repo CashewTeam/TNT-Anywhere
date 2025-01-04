@@ -50,4 +50,11 @@ public interface IActivityManager extends IInterface {
             String requiredPermission,
             Bundle options);
 
+    IIntentSender getIntentSender(int type, String packageName, IBinder token,
+                                  String resultWho, int requestCode, Intent[] intents, String[] resolvedTypes,
+                                  int flags, Bundle options, int userId);
+    IIntentSender getIntentSenderWithFeature(int type, String packageName, String featureId,
+                                             IBinder token, String resultWho, int requestCode, Intent[] intents,
+                                             String[] resolvedTypes, int flags, Bundle options, int userId);
+
 }

@@ -1,3 +1,6 @@
 [submodule "connect-screen.com"]
 	path = connect-screen.com
 	url = https://taowen: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@github.com/taowen/connect-screen.com.git
+[submodule "termux-x11"]
+	path = termux-x11
+	url = https://github.com/termux/termux-x11.git
