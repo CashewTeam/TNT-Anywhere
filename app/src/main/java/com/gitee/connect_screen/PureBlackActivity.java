@@ -70,6 +70,28 @@ public class PureBlackActivity extends AppCompatActivity {
         View view = new View(this);
         view.setBackgroundColor(Color.BLACK);
         setContentView(view);
+        
+        // 添加鼠标捕获
+        view.setOnGenericMotionListener((v, event) -> {
+            if (event.getSource() == InputDevice.SOURCE_MOUSE) {
+                float mouseX = event.getAxisValue(MotionEvent.AXIS_X);
+                float mouseY = event.getAxisValue(MotionEvent.AXIS_Y);
+                System.out.println("鼠标移动 - X: " + mouseX + ", Y: " + mouseY);
+            }
+            return false;
+        });
+        
+        view.setOnCapturedPointerListener((v, event) -> {
+            if (event.getSource() == InputDevice.SOURCE_MOUSE) {
+                float mouseX = event.getAxisValue(MotionEvent.AXIS_X);
+                float mouseY = event.getAxisValue(MotionEvent.AXIS_Y);
+                System.out.println("捕获的鼠标移动 - X: " + mouseX + ", Y: " + mouseY);
+            }
+            return true;
+        });
+        
+        // 请求捕获鼠标
+        view.requestPointerCapture();
 
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 
@@ -135,6 +157,15 @@ public class PureBlackActivity extends AppCompatActivity {
             new Handler().postDelayed(() -> {
                 TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
             }, 500);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            View decorView = getWindow().getDecorView();
+            decorView.requestPointerCapture();
         }
     }
 
