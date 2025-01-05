@@ -56,6 +56,7 @@ public class LorieView extends SurfaceView implements InputStub {
     private String mImeLang;
     private boolean mImeCJK;
     public boolean enableGboardCJK;
+    public boolean forceHasPointerCapture;
     private Callback mCallback;
     private final Point p = new Point();
     private final SurfaceHolder.Callback mSurfaceCallback = new SurfaceHolder.Callback() {
@@ -362,6 +363,13 @@ public class LorieView extends SurfaceView implements InputStub {
         } else {
             return super.onCreateInputConnection(outAttrs);
         }
+    }
+
+    public boolean hasPointerCapture() {
+        if (forceHasPointerCapture) {
+            return true;
+        }
+        return super.hasPointerCapture();
     }
 
     @FastNative private native void nativeInit();

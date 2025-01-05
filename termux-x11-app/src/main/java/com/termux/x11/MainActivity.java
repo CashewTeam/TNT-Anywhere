@@ -80,7 +80,8 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
     public static Handler handler = new Handler();
     FrameLayout frm;
-    private TouchInputHandler mInputHandler;
+    public static TouchInputHandler mInputHandler;
+    public static LorieView lorieView;
     protected ICmdEntryInterface service = null;
     public TermuxX11ExtraKeys mExtraKeys;
     private Notification mNotification;
@@ -165,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         findViewById(R.id.help_button).setOnClickListener((l) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/termux/termux-x11/blob/master/README.md#running-graphical-applications"))));
         findViewById(R.id.exit_button).setOnClickListener((l) -> finish());
 
-        LorieView lorieView = findViewById(R.id.lorieView);
+        lorieView = findViewById(R.id.lorieView);
         View lorieParent = (View) lorieView.getParent();
 
         mInputHandler = new TouchInputHandler(this, new InputEventSender(lorieView));
@@ -247,6 +248,8 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
     protected void onDestroy() {
         unregisterReceiver(receiver);
         super.onDestroy();
+        mInputHandler = null;
+        lorieView = null;
     }
 
     //Register the needed events to handle stylus as left, middle and right click

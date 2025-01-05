@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.MotionEvent;
@@ -22,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.termux.x11.MainActivity;
 
 import dev.rikka.tools.refine.Refine;
 
@@ -32,6 +34,7 @@ public class PureBlackActivity extends AppCompatActivity {
     // 添加 Set 来存储外部设备 ID
     private final Set<Integer> externalDeviceIds = new HashSet<>();
     private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
+    private IInputManager inputManager;
 
 
     @Override
@@ -68,31 +71,30 @@ public class PureBlackActivity extends AppCompatActivity {
 
         // 设置纯黑背景
         View view = new View(this);
+        view.setFocusable(true);
+        view.setFocusableInTouchMode(true);
         view.setBackgroundColor(Color.BLACK);
         setContentView(view);
         
         // 添加鼠标捕获
         view.setOnGenericMotionListener((v, event) -> {
-            if (event.getSource() == InputDevice.SOURCE_MOUSE) {
-                float mouseX = event.getAxisValue(MotionEvent.AXIS_X);
-                float mouseY = event.getAxisValue(MotionEvent.AXIS_Y);
-                System.out.println("鼠标移动 - X: " + mouseX + ", Y: " + mouseY);
-            }
+            Log.i("PureBlackActivity", "!!! event: " + event);
+            TouchpadActivity.setFocus(inputManager, Display.DEFAULT_DISPLAY);
+            view.requestFocus();
+            view.requestFocusFromTouch();
+            view.requestPointerCapture();
             return false;
         });
         
         view.setOnCapturedPointerListener((v, event) -> {
-            if (event.getSource() == InputDevice.SOURCE_MOUSE) {
-                float mouseX = event.getAxisValue(MotionEvent.AXIS_X);
-                float mouseY = event.getAxisValue(MotionEvent.AXIS_Y);
-                System.out.println("捕获的鼠标移动 - X: " + mouseX + ", Y: " + mouseY);
+            if (MainActivity.mInputHandler != null) {
+                MainActivity.lorieView.forceHasPointerCapture = true;
+                MainActivity.mInputHandler.handleTouchEvent(MainActivity.lorieView, MainActivity.lorieView, event);
+                MainActivity.lorieView.forceHasPointerCapture = false;
             }
             return true;
         });
         
-        // 请求捕获鼠标
-        view.requestPointerCapture();
-
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 
         // 修改触摸监听器
@@ -146,27 +148,18 @@ public class PureBlackActivity extends AppCompatActivity {
             finish();
             return true;
         });
-        if (ShizukuUtils.hasPermission()) {
-            IInputManager inputManager = ServiceUtils.getInputManager();
-            TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
-        } else if(TouchpadAccessibilityService.getInstance() != null) {
-            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
-        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
-            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-            this.startService(serviceIntent);
-            new Handler().postDelayed(() -> {
-                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
-            }, 500);
-        }
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) {
-            View decorView = getWindow().getDecorView();
-            decorView.requestPointerCapture();
-        }
+       if (ShizukuUtils.hasPermission()) {
+           inputManager = ServiceUtils.getInputManager();
+           TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+       } else if(TouchpadAccessibilityService.getInstance() != null) {
+           TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+       } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+           Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+           this.startService(serviceIntent);
+           new Handler().postDelayed(() -> {
+               TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+           }, 500);
+       }
     }
 
     private boolean isExternalDevice(MotionEvent event) {
