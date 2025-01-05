@@ -14,4 +14,6 @@ public interface IPackageManager extends IInterface {
     }
     void grantRuntimePermission(String packageName, String permissionName, int userId);
     String[] getPackagesForUid(int uid) throws RemoteException;
+    PackageInfo getPackageInfo(String packageName, long flags, int userId) throws android.os.RemoteException;
+    PackageInfo getPackageInfo(String packageName, int flags, int userId) throws android.os.RemoteException;
 }

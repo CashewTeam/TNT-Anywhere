@@ -23,3 +23,4 @@ rootProject.name = "Connect Screen"
 include(":app")
 include(":hidden-api-stub")
 include(":termux-x11-app")
+include(":termux-x11-shell-loader")

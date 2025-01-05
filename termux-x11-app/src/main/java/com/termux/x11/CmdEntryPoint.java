@@ -59,7 +59,7 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
     void sendBroadcast() {
         String targetPackage = getenv("TERMUX_X11_OVERRIDE_PACKAGE");
         if (targetPackage == null)
-            targetPackage = "com.termux.x11";
+            targetPackage = "com.gitee.connect_screen";
         // We should not care about multiple instances, it should be called only by `Termux:X11` app
         // which is single instance...
         Bundle bundle = new Bundle();
