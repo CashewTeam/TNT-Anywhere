@@ -43,6 +43,7 @@ public class SettingsFragment extends Fragment {
     private CheckBox cbEnableNonResizable;
     private CheckBox cbDisableScreenShareProtection;
     private CheckBox cbDisableUsbAudio;
+    private CheckBox cbUseRealScreenOff;
 
     @Nullable
     @Override
@@ -59,6 +60,7 @@ public class SettingsFragment extends Fragment {
         rvExternalDevices = view.findViewById(R.id.rvExternalDevices);
         rvInternalDevices = view.findViewById(R.id.rvInternalDevices);
         cbDisableUsbAudio = view.findViewById(R.id.cbDisableUsbAudio);
+        cbUseRealScreenOff = view.findViewById(R.id.cbUseRealScreenOff);
         
         initializeDisplaySpinner();
         setupBindButton();
@@ -71,6 +73,7 @@ public class SettingsFragment extends Fragment {
             setupEnableFreeformCheckbox();
             setupEnableNonResizableCheckbox();
             setupDisableUsbAudioCheckbox();
+            setupUseRealScreenOffCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
@@ -254,6 +257,22 @@ public class SettingsFragment extends Fragment {
             } catch (SecurityException e) {
                 State.log("failed: " + e);
             }
+        });
+    }
+
+    private void setupUseRealScreenOffCheckbox() {
+        // 从 SharedPreferences 读取保存的设置
+        boolean useRealScreenOff = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("use_real_screen_off", false);
+                
+        cbUseRealScreenOff.setChecked(useRealScreenOff);
+
+        cbUseRealScreenOff.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            // 保存到 SharedPreferences
+            requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("use_real_screen_off", isChecked)
+                    .apply();
         });
     }
 }

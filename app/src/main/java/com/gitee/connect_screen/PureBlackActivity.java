@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.content.Context;
 import android.os.IBinder;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -41,6 +42,7 @@ public class PureBlackActivity extends AppCompatActivity {
     private final Set<Integer> externalDeviceIds = new HashSet<>();
     private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
     private IInputManager inputManager;
+    private boolean useRealScreenOff;
 
 
     @Override
@@ -81,6 +83,9 @@ public class PureBlackActivity extends AppCompatActivity {
         view.setFocusableInTouchMode(true);
         view.setBackgroundColor(Color.BLACK);
         setContentView(view);
+
+        useRealScreenOff = getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("use_real_screen_off", false);
         
         // 添加鼠标捕获
         view.setOnGenericMotionListener((v, event) -> {
@@ -164,21 +169,8 @@ public class PureBlackActivity extends AppCompatActivity {
                    this.startService(serviceIntent);
                }
            }
-           if (Build.VERSION.SDK_INT >= 35) {
-               try {
-                   ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
-               } catch(Throwable e) {
-                   // ignore
-               }
-           } else {
-               if (State.userService != null) {
-                   try {
-                       State.log("尝试熄屏");
-                       State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
-                   } catch (RemoteException e) {
-                       State.log("熄屏失败： "  + e.getMessage());
-                   }
-               }
+           if (useRealScreenOff) {
+               powerOffScreen();
            }
        } else if(TouchpadAccessibilityService.getInstance() != null) {
            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
@@ -191,13 +183,51 @@ public class PureBlackActivity extends AppCompatActivity {
        }
     }
 
+    private void powerOffScreen() {
+        if (Build.VERSION.SDK_INT >= 35) {
+            try {
+                ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, false);
+            } catch(Throwable e) {
+                try {
+                    ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
+                } catch(Throwable e2) {
+                    // ignore
+                }
+            }
+        } else {
+            if (State.userService != null) {
+                try {
+                    State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+                } catch (RemoteException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (State.userService != null) {
-            try {
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-            } catch (RemoteException e) {
+        if (useRealScreenOff) {
+            if (Build.VERSION.SDK_INT >= 35) {
+                try {
+                    ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, true);
+                } catch (Throwable e) {
+                    try {
+                        ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_NORMAL);
+                    } catch(Throwable e2) {
+                        // ignore
+                    }
+
+                }
+            } else {
+                if (State.userService != null) {
+                    try {
+                        State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+                    } catch (RemoteException e) {
+                        // ignore
+                    }
+                }
             }
         }
     }
@@ -222,12 +252,14 @@ public class PureBlackActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            // 让系统处理音量调节
-            super.onKeyDown(keyCode, event);
-            // 关闭当前Activity
-            finish();
-            return true;
+        if (useRealScreenOff) {
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                // 让系统处理音量调节
+                super.onKeyDown(keyCode, event);
+                // 关闭当前Activity
+                finish();
+                return true;
+            }
         }
         return super.onKeyDown(keyCode, event);
     }

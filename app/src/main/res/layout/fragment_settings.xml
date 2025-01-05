@@ -47,6 +47,13 @@
         android:text="停用屏幕共享防护"
         android:layout_marginBottom="8dp"/>
 
+    <CheckBox
+        android:id="@+id/cbUseRealScreenOff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="使用真实熄屏代替模拟熄屏（需要使用音量键唤醒）"
+        android:layout_marginBottom="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

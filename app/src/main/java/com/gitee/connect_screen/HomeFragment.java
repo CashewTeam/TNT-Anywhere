@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
@@ -60,6 +61,11 @@ public class HomeFragment extends Fragment {
             State.breadcrumbManager.pushBreadcrumb("Displaylink", () -> new DisplaylinkFragment());
         });
 
+        boolean useRealScreenOff = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        .getBoolean("use_real_screen_off", false);
+        if(useRealScreenOff) {
+            simulateScreenOffBtn.setText("真实熄屏");
+        }
         simulateScreenOffBtn.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), PureBlackActivity.class);
             ActivityOptions options = ActivityOptions.makeBasic();

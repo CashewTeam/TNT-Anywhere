@@ -22,4 +22,5 @@ public interface IDisplayManager extends IInterface {
                              IMediaProjection projectionToken, String packageName, String name,
                              int width, int height, int densityDpi, Surface surface, int flags, String uniqueId);
     boolean requestDisplayPower(int displayId, int state);
+    boolean requestDisplayPower(int displayId, boolean state);
 }
