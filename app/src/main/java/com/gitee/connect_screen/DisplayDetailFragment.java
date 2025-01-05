@@ -2,6 +2,7 @@ package com.gitee.connect_screen;
 
 import static android.content.Context.MODE_PRIVATE;
 
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -25,6 +26,7 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
+import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
@@ -135,6 +137,16 @@ public class DisplayDetailFragment extends Fragment {
 
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
 
+        Button x11Button = view.findViewById(R.id.start_x11_button);
+        x11Button.setOnClickListener(v -> {
+            Context context = State.currentActivity.get();
+            Intent intent = new Intent(context, com.termux.x11.MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(displayId);
+            context.startActivity(intent, options.toBundle());
+            State.startNewJob(new BindAllExternalInputToDisplay(displayId));
+        });
         launchButton = view.findViewById(R.id.start_launcher_button);
         if (displayId == 0) {
             launchButton.setVisibility(View.GONE);
