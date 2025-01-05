@@ -99,7 +99,7 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
 
         holder.btnLaunch.setOnClickListener(v -> {
             if (!ShizukuUtils.hasPermission() && sharedPreferences.getLong(LAUNCH_TIME_PREFIX + app.packageName, 0) == 0) {
-                Toast.makeText(v.getContext(), "请先点一次 '回手机' 按钮给予授权，然后再投屏该应用", Toast.LENGTH_SHORT).show();
+                Toast.makeText(v.getContext(), "因为安卓权限限制，请先点一次 '回手机' 按钮给予授权。然后返回安卓屏连的这个界面，再选择同一个应用点 '投屏' 按钮", Toast.LENGTH_SHORT).show();
                 return;
             }
             sharedPreferences.edit()

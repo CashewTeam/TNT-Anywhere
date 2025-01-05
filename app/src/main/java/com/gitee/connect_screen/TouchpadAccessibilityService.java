@@ -17,6 +17,8 @@ import java.util.Queue;
 import java.util.LinkedList;
 import android.view.KeyEvent;
 
+import com.termux.x11.MainActivity;
+
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
     
@@ -66,6 +68,15 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     
     public static TouchpadAccessibilityService getInstance() {
         return instance;
+    }
+
+    @Override
+    protected boolean onKeyEvent(KeyEvent event) {
+        if (MainActivity.mInputHandler != null) {
+            MainActivity.mInputHandler.sendKeyEvent(event);
+            return true;
+        }
+        return false;
     }
 
     @Override

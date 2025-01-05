@@ -21,6 +21,7 @@ import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.gitee.connect_screen.shizuku.PermissionManager;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.termux.x11.MainActivity;
@@ -78,7 +79,6 @@ public class PureBlackActivity extends AppCompatActivity {
         
         // 添加鼠标捕获
         view.setOnGenericMotionListener((v, event) -> {
-            Log.i("PureBlackActivity", "!!! event: " + event);
             TouchpadActivity.setFocus(inputManager, Display.DEFAULT_DISPLAY);
             view.requestFocus();
             view.requestFocusFromTouch();
@@ -151,6 +151,14 @@ public class PureBlackActivity extends AppCompatActivity {
        if (ShizukuUtils.hasPermission()) {
            inputManager = ServiceUtils.getInputManager();
            TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+           if(TouchpadAccessibilityService.getInstance() == null) {
+               if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+                   Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "com.gitee.connect_screen/.TouchpadAccessibilityService");
+                   Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+                   Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+                   this.startService(serviceIntent);
+               }
+           }
        } else if(TouchpadAccessibilityService.getInstance() != null) {
            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
