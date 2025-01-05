@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.os.IBinder;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -8,6 +9,7 @@ import android.hardware.input.IInputManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Display;
@@ -18,12 +20,15 @@ import android.view.Surface;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.KeyEvent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.gitee.connect_screen.job.AndroidVersions;
 import com.gitee.connect_screen.shizuku.PermissionManager;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.gitee.connect_screen.shizuku.SurfaceControl;
 import com.termux.x11.MainActivity;
 
 import dev.rikka.tools.refine.Refine;
@@ -159,6 +164,22 @@ public class PureBlackActivity extends AppCompatActivity {
                    this.startService(serviceIntent);
                }
            }
+           if (Build.VERSION.SDK_INT >= 35) {
+               try {
+                   ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
+               } catch(Throwable e) {
+                   // ignore
+               }
+           } else {
+               if (State.userService != null) {
+                   try {
+                       State.log("尝试熄屏");
+                       State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+                   } catch (RemoteException e) {
+                       State.log("熄屏失败： "  + e.getMessage());
+                   }
+               }
+           }
        } else if(TouchpadAccessibilityService.getInstance() != null) {
            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
@@ -168,6 +189,17 @@ public class PureBlackActivity extends AppCompatActivity {
                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
            }, 500);
        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (State.userService != null) {
+            try {
+                State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+            } catch (RemoteException e) {
+            }
+        }
     }
 
     private boolean isExternalDevice(MotionEvent event) {
@@ -186,5 +218,17 @@ public class PureBlackActivity extends AppCompatActivity {
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            // 让系统处理音量调节
+            super.onKeyDown(keyCode, event);
+            // 关闭当前Activity
+            finish();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

@@ -1,8 +1,11 @@
 package com.gitee.connect_screen.shizuku;
 
+import android.os.IBinder;
 import android.util.Log;
 
 import android.os.RemoteException;
+
+import com.gitee.connect_screen.State;
 
 public class UserService extends IUserService.Stub  {
     public UserService() {
@@ -66,6 +69,17 @@ public class UserService extends IUserService.Stub  {
         } catch (Exception e) {
             Log.e("UserService", "execute command failed: " + command, e);
             throw new RemoteException("Failed to execute command: " + command + " " + e.getMessage());
+        }
+    }
+
+    public void setScreenPower(int powerMode) {
+        Log.i("UserService", "try to powerOffScreen");
+        IBinder d = SurfaceControl.getBuiltInDisplay();
+        if (d == null) {
+            Log.i("UserService", "Could not get built-in display");
+        } else {
+            SurfaceControl.setDisplayPowerMode(d, powerMode);
+            Log.i("UserService", "setDisplayPowerMode success");
         }
     }
 }

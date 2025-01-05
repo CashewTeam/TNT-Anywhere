@@ -9,4 +9,6 @@ interface IUserService {
     String fetchLogs() = 2;
 
     String executeCommand(String command) = 3;
+
+    void setScreenPower(int powerMode) = 4;
 }

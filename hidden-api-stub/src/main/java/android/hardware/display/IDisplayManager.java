@@ -21,4 +21,5 @@ public interface IDisplayManager extends IInterface {
     int createVirtualDisplay(IVirtualDisplayCallback callback,
                              IMediaProjection projectionToken, String packageName, String name,
                              int width, int height, int densityDpi, Surface surface, int flags, String uniqueId);
+    boolean requestDisplayPower(int displayId, int state);
 }
