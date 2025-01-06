@@ -365,6 +365,7 @@ public class LorieView extends SurfaceView implements InputStub {
         }
     }
 
+    @Override
     public boolean hasPointerCapture() {
         if (forceHasPointerCapture) {
             return true;

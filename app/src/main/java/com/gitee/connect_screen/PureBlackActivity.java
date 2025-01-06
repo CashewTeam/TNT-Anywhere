@@ -98,6 +98,7 @@ public class PureBlackActivity extends AppCompatActivity {
         
         view.setOnCapturedPointerListener((v, event) -> {
             if (MainActivity.mInputHandler != null) {
+                MainActivity.lorieView.triggerCallback();
                 MainActivity.lorieView.forceHasPointerCapture = true;
                 MainActivity.mInputHandler.handleTouchEvent(MainActivity.lorieView, MainActivity.lorieView, event);
                 MainActivity.lorieView.forceHasPointerCapture = false;

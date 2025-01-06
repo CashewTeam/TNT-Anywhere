@@ -840,7 +840,6 @@ public class TouchInputHandler {
             } else if (e.getAction() == MotionEvent.ACTION_MOVE && e.getPointerCount() == 1) {
                 boolean axis_relative_x = e.getDevice().getMotionRange(MotionEvent.AXIS_RELATIVE_X) != null;
                 boolean mouse_relative = (e.getSource() & InputDevice.SOURCE_MOUSE_RELATIVE) == InputDevice.SOURCE_MOUSE_RELATIVE;
-                Log.i("HardwareMouseListener", "!!! axis_relative_x: " + axis_relative_x + " mouse_relative: " + mouse_relative);
                 if (axis_relative_x || mouse_relative) {
                     float x = axis_relative_x ? e.getAxisValue(MotionEvent.AXIS_RELATIVE_X) : e.getX();
                     float y = axis_relative_x ? e.getAxisValue(MotionEvent.AXIS_RELATIVE_Y) : e.getY();
@@ -859,7 +858,6 @@ public class TouchInputHandler {
 
                     x *= mInjector.capturedPointerSpeedFactor * mMetrics.density;
                     y *= mInjector.capturedPointerSpeedFactor * mMetrics.density;
-
                     mInjector.sendCursorMove(x, y, true);
                     if (axis_relative_x && mTouchpadHandler != null)
                         mTouchpadHandler.mTapDetector.onTouchEvent(e);
@@ -868,8 +866,9 @@ public class TouchInputHandler {
 
             currentBS = e.getButtonState();
             for (int[] button: buttons)
-                if (isMouseButtonChanged(button[0]))
+                if (isMouseButtonChanged(button[0])) {
                     mInjector.sendMouseEvent(null, button[1], mouseButtonDown(button[0]), true);
+                }
             savedBS = currentBS;
             return true;
         }
