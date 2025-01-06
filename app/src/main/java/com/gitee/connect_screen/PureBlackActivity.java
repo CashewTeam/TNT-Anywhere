@@ -48,7 +48,7 @@ public class PureBlackActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        State.isInPureBlackActivity = true;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         // 隐藏标题栏
@@ -208,6 +208,7 @@ public class PureBlackActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        State.isInPureBlackActivity = false;
         if (useRealScreenOff) {
             if (Build.VERSION.SDK_INT >= 35) {
                 try {
@@ -262,5 +263,17 @@ public class PureBlackActivity extends AppCompatActivity {
             }
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        State.isInPureBlackActivity = true;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        State.isInPureBlackActivity = false;
     }
 }

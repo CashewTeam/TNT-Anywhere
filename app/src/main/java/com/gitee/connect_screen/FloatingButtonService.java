@@ -34,7 +34,6 @@ public class FloatingButtonService extends Service {
     private static final int FADE_DELAY = 5000; // 5秒
     private Runnable fadeOutRunnable;
     private android.os.Handler handler;
-    private float currentAlpha = 1.0f;
     private boolean isReady = true;
     private static final long DOUBLE_CLICK_TIME_DELTA = 300; //双击间隔时间（毫秒）
     private long lastClickTime = 0;
@@ -243,7 +242,6 @@ public class FloatingButtonService extends Service {
                     }
                 })
                 .start();
-        currentAlpha = 0.0f;
     }
 
     private void resetButtonVisibility() {
@@ -258,7 +256,6 @@ public class FloatingButtonService extends Service {
                     }
                 })
                 .start();
-        currentAlpha = 1.0f;
         startFadeOutTimer();
     }
 
