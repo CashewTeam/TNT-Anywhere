@@ -30,7 +30,7 @@ public class DpiDialog {
                             Toast.makeText(context, "请输入有效的DPI值", Toast.LENGTH_SHORT).show();
                             return;
                         }
-                        State.startNewJob(new ChangeDPI(displayId, newDpi));
+                        State.startNewJob(new ChangeDPI(displayId, newDpi, currentDpi));
                     } catch (NumberFormatException e) {
                         Toast.makeText(context, "请输入有效的数字", Toast.LENGTH_SHORT).show();
                     }
