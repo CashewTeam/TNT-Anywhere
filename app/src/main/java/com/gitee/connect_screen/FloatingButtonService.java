@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Handler;
@@ -143,6 +144,12 @@ public class FloatingButtonService extends Service {
         );
         params.gravity = Gravity.TOP | Gravity.START;
         
+        // 读取强制横屏设置
+        SharedPreferences appPreferences = getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
+        boolean forceLandscape = appPreferences.getBoolean("FLOATING_BUTTON_FORCE_LANDSCAPE", false);
+        if (forceLandscape) {
+            params.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+        }
         // 读取上次保存的位置
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         params.x = prefs.getInt(KEY_X, 0);

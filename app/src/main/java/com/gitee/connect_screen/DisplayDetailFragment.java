@@ -47,6 +47,7 @@ public class DisplayDetailFragment extends Fragment {
     private Button setImePolicyButton;
     private CheckBox autoOpenLastAppCheckbox;
     private Button floatingButtonToggle;
+    private CheckBox forceLandscapeCheckbox;
 
     public static DisplayDetailFragment newInstance(int displayId) {
         DisplayDetailFragment fragment = new DisplayDetailFragment();
@@ -259,23 +260,34 @@ public class DisplayDetailFragment extends Fragment {
         }
 
         floatingButtonToggle = view.findViewById(R.id.floating_button_toggle);
-        if (displayId != Display.DEFAULT_DISPLAY) {
+        forceLandscapeCheckbox = view.findViewById(R.id.force_landscape_checkbox);
+        
+        if (displayId != -1) {
             floatingButtonToggle.setVisibility(View.VISIBLE);
+            forceLandscapeCheckbox.setVisibility(View.VISIBLE);
             SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
-            updateFloatingBackButtonText(appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false));
+            boolean isEnabled = appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
+            boolean forceLandscape = appPreferences.getBoolean("FLOATING_BUTTON_FORCE_LANDSCAPE", false);
+            
+            updateFloatingBackButtonText(isEnabled);
+            forceLandscapeCheckbox.setChecked(forceLandscape);
+            
             floatingButtonToggle.setOnClickListener(v -> {
-                boolean isEnabled = appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
-                if (isEnabled) {
+                boolean newIsEnabled = !appPreferences.getBoolean("FLOATING_BUTTON_" + display.getName(), false);
+                if (newIsEnabled) {
+                    if (FloatingButtonService.startFloating(getContext(), displayId, false)) {
+                        appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), true).apply();
+                    }
+                } else {
                     Intent serviceIntent = new Intent(getContext(), FloatingButtonService.class);
                     getContext().stopService(serviceIntent);
-                    isEnabled = false;
-                } else {
-                    if (FloatingButtonService.startFloating(getContext(), displayId, false)) {
-                        isEnabled = true;
-                    }
+                    appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
                 }
-                appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), isEnabled).apply();
-                updateFloatingBackButtonText(isEnabled);
+                updateFloatingBackButtonText(newIsEnabled);
+            });
+
+            forceLandscapeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                appPreferences.edit().putBoolean("FLOATING_BUTTON_FORCE_LANDSCAPE", isChecked).apply();
             });
         }
 

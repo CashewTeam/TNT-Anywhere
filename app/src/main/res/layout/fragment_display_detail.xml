@@ -136,6 +136,7 @@
             android:id="@+id/start_x11_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="投屏 Termux X11"/>
 
         <Button
@@ -146,13 +147,27 @@
             android:visibility="gone"
             android:text="触控板"/>
 
-        <Button
-            android:id="@+id/floating_button_toggle"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            android:text="展示悬浮返回键"/>
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/floating_button_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="展示悬浮返回键"/>
+
+            <CheckBox
+                android:id="@+id/force_landscape_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="附带强制横屏效果"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"/>
+        </LinearLayout>
 
         <Button
             android:id="@+id/goto_displaylink_button" 
