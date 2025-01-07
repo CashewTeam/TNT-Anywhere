@@ -49,6 +49,7 @@ public class HomeFragment extends Fragment {
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
         Button displaylinkBtn = view.findViewById(R.id.displaylinkBtn);
         Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
+        Button touchpadBtn = view.findViewById(R.id.touchpadBtn);
         Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
         Button shizukuBtn = view.findViewById(R.id.shizukuBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
@@ -70,6 +71,15 @@ public class HomeFragment extends Fragment {
             Intent intent = new Intent(getActivity(), PureBlackActivity.class);
             ActivityOptions options = ActivityOptions.makeBasic();
             startActivity(intent, options.toBundle());
+        });
+
+        if (State.lastSingleAppDisplay <= 0) {
+            touchpadBtn.setVisibility(View.GONE);
+        } else {
+            touchpadBtn.setVisibility(View.VISIBLE);
+        }
+        touchpadBtn.setOnClickListener(v -> {
+            TouchpadActivity.startTouchpad(getContext(), State.lastSingleAppDisplay, false);
         });
 
         inputDeviceBtn.setOnClickListener(v -> {

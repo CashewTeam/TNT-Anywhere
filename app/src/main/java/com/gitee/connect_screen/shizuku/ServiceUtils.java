@@ -131,6 +131,10 @@ public class ServiceUtils {
                 appPreferences.edit().putBoolean("FLOATING_BUTTON_" + display.getName(), false).apply();
             }
         }
+        if (targetDisplayId != Display.DEFAULT_DISPLAY) {
+            State.lastSingleAppDisplay = targetDisplayId;
+            State.breadcrumbManager.refreshCurrentFragment();
+        }
     }
     public static void _launchPackage(Context context, String packageName, int targetDisplayId) {
         if (ShizukuUtils.hasPermission()) {

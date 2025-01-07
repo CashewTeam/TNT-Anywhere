@@ -90,6 +90,9 @@ public class TouchpadActivity extends AppCompatActivity {
         if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.Q && !ShizukuUtils.hasPermission()) {
             return false;
         }
+        if (displayId == Display.DEFAULT_DISPLAY) {
+            return false;
+        }
         // 检查悬浮窗权限
         if (!Settings.canDrawOverlays(context)) {
             if (!dryRun) {

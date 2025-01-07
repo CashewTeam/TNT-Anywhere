@@ -145,7 +145,9 @@ public class DisplayDetailFragment extends Fragment {
             ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(displayId);
             context.startActivity(intent, options.toBundle());
-            State.lastSingleAppDisplay = displayId;
+            if (displayId != Display.DEFAULT_DISPLAY) {
+                State.lastSingleAppDisplay = displayId;
+            }
             State.startNewJob(new BindAllExternalInputToDisplay(displayId));
         });
         launchButton = view.findViewById(R.id.start_launcher_button);

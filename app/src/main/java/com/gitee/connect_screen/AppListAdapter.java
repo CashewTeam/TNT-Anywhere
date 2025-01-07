@@ -105,7 +105,6 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
             sharedPreferences.edit()
                     .putString("LAST_PACKAGE_NAME", app.packageName)
                     .apply();
-            State.lastSingleAppDisplay = targetDisplayId;
             sharedPreferences.edit()
                 .putLong(LAUNCH_TIME_PREFIX + app.packageName, System.currentTimeMillis())
                 .apply();
