@@ -22,6 +22,8 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.KeyEvent;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -43,6 +45,7 @@ public class PureBlackActivity extends AppCompatActivity {
     private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
     private IInputManager inputManager;
     private boolean useRealScreenOff;
+    private BroadcastReceiver exitReceiver;
 
 
     @Override
@@ -186,9 +189,7 @@ public class PureBlackActivity extends AppCompatActivity {
                    this.startService(serviceIntent);
                }
            }
-           if (useRealScreenOff) {
-               powerOffScreen();
-           }
+           powerOffScreen();
        } else if(TouchpadAccessibilityService.getInstance() != null) {
            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
@@ -198,26 +199,26 @@ public class PureBlackActivity extends AppCompatActivity {
                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
            }, 500);
        }
+
+        // 注册广播接收器
+        exitReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("com.gitee.connect_screen.EXIT_PURE_BLACK".equals(intent.getAction())) {
+                    finish();
+                }
+            }
+        };
+        registerReceiver(exitReceiver, new IntentFilter("com.gitee.connect_screen.EXIT_PURE_BLACK"), Context.RECEIVER_EXPORTED);
     }
 
     private void powerOffScreen() {
-        if (Build.VERSION.SDK_INT >= 35) {
+        if (useRealScreenOff && State.userService != null) {
             try {
-                ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, false);
-            } catch(Throwable e) {
-                try {
-                    ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
-                } catch(Throwable e2) {
-                    // ignore
-                }
-            }
-        } else {
-            if (State.userService != null) {
-                try {
-                    State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
-                } catch (RemoteException e) {
-                    // ignore
-                }
+                State.userService.startListenVolumeKey();
+                State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+            } catch (RemoteException e) {
+                State.log("powerOffScreen failed: " + e.getMessage());
             }
         }
     }
@@ -226,27 +227,16 @@ public class PureBlackActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         State.isInPureBlackActivity = false;
-        if (useRealScreenOff) {
-            if (Build.VERSION.SDK_INT >= 35) {
-                try {
-                    ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, true);
-                } catch (Throwable e) {
-                    try {
-                        ServiceUtils.getDisplayManager().requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_NORMAL);
-                    } catch(Throwable e2) {
-                        // ignore
-                    }
-
-                }
-            } else {
-                if (State.userService != null) {
-                    try {
-                        State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-                    } catch (RemoteException e) {
-                        // ignore
-                    }
-                }
+        if (useRealScreenOff && State.userService != null) {
+            try {
+                State.userService.stopListenVolumeKey();
+                State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+            } catch (RemoteException e) {
+                State.log("powerUpScreen failed: " + e.getMessage());
             }
+        }
+        if (exitReceiver != null) {
+            unregisterReceiver(exitReceiver);
         }
     }
 

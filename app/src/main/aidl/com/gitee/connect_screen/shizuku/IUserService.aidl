@@ -11,4 +11,8 @@ interface IUserService {
     String executeCommand(String command) = 3;
 
     void setScreenPower(int powerMode) = 4;
+
+    void startListenVolumeKey() = 5;
+
+    void stopListenVolumeKey() = 6;
 }
