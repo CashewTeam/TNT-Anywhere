@@ -45,13 +45,23 @@ public class PureBlackActivity extends AppCompatActivity {
     private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
     private IInputManager inputManager;
     private boolean useRealScreenOff;
-    private BroadcastReceiver exitReceiver;
 
+    // 将 ExitReceiver 修改为静态内部类
+    public static class ExitReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("com.gitee.connect_screen.EXIT_PURE_BLACK".equals(intent.getAction())) {
+                if (State.isInPureBlackActivity != null) {
+                    State.isInPureBlackActivity.finish();
+                }
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        State.isInPureBlackActivity = true;
+        State.isInPureBlackActivity = this;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         // 隐藏标题栏
@@ -199,17 +209,6 @@ public class PureBlackActivity extends AppCompatActivity {
                TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
            }, 500);
        }
-
-        // 注册广播接收器
-        exitReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if ("com.gitee.connect_screen.EXIT_PURE_BLACK".equals(intent.getAction())) {
-                    finish();
-                }
-            }
-        };
-        registerReceiver(exitReceiver, new IntentFilter("com.gitee.connect_screen.EXIT_PURE_BLACK"), Context.RECEIVER_EXPORTED);
     }
 
     private void powerOffScreen() {
@@ -226,7 +225,7 @@ public class PureBlackActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        State.isInPureBlackActivity = false;
+        State.isInPureBlackActivity = null;
         if (useRealScreenOff && State.userService != null) {
             try {
                 State.userService.stopListenVolumeKey();
@@ -234,9 +233,6 @@ public class PureBlackActivity extends AppCompatActivity {
             } catch (RemoteException e) {
                 State.log("powerUpScreen failed: " + e.getMessage());
             }
-        }
-        if (exitReceiver != null) {
-            unregisterReceiver(exitReceiver);
         }
     }
 
@@ -261,26 +257,14 @@ public class PureBlackActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (useRealScreenOff) {
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                // 让系统处理音量调节
-                super.onKeyDown(keyCode, event);
-                // 关闭当前Activity
-                finish();
-                return true;
-            }
+           if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+               // 让系统处理音量调节
+               super.onKeyDown(keyCode, event);
+               // 关闭当前Activity
+               finish();
+               return true;
+           }
         }
         return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        State.isInPureBlackActivity = true;
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        State.isInPureBlackActivity = false;
     }
 }

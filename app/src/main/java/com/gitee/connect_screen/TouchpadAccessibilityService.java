@@ -72,7 +72,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        if (State.isInPureBlackActivity && MainActivity.mInputHandler != null) {
+        if (State.isInPureBlackActivity != null && MainActivity.mInputHandler != null) {
             MainActivity.mInputHandler.sendKeyEvent(event);
             return true;
         }

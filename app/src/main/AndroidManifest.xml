@@ -131,6 +131,14 @@
             android:enabled="true"
             android:exported="false" />
         
+        <receiver 
+            android:name=".PureBlackActivity$ExitReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.gitee.connect_screen.EXIT_PURE_BLACK" />
+            </intent-filter>
+        </receiver>
+        
     </application>
 
     <queries>

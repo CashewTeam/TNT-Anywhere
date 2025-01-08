@@ -1,5 +1,6 @@
 package com.gitee.connect_screen;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
@@ -36,7 +37,7 @@ public class State {
     public static VirtualDisplay bridgeVirtualDisplay;
     public static int bridgeDisplayId = -1;
     public static FloatingButtonService floatingButtonService;
-    public static boolean isInPureBlackActivity = false;
+    public static Activity isInPureBlackActivity = null;
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
