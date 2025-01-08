@@ -2,7 +2,7 @@
 set -e
 cd "$(dirname "$0")"
 
-TERMUX_PKG_NAME="安卓屏连-x11"
+TERMUX_PKG_NAME="connect-screen-x11"
 TERMUX_PKG_HOMEPAGE="https://gitee.com/connect-screen/connect-screen"
 TERMUX_PKG_DESCRIPTION="x11投屏到安卓屏连"
 TERMUX_PKG_MAINTAINER="taowen@gmail.com"
@@ -26,12 +26,14 @@ PREFIX=$DATA_DIR/data/data/com.termux/files/usr
 rm -rf $DEB_PACKAGE_PATH $PACMAN_PACKAGE_PATH $DATA_DIR $CONTROL_DIR $PACKAGE_DIR $INTERMEDIATES/.PKGINFO $INTERMEDIATES/.BUILDINFO $INTERMEDIATES/.MTREE
 
 mkdir -p $PREFIX/bin/
-mkdir -p $PREFIX/libexec/termux-x11
+mkdir -p $PREFIX/libexec/安卓屏连-x11
 mkdir -p "$(dirname $DEB_PACKAGE_PATH)"
 
-cp 安卓屏连-x11.sh $PREFIX/bin/
+chmod +x 安卓屏连-x11.sh
+cp 安卓屏连-x11.sh $PREFIX/bin/安卓屏连-x11
+cp 安卓屏连-x11.sh $PREFIX/bin/connect-screen-x11
 cp 安卓屏连-x11.apk \
-	$PREFIX/libexec/termux-x11/安卓屏连-x11.apk
+	$PREFIX/libexec/安卓屏连-x11/安卓屏连-x11.apk
 
 mkdir -p $CONTROL_DIR
 cat <<EOF > $CONTROL_DIR/control
@@ -46,7 +48,7 @@ EOF
 
 cat <<EOF > $CONTROL_DIR/postinst
 #!/data/data/com.termux/files/usr/bin/sh
-chmod -w /data/data/com.termux/files/usr/libexec/termux-x11/安卓屏连-x11.apk
+chmod -w /data/data/com.termux/files/usr/libexec/安卓屏连-x11/安卓屏连-x11.apk
 EOF
 
 mkdir -p $PACKAGE_DIR
@@ -88,7 +90,7 @@ BUILD_DATE=$(date +%s)
 
 {
   echo "post_install() {"
-  echo "    chmod -w /data/data/com.termux/files/usr/libexec/termux-x11/安卓屏连-x11.apk"
+  echo "    chmod -w /data/data/com.termux/files/usr/libexec/安卓屏连-x11/安卓屏连-x11.apk"
   echo "}"
 } > $DATA_DIR/.INSTALL
 
