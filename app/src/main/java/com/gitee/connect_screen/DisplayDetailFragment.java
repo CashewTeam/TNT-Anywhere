@@ -262,7 +262,7 @@ public class DisplayDetailFragment extends Fragment {
         floatingButtonToggle = view.findViewById(R.id.floating_button_toggle);
         forceLandscapeCheckbox = view.findViewById(R.id.force_landscape_checkbox);
         
-        if (displayId != -1) {
+        if (displayId != Display.DEFAULT_DISPLAY) {
             floatingButtonToggle.setVisibility(View.VISIBLE);
             forceLandscapeCheckbox.setVisibility(View.VISIBLE);
             SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
