@@ -95,9 +95,9 @@ public class DisplayDetailFragment extends Fragment {
         }
 
         DisplayCutout cutout = display.getCutout();
-        String cutoutInfo = "无凹口";
+        String cutoutInfo = "无刘海";
         if (cutout != null) {
-            StringBuilder cutoutDetails = new StringBuilder("凹口边界:\n");
+            StringBuilder cutoutDetails = new StringBuilder("刘海边界:\n");
             for (android.graphics.Rect rect : cutout.getBoundingRects()) {
                 cutoutDetails.append(String.format("左:%d 上:%d 右:%d 下:%d\n",
                     rect.left, rect.top, rect.right, rect.bottom));
@@ -122,7 +122,7 @@ public class DisplayDetailFragment extends Fragment {
             "状态: %s\n" +
             "HDR支持: %s\n" +
             "显示器标志: %s\n" +
-            "凹口信息: %s",
+            "刘海信息: %s",
             display.getDisplayId(),
             display.getName(),
             display.getRefreshRate(),
