@@ -2,6 +2,7 @@ package com.gitee.connect_screen.dialog;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Point;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -15,6 +16,7 @@ import com.gitee.connect_screen.R;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.job.ProjectViaBridge;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
+import com.gitee.connect_screen.shizuku.ServiceUtils;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -32,6 +34,8 @@ public class BridgeDialog {
         SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", MODE_PRIVATE);
         autoBridgeCheckbox.setChecked(appPreferences.getBoolean("AUTO_BRIDGE_" + display.getName(), false));
 
+        Point initialSize = new Point();
+        ServiceUtils.getWindowManager().getInitialDisplaySize(displayId, initialSize);
         new AlertDialog.Builder(context)
                 .setTitle("桥接设置")
                 .setView(dialogView)
@@ -48,10 +52,10 @@ public class BridgeDialog {
                     DisplayMetrics metrics = new DisplayMetrics();
                     display.getMetrics(metrics);
                     State.startNewJob(new ProjectViaBridge(display, new VirtualDisplayArgs(
-                            "桥接屏幕", 
-                            display.getWidth(), 
-                            display.getHeight(), 
-                            display.getWidth(), 
+                            "桥接屏幕",
+                            initialSize.x,
+                            initialSize.y,
+                            initialSize.x,
                             (int) display.getRefreshRate(),
                             metrics.densityDpi,
                             BridgePref.rotatesWithContent)));
