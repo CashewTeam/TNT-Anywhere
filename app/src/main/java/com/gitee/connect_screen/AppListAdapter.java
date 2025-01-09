@@ -78,6 +78,13 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.ViewHold
         notifyDataSetChanged();
     }
 
+    public void updateAppList(List<ApplicationInfo> newAppList) {
+        this.appList = newAppList != null ? newAppList : Collections.emptyList();
+        sortAppList(this.appList);
+        this.filteredList = new ArrayList<>(this.appList);
+        notifyDataSetChanged();
+    }
+
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())

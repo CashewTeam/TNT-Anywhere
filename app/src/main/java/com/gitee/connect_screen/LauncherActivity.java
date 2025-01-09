@@ -27,6 +27,9 @@ import android.widget.Toast;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
+import android.view.Menu;
 
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -98,9 +101,16 @@ public class LauncherActivity extends AppCompatActivity {
             State.log("查询应用列表失败: " + e);
         }
         
-        // 过滤掉系统应用
+        // 在获取应用列表之前添加菜单按钮逻辑
+        ImageButton menuButton = findViewById(R.id.menu_button);
+        menuButton.setOnClickListener(v -> showMenu(v));
+        
+        // 修改获取应用列表的代码
+        boolean showAllApps = getSharedPreferences("app_preferences", MODE_PRIVATE)
+            .getBoolean("show_all_apps", false);
+            
         List<ApplicationInfo> userApps = packages.stream()
-            .filter(app -> (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
+            .filter(app -> showAllApps || (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
             .collect(Collectors.toList());
         
         // 设置搜索框监听器
@@ -147,5 +157,44 @@ public class LauncherActivity extends AppCompatActivity {
     }
     private void updateFloatingBackButtonText(boolean isEnabled) {
         floatingButtonToggle.setText(isEnabled ? "关悬浮" : "开悬浮");
+    }
+    
+    private void showMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenu().add(Menu.NONE, 1, Menu.NONE, "显示所有应用")
+            .setCheckable(true)
+            .setChecked(getSharedPreferences("app_preferences", MODE_PRIVATE)
+                .getBoolean("show_all_apps", false));
+                
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                item.setChecked(!item.isChecked());
+                getSharedPreferences("app_preferences", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("show_all_apps", item.isChecked())
+                    .apply();
+                    
+                // 重新加载应用列表
+                PackageManager pm = getPackageManager();
+                List<ApplicationInfo> packages = new ArrayList<>();
+                try {
+                    packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+                } catch (SecurityException e) {
+                    Toast.makeText(this, "需要 '查询所有应用' 权限", Toast.LENGTH_LONG).show();
+                    State.log("查询应用列表失败: " + e);
+                    return true;
+                }
+                
+                List<ApplicationInfo> filteredApps = packages.stream()
+                    .filter(app -> item.isChecked() || (app.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
+                    .collect(Collectors.toList());
+                    
+                adapter.updateAppList(filteredApps);
+                return true;
+            }
+            return false;
+        });
+        
+        popup.show();
     }
 }

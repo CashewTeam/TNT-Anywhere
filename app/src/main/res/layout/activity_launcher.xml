@@ -32,6 +32,14 @@
             android:layout_marginStart="16dp"
             android:text="模拟熄屏"/>
 
+        <ImageButton
+            android:id="@+id/menu_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_more_vert"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
     </LinearLayout>
 
     <EditText
