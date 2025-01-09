@@ -315,7 +315,6 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
 
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        displaylinkState.frameCounter++;
         try {
             if (program == 0) {
                 // 初始化离屏渲染
@@ -367,10 +366,6 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             GLES20.glReadPixels(0, 0, 1920, 1080, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
             buffer.rewind();
             int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
-            displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
-            if (resultCode < 0) {
-                Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
-            }
             boolean buffered = resultCode != 1 && resultCode != -2;
             if (buffered) {
                 buffersIndex = (buffersIndex + 1) % buffers.length;

@@ -25,6 +25,8 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
     private int monitorWidth;
     private int monitorHeight;
     private int refreshRate;
+    private int frameCounter = 0;
+    private long lastFrameTimeStamp = System.currentTimeMillis();
 
     public ListenImageReaderAndPostFrame(VirtualDisplayArgs virtualDisplayArgs) {
         this.displaylinkState = State.displaylinkState;
@@ -35,12 +37,19 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     @Override
     public void onImageAvailable(ImageReader reader) {
-        if (displaylinkState.encoderId == 0) {
-            displaylinkState.imageReader.acquireNextImage().close();
-            return;
+        frameCounter++;
+        if (frameCounter % 240 == 0) {
+            long currentTime = System.currentTimeMillis();
+            long timeElapsed = currentTime - lastFrameTimeStamp;
+            float frameDuration = ((float)timeElapsed) / ((float)240);
+            if (State.displaylinkState.frameDuration <= 0) {
+                State.displaylinkState.frameDuration = frameDuration;
+            } else if (frameDuration < State.displaylinkState.frameDuration) {
+                State.displaylinkState.frameDuration = frameDuration;
+            }
+            lastFrameTimeStamp = currentTime;
         }
         try {
-            displaylinkState.frameCounter++;
             Image thisImage = displaylinkState.imageReader.acquireNextImage();
             Image.Plane plane = thisImage.getPlanes()[0];
             if (!hasSetMode) {
@@ -63,7 +72,6 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 buffer.rewind();
             }
             int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
-            displaylinkState.recentPostFrameResultCodes[displaylinkState.frameCounter % displaylinkState.recentPostFrameResultCodes.length] = resultCode;
             if (resultCode < 0) {
                 Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);
             }

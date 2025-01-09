@@ -227,8 +227,10 @@ public class DisplaylinkFragment extends Fragment {
         } else {
             sb.append("虚拟显示器: ").append("未连接").append("\n");
         }
-        sb.append("总发送帧数: ").append(displaylinkState.frameCounter).append("\n");
-        sb.append("最近发送帧状态码: ").append(Arrays.toString(displaylinkState.recentPostFrameResultCodes)).append("\n");
+
+        if (displaylinkState.frameDuration > 0) {
+            sb.append("每帧耗时: ").append(String.format("%.2f", displaylinkState.frameDuration)).append("ms\n");
+        }
 
         detailContent.setText(sb.toString());
 

@@ -26,8 +26,7 @@ public class DisplaylinkState {
     private VirtualDisplay virtualDisplay;
     public HandlerThread handlerThread;
     public Handler handler;
-    public int frameCounter = 0;
-    public int[] recentPostFrameResultCodes = new int[8];
+    public float frameDuration = -1;
 
     public void stopHandlerThread() {
         if (handlerThread != null) {
