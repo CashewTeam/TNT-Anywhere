@@ -88,13 +88,4 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
             Log.e("ImageReader", "failed to post frame", e);
         }
     }
-
-    public static class VirtualDisplayCallback extends IVirtualDisplayCallback.Stub {
-        public void onPaused() {
-        }
-        public void onResumed() {
-        }
-        public void onStopped() {
-        }
-    }
 }

@@ -110,7 +110,7 @@ public class CreateVirtualDisplay {
         } else {
             // config = null
         }
-        IVirtualDisplayCallback callback = new ListenImageReaderAndPostFrame.VirtualDisplayCallback();
+        IVirtualDisplayCallback callback = new VirtualDisplayCallback();
         IMediaProjection projection = null;
         if (State.mediaProjection != null) {
             MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
@@ -153,5 +153,14 @@ public class CreateVirtualDisplay {
         }
         State.mediaProjection = null;
         return virtualDisplay;
+    }
+
+    public static class VirtualDisplayCallback extends IVirtualDisplayCallback.Stub {
+        public void onPaused() {
+        }
+        public void onResumed() {
+        }
+        public void onStopped() {
+        }
     }
 }
