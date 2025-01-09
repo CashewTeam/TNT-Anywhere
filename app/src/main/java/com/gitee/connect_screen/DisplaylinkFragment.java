@@ -124,29 +124,12 @@ public class DisplaylinkFragment extends Fragment {
 
         // 获取主屏幕尺寸
         WindowManager windowManager = (WindowManager) requireActivity().getSystemService(Context.WINDOW_SERVICE);
-        int pxWidth = 0, pxHeight = 0;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            WindowMetrics windowMetrics = windowManager.getMaximumWindowMetrics();
-            pxWidth = windowMetrics.getBounds().width();
-            pxHeight = windowMetrics.getBounds().height();
-        } else {
-            Display display = windowManager.getDefaultDisplay();
-            DisplayMetrics metrics = new DisplayMetrics();
-            display.getRealMetrics(metrics);
-            pxWidth = metrics.widthPixels;
-            pxHeight = metrics.heightPixels;
-        }
 
-        if (DisplaylinkPref.sourceWidth != 0) {
-            sourceWidthInput.setText(String.valueOf(DisplaylinkPref.sourceWidth));
-        } else {
-            sourceWidthInput.setText(String.valueOf(pxWidth));
-        }
-        if (DisplaylinkPref.sourceHeight != 0) {
-            sourceHeightInput.setText(String.valueOf(DisplaylinkPref.sourceHeight));
-        } else {
-            sourceHeightInput.setText(String.valueOf(pxHeight));
-        }
+        Display defaultDisplay = windowManager.getDefaultDisplay();
+        DisplayMetrics defaultDisplayMetrics = new DisplayMetrics();
+        defaultDisplay.getRealMetrics(defaultDisplayMetrics);
+        sourceWidthInput.setText(String.valueOf(defaultDisplayMetrics.widthPixels));
+        sourceHeightInput.setText(String.valueOf(defaultDisplayMetrics.heightPixels));
 
         // 监听输入框变化并更新 usbState
         TextWatcher dimensionsWatcher = new TextWatcher() {
