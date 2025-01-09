@@ -44,6 +44,7 @@ public class SettingsFragment extends Fragment {
     private CheckBox cbDisableScreenShareProtection;
     private CheckBox cbDisableUsbAudio;
     private CheckBox cbUseRealScreenOff;
+    private CheckBox cbStayOnWhilePlugged;
 
     @Nullable
     @Override
@@ -61,6 +62,7 @@ public class SettingsFragment extends Fragment {
         rvInternalDevices = view.findViewById(R.id.rvInternalDevices);
         cbDisableUsbAudio = view.findViewById(R.id.cbDisableUsbAudio);
         cbUseRealScreenOff = view.findViewById(R.id.cbUseRealScreenOff);
+        cbStayOnWhilePlugged = view.findViewById(R.id.cbStayOnWhilePlugged);
         
         initializeDisplaySpinner();
         setupBindButton();
@@ -74,6 +76,7 @@ public class SettingsFragment extends Fragment {
             setupEnableNonResizableCheckbox();
             setupDisableUsbAudioCheckbox();
             setupUseRealScreenOffCheckbox();
+            setupStayOnWhilePluggedCheckbox();
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
 //                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
 //             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
@@ -84,6 +87,7 @@ public class SettingsFragment extends Fragment {
             cbEnableFreeform.setVisibility(View.GONE);
             cbEnableNonResizable.setVisibility(View.GONE);
             cbDisableUsbAudio.setVisibility(View.GONE);
+            cbStayOnWhilePlugged.setVisibility(View.GONE);
         }
         
         return view;
@@ -273,6 +277,24 @@ public class SettingsFragment extends Fragment {
                     .edit()
                     .putBoolean("use_real_screen_off", isChecked)
                     .apply();
+        });
+    }
+
+    private void setupStayOnWhilePluggedCheckbox() {
+        // 读取当前设置
+        boolean isStayOnWhilePlugged = Settings.Global.getInt(requireContext().getContentResolver(),
+                "stay_on_while_plugged_in", 0) != 0;
+        cbStayOnWhilePlugged.setChecked(isStayOnWhilePlugged);
+
+        cbStayOnWhilePlugged.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                // 设置值为 7 表示在任何充电状态下都保持屏幕开启
+                // (AC = 1, USB = 2, Wireless = 4, 1 + 2 + 4 = 7)
+                Settings.Global.putInt(requireContext().getContentResolver(),
+                        "stay_on_while_plugged_in", isChecked ? 7 : 0);
+            } catch (SecurityException e) {
+                State.log("failed: " + e);
+            }
         });
     }
 }
