@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -68,18 +69,21 @@ public class HomeFragment extends Fragment {
             simulateScreenOffBtn.setText("真实熄屏");
         }
         simulateScreenOffBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), PureBlackActivity.class);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            startActivity(intent, options.toBundle());
+            if (State.lastSingleAppDisplay <= 0) {
+                showHelp();
+            } else {
+                Intent intent = new Intent(getActivity(), PureBlackActivity.class);
+                ActivityOptions options = ActivityOptions.makeBasic();
+                startActivity(intent, options.toBundle());
+            }
         });
 
-        if (State.lastSingleAppDisplay <= 0) {
-            touchpadBtn.setVisibility(View.GONE);
-        } else {
-            touchpadBtn.setVisibility(View.VISIBLE);
-        }
         touchpadBtn.setOnClickListener(v -> {
-            TouchpadActivity.startTouchpad(getContext(), State.lastSingleAppDisplay, false);
+            if (State.lastSingleAppDisplay <= 0) {
+                showHelp();
+            } else {
+                TouchpadActivity.startTouchpad(getContext(), State.lastSingleAppDisplay, false);
+            }
         });
 
         inputDeviceBtn.setOnClickListener(v -> {
@@ -100,6 +104,17 @@ public class HomeFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void showHelp() {
+        new AlertDialog.Builder(requireContext())
+            .setTitle("还没有投屏应用")
+            .setMessage(
+                    "• USB3.0手机：连接屏幕后进入屏幕列表选择屏幕开始投屏单个应用\n\n" +
+                    "• USB2.0手机：点击Displaylink按钮，选择单应用投屏模式\n\n" +
+                    "• 无线方式：使用安卓自带的无线投屏，然后进入屏幕列表找到无线屏幕，进行单应用投屏")
+            .setPositiveButton("知道了", null)
+            .show();
     }
 
     private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
