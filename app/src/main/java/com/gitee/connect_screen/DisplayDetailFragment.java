@@ -27,6 +27,7 @@ import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+import com.gitee.connect_screen.job.TermuxDisablePhantomProcess;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
@@ -150,7 +151,7 @@ public class DisplayDetailFragment extends Fragment {
             if (displayId != Display.DEFAULT_DISPLAY) {
                 State.lastSingleAppDisplay = displayId;
             }
-            State.startNewJob(new BindAllExternalInputToDisplay(displayId));
+            State.startNewJob(new TermuxDisablePhantomProcess(displayId));
         });
         launchButton = view.findViewById(R.id.start_launcher_button);
         if (displayId == 0) {

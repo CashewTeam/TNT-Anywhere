@@ -77,9 +77,6 @@ public class SettingsFragment extends Fragment {
             setupDisableUsbAudioCheckbox();
             setupUseRealScreenOffCheckbox();
             setupStayOnWhilePluggedCheckbox();
-//             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-//                     "com.gitee.connect_screen/.TouchpadAccessibilityService");
-//             Settings.Secure.putString(getActivity().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
         } else {
             cbDisableScreenShareProtection.setVisibility(View.GONE);
             cbForceDesktop.setVisibility(View.GONE);
