@@ -32,4 +32,5 @@ public interface IWindowManager extends IInterface {
     void setDisplayImePolicy(int displayId, int imePolicy);
     int getImeDisplayId();
     void setRemoveContentMode(int displayId, int mode);
+    int getWindowingMode(int displayId);
 }

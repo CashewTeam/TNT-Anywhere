@@ -33,6 +33,7 @@ import com.gitee.connect_screen.dialog.RotationDialog;
 import com.gitee.connect_screen.dialog.ResolutionDialog;
 import com.gitee.connect_screen.dialog.BridgeDialog;
 import com.gitee.connect_screen.dialog.DpiDialog;
+import com.gitee.connect_screen.shizuku.WindowingMode;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";
@@ -372,6 +373,11 @@ public class DisplayDetailFragment extends Fragment {
                     statusText += String.format("\n安装方向: %d", displayInfo.installOrientation);
                 } catch(Throwable e) {
                     // ignore
+                }
+                try {
+                    String windowingMode = WindowingMode.getWindowingMode(displayId);
+                    statusText += String.format("\n窗口模式: %s", windowingMode);
+                } catch(Throwable e) {
                 }
             }
             shizukuStatusText.setText(statusText);
