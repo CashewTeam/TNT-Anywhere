@@ -39,7 +39,7 @@ public class BridgeActivity extends AppCompatActivity {
         return instance;
     }
 
-    private SurfaceView surfaceView;
+    private TextureView textureView;
 
     // 添加坐标调整方法
     private static float[] adjustTouchCoordinates(float x, float y, int rotation,
@@ -115,14 +115,14 @@ public class BridgeActivity extends AppCompatActivity {
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
 
-        // 创建并设置 SurfaceView
-        surfaceView = new SurfaceView(this);
+        // 创建并设置 TextureView 替代 SurfaceView
+        textureView = new TextureView(this);
         VirtualDisplayArgs args = getIntent().getParcelableExtra("virtualDisplayArgs");
         
-        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+        textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                Surface surface = holder.getSurface();
+            public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+                Surface surface = new Surface(surfaceTexture);
                 
                 if (State.bridgeVirtualDisplay == null) {
                     stopVirtualDisplay();
@@ -140,19 +140,23 @@ public class BridgeActivity extends AppCompatActivity {
             }
 
             @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
 
             @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
                 if (State.bridgeVirtualDisplay != null) {
                     ImageReader imageReader = ImageReader.newInstance(args.monitorWidth, args.monitorHeight, 1, 2);
                     State.bridgeVirtualDisplay.setSurface(imageReader.getSurface());
                 }
+                return true;
             }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {}
         });
         
-        // 添加触摸事件监听
-        surfaceView.setOnTouchListener((v, event) -> {
+        // 修改触摸事件监听器中的引用
+        textureView.setOnTouchListener((v, event) -> {
             if (State.bridgeVirtualDisplay != null) {
                 // 获取显示ID和旋转角度
                 Display virtualDisplay = State.bridgeVirtualDisplay.getDisplay();
@@ -166,7 +170,7 @@ public class BridgeActivity extends AppCompatActivity {
                 // 根据旋转角度调整坐标
                 float[] adjustedCoords = adjustTouchCoordinates(x, y, rotation, 
                     args.monitorWidth, args.monitorHeight, 
-                    surfaceView.getWidth(), surfaceView.getHeight());
+                    textureView.getWidth(), textureView.getHeight());
                 
                 // 设置调整后的坐标
                 event.setLocation(adjustedCoords[0], adjustedCoords[1]);
@@ -183,7 +187,7 @@ public class BridgeActivity extends AppCompatActivity {
             return true;
         });
         
-        setContentView(surfaceView);
+        setContentView(textureView);
     }
 
     @Override
