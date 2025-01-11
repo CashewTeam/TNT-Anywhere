@@ -1,6 +1,7 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Display;
@@ -45,6 +46,7 @@ public class SettingsFragment extends Fragment {
     private CheckBox cbDisableUsbAudio;
     private CheckBox cbUseRealScreenOff;
     private CheckBox cbStayOnWhilePlugged;
+    private View externalDeviceContainer;
 
     @Nullable
     @Override
@@ -63,6 +65,7 @@ public class SettingsFragment extends Fragment {
         cbDisableUsbAudio = view.findViewById(R.id.cbDisableUsbAudio);
         cbUseRealScreenOff = view.findViewById(R.id.cbUseRealScreenOff);
         cbStayOnWhilePlugged = view.findViewById(R.id.cbStayOnWhilePlugged);
+        externalDeviceContainer = view.findViewById(R.id.externalDeviceContainer);
         
         initializeDisplaySpinner();
         setupBindButton();
@@ -141,6 +144,8 @@ public class SettingsFragment extends Fragment {
             }
         }
 
+        externalDeviceContainer.setVisibility(externalDevices.isEmpty() ? View.GONE : View.VISIBLE);
+        
         rvExternalDevices.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvInternalDevices.setLayoutManager(new LinearLayoutManager(requireContext()));
         
@@ -162,6 +167,15 @@ public class SettingsFragment extends Fragment {
         boolean isForceDesktop = Settings.Global.getInt(requireContext().getContentResolver(),
                 "force_desktop_mode_on_external_displays", 0) == 1;
         cbForceDesktop.setChecked(isForceDesktop);
+        // 检查是否为华为手机
+        boolean isHuawei = Build.MANUFACTURER.toLowerCase().contains("huawei") ||
+                          Build.BRAND.toLowerCase().contains("huawei") ||
+                          Build.DEVICE.toLowerCase().contains("huawei");
+        
+        if (isHuawei) {
+            // 华为手机上禁用此选项,因为可能导致问题
+            cbForceDesktop.setVisibility(View.GONE);
+        }
 
         cbForceDesktop.setOnCheckedChangeListener((buttonView, isChecked) -> {
             try {
