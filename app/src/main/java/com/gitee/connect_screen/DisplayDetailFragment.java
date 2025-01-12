@@ -142,15 +142,7 @@ public class DisplayDetailFragment extends Fragment {
 
         Button x11Button = view.findViewById(R.id.start_x11_button);
         x11Button.setOnClickListener(v -> {
-            Context context = State.currentActivity.get();
-            Intent intent = new Intent(context, com.termux.x11.MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(displayId);
-            context.startActivity(intent, options.toBundle());
-            if (displayId != Display.DEFAULT_DISPLAY) {
-                State.lastSingleAppDisplay = displayId;
-            }
+            ServiceUtils.launchActivity(requireContext(), com.termux.x11.MainActivity.class, displayId);
             State.startNewJob(new TermuxDisablePhantomProcess(displayId));
         });
         launchButton = view.findViewById(R.id.start_launcher_button);

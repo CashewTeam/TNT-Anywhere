@@ -263,4 +263,69 @@ public class ServiceUtils {
         }
         return audioManager;
     }
+
+    public static void launchActivity(Context context, Class<?> activityClass, int targetDisplayId) {
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        Display display = displayManager.getDisplay(targetDisplayId);
+        if (display == null) {
+            return;
+        }
+        _launchActivity(context, activityClass, targetDisplayId);
+        if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            _launchActivity(context, activityClass, targetDisplayId);
+        }
+        if (targetDisplayId != Display.DEFAULT_DISPLAY) {
+            State.lastSingleAppDisplay = targetDisplayId;
+            State.breadcrumbManager.refreshCurrentFragment();
+        }
+    }
+
+    private static void _launchActivity(Context context, Class<?> activityClass, int targetDisplayId) {
+        if (ShizukuUtils.hasPermission()) {
+            launchActivityWithShizuku(context, activityClass, targetDisplayId);
+            return;
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                launchActivityNormally(context, activityClass, targetDisplayId);
+            } else {
+                if (State.getDisplaylinkVirtualDisplayId() == targetDisplayId || State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                    launchActivityWithShizuku(context, activityClass, targetDisplayId);
+                } else {
+                    launchActivityNormally(context, activityClass, targetDisplayId);
+                }
+            }
+        } catch (Exception e) {
+            launchActivityWithShizuku(context, activityClass, targetDisplayId);
+        }
+    }
+
+    private static void launchActivityNormally(Context context, Class<?> activityClass, int targetDisplayId) {
+        Intent launchIntent = new Intent(context, activityClass);
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        ActivityOptions options = ActivityOptions.makeBasic();
+        options.setLaunchDisplayId(targetDisplayId);
+        context.startActivity(launchIntent, options.toBundle());
+    }
+
+    private static void launchActivityWithShizuku(Context context, Class<?> activityClass, int targetDisplayId) {
+        try {
+            Intent intent = new Intent(context, activityClass);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(targetDisplayId);
+            ActivityOptionsHidden optionsHidden = Refine.unsafeCast(options);
+            optionsHidden.setLaunchWindowingMode(WINDOWING_MODE_FULLSCREEN);
+            int result = ServiceUtils.startActivity(intent, options);
+            if (result < 0) {
+                Toast.makeText(context, "使用 Shizuku 启动活动失败", Toast.LENGTH_SHORT).show();
+                State.log("使用 Shizuku 启动活动失败，返回值: " + result);
+            } else {
+                State.log("使用 Shizuku 启动活动成功: " + activityClass.getName());
+            }
+        } catch (Exception e) {
+            Toast.makeText(context, "使用 Shizuku 启动活动失败", Toast.LENGTH_SHORT).show();
+            State.log("使用 Shizuku 启动活动失败: " + e.getMessage());
+        }
+    }
 }

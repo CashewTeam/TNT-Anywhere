@@ -3,7 +3,9 @@ package com.gitee.connect_screen.job;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.PermissionManager;
 
+import android.content.ContentResolver;
 import android.provider.Settings;
+import android.view.Display;
 
 public class TermuxDisablePhantomProcess implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
@@ -19,14 +21,24 @@ public class TermuxDisablePhantomProcess implements Job {
         if (!acquireShizuku.acquired) {
             return;
         }
-        InputRouting.bindAllExternalInputToDisplay(displayId);
+        if (displayId != Display.DEFAULT_DISPLAY) {
+            InputRouting.bindAllExternalInputToDisplay(displayId);
+        }
+        disablePhantomProcsMonitoring();
+    }
+
+    private void disablePhantomProcsMonitoring() {
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
             try {
+                ContentResolver contentResolver = State.currentActivity.get().getContentResolver();
+                if (Settings.Global.getInt(contentResolver, "settings_enable_monitor_phantom_procs", 0) == 0) {
+                    return;
+                }
                 if (State.userService != null) {
                     State.userService.executeCommand("/system/bin/device_config set_sync_disabled_for_tests persistent");
                     State.userService.executeCommand("/system/bin/device_config put activity_manager max_phantom_processes 2147483647");
                 }
-                Settings.Global.putInt(State.currentActivity.get().getContentResolver(),
+                Settings.Global.putInt(contentResolver,
                         "settings_enable_monitor_phantom_procs", 0);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
