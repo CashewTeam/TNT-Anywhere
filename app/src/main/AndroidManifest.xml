@@ -138,6 +138,14 @@
                 <action android:name="com.gitee.connect_screen.EXIT_PURE_BLACK" />
             </intent-filter>
         </receiver>
+
+        <receiver 
+            android:name=".LaunchX11Receiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.gitee.connect_screen.LAUNCH_X11" />
+            </intent-filter>
+        </receiver>
         
     </application>
 
