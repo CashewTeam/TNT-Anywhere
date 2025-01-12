@@ -38,9 +38,12 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,15 +71,15 @@ public class TouchpadActivity extends AppCompatActivity {
     private float cursorX = 0;
     private float cursorY = 0;
     private WindowManager.LayoutParams cursorParams;
-    private static final long CLICK_TIME_THRESHOLD = 200; // 毫秒
     private float halfWidth;
     private float halfHeight;
-    private boolean isDarkMode = false;
     private GestureDetector gestureDetector;
     private IInputManager inputManager;
     private GestureState gestureState = new GestureState();
     private boolean isCursorLocked = false;
-    private Button toggleCursorButton;
+    private Spinner modeSpinner;
+    private static final int MODE_NORMAL = 0;
+    private static final int MODE_CURSOR_LOCKED = 1;
 
     private static class GestureState {
         List<MotionEvent> allMotionEvents = new ArrayList<>();
@@ -159,7 +162,8 @@ public class TouchpadActivity extends AppCompatActivity {
 
         // 4. 最后设内容视图
         setContentView(R.layout.activity_touchpad);
-        
+
+        modeSpinner = findViewById(R.id.modeSpinner);
         // 设置触控板区域的帮助文案
         touchpadArea = findViewById(R.id.touchpad_area);
         updateHelp();
@@ -310,17 +314,15 @@ public class TouchpadActivity extends AppCompatActivity {
             launchLastPackage(this, displayId);
         });
 
-        // 添加退出按钮的点击监听器
-        findViewById(R.id.exitButton).setOnClickListener(v -> {
-            finish(); // 结束当前Activity，返回上一级
-        });
-
-        toggleCursorButton = findViewById(R.id.helpButton);
-        toggleCursorButton.setOnClickListener(v -> toggleCursorLock());
+        setupModeSpinner();
 
         if (ShizukuUtils.hasPermission()) {
             setFocus(inputManager, displayId);
         }
+
+        // 获取切换模式按钮并设置点击监听器
+        Button switchModeButton = findViewById(R.id.switchModeButton);
+        switchModeButton.setOnClickListener(v -> switchMode());
     }
 
     public static void launchLastPackage(Context context, int displayId) {
@@ -333,13 +335,21 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void updateHelp() {
-        String singleFingerAction = "移动光标";
-        if (isCursorLocked) {
-            singleFingerAction = "刷抖音的上滑或者下滑";
+        String singleFingerAction;
+        int selectedMode = modeSpinner.getSelectedItemPosition();
+        
+        switch (selectedMode) {
+            case MODE_CURSOR_LOCKED:
+                singleFingerAction = "锁定光标模式";
+                break;
+            default:
+                singleFingerAction = "移动光标";
+                break;
         }
+        
         touchpadArea.setText(
             "请在此区域触控\n" +
-            "• 单指滑动 - " + singleFingerAction +"\n" +
+            "• 单指滑动 - " + singleFingerAction + "\n" +
             "• 单指轻触 - 点击\n" +
             "• 双指滑动 - 滚动页面\n" +
             "• 返回按钮 - 在目标屏幕上按返回\n" +
@@ -555,10 +565,34 @@ public class TouchpadActivity extends AppCompatActivity {
         );
     }
 
-    private void toggleCursorLock() {
-        isCursorLocked = !isCursorLocked;
-        toggleCursorButton.setText(isCursorLocked ? "解锁光标" : "锁定光标");
-        updateHelp();
+    private void setupModeSpinner() {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_spinner_item,
+            new String[]{"普通模式", "锁定光标"}
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        modeSpinner.setAdapter(adapter);
+        
+        modeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position) {
+                    case MODE_NORMAL:
+                        isCursorLocked = false;
+                        break;
+                    case MODE_CURSOR_LOCKED:
+                        isCursorLocked = true;
+                        break;
+                }
+                updateHelp();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // 不做任何处理
+            }
+        });
     }
 
     @Override
@@ -577,5 +611,12 @@ public class TouchpadActivity extends AppCompatActivity {
         if (cursorView != null) {
             cursorView.setVisibility(View.VISIBLE);
         }
+    }
+
+    // 添加切换模式的方法
+    private void switchMode() {
+        int currentMode = modeSpinner.getSelectedItemPosition();
+        int nextMode = (currentMode + 1) % modeSpinner.getCount();
+        modeSpinner.setSelection(nextMode);
     }
 }
