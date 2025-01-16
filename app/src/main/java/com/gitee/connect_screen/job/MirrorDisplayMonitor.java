@@ -63,22 +63,6 @@ public class MirrorDisplayMonitor {
         if (context == null) {
             return;
         }
-        
-        // 检查是否允许在该显示器上启动Activity
-        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-
-        
-        // 启动 MirrorActivity
-        android.content.Intent intent = new android.content.Intent(context, MirrorActivity.class);
-        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-        // 在目标显示器上启动 Activity
-        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
-        options.setLaunchDisplayId(display.getDisplayId());
-        if (!activityManager.isActivityStartAllowedOnDisplay(context, display.getDisplayId(), intent)) {
-            State.log("该显示器不允许启动Activity，displayId: " + display.getDisplayId());
-            return;
-        }
-        context.startActivity(intent, options.toBundle());
+        State.startNewJob(new ProjectViaMirror(display, new VirtualDisplayArgs("Mirror", display.getWidth(), display.getHeight(), display.getWidth(), 60, 160, false)));
     }
 }
