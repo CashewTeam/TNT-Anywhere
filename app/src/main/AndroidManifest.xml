@@ -46,7 +46,7 @@
         </activity>
         
         <activity
-            android:name=".MirrorActivity"
+            android:name=".MirrorSettingsActivity"
             android:launchMode="singleTask"
             android:exported="false"
             android:icon="@mipmap/ic_mirror"
