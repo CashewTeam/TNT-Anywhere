@@ -1,5 +1,7 @@
 package com.gitee.connect_screen.job;
 
+import android.app.ActivityManager;
+import android.app.ActivityTaskManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
@@ -15,6 +17,7 @@ import android.view.Display;
 
 import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.BridgePref;
+import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -60,5 +63,22 @@ public class MirrorDisplayMonitor {
         if (context == null) {
             return;
         }
+        
+        // 检查是否允许在该显示器上启动Activity
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+
+        
+        // 启动 MirrorActivity
+        android.content.Intent intent = new android.content.Intent(context, MirrorActivity.class);
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+        // 在目标显示器上启动 Activity
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+        options.setLaunchDisplayId(display.getDisplayId());
+        if (!activityManager.isActivityStartAllowedOnDisplay(context, display.getDisplayId(), intent)) {
+            State.log("该显示器不允许启动Activity，displayId: " + display.getDisplayId());
+            return;
+        }
+        context.startActivity(intent, options.toBundle());
     }
 }

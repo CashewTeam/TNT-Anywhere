@@ -94,6 +94,13 @@
             android:theme="@style/AppTheme" />
         
         <activity
+            android:name=".MirrorActivity"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/AppTheme" />
+        
+        <activity
             android:name=".PureBlackActivity"
             android:launchMode="singleTask"
             android:exported="false"
