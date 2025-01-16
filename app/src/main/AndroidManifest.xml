@@ -28,6 +28,19 @@
         android:theme="@style/AppTheme">
         
         <activity
+            android:name=".MirrorSettingsActivity"
+            android:launchMode="singleTask"
+            android:exported="true"
+            android:icon="@mipmap/ic_mirror"
+            android:label="屏易连"
+            android:theme="@style/AppTheme" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <activity
             android:name=".MainActivity"
             android:icon="@mipmap/ic_extend"
             android:exported="true"
@@ -43,19 +56,6 @@
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter"/>
-        </activity>
-        
-        <activity
-            android:name=".MirrorSettingsActivity"
-            android:launchMode="singleTask"
-            android:exported="true"
-            android:icon="@mipmap/ic_mirror"
-            android:label="屏易连"
-            android:theme="@style/AppTheme" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <activity

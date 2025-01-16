@@ -30,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.gitee.connect_screen.job.AcquireShizuku;
 import com.gitee.connect_screen.job.DisplayMonitor;
 import com.gitee.connect_screen.job.InputDeviceMonitor;
+import com.gitee.connect_screen.job.MirrorDisplayMonitor;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
 import com.gitee.connect_screen.job.DisplaylinkMonitor;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
@@ -139,9 +140,7 @@ public class MirrorSettingsActivity extends AppCompatActivity implements IMainAc
 
         // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        DisplayMonitor.init(displayManager);
-        InputManager inputManager = (InputManager)getSystemService(Context.INPUT_SERVICE);
-        InputDeviceMonitor.init(inputManager);
+        MirrorDisplayMonitor.init(displayManager);
         DisplaylinkMonitor.init(this);
     }
 
