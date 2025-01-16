@@ -29,6 +29,7 @@
         
         <activity
             android:name=".MainActivity"
+            android:icon="@mipmap/ic_extend"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
@@ -42,6 +43,19 @@
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter"/>
+        </activity>
+        
+        <activity
+            android:name=".MirrorActivity"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:icon="@mipmap/ic_mirror"
+            android:label="屏易连"
+            android:theme="@style/AppTheme" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
 
         <activity
