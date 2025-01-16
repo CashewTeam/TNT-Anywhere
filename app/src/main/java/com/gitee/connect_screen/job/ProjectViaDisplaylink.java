@@ -2,6 +2,7 @@ package com.gitee.connect_screen.job;
 
 import static android.content.Context.MODE_PRIVATE;
 
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -324,7 +325,7 @@ public class ProjectViaDisplaylink implements Job {
         }
         int displayId = virtualDisplay.getDisplay().getDisplayId();
         if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
-            MainActivity mainActivity = State.currentActivity.get();
+            Activity mainActivity = State.currentActivity.get();
             String lastPackageName = null;
             if (mainActivity != null) {
                 SharedPreferences appPreferences = mainActivity.getSharedPreferences("app_preferences", MODE_PRIVATE);

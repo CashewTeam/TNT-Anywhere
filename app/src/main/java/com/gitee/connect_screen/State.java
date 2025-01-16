@@ -24,7 +24,7 @@ import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
-    public static WeakReference<MainActivity> currentActivity;
+    public static WeakReference<Activity> currentActivity;
     public static BreadcrumbManager breadcrumbManager;
     public static boolean hasService = false;
     private static Job currentJob;
@@ -128,7 +128,8 @@ public class State {
         logs.add(message);
         Log.i("ConnectScreen", message);
         if (currentActivity != null && currentActivity.get() != null) {
-            currentActivity.get().updateLogs();
+            IMainActivity  mainActivity = (IMainActivity) currentActivity.get();
+            mainActivity.updateLogs();
         }
     }
 

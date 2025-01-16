@@ -1,5 +1,6 @@
 package com.gitee.connect_screen.job;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -68,7 +69,7 @@ public class DisplaylinkMonitor {
             return;
         }
         if (State.displaylinkDeviceName != null) {
-            MainActivity mainActivity = State.currentActivity.get();
+            Activity mainActivity = State.currentActivity.get();
             if (mainActivity != null) {
                 UsbManager usbManager = (UsbManager) mainActivity.getSystemService(Context.USB_SERVICE);
                 if (usbManager.getDeviceList().get(State.displaylinkDeviceName) == null) {

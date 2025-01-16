@@ -48,7 +48,7 @@
         <activity
             android:name=".MirrorSettingsActivity"
             android:launchMode="singleTask"
-            android:exported="false"
+            android:exported="true"
             android:icon="@mipmap/ic_mirror"
             android:label="屏易连"
             android:theme="@style/AppTheme" >

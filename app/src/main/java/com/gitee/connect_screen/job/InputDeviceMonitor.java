@@ -1,5 +1,6 @@
 package com.gitee.connect_screen.job;
 
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.InputManager;
@@ -22,7 +23,7 @@ public class InputDeviceMonitor {
             @Override
             public void onInputDeviceAdded(int i) {
                 if (State.lastSingleAppDisplay > 0) {
-                    MainActivity mainActivity = State.currentActivity.get();
+                    Activity mainActivity = State.currentActivity.get();
                     if (mainActivity != null) {
                         InputManager inputManager = (InputManager) mainActivity.getSystemService(Context.INPUT_SERVICE);
                         DisplayManager displayManager = (DisplayManager) mainActivity.getSystemService(Context.DISPLAY_SERVICE);
