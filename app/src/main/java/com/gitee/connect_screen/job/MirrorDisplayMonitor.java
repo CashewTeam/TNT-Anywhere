@@ -63,6 +63,6 @@ public class MirrorDisplayMonitor {
         if (context == null) {
             return;
         }
-        State.startNewJob(new ProjectViaMirror(display, new VirtualDisplayArgs("Mirror", display.getWidth(), display.getHeight(), display.getWidth(), 60, 160, false)));
+        State.startNewJob(new ProjectViaMirror(display, new VirtualDisplayArgs("Mirror", display.getHeight(), display.getWidth(), display.getHeight(), 60, 160, false)));
     }
 }

@@ -33,11 +33,8 @@ public class ProjectViaMirror implements Job {
         }
         if (requestMediaProjectionPermission(State.currentActivity.get())) {
             Context context = State.currentActivity.get();
-
             // 检查是否允许在该显示器上启动Activity
             ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-
-
             // 启动 MirrorActivity
             android.content.Intent intent = new android.content.Intent(context, MirrorActivity.class);
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);

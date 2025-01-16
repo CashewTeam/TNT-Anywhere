@@ -158,4 +158,11 @@ public class State {
         }
         return bridgeVirtualDisplay.getDisplay().getDisplayId();
     }
+
+    public static int getMirrorVirtualDisplayId() {
+        if (mirrorVirtualDisplay == null) {
+            return -1;
+        }
+        return mirrorVirtualDisplay.getDisplay().getDisplayId();
+    }
 }

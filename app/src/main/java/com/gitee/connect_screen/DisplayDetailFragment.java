@@ -239,6 +239,15 @@ public class DisplayDetailFragment extends Fragment {
                     BridgeActivity.getInstance().finish();
                 }
             });
+        } else if (displayId == State.getMirrorVirtualDisplayId() || displayId == State.mirrorDisplayId) {
+            bridgeButton.setVisibility(View.VISIBLE);
+            bridgeButton.setText("退出镜像");
+            bridgeButton.setOnClickListener(v -> {
+                MirrorActivity.stopVirtualDisplay();
+                if (MirrorActivity.getInstance() != null) {
+                    MirrorActivity.getInstance().finish();
+                }
+            });
         } else if (displayId == State.getDisplaylinkVirtualDisplayId()) {
             bridgeButton.setVisibility(View.VISIBLE);
             bridgeButton.setText("退出 Displaylink 投屏");
