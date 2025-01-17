@@ -17,12 +17,10 @@ import dev.rikka.tools.refine.Refine;
 public class ProjectViaMirror implements Job {
     private static int TYPE_WIFI = 3;
     private final Display mirrorDisplay;
-    private final VirtualDisplayArgs virtualDisplayArgs;
     private boolean mediaProjectionRequested;
 
-    public ProjectViaMirror(Display mirrorDisplay, VirtualDisplayArgs virtualDisplayArgs) {
+    public ProjectViaMirror(Display mirrorDisplay) {
         this.mirrorDisplay = mirrorDisplay;
-        this.virtualDisplayArgs = virtualDisplayArgs;
     }
 
     @Override
@@ -38,7 +36,6 @@ public class ProjectViaMirror implements Job {
             // 启动 MirrorActivity
             android.content.Intent intent = new android.content.Intent(context, MirrorActivity.class);
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra("virtualDisplayArgs", virtualDisplayArgs);
             android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
             options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
             if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {

@@ -71,26 +71,7 @@ public class CreateVirtualDisplay {
     private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly) {
         int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
         IDisplayManager displayManager = ServiceUtils.getDisplayManager();
-        int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
-                | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
-        //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
-        if (ownContentOnly) {
-            flags |= VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
-        }
-        if (virtualDisplayArgs.rotatesWithContent) {
-            flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
-        }
-        if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
-            flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
-                    | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
-                    | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
-                    | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
-            if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
-                flags |= VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
-                //    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
-                //            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
-            }
-        }
+        int flags = getFlags(virtualDisplayArgs, ownContentOnly);
         VirtualDisplayConfig config = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             config = new VirtualDisplayConfig.Builder(
@@ -153,6 +134,30 @@ public class CreateVirtualDisplay {
         }
         State.mediaProjection = null;
         return virtualDisplay;
+    }
+
+    private static int getFlags(VirtualDisplayArgs virtualDisplayArgs, boolean ownContentOnly) {
+        int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
+                | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
+        //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
+        if (ownContentOnly) {
+            flags |= VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
+        }
+        if (virtualDisplayArgs.rotatesWithContent) {
+            flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
+        }
+        if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {
+            flags |= VIRTUAL_DISPLAY_FLAG_TRUSTED
+                    | VIRTUAL_DISPLAY_FLAG_OWN_DISPLAY_GROUP
+                    | VIRTUAL_DISPLAY_FLAG_ALWAYS_UNLOCKED
+                    | VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED;
+            if (Build.VERSION.SDK_INT >= AndroidVersions.API_34_ANDROID_14) {
+                flags |= VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
+                //    flags |= VIRTUAL_DISPLAY_FLAG_OWN_FOCUS
+                //            | VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP;
+            }
+        }
+        return flags;
     }
 
     public static class VirtualDisplayCallback extends IVirtualDisplayCallback.Stub {
