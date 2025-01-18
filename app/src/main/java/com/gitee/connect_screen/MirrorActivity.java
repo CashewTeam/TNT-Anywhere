@@ -157,7 +157,7 @@ public class MirrorActivity extends AppCompatActivity {
         private FloatBuffer vertexBuffer;
 
         private EGLDisplay eglDisplay;
-        private android.opengl.EGLSurface eglSurface;
+        private android.opengl.EGLSurface eglOutputSurface;
         private android.opengl.EGLContext eglContext;
         private android.opengl.EGLConfig eglConfig;
 
@@ -189,11 +189,11 @@ public class MirrorActivity extends AppCompatActivity {
                 GLES20.glDisableVertexAttribArray(positionHandle);
                 GLES20.glDisableVertexAttribArray(textureCoordHandle);
 
-                EGL14.eglSwapBuffers(eglDisplay, eglSurface);
+                EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
             });
         }
 
-        public void onSurfaceCreated(Surface surface, int width, int height) {
+        public void onSurfaceCreated(Surface outputSurface, int width, int height) {
             // 创建专用的渲染线程
             renderThread = new HandlerThread("GLRenderThread");
             renderThread.start();
@@ -235,10 +235,10 @@ public class MirrorActivity extends AppCompatActivity {
                 eglContext = EGL14.eglCreateContext(eglDisplay, eglConfig, EGL14.EGL_NO_CONTEXT, contextAttribs, 0);
 
                 // 创建 EGL Surface
-                eglSurface = EGL14.eglCreateWindowSurface(eglDisplay, eglConfig, surface, null, 0);
+                eglOutputSurface = EGL14.eglCreateWindowSurface(eglDisplay, eglConfig, outputSurface, null, 0);
                 
                 // 设置当前 EGL 环境
-                EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
+                EGL14.eglMakeCurrent(eglDisplay, eglOutputSurface, eglOutputSurface, eglContext);
                 GLES20.glViewport(0, 0, width, height);
 
 
@@ -295,7 +295,7 @@ public class MirrorActivity extends AppCompatActivity {
                     State.mirrorVirtualDisplay = State.mediaProjection.createVirtualDisplay("Mirror",
                             width, height, 160,
                             DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                            inputSurface, null, null);
+                            inputSurface, null, renderHandler);
                     State.mediaProjection = null;
                 } else if (State.mirrorVirtualDisplay != null) {
                     State.mirrorVirtualDisplay.setSurface(inputSurface);
@@ -312,24 +312,39 @@ public class MirrorActivity extends AppCompatActivity {
 
         // 添加清理方法
         public void release() {
+            renderHandler.post(() -> {
+                // 清理OpenGL资源
+                if (mProgram != 0) {
+                    GLES20.glDeleteProgram(mProgram);
+                    mProgram = 0;
+                }
+                if (inputTextureId != -1) {
+                    int[] textures = new int[]{inputTextureId};
+                    GLES20.glDeleteTextures(1, textures, 0);
+                    inputTextureId = -1;
+                }
+                
+                // 原有的清理代码
+                if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
+                    EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
+                    if (eglOutputSurface != EGL14.EGL_NO_SURFACE) {
+                        EGL14.eglDestroySurface(eglDisplay, eglOutputSurface);
+                    }
+                    if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                        EGL14.eglDestroyContext(eglDisplay, eglContext);
+                    }
+                    EGL14.eglTerminate(eglDisplay);
+                }
+                eglDisplay = EGL14.EGL_NO_DISPLAY;
+                eglContext = EGL14.EGL_NO_CONTEXT;
+                eglOutputSurface = EGL14.EGL_NO_SURFACE;
+            });
+            
             // 清理线程
             if (renderThread != null) {
                 renderThread.quitSafely();
                 renderThread = null;
             }
-            if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
-                EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
-                if (eglSurface != EGL14.EGL_NO_SURFACE) {
-                    EGL14.eglDestroySurface(eglDisplay, eglSurface);
-                }
-                if (eglContext != EGL14.EGL_NO_CONTEXT) {
-                    EGL14.eglDestroyContext(eglDisplay, eglContext);
-                }
-                EGL14.eglTerminate(eglDisplay);
-            }
-            eglDisplay = EGL14.EGL_NO_DISPLAY;
-            eglContext = EGL14.EGL_NO_CONTEXT;
-            eglSurface = EGL14.EGL_NO_SURFACE;
         }
     }
 }
