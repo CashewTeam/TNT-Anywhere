@@ -277,7 +277,7 @@ public class ProjectViaDisplaylink implements Job {
             displaylinkState.stopVirtualDisplay();
             return true;
         }
-        if (State.mediaProjection != null) {
+        if (State.getMediaProjection() != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
             return true;
         }

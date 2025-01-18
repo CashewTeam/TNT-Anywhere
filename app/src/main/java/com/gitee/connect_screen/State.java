@@ -30,7 +30,8 @@ public class State {
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
-    public static MediaProjection mediaProjection;
+    private static MediaProjection mediaProjection;
+    public static MediaProjection mediaProjectionInUse;
     public static int lastSingleAppDisplay;
     public static String displaylinkDeviceName;
     public static volatile IUserService userService;
@@ -143,6 +144,19 @@ public class State {
             }
         } catch (Exception e) {
             // ignore
+        }
+    }
+
+    public static MediaProjection getMediaProjection() {
+        return mediaProjection;
+    }
+
+    public static void setMediaProjection(MediaProjection newMediaProjection) {
+        if (newMediaProjection == null) {
+            mediaProjection = null;
+        } else {
+            mediaProjection = newMediaProjection;
+            mediaProjectionInUse = newMediaProjection;
         }
     }
 

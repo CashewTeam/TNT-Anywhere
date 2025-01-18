@@ -148,7 +148,7 @@ public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailable
             surfaceTexture.setOnFrameAvailableListener(this);
             this.surface = new Surface(surfaceTexture);
             displaylinkState.createdVirtualDisplay(
-                State.mediaProjection.createVirtualDisplay("DisplayLink",
+                State.getMediaProjection().createVirtualDisplay("DisplayLink",
                     targetWidth, height, dpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null)

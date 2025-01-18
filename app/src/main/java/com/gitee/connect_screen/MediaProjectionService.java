@@ -48,8 +48,8 @@ public class MediaProjectionService extends Service {
         if (intent != null && intent.hasExtra("data")) {
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             Intent data = intent.getParcelableExtra("data");
-            State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
-            State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+            State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
+            State.getMediaProjection().registerCallback(new MediaProjection.Callback() {
                 @Override
                 public void onStop() {
                     super.onStop();

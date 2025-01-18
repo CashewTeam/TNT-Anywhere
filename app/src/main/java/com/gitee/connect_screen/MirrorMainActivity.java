@@ -175,8 +175,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 State.log("用户授予了投屏权限");
                 if (State.hasService) {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-                    State.mediaProjection = mediaProjectionManager.getMediaProjection(RESULT_OK, data);
-                    State.mediaProjection.registerCallback(new MediaProjection.Callback() {
+                    State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
+                    State.getMediaProjection().registerCallback(new MediaProjection.Callback() {
                         @Override
                         public void onStop() {
                             super.onStop();

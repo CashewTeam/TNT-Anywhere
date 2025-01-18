@@ -43,6 +43,22 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         exitBtn.setOnClickListener(v -> {
+            if (State.mediaProjectionInUse != null) {
+                State.mediaProjectionInUse.stop();
+            }
+            // 停止 MediaProjectionService
+            Context context = requireContext();
+            context.stopService(new Intent(context, MediaProjectionService.class));
+            
+            // 停止 FloatingButtonService
+            context.stopService(new Intent(context, FloatingButtonService.class));
+            
+            // 停止 TouchpadAccessibilityService
+            Intent touchpadIntent = new Intent(context, TouchpadAccessibilityService.class);
+            touchpadIntent.setAction(TouchpadAccessibilityService.class.getName());
+            context.stopService(touchpadIntent);
+            
+            // 原有的清理代码
             if (MirrorActivity.getInstance() != null) {
                 MirrorActivity.getInstance().finish();
             }
@@ -51,9 +67,11 @@ public class MirrorHomeFragment extends Fragment {
             }
             if (State.bridgeVirtualDisplay != null) {
                 State.bridgeVirtualDisplay.release();
+                State.bridgeVirtualDisplay = null;  
             }
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
+                State.mirrorVirtualDisplay = null;
             }
             State.displaylinkState.stopVirtualDisplay();
             State.displaylinkState.destroy();

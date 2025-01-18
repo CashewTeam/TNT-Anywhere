@@ -52,7 +52,7 @@ public class ProjectViaMirror implements Job {
         if (State.mirrorVirtualDisplay != null) {
             return true;
         }
-        if (State.mediaProjection != null) {
+        if (State.getMediaProjection() != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
             return true;
         }
@@ -64,7 +64,7 @@ public class ProjectViaMirror implements Job {
                         if (State.mirrorVirtualDisplay != null) {
                             return;
                         }
-                        if (State.mediaProjection != null) {
+                        if (State.getMediaProjection() != null) {
                             return;
                         }
                         mediaProjectionRequested = false;

@@ -47,7 +47,7 @@ public class CreateVirtualDisplay {
                 try {
                     return createByShizuku(virtualDisplayArgs, surface, true);
                 } catch(RuntimeException e2) {
-                    if (State.mediaProjection != null) {
+                    if (State.getMediaProjection() != null) {
                         return createByMediaProjection(virtualDisplayArgs, surface);
                     }
                     throw e2;
@@ -60,11 +60,11 @@ public class CreateVirtualDisplay {
 
     private static VirtualDisplay createByMediaProjection(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
         int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
-        VirtualDisplay virtualDisplay = State.mediaProjection.createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
+        VirtualDisplay virtualDisplay = State.getMediaProjection().createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
                 virtualDisplayWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                 surface, null, null);
-        State.mediaProjection = null;
+        State.setMediaProjection(null);
         return virtualDisplay;
     }
 
@@ -93,8 +93,8 @@ public class CreateVirtualDisplay {
         }
         IVirtualDisplayCallback callback = new VirtualDisplayCallback();
         IMediaProjection projection = null;
-        if (State.mediaProjection != null) {
-            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.mediaProjection);
+        if (State.getMediaProjection() != null) {
+            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.getMediaProjection());
             projection = mediaProjectionHidden.getProjection();
         }
         int displayId = -1;
@@ -132,7 +132,7 @@ public class CreateVirtualDisplay {
                 throw new RuntimeException(e);
             }
         }
-        State.mediaProjection = null;
+        State.setMediaProjection(null);
         return virtualDisplay;
     }
 
