@@ -435,6 +435,7 @@ public class MirrorActivity extends AppCompatActivity {
             surfaceTexture.updateTexImage();
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
             renderFrame(portraitMvpMatrix);
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
         }
 
         protected void renderFrame(float[] mvpMatrix) {
@@ -462,8 +463,6 @@ public class MirrorActivity extends AppCompatActivity {
             // 解绑
             GLES20.glDisableVertexAttribArray(positionHandle);
             GLES20.glDisableVertexAttribArray(textureCoordHandle);
-
-            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
         }
 
         private int loadShader(int type, String shaderCode) {
@@ -533,10 +532,11 @@ public class MirrorActivity extends AppCompatActivity {
 
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
             surfaceTexture.updateTexImage();
+            renderFrame(landscapeMvpMatrix);
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
             if (frameCounter == 0) {
                 adjustLandscapeMvpMatrix();
             }
-            renderFrame(landscapeMvpMatrix);
             frameCounter = (frameCounter + 1) % 300;
         }
 
