@@ -2,11 +2,16 @@ package com.gitee.connect_screen;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -16,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
+import android.view.Window;
+import android.view.WindowManager;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -28,7 +35,10 @@ public class MirrorActivity extends AppCompatActivity {
     private int inputTextureId = -1;
     private SurfaceTexture inputSurfaceTexture = null;
     private Surface inputSurface = null;
-    
+
+    private float[] mvpMatrix;
+
+
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
             return;
@@ -47,27 +57,27 @@ public class MirrorActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         instance = this;
 
-//        if (getSupportActionBar() != null) {
-//            getSupportActionBar().hide();
-//        }
-//
-//        getWindow().setFlags(
-//                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-//
-//        Window window = getWindow();
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            window.setDecorFitsSystemWindows(false);
-//        }
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            WindowManager.LayoutParams layoutParams = window.getAttributes();
-//            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-//            window.setAttributes(layoutParams);
-//        }
-//
-//        window.setStatusBarColor(Color.TRANSPARENT);
-//        window.setNavigationBarColor(Color.TRANSPARENT);
+       if (getSupportActionBar() != null) {
+           getSupportActionBar().hide();
+       }
+
+       getWindow().setFlags(
+               WindowManager.LayoutParams.FLAG_FULLSCREEN,
+               WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+       Window window = getWindow();
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+           window.setDecorFitsSystemWindows(false);
+       }
+
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+           WindowManager.LayoutParams layoutParams = window.getAttributes();
+           layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+           window.setAttributes(layoutParams);
+       }
+
+       window.setStatusBarColor(Color.TRANSPARENT);
+       window.setNavigationBarColor(Color.TRANSPARENT);
 
         surfaceView = new SurfaceView(this);
         MyGLRenderer renderer = new MyGLRenderer();
@@ -128,17 +138,18 @@ public class MirrorActivity extends AppCompatActivity {
             1.0f, 0.0f   // 右上
         };
 
-        // 更新顶点着色器，添加纹理坐标支持
+        // 简化的顶点着色器代码
         private final String vertexShaderCode =
+            "uniform mat4 uMVPMatrix;\n" +
             "attribute vec4 vPosition;\n" +
             "attribute vec2 aTextureCoord;\n" +
             "varying vec2 vTextureCoord;\n" +
             "void main() {\n" +
-            "  gl_Position = vPosition;\n" +
+            "  gl_Position = uMVPMatrix * vPosition;\n" +
             "  vTextureCoord = aTextureCoord;\n" +
             "}";
 
-        // 更新片段着色器，添加外部纹理支持
+        // 简化的片段着色器代码
         private final String fragmentShaderCode =
             "#extension GL_OES_EGL_image_external : require\n" +
             "precision mediump float;\n" +
@@ -161,6 +172,8 @@ public class MirrorActivity extends AppCompatActivity {
         private android.opengl.EGLContext eglContext;
         private android.opengl.EGLConfig eglConfig;
 
+        private int mvpMatrixHandle;
+
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
             renderHandler.post(() -> {
@@ -168,6 +181,9 @@ public class MirrorActivity extends AppCompatActivity {
 
                 GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
                 GLES20.glUseProgram(mProgram);
+
+                // 设置MVP矩阵
+                GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
 
                 // 绑定顶点坐标
                 GLES20.glEnableVertexAttribArray(positionHandle);
@@ -194,6 +210,32 @@ public class MirrorActivity extends AppCompatActivity {
         }
 
         public void onSurfaceCreated(Surface outputSurface, int width, int height) {
+            // 获取手机主屏的完整显示信息
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            Display display = displayManager.getDisplay(0);
+            display.getRealMetrics(displayMetrics); // 使用getRealMetrics获取包含系统装饰(如状态栏、导航栏)的真实尺寸
+            int defaultDisplayWidth = displayMetrics.widthPixels;  // 获取实际屏幕宽度
+            int defaultDisplayHeight = displayMetrics.heightPixels; // 获取实际屏幕高度
+            if (defaultDisplayHeight < defaultDisplayWidth) {
+                // 如果主屏幕是横屏,交换宽高
+                int temp = defaultDisplayWidth;
+                defaultDisplayWidth = defaultDisplayHeight;
+                defaultDisplayHeight = temp;
+            }
+
+            mvpMatrix = new float[16];
+
+            // 设置基础矩阵
+            android.opengl.Matrix.setIdentityM(mvpMatrix, 0);
+            // 设置缩放
+            android.opengl.Matrix.scaleM(mvpMatrix, 0, 1, 1, 1.0f);
+            android.opengl.Matrix.setRotateM(mvpMatrix, 0, 90, 0, 0, 1.0f);
+
+            // 记录屏幕尺寸信息到日志
+            android.util.Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
+            android.util.Log.d("MirrorActivity", "外接显示器尺寸: " + width + " x " + height);
+
             // 创建专用的渲染线程
             renderThread = new HandlerThread("GLRenderThread");
             renderThread.start();
@@ -285,7 +327,7 @@ public class MirrorActivity extends AppCompatActivity {
 
                 // 创建SurfaceTexture和Surface
                 inputSurfaceTexture = new SurfaceTexture(inputTextureId);
-                inputSurfaceTexture.setDefaultBufferSize(width, height);
+                inputSurfaceTexture.setDefaultBufferSize(height, width);
                 inputSurfaceTexture.setOnFrameAvailableListener(this);
                 inputSurface = new Surface(inputSurfaceTexture);
 
@@ -293,13 +335,16 @@ public class MirrorActivity extends AppCompatActivity {
                 if (State.mirrorVirtualDisplay == null && State.mediaProjection != null) {
                     stopVirtualDisplay();
                     State.mirrorVirtualDisplay = State.mediaProjection.createVirtualDisplay("Mirror",
-                            width, height, 160,
+                            height, width, 160,
                             DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                             inputSurface, null, renderHandler);
                     State.mediaProjection = null;
                 } else if (State.mirrorVirtualDisplay != null) {
                     State.mirrorVirtualDisplay.setSurface(inputSurface);
                 }
+
+                // 在创建着色器程序后获取MVP矩阵句柄
+                mvpMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
             });
         }
 
