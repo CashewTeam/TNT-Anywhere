@@ -32,10 +32,14 @@ public class MirrorHomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_mirror_home, container, false);
 
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
+        Button settingsBtn = view.findViewById(R.id.settingsBtn);
 
         aboutBtn.setOnClickListener(v -> {
-            // 处理关于按钮的点击事件
             State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
+        });
+
+        settingsBtn.setOnClickListener(v -> {
+            State.breadcrumbManager.pushBreadcrumb("设置", () -> new MirrorSettingsFragment());
         });
 
         return view;
