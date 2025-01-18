@@ -490,6 +490,9 @@ public class MirrorActivity extends AppCompatActivity {
         private int frameCounter = 0;
         private int[] fbo = new int[1];
         private int[] tempTexture = new int[1];
+        private boolean hasSymmetricBlackBar = false;
+        private int topBottomBlackBarSize = 0;
+        private int leftRightBlackBarSize = 0;
 
         public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height) {
             super(inputTextureId, eglDisplay, eglOutputSurface);
@@ -541,6 +544,17 @@ public class MirrorActivity extends AppCompatActivity {
         }
 
         private void adjustLandscapeMvpMatrix() {
+            detectBlackBar();
+            if (hasSymmetricBlackBar) {
+                
+            } else {
+                for(int i = 0; i < identityMvpMatrix.length; i++) {
+                    landscapeMvpMatrix[i] = identityMvpMatrix[i];
+                }
+            }
+        }
+
+        private void detectBlackBar() {
             // 切换到FBO
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0]);
 
@@ -616,15 +630,25 @@ public class MirrorActivity extends AppCompatActivity {
             }
 
             // 判断是否存在对称的黑边
-            boolean hasSymmetricHorizontalBars = Math.abs(leftBlackWidth - rightBlackWidth) <= 2
+            boolean hasSymmetricHorizontalBars = Math.abs(leftBlackWidth - rightBlackWidth) <= 1
                 && leftBlackWidth > 0 && rightBlackWidth > 0;
-            boolean hasSymmetricVerticalBars = Math.abs(topBlackHeight - bottomBlackHeight) <= 2
+            boolean hasSymmetricVerticalBars = Math.abs(topBlackHeight - bottomBlackHeight) <= 1
                 && topBlackHeight > 0 && bottomBlackHeight > 0;
 
             android.util.Log.d("MirrorActivity", String.format(
                 "左黑边: %d, 右黑边: %d, 上黑边: %d, 下黑边: %d, 水平对称: %b, 垂直对称: %b",
                 leftBlackWidth, rightBlackWidth, topBlackHeight, bottomBlackHeight,
                 hasSymmetricHorizontalBars, hasSymmetricVerticalBars));
+
+            if (hasSymmetricHorizontalBars && hasSymmetricVerticalBars) {
+                hasSymmetricBlackBar = true;
+                leftRightBlackBarSize = Math.min(leftBlackWidth, rightBlackWidth);
+                topBottomBlackBarSize = Math.min(topBlackHeight, bottomBlackHeight);
+            } else {
+                hasSymmetricBlackBar = false;
+                leftRightBlackBarSize = 0;
+                topBottomBlackBarSize = 0;
+            }
 
             // 切回默认帧缓冲
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
