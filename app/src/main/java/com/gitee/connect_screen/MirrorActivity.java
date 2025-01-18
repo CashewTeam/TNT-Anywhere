@@ -3,6 +3,7 @@ package com.gitee.connect_screen;
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
@@ -11,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
@@ -49,6 +51,9 @@ public class MirrorActivity extends AppCompatActivity {
     private SurfaceTexture landscapeInputSurfaceTexture = null;
     private Surface landscapeInputSurface = null;
     private PortraitRenderer landscapeRenderer;
+
+    private boolean autoRotate;
+    private boolean autoScale;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -100,6 +105,11 @@ public class MirrorActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         instance = this;
 
+        // 读取设置
+        SharedPreferences preferences = getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
+        autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
+
        if (getSupportActionBar() != null) {
            getSupportActionBar().hide();
        }
@@ -124,9 +134,11 @@ public class MirrorActivity extends AppCompatActivity {
 
         surfaceView = new SurfaceView(this);
         
-        // 注册屏幕方向变化监听
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        displayManager.registerDisplayListener(new OrientationChangeCallback(), renderHandler);
+        // 只在autoRotate为true时注册屏幕方向变化监听
+        if (autoRotate) {
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            displayManager.registerDisplayListener(new OrientationChangeCallback(), renderHandler);
+        }
         
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -203,7 +215,7 @@ public class MirrorActivity extends AppCompatActivity {
                     landscapeInputTextureId = textures[1];
 
                     portraitRenderer = new PortraitRenderer(portraitInputTextureId, eglDisplay, eglOutputSurface);
-                    landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface, surfaceView.getWidth(), surfaceView.getHeight());
+                    landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface, surfaceView.getWidth(), surfaceView.getHeight(), autoScale);
 
                     GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
@@ -237,10 +249,12 @@ public class MirrorActivity extends AppCompatActivity {
                         DisplayMetrics metrics = new DisplayMetrics();
                         display.getRealMetrics(metrics);
                         boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                        if (!autoRotate) {
+                            isLandscape = true;
+                        }
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                        
                         State.mirrorVirtualDisplay = State.mediaProjection.createVirtualDisplay("Mirror",
-                                surfaceView.getHeight(), surfaceView.getWidth(), 160,
+                                isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(), isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                                 targetSurface, null, renderHandler);
                         State.mediaProjection = null;
@@ -325,15 +339,17 @@ public class MirrorActivity extends AppCompatActivity {
         });
         
         setContentView(surfaceView);
-        State.log("MirrorActivity created");
+        State.log("MirrorActivity 启动，autoRotate=" + autoRotate + ", autoScale=" + autoScale);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 注销屏幕方向变化监听
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        displayManager.unregisterDisplayListener(new OrientationChangeCallback());
+        // 只在autoRotate为true时注销屏幕方向变化监听
+        if (autoRotate) {
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            displayManager.unregisterDisplayListener(new OrientationChangeCallback());
+        }
         State.log("MirrorActivity destroyed");
     }
 
@@ -485,6 +501,7 @@ public class MirrorActivity extends AppCompatActivity {
     private static class LandscapeRenderer extends PortraitRenderer {
         private final int width;
         private final int height;
+        private final boolean autoScale;
         private final float[] landscapeMvpMatrix;
         private final float[] identityMvpMatrix;
         private int frameCounter = 0;
@@ -494,10 +511,11 @@ public class MirrorActivity extends AppCompatActivity {
         private int topBottomBlackBarSize = 0;
         private int leftRightBlackBarSize = 0;
 
-        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height) {
+        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale) {
             super(inputTextureId, eglDisplay, eglOutputSurface);
             this.width = width;
             this.height = height;
+            this.autoScale = autoScale;
 
             landscapeMvpMatrix = new float[16];
             android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
@@ -543,28 +561,34 @@ public class MirrorActivity extends AppCompatActivity {
         }
 
         private void adjustLandscapeMvpMatrix() {
-            detectBlackBar();
-            if (hasSymmetricBlackBar) {
-                // 计算缩放比例
-                float scaleX = (float)(width) / (width - 2 * leftRightBlackBarSize);
-                float scaleY = (float)(height) / (height - 2 * topBottomBlackBarSize);
-                float scale = Math.min(scaleX, scaleY);
-                
-                // 重置矩阵
-                android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
-                
-                // 应用缩放
-                android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, scale, scale, 1.0f);
-                
-                android.util.Log.d("MirrorActivity", String.format(
-                    "应用缩放变换: scaleX=%.2f, scaleY=%.2f, 最终scale=%.2f",
-                    scaleX, scaleY, scale
-                ));
-            } else {
-                // 如果没有对称黑边，使用单位矩阵
-                for(int i = 0; i < identityMvpMatrix.length; i++) {
-                    landscapeMvpMatrix[i] = identityMvpMatrix[i];
+            // 只在autoScale为true时检测和调整黑边
+            if (autoScale) {
+                detectBlackBar();
+                if (hasSymmetricBlackBar) {
+                    // 计算缩放比例
+                    float scaleX = (float)(width) / (width - 2 * leftRightBlackBarSize);
+                    float scaleY = (float)(height) / (height - 2 * topBottomBlackBarSize);
+                    float scale = Math.min(scaleX, scaleY);
+                    
+                    // 重置矩阵
+                    android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
+                    
+                    // 应用缩放
+                    android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, scale, scale, 1.0f);
+                    
+                    android.util.Log.d("MirrorActivity", String.format(
+                        "应用缩放变换: scaleX=%.2f, scaleY=%.2f, 最终scale=%.2f",
+                        scaleX, scaleY, scale
+                    ));
+                } else {
+                    // 如果没有对称黑边，使用单位矩阵
+                    for(int i = 0; i < identityMvpMatrix.length; i++) {
+                        landscapeMvpMatrix[i] = identityMvpMatrix[i];
+                    }
                 }
+            } else {
+                // 如果autoScale为false，使用单位矩阵
+                System.arraycopy(identityMvpMatrix, 0, landscapeMvpMatrix, 0, identityMvpMatrix.length);
             }
         }
 

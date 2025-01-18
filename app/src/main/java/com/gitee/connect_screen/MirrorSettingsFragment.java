@@ -14,9 +14,9 @@ import androidx.fragment.app.Fragment;
 
 public class MirrorSettingsFragment extends Fragment {
     private SharedPreferences preferences;
-    private static final String PREF_NAME = "mirror_settings";
-    private static final String KEY_AUTO_ROTATE = "auto_rotate";
-    private static final String KEY_AUTO_SCALE = "auto_scale";
+    public static final String PREF_NAME = "mirror_settings";
+    public static final String KEY_AUTO_ROTATE = "auto_rotate";
+    public static final String KEY_AUTO_SCALE = "auto_scale";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
