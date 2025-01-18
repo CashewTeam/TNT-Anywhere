@@ -25,7 +25,7 @@ import com.gitee.connect_screen.shizuku.ShizukuUtils;
 import java.util.concurrent.TimeUnit;
 
 public class MirrorHomeFragment extends Fragment {
-
+    
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -33,6 +33,10 @@ public class MirrorHomeFragment extends Fragment {
 
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
         Button settingsBtn = view.findViewById(R.id.settingsBtn);
+        TextView mirrorStatus = view.findViewById(R.id.mirrorStatus);
+        if (mirrorStatus != null) {
+            mirrorStatus.setText(State.mirrorStatus);
+        }
 
         aboutBtn.setOnClickListener(v -> {
             State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
