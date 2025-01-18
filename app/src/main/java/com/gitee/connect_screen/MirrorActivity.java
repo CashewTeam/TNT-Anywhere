@@ -35,6 +35,8 @@ public class MirrorActivity extends AppCompatActivity {
     private int inputTextureId = -1;
     private SurfaceTexture inputSurfaceTexture = null;
     private Surface inputSurface = null;
+    private Handler renderHandler;
+    private HandlerThread renderThread;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -82,6 +84,28 @@ public class MirrorActivity extends AppCompatActivity {
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
+                // 获取手机主屏的完整显示信息
+                DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+                DisplayMetrics displayMetrics = new DisplayMetrics();
+                Display display = displayManager.getDisplay(0);
+                display.getRealMetrics(displayMetrics); // 使用getRealMetrics获取包含系统装饰(如状态栏、导航栏)的真实尺寸
+                int defaultDisplayWidth = displayMetrics.widthPixels;  // 获取实际屏幕宽度
+                int defaultDisplayHeight = displayMetrics.heightPixels; // 获取实际屏幕高度
+                if (defaultDisplayHeight < defaultDisplayWidth) {
+                    // 如果主屏幕是横屏,交换宽高
+                    int temp = defaultDisplayWidth;
+                    defaultDisplayWidth = defaultDisplayHeight;
+                    defaultDisplayHeight = temp;
+                }
+
+                // 记录屏幕尺寸信息到日志
+                android.util.Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
+                android.util.Log.d("MirrorActivity", "外接显示器尺寸: " + surfaceView.getWidth() + " x " + surfaceView.getHeight());
+
+                // 创建专用的渲染线程
+                renderThread = new HandlerThread("GLRenderThread");
+                renderThread.start();
+                renderHandler = new Handler(renderThread.getLooper());
                 renderer.onSurfaceCreated(holder.getSurface(), 
                     surfaceView.getWidth(), surfaceView.getHeight());
             }
@@ -116,9 +140,7 @@ public class MirrorActivity extends AppCompatActivity {
     }
 
     private class MyGLRenderer implements SurfaceTexture.OnFrameAvailableListener {
-        private Handler renderHandler;
-        private HandlerThread renderThread;
-        
+
         // 更新顶点坐标为全屏四边形
         private final float[] vertexCoords = {
             -1.0f, -1.0f, 0.0f,  // 左下
@@ -171,7 +193,7 @@ public class MirrorActivity extends AppCompatActivity {
 
         private int mvpMatrixHandle;
         private float[] mvpMatrix;
-        
+
         public MyGLRenderer() {
             mvpMatrix = new float[16];
 
@@ -216,28 +238,7 @@ public class MirrorActivity extends AppCompatActivity {
         }
 
         public void onSurfaceCreated(Surface outputSurface, int width, int height) {
-            // 获取手机主屏的完整显示信息
-            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-            DisplayMetrics displayMetrics = new DisplayMetrics();
-            Display display = displayManager.getDisplay(0);
-            display.getRealMetrics(displayMetrics); // 使用getRealMetrics获取包含系统装饰(如状态栏、导航栏)的真实尺寸
-            int defaultDisplayWidth = displayMetrics.widthPixels;  // 获取实际屏幕宽度
-            int defaultDisplayHeight = displayMetrics.heightPixels; // 获取实际屏幕高度
-            if (defaultDisplayHeight < defaultDisplayWidth) {
-                // 如果主屏幕是横屏,交换宽高
-                int temp = defaultDisplayWidth;
-                defaultDisplayWidth = defaultDisplayHeight;
-                defaultDisplayHeight = temp;
-            }
 
-            // 记录屏幕尺寸信息到日志
-            android.util.Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
-            android.util.Log.d("MirrorActivity", "外接显示器尺寸: " + width + " x " + height);
-
-            // 创建专用的渲染线程
-            renderThread = new HandlerThread("GLRenderThread");
-            renderThread.start();
-            renderHandler = new Handler(renderThread.getLooper());
             
             // 在渲染线程中初始化OpenGL
             renderHandler.post(() -> {
@@ -309,6 +310,7 @@ public class MirrorActivity extends AppCompatActivity {
                 positionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
                 textureCoordHandle = GLES20.glGetAttribLocation(mProgram, "aTextureCoord");
                 textureHandle = GLES20.glGetUniformLocation(mProgram, "uTexture");
+                mvpMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
 
                 // 创建输入纹理
                 int[] textures = new int[1];
@@ -340,9 +342,6 @@ public class MirrorActivity extends AppCompatActivity {
                 } else if (State.mirrorVirtualDisplay != null) {
                     State.mirrorVirtualDisplay.setSurface(inputSurface);
                 }
-
-                // 在创建着色器程序后获取MVP矩阵句柄
-                mvpMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
             });
         }
 
