@@ -16,6 +16,7 @@ import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
@@ -47,12 +48,7 @@ public class MirrorHomeFragment extends Fragment {
         TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
 
-        Button shizukuBtn = view.findViewById(R.id.shizukuBtn);
-        Button aboutBtn = view.findViewById(R.id.aboutBtn);
-
-        shizukuBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("Shizuku", () -> new ShizukuFragment());
-        });
+        AppCompatImageButton aboutBtn = view.findViewById(R.id.aboutBtn);
 
         aboutBtn.setOnClickListener(v -> {
             // 处理关于按钮的点击事件
