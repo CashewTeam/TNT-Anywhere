@@ -34,8 +34,6 @@ public class DisplaylinkFragment extends Fragment {
     private static final String ARG_DEVICE = "device";
     private UsbDevice device;
     private DisplaylinkState displaylinkState;
-    private View sourceScreenSizeLayout;
-    private View aspectRatioExplanation;
     private CheckBox rotatesWithContentCheckbox;
     private CheckBox skipMediaProjectionPermissionCheckbox;
     private CheckBox autoOpenLastAppCheckbox;
@@ -79,48 +77,7 @@ public class DisplaylinkFragment extends Fragment {
         EditText monitorWidthInput = view.findViewById(R.id.displayWidthInput);
         EditText monitorHeightInput = view.findViewById(R.id.monitorHeightInput);
 
-        sourceScreenSizeLayout = view.findViewById(R.id.sourceScreenSizeLayout);
-        EditText sourceWidthInput = view.findViewById(R.id.sourceWidthInput);
-        EditText sourceHeightInput = view.findViewById(R.id.sourceHeightInput);
-        aspectRatioExplanation = view.findViewById(R.id.aspectRatioExplanation);
         frameRateLayout = view.findViewById(R.id.frameRateLayout);
-
-        Spinner projectionModeSpinner = view.findViewById(R.id.projectionModeSpinner);
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
-            getContext(),
-            android.R.layout.simple_spinner_item,
-            Arrays.stream(ProjectionMode.values())
-                  .map(mode -> {
-                      switch(mode) {
-                          case MIRROR: return "普通镜像";
-                          case MIRROR_AND_CROP_16_9: return "16:9裁剪";
-                          case SINGLE_APP: return "投屏单个应用（需要 shizuku 授权）";
-                          default: return mode.name();
-                      }
-                  })
-                  .toArray(String[]::new)
-        );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        projectionModeSpinner.setAdapter(spinnerAdapter);
-        
-        if (DisplaylinkPref.projectionMode != null) {
-            projectionModeSpinner.setSelection(DisplaylinkPref.projectionMode.ordinal());
-        }
-
-
-        projectionModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                DisplaylinkPref.projectionMode = ProjectionMode.values()[position];
-                updateView();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Do nothing
-            }
-        });
 
         // 获取主屏幕尺寸
         WindowManager windowManager = (WindowManager) requireActivity().getSystemService(Context.WINDOW_SERVICE);
@@ -128,16 +85,12 @@ public class DisplaylinkFragment extends Fragment {
         Display defaultDisplay = windowManager.getDefaultDisplay();
         DisplayMetrics defaultDisplayMetrics = new DisplayMetrics();
         defaultDisplay.getRealMetrics(defaultDisplayMetrics);
-        sourceWidthInput.setText(String.valueOf(defaultDisplayMetrics.widthPixels));
-        sourceHeightInput.setText(String.valueOf(defaultDisplayMetrics.heightPixels));
 
         // 监听输入框变化并更新 usbState
         TextWatcher dimensionsWatcher = new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
                 try {
-                    DisplaylinkPref.sourceWidth = Integer.parseInt(sourceWidthInput.getText().toString());
-                    DisplaylinkPref.sourceHeight = Integer.parseInt(sourceHeightInput.getText().toString());
                     DisplaylinkPref.monitorWidth = Integer.parseInt(monitorWidthInput.getText().toString());
                     DisplaylinkPref.monitorHeight = Integer.parseInt(monitorHeightInput.getText().toString());
                     updateView();
@@ -149,8 +102,6 @@ public class DisplaylinkFragment extends Fragment {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
         };
         
-        sourceWidthInput.addTextChangedListener(dimensionsWatcher);
-        sourceHeightInput.addTextChangedListener(dimensionsWatcher);
         monitorWidthInput.addTextChangedListener(dimensionsWatcher);
         monitorHeightInput.addTextChangedListener(dimensionsWatcher);
 
@@ -236,7 +187,7 @@ public class DisplaylinkFragment extends Fragment {
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
             DisplaylinkPref.save(getContext());
-            State.startNewJob(new ProjectViaDisplaylink(device, displaylinkState.virtualDisplayArgs));
+            State.startNewJob(new ProjectViaDisplaylink(device, displaylinkState.virtualDisplayArgs, ProjectionMode.SINGLE_APP));
         });
 
         rotatesWithContentCheckbox.setChecked(DisplaylinkPref.rotatesWithContent);
@@ -324,16 +275,11 @@ public class DisplaylinkFragment extends Fragment {
     private void updateView() {
         if (displaylinkState == null) return;
         
-        // 更新16:9模式相关视图
-        boolean is16_9Mode = DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9;
-        sourceScreenSizeLayout.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
-        
         // 更新单应用模式相关视图
-        boolean isSingleAppMode = DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP;
-        rotatesWithContentCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
-        skipMediaProjectionPermissionCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
-        autoOpenLastAppCheckbox.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
-        launchAppButton.setVisibility(isSingleAppMode ? View.VISIBLE : View.GONE);
+        rotatesWithContentCheckbox.setVisibility(View.VISIBLE);
+        skipMediaProjectionPermissionCheckbox.setVisibility(View.VISIBLE);
+        autoOpenLastAppCheckbox.setVisibility(View.VISIBLE);
+        launchAppButton.setVisibility(View.VISIBLE);
         if (displaylinkState.getVirtualDisplay() == null) {
             launchAppButton.setVisibility(View.GONE);
         }
@@ -341,54 +287,15 @@ public class DisplaylinkFragment extends Fragment {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE && ShizukuUtils.hasShizukuStarted()) {
             frameRateLayout.setVisibility(View.VISIBLE);
         }
-
-            // 如果在16:9模式下，更新裁剪说明
-        if (is16_9Mode) {
-            try {
-                int sourceWidth = DisplaylinkPref.sourceWidth;
-                int sourceHeight = DisplaylinkPref.sourceHeight;
-                int monitorWidth = DisplaylinkPref.monitorWidth;
-                int monitorHeight = DisplaylinkPref.monitorHeight;
-                int maxSourceDim = Math.max(sourceWidth, sourceHeight);
-                int minSourceDim = Math.min(sourceWidth, sourceHeight);
-                if (minSourceDim == 0) {
-                    throw new NumberFormatException();
-                }
-                int virtualDisplayWidth = monitorHeight * maxSourceDim / minSourceDim;
-
-                StringBuilder explanation = new StringBuilder();
-                explanation.append("16:9裁剪计算过程：\n");
-                explanation.append("1. 主屏尺寸：").append(sourceWidth).append("x").append(sourceHeight).append("\n");
-                explanation.append("2. 显示器尺寸：").append(monitorWidth).append("x").append(monitorHeight).append("\n");
-                explanation.append("3. 虚拟屏的高度固定为显示器的高度：").append(monitorHeight).append("\n");
-                explanation.append("4. 根据高度计算虚拟屏的宽度：").append(virtualDisplayWidth).append("\n");
-                explanation.append("5. 左右会裁切的画面宽度：").append((virtualDisplayWidth - monitorWidth) / 2).append("\n");
-
-                displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs(
-                    "DisplayLink", 
-                    DisplaylinkPref.monitorWidth, 
-                    DisplaylinkPref.monitorHeight,
-                    is16_9Mode ? virtualDisplayWidth : DisplaylinkPref.monitorWidth,
-                    DisplaylinkPref.refreshRate,
-                    DisplaylinkPref.dpi,
-                    DisplaylinkPref.rotatesWithContent
-                );
-                ((TextView) aspectRatioExplanation).setText(explanation.toString());
-            } catch (NumberFormatException e) {
-                // 忽略无效输入
-            }
-        } else {
-            displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs(
-                "DisplayLink", 
-                DisplaylinkPref.monitorWidth, 
-                DisplaylinkPref.monitorHeight, 
-                DisplaylinkPref.monitorWidth, 
-                DisplaylinkPref.refreshRate,
-                DisplaylinkPref.dpi,
-                DisplaylinkPref.rotatesWithContent
-            );
-        }
-        aspectRatioExplanation.setVisibility(is16_9Mode ? View.VISIBLE : View.GONE);
+        displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs(
+            "DisplayLink",
+            DisplaylinkPref.monitorWidth,
+            DisplaylinkPref.monitorHeight,
+            DisplaylinkPref.monitorWidth,
+            DisplaylinkPref.refreshRate,
+            DisplaylinkPref.dpi,
+            DisplaylinkPref.rotatesWithContent
+        );
     }
 
 }

@@ -62,15 +62,6 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
                 rowDatas = new byte[monitorWidth * pixelStride];
             }
             ByteBuffer buffer = plane.getBuffer();
-            if (DisplaylinkPref.projectionMode == ProjectionMode.MIRROR_AND_CROP_16_9) {
-                for (int row = 0; row < monitorHeight; row++) {
-                    buffer.position(row * rowStride + startX);
-                    buffer.get(rowDatas, 0, monitorWidth * pixelStride);
-                    buffer.position(row * rowStride);
-                    buffer.put(rowDatas);
-                }
-                buffer.rewind();
-            }
             int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
             if (resultCode < 0) {
                 Log.e("displaylink", "postFrame failed, resultCode: " + resultCode);

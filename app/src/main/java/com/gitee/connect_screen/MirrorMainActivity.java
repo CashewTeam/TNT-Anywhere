@@ -130,7 +130,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 State.log("USB 设备已连接: " + device.getDeviceName());
                 DisplaylinkPref.load(this);
                 State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
-                State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
+                State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
             }
         }
 

@@ -75,6 +75,7 @@ public class MirrorHomeFragment extends Fragment {
             }
             State.displaylinkState.stopVirtualDisplay();
             State.displaylinkState.destroy();
+            State.mirrorStatus = null;
             State.currentActivity.get().finish();
         });
 

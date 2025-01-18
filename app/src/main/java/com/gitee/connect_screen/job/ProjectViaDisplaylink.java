@@ -44,10 +44,12 @@ public class ProjectViaDisplaylink implements Job {
     private final String deviceName;
     private boolean userServiceRequested = false;
     private final VirtualDisplayArgs virtualDisplayArgs;
+    private final ProjectionMode projectionMode;
 
-    public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
+    public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs, ProjectionMode projectionMode) {
         this.deviceName = device.getDeviceName();
         this.virtualDisplayArgs = virtualDisplayArgs;
+        this.projectionMode = projectionMode;
     }
 
     public void start() throws YieldException {
@@ -73,7 +75,7 @@ public class ProjectViaDisplaylink implements Job {
             }
         }
 
-        if (DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
+        if (projectionMode == ProjectionMode.SINGLE_APP) {
             if (!ShizukuUtils.hasShizukuStarted()) {
                 State.log("需要安装 Shizuku");
                 return;
@@ -324,7 +326,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         int displayId = virtualDisplay.getDisplay().getDisplayId();
-        if (ShizukuUtils.hasPermission() && DisplaylinkPref.projectionMode == ProjectionMode.SINGLE_APP) {
+        if (ShizukuUtils.hasPermission() && projectionMode == ProjectionMode.SINGLE_APP) {
             Activity mainActivity = State.currentActivity.get();
             String lastPackageName = null;
             if (mainActivity != null) {

@@ -13,6 +13,7 @@ import android.view.Display;
 import android.view.InputDevice;
 
 import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 
 public class DisplaylinkMonitor {
@@ -42,7 +43,7 @@ public class DisplaylinkMonitor {
                     State.log("USB 设备已连接: " + device.getDeviceName());
                     if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
                         State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
+                        State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
                     } else {
                         State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
                     }
