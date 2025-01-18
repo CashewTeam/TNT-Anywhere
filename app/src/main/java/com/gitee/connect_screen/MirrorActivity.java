@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.opengl.EGLSurface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -154,12 +155,12 @@ public class MirrorActivity extends AppCompatActivity {
                     EGL14.eglMakeCurrent(eglDisplay, eglOutputSurface, eglOutputSurface, eglContext);
                     GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
 
-                    renderer = new MyGLRenderer();
-
                     // 创建输入纹理
                     int[] textures = new int[1];
                     GLES20.glGenTextures(1, textures, 0);
                     inputTextureId = textures[0];
+                    renderer = new MyGLRenderer(inputTextureId, eglDisplay, eglOutputSurface);
+
                     GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, inputTextureId);
 
                     // 设置纹理参数
@@ -174,6 +175,7 @@ public class MirrorActivity extends AppCompatActivity {
                     inputSurfaceTexture.setDefaultBufferSize(surfaceView.getHeight(), surfaceView.getWidth());
                     inputSurfaceTexture.setOnFrameAvailableListener(renderer);
                     inputSurface = new Surface(inputSurfaceTexture);
+
 
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.mediaProjection != null) {
@@ -249,7 +251,7 @@ public class MirrorActivity extends AppCompatActivity {
         State.log("MirrorActivity destroyed");
     }
 
-    private class MyGLRenderer implements SurfaceTexture.OnFrameAvailableListener {
+    private static class MyGLRenderer implements SurfaceTexture.OnFrameAvailableListener {
 
         // 更新顶点坐标为全屏四边形
         private final float[] vertexCoords = {
@@ -298,8 +300,14 @@ public class MirrorActivity extends AppCompatActivity {
 
         private int mvpMatrixHandle;
         private float[] mvpMatrix;
+        private final int inputTextureId;
+        private final EGLDisplay eglDisplay;
+        private final EGLSurface eglOutputSurface;
 
-        public MyGLRenderer() {
+        public MyGLRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
+            this.inputTextureId = inputTextureId;
+            this.eglDisplay = eglDisplay;
+            this.eglOutputSurface = eglOutputSurface;
             mvpMatrix = new float[16];
 
             // 设置基础矩阵
