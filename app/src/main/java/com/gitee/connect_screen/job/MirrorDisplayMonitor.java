@@ -27,13 +27,13 @@ import java.util.List;
 public class MirrorDisplayMonitor {
     private static boolean registered = false;
     public static void init(DisplayManager displayManager) {
+        for (Display display : displayManager.getDisplays()) {
+            handleNewDisplay(display);
+        }
         if (registered) {
             return;
         }
         registered = true;
-        for (Display display : displayManager.getDisplays()) {
-            handleNewDisplay(display);
-        }
         displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
             @Override
             public void onDisplayAdded(int displayId) {

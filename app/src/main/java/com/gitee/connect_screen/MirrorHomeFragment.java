@@ -31,19 +31,33 @@ public class MirrorHomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mirror_home, container, false);
 
-        Button aboutBtn = view.findViewById(R.id.aboutBtn);
         Button settingsBtn = view.findViewById(R.id.settingsBtn);
+        Button exitBtn = view.findViewById(R.id.exitBtn);
         TextView mirrorStatus = view.findViewById(R.id.mirrorStatus);
         if (mirrorStatus != null) {
             mirrorStatus.setText(State.mirrorStatus);
         }
 
-        aboutBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
-        });
-
         settingsBtn.setOnClickListener(v -> {
             State.breadcrumbManager.pushBreadcrumb("设置", () -> new MirrorSettingsFragment());
+        });
+
+        exitBtn.setOnClickListener(v -> {
+            if (MirrorActivity.getInstance() != null) {
+                MirrorActivity.getInstance().finish();
+            }
+            if (BridgeActivity.getInstance() != null) {
+                BridgeActivity.getInstance().finish();
+            }
+            if (State.bridgeVirtualDisplay != null) {
+                State.bridgeVirtualDisplay.release();
+            }
+            if (State.mirrorVirtualDisplay != null) {
+                State.mirrorVirtualDisplay.release();
+            }
+            State.displaylinkState.stopVirtualDisplay();
+            State.displaylinkState.destroy();
+            State.currentActivity.get().finish();
         });
 
         return view;

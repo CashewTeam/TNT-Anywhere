@@ -25,11 +25,11 @@
             android:layout_weight="1" />
 
         <Button
-            android:id="@+id/aboutBtn"
+            android:id="@+id/exitBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
-            android:text="关于" />
+            android:text="退出" />
     </LinearLayout>
 
     <TextView

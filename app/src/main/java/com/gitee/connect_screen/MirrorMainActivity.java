@@ -151,6 +151,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
         State.resumeJob();
+        if (MirrorActivity.getInstance() == null) {
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            MirrorDisplayMonitor.init(displayManager);
+        }
     }
 
     @Override
