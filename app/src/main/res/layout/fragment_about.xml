@@ -9,7 +9,7 @@
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="软件使用方法请查看短视频平台介绍或访问 connect-screen.com"
+        android:text="软件使用方法请查看短视频平台介绍或访问 connect-screen.com 。屏连入口是扩展投屏模式，屏易连入口是镜像投屏模式。"
         android:textSize="16sp"
         android:textColor="@color/black"
         android:layout_marginBottom="16dp"/>

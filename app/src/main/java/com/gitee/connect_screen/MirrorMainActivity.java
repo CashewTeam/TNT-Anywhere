@@ -42,7 +42,7 @@ import java.lang.ref.WeakReference;
 import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.Shizuku;
 
-public class MirrorSettingsActivity extends AppCompatActivity implements IMainActivity {
+public class MirrorMainActivity extends AppCompatActivity implements IMainActivity {
     public static final String ACTION_USB_PERMISSION = "com.gitee.connect_screen.USB_PERMISSION";
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
 

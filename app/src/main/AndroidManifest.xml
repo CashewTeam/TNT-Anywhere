@@ -28,7 +28,7 @@
         android:theme="@style/AppTheme">
         
         <activity
-            android:name=".MirrorSettingsActivity"
+            android:name=".MirrorMainActivity"
             android:launchMode="singleTask"
             android:exported="true"
             android:icon="@mipmap/ic_mirror"

@@ -31,24 +31,7 @@ public class MirrorHomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mirror_home, container, false);
 
-        TextView shizukuStatusPrefix = view.findViewById(R.id.shizukuStatusPrefix);
-        shizukuStatusPrefix.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
-        shizukuStatusPrefix.setPaintFlags(shizukuStatusPrefix.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        shizukuStatusPrefix.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("什么是 Shizuku?", () -> new ShizukuFragment());
-        });
-
-        // 添加授权按钮
-        Button shizukuPermissionBtn = view.findViewById(R.id.shizukuPermissionBtn);
-        shizukuPermissionBtn.setOnClickListener(v -> {
-            State.startNewJob(new AcquireShizuku());
-        });
-
-        // 更新Shizuku状态
-        TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
-        updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
-
-        AppCompatImageButton aboutBtn = view.findViewById(R.id.aboutBtn);
+        Button aboutBtn = view.findViewById(R.id.aboutBtn);
 
         aboutBtn.setOnClickListener(v -> {
             // 处理关于按钮的点击事件
