@@ -33,9 +33,9 @@ public class MirrorActivity extends AppCompatActivity {
     
     private static MirrorActivity instance;
     private SurfaceView surfaceView;
-    private int inputTextureId = -1;
-    private SurfaceTexture inputSurfaceTexture = null;
-    private Surface inputSurface = null;
+    private int portraitInputTextureId = -1;
+    private SurfaceTexture portraitInputSurfaceTexture = null;
+    private Surface portraitInputSurface = null;
     private Handler renderHandler;
     private HandlerThread renderThread;
 
@@ -43,7 +43,7 @@ public class MirrorActivity extends AppCompatActivity {
     private android.opengl.EGLSurface eglOutputSurface;
     private android.opengl.EGLContext eglContext;
     private android.opengl.EGLConfig eglConfig;
-    private MyGLRenderer renderer;
+    private MyGLRenderer portraitRenderer;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -158,10 +158,15 @@ public class MirrorActivity extends AppCompatActivity {
                     // 创建输入纹理
                     int[] textures = new int[1];
                     GLES20.glGenTextures(1, textures, 0);
-                    inputTextureId = textures[0];
-                    renderer = new MyGLRenderer(inputTextureId, eglDisplay, eglOutputSurface);
+                    portraitInputTextureId = textures[0];
+                    float[] portraitMvpMatrix = new float[16];
+                    android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
+                    android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
+                    android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 90, 0, 0, 1.0f);
 
-                    GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, inputTextureId);
+                    portraitRenderer = new MyGLRenderer(portraitInputTextureId, portraitMvpMatrix, eglDisplay, eglOutputSurface);
+
+                    GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
                     // 设置纹理参数
                     GLES20.glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
@@ -171,10 +176,10 @@ public class MirrorActivity extends AppCompatActivity {
 
 
                     // 创建SurfaceTexture和Surface
-                    inputSurfaceTexture = new SurfaceTexture(inputTextureId);
-                    inputSurfaceTexture.setDefaultBufferSize(surfaceView.getHeight(), surfaceView.getWidth());
-                    inputSurfaceTexture.setOnFrameAvailableListener(renderer);
-                    inputSurface = new Surface(inputSurfaceTexture);
+                    portraitInputSurfaceTexture = new SurfaceTexture(portraitInputTextureId);
+                    portraitInputSurfaceTexture.setDefaultBufferSize(surfaceView.getHeight(), surfaceView.getWidth());
+                    portraitInputSurfaceTexture.setOnFrameAvailableListener(portraitRenderer);
+                    portraitInputSurface = new Surface(portraitInputSurfaceTexture);
 
 
                     // 使用inputSurface创建虚拟显示器
@@ -183,10 +188,10 @@ public class MirrorActivity extends AppCompatActivity {
                         State.mirrorVirtualDisplay = State.mediaProjection.createVirtualDisplay("Mirror",
                                 surfaceView.getHeight(), surfaceView.getWidth(), 160,
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                                inputSurface, null, renderHandler);
+                                portraitInputSurface, null, renderHandler);
                         State.mediaProjection = null;
                     } else if (State.mirrorVirtualDisplay != null) {
-                        State.mirrorVirtualDisplay.setSurface(inputSurface);
+                        State.mirrorVirtualDisplay.setSurface(portraitInputSurface);
                     }
                 });
             }
@@ -200,13 +205,13 @@ public class MirrorActivity extends AppCompatActivity {
             public void surfaceDestroyed(SurfaceHolder holder) {
                 renderHandler.post(() -> {
                     // 清理OpenGL资源
-                    if (renderer != null) {
-                        renderer.release();
+                    if (portraitRenderer != null) {
+                        portraitRenderer.release();
                     }
-                    if (inputTextureId != -1) {
-                        int[] textures = new int[]{inputTextureId};
+                    if (portraitInputTextureId != -1) {
+                        int[] textures = new int[]{portraitInputTextureId};
                         GLES20.glDeleteTextures(1, textures, 0);
-                        inputTextureId = -1;
+                        portraitInputTextureId = -1;
                     }
 
                     // 原有的清理代码
@@ -230,13 +235,13 @@ public class MirrorActivity extends AppCompatActivity {
                     renderThread.quitSafely();
                     renderThread = null;
                 }
-                if (inputSurface != null) {
-                    inputSurface.release();
-                    inputSurface = null;
+                if (portraitInputSurface != null) {
+                    portraitInputSurface.release();
+                    portraitInputSurface = null;
                 }
-                if (inputSurfaceTexture != null) {
-                    inputSurfaceTexture.release();
-                    inputSurfaceTexture = null;
+                if (portraitInputSurfaceTexture != null) {
+                    portraitInputSurfaceTexture.release();
+                    portraitInputSurfaceTexture = null;
                 }
             }
         });
@@ -304,17 +309,11 @@ public class MirrorActivity extends AppCompatActivity {
         private final EGLDisplay eglDisplay;
         private final EGLSurface eglOutputSurface;
 
-        public MyGLRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
+        public MyGLRenderer(int inputTextureId, float[] mvpMatrix, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
             this.inputTextureId = inputTextureId;
             this.eglDisplay = eglDisplay;
             this.eglOutputSurface = eglOutputSurface;
-            mvpMatrix = new float[16];
-
-            // 设置基础矩阵
-            android.opengl.Matrix.setIdentityM(mvpMatrix, 0);
-            // 设置缩放
-            android.opengl.Matrix.scaleM(mvpMatrix, 0, 1, 1, 1.0f);
-            android.opengl.Matrix.setRotateM(mvpMatrix, 0, 90, 0, 0, 1.0f);
+            this.mvpMatrix = mvpMatrix;
 
             // 初始化顶点缓冲
             ByteBuffer bb = ByteBuffer.allocateDirect(vertexCoords.length * 4);
