@@ -8,7 +8,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.Surface;
-import android.view.TextureView;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -23,7 +24,7 @@ import java.nio.FloatBuffer;
 public class MirrorActivity extends AppCompatActivity {
     
     private static MirrorActivity instance;
-    private TextureView textureView;
+    private SurfaceView surfaceView;
     private int inputTextureId = -1;
     private SurfaceTexture inputSurfaceTexture = null;
     private Surface inputSurface = null;
@@ -68,19 +69,23 @@ public class MirrorActivity extends AppCompatActivity {
 //        window.setStatusBarColor(Color.TRANSPARENT);
 //        window.setNavigationBarColor(Color.TRANSPARENT);
 
-        textureView = new TextureView(this);
+        surfaceView = new SurfaceView(this);
         MyGLRenderer renderer = new MyGLRenderer();
-        textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+        
+        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-                renderer.onSurfaceCreated(new Surface(surfaceTexture), width, height);
+            public void surfaceCreated(SurfaceHolder holder) {
+                renderer.onSurfaceCreated(holder.getSurface(), 
+                    surfaceView.getWidth(), surfaceView.getHeight());
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                // 可以在这里处理尺寸变化
+            }
 
             @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            public void surfaceDestroyed(SurfaceHolder holder) {
                 renderer.release();
                 if (inputSurface != null) {
                     inputSurface.release();
@@ -90,15 +95,10 @@ public class MirrorActivity extends AppCompatActivity {
                     inputSurfaceTexture.release();
                     inputSurfaceTexture = null;
                 }
-                return true;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
             }
         });
-        // 直接将 TextureView 设置为 content view
-        setContentView(textureView);
+        
+        setContentView(surfaceView);
         State.log("MirrorActivity created");
     }
 
