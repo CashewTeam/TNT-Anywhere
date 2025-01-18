@@ -38,6 +38,11 @@ public class MirrorActivity extends AppCompatActivity {
     private Handler renderHandler;
     private HandlerThread renderThread;
 
+    private EGLDisplay eglDisplay;
+    private android.opengl.EGLSurface eglOutputSurface;
+    private android.opengl.EGLContext eglContext;
+    private android.opengl.EGLConfig eglConfig;
+
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
             return;
@@ -117,7 +122,36 @@ public class MirrorActivity extends AppCompatActivity {
 
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
-                renderer.release();
+                renderHandler.post(() -> {
+                    // 清理OpenGL资源
+                    renderer.release();
+                    if (inputTextureId != -1) {
+                        int[] textures = new int[]{inputTextureId};
+                        GLES20.glDeleteTextures(1, textures, 0);
+                        inputTextureId = -1;
+                    }
+
+                    // 原有的清理代码
+                    if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
+                        EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
+                        if (eglOutputSurface != EGL14.EGL_NO_SURFACE) {
+                            EGL14.eglDestroySurface(eglDisplay, eglOutputSurface);
+                        }
+                        if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                            EGL14.eglDestroyContext(eglDisplay, eglContext);
+                        }
+                        EGL14.eglTerminate(eglDisplay);
+                    }
+                    eglDisplay = EGL14.EGL_NO_DISPLAY;
+                    eglContext = EGL14.EGL_NO_CONTEXT;
+                    eglOutputSurface = EGL14.EGL_NO_SURFACE;
+                });
+
+                // 清理线程
+                if (renderThread != null) {
+                    renderThread.quitSafely();
+                    renderThread = null;
+                }
                 if (inputSurface != null) {
                     inputSurface.release();
                     inputSurface = null;
@@ -185,11 +219,6 @@ public class MirrorActivity extends AppCompatActivity {
 
         private int mProgram;
         private FloatBuffer vertexBuffer;
-
-        private EGLDisplay eglDisplay;
-        private android.opengl.EGLSurface eglOutputSurface;
-        private android.opengl.EGLContext eglContext;
-        private android.opengl.EGLConfig eglConfig;
 
         private int mvpMatrixHandle;
         private float[] mvpMatrix;
@@ -354,38 +383,10 @@ public class MirrorActivity extends AppCompatActivity {
 
         // 添加清理方法
         public void release() {
-            renderHandler.post(() -> {
-                // 清理OpenGL资源
-                if (mProgram != 0) {
-                    GLES20.glDeleteProgram(mProgram);
-                    mProgram = 0;
-                }
-                if (inputTextureId != -1) {
-                    int[] textures = new int[]{inputTextureId};
-                    GLES20.glDeleteTextures(1, textures, 0);
-                    inputTextureId = -1;
-                }
-                
-                // 原有的清理代码
-                if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
-                    EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
-                    if (eglOutputSurface != EGL14.EGL_NO_SURFACE) {
-                        EGL14.eglDestroySurface(eglDisplay, eglOutputSurface);
-                    }
-                    if (eglContext != EGL14.EGL_NO_CONTEXT) {
-                        EGL14.eglDestroyContext(eglDisplay, eglContext);
-                    }
-                    EGL14.eglTerminate(eglDisplay);
-                }
-                eglDisplay = EGL14.EGL_NO_DISPLAY;
-                eglContext = EGL14.EGL_NO_CONTEXT;
-                eglOutputSurface = EGL14.EGL_NO_SURFACE;
-            });
-            
-            // 清理线程
-            if (renderThread != null) {
-                renderThread.quitSafely();
-                renderThread = null;
+            // 清理OpenGL资源
+            if (mProgram != 0) {
+                GLES20.glDeleteProgram(mProgram);
+                mProgram = 0;
             }
         }
     }
