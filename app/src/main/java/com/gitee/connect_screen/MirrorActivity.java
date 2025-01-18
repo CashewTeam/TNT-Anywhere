@@ -45,6 +45,11 @@ public class MirrorActivity extends AppCompatActivity {
     private android.opengl.EGLConfig eglConfig;
     private MyGLRenderer portraitRenderer;
 
+    private int landscapeInputTextureId = -1;
+    private SurfaceTexture landscapeInputSurfaceTexture = null;
+    private Surface landscapeInputSurface = null;
+    private MyGLRenderer landscapeRenderer;
+
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
             return;
@@ -155,20 +160,34 @@ public class MirrorActivity extends AppCompatActivity {
                     EGL14.eglMakeCurrent(eglDisplay, eglOutputSurface, eglOutputSurface, eglContext);
                     GLES20.glViewport(0, 0, surfaceView.getWidth(), surfaceView.getHeight());
 
-                    // 创建输入纹理
-                    int[] textures = new int[1];
-                    GLES20.glGenTextures(1, textures, 0);
+                    // 一次性创建两个输入纹理
+                    int[] textures = new int[2];
+                    GLES20.glGenTextures(2, textures, 0);
                     portraitInputTextureId = textures[0];
+                    landscapeInputTextureId = textures[1];
+
+                    // 设置竖屏纹理
                     float[] portraitMvpMatrix = new float[16];
                     android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
                     android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
                     android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 90, 0, 0, 1.0f);
-
                     portraitRenderer = new MyGLRenderer(portraitInputTextureId, portraitMvpMatrix, eglDisplay, eglOutputSurface);
+
+                    // 设置横屏纹理
+                    float[] landscapeMvpMatrix = new float[16];
+                    android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
+                    android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, 1, 1, 1.0f);
+                    landscapeRenderer = new MyGLRenderer(landscapeInputTextureId, landscapeMvpMatrix, eglDisplay, eglOutputSurface);
 
                     GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
                     // 设置纹理参数
+                    GLES20.glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+                    GLES20.glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+                    GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+                    GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+
+                    GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, landscapeInputTextureId);
                     GLES20.glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
                     GLES20.glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
                     GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
@@ -181,6 +200,10 @@ public class MirrorActivity extends AppCompatActivity {
                     portraitInputSurfaceTexture.setOnFrameAvailableListener(portraitRenderer);
                     portraitInputSurface = new Surface(portraitInputSurfaceTexture);
 
+                    landscapeInputSurfaceTexture = new SurfaceTexture(landscapeInputTextureId);
+                    landscapeInputSurfaceTexture.setDefaultBufferSize(surfaceView.getWidth(), surfaceView.getHeight());
+                    landscapeInputSurfaceTexture.setOnFrameAvailableListener(landscapeRenderer);
+                    landscapeInputSurface = new Surface(landscapeInputSurfaceTexture);
 
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.mediaProjection != null) {
@@ -193,6 +216,8 @@ public class MirrorActivity extends AppCompatActivity {
                     } else if (State.mirrorVirtualDisplay != null) {
                         State.mirrorVirtualDisplay.setSurface(portraitInputSurface);
                     }
+
+
                 });
             }
 
@@ -212,6 +237,15 @@ public class MirrorActivity extends AppCompatActivity {
                         int[] textures = new int[]{portraitInputTextureId};
                         GLES20.glDeleteTextures(1, textures, 0);
                         portraitInputTextureId = -1;
+                    }
+
+                    if (landscapeRenderer != null) {
+                        landscapeRenderer.release();
+                    }
+                    if (landscapeInputTextureId != -1) {
+                        int[] textures = new int[]{landscapeInputTextureId};
+                        GLES20.glDeleteTextures(1, textures, 0);
+                        landscapeInputTextureId = -1;
                     }
 
                     // 原有的清理代码
@@ -242,6 +276,14 @@ public class MirrorActivity extends AppCompatActivity {
                 if (portraitInputSurfaceTexture != null) {
                     portraitInputSurfaceTexture.release();
                     portraitInputSurfaceTexture = null;
+                }
+                if (landscapeInputSurface != null) {
+                    landscapeInputSurface.release();
+                    landscapeInputSurface = null;
+                }
+                if (landscapeInputSurfaceTexture != null) {
+                    landscapeInputSurfaceTexture.release();
+                    landscapeInputSurfaceTexture = null;
                 }
             }
         });
