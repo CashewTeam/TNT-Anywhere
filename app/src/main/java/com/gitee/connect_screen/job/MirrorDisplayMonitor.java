@@ -59,6 +59,15 @@ public class MirrorDisplayMonitor {
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
             return;
         }
+        if (display.getDisplayId() == State.getDisplaylinkVirtualDisplayId()) {
+            return;
+        }
+        if (display.getDisplayId() == State.getBridgeVirtualDisplayId()) {
+            return;
+        } 
+        if (display.getDisplayId() == State.getMirrorVirtualDisplayId()) {
+            return;
+        }
         Context context = State.currentActivity.get();
         if (context == null) {
             return;
