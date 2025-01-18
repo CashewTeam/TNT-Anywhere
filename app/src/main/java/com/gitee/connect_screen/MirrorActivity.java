@@ -150,7 +150,7 @@ public class MirrorActivity extends AppCompatActivity {
                 android.util.Log.d("MirrorActivity", "外接显示器尺寸: " + surfaceView.getWidth() + " x " + surfaceView.getHeight());
 
                 // 创建专用的渲染线程
-                renderThread = new HandlerThread("GLRenderThread");
+                renderThread = new HandlerThread("MirrorActivityRenderThread");
                 renderThread.start();
                 renderHandler = new Handler(renderThread.getLooper());
 
@@ -528,9 +528,8 @@ public class MirrorActivity extends AppCompatActivity {
             if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
                 android.util.Log.e("MirrorActivity", "FBO创建失败，状态: " + status);
             }
-
-            // 恢复默认帧缓冲
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
         }
 
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
@@ -546,8 +545,23 @@ public class MirrorActivity extends AppCompatActivity {
         private void adjustLandscapeMvpMatrix() {
             detectBlackBar();
             if (hasSymmetricBlackBar) {
+                // 计算缩放比例
+                float scaleX = (float)(width) / (width - 2 * leftRightBlackBarSize);
+                float scaleY = (float)(height) / (height - 2 * topBottomBlackBarSize);
+                float scale = Math.min(scaleX, scaleY);
                 
+                // 重置矩阵
+                android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
+                
+                // 应用缩放
+                android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, scale, scale, 1.0f);
+                
+                android.util.Log.d("MirrorActivity", String.format(
+                    "应用缩放变换: scaleX=%.2f, scaleY=%.2f, 最终scale=%.2f",
+                    scaleX, scaleY, scale
+                ));
             } else {
+                // 如果没有对称黑边，使用单位矩阵
                 for(int i = 0; i < identityMvpMatrix.length; i++) {
                     landscapeMvpMatrix[i] = identityMvpMatrix[i];
                 }
@@ -568,15 +582,17 @@ public class MirrorActivity extends AppCompatActivity {
             // 确保渲染完成
             GLES20.glFinish();
 
+
             // 检测左右黑边
             ByteBuffer horizontalPixelBuffer = ByteBuffer.allocateDirect(width * 4);
             horizontalPixelBuffer.order(ByteOrder.nativeOrder());
-            int middleY = height / 2;
-            GLES20.glReadPixels(0, middleY, width, 1, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, horizontalPixelBuffer);
 
             // 检测上下黑边
             ByteBuffer verticalPixelBuffer = ByteBuffer.allocateDirect(height * 4);
             verticalPixelBuffer.order(ByteOrder.nativeOrder());
+            int middleY = height / 2;
+            GLES20.glReadPixels(0, middleY, width, 1, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, horizontalPixelBuffer);
+
             int middleX = width / 2;
             GLES20.glReadPixels(middleX, 0, 1, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, verticalPixelBuffer);
 
@@ -640,14 +656,22 @@ public class MirrorActivity extends AppCompatActivity {
                 leftBlackWidth, rightBlackWidth, topBlackHeight, bottomBlackHeight,
                 hasSymmetricHorizontalBars, hasSymmetricVerticalBars));
 
-            if (hasSymmetricHorizontalBars && hasSymmetricVerticalBars) {
-                hasSymmetricBlackBar = true;
-                leftRightBlackBarSize = Math.min(leftBlackWidth, rightBlackWidth);
-                topBottomBlackBarSize = Math.min(topBlackHeight, bottomBlackHeight);
-            } else {
-                hasSymmetricBlackBar = false;
-                leftRightBlackBarSize = 0;
-                topBottomBlackBarSize = 0;
+            int horizontalThreshold = (int) (width * 0.3);
+            int verticalThreshold = (int) (height * 0.3);
+            if (leftBlackWidth < horizontalThreshold && rightBlackWidth < horizontalThreshold && topBlackHeight < verticalThreshold && bottomBlackHeight < verticalThreshold) {
+                if (hasSymmetricHorizontalBars && hasSymmetricVerticalBars) {
+                    hasSymmetricBlackBar = true;
+                    leftRightBlackBarSize = Math.min(leftBlackWidth, rightBlackWidth);
+                    topBottomBlackBarSize = Math.min(topBlackHeight, bottomBlackHeight);
+                } else {
+                    if (hasSymmetricHorizontalBars && Math.min(leftBlackWidth, rightBlackWidth) >= leftRightBlackBarSize && Math.min(topBlackHeight, bottomBlackHeight) >= topBottomBlackBarSize) {
+                        // keep old value
+                    } else {
+                        hasSymmetricBlackBar = false;
+                        leftRightBlackBarSize = 0;
+                        topBottomBlackBarSize = 0;
+                    }
+                }
             }
 
             // 切回默认帧缓冲
