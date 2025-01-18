@@ -646,9 +646,9 @@ public class MirrorActivity extends AppCompatActivity {
             }
 
             // 判断是否存在对称的黑边
-            boolean hasSymmetricHorizontalBars = Math.abs(leftBlackWidth - rightBlackWidth) <= 1
+            boolean hasSymmetricHorizontalBars = Math.abs(leftBlackWidth - rightBlackWidth) <= 2
                 && leftBlackWidth > 0 && rightBlackWidth > 0;
-            boolean hasSymmetricVerticalBars = Math.abs(topBlackHeight - bottomBlackHeight) <= 1
+            boolean hasSymmetricVerticalBars = Math.abs(topBlackHeight - bottomBlackHeight) <= 2
                 && topBlackHeight > 0 && bottomBlackHeight > 0;
 
             android.util.Log.d("MirrorActivity", String.format(

@@ -1,5 +1,6 @@
 package com.gitee.connect_screen.job;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
@@ -57,6 +58,26 @@ public class ProjectViaMirror implements Job {
         }
         if (mediaProjectionRequested) {
             if (!State.hasService) {
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(6000);
+                        if (State.mirrorVirtualDisplay != null) {
+                            return;
+                        }
+                        if (State.mediaProjection != null) {
+                            return;
+                        }
+                        mediaProjectionRequested = false;
+                        Activity activity = State.currentActivity.get();
+                        if (activity != null) {
+                            activity.runOnUiThread(() -> {
+                                State.resumeJob();
+                            });
+                        }
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }).start();
                 throw new YieldException("等待服务启动");
             }
             State.log("因为未授予投屏权限，跳过任务");
