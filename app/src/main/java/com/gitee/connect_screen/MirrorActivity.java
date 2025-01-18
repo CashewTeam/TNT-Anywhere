@@ -36,9 +36,6 @@ public class MirrorActivity extends AppCompatActivity {
     private SurfaceTexture inputSurfaceTexture = null;
     private Surface inputSurface = null;
 
-    private float[] mvpMatrix;
-
-
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
             return;
@@ -173,40 +170,49 @@ public class MirrorActivity extends AppCompatActivity {
         private android.opengl.EGLConfig eglConfig;
 
         private int mvpMatrixHandle;
+        private float[] mvpMatrix;
+        
+        public MyGLRenderer() {
+            mvpMatrix = new float[16];
+
+            // 设置基础矩阵
+            android.opengl.Matrix.setIdentityM(mvpMatrix, 0);
+            // 设置缩放
+            android.opengl.Matrix.scaleM(mvpMatrix, 0, 1, 1, 1.0f);
+            android.opengl.Matrix.setRotateM(mvpMatrix, 0, 90, 0, 0, 1.0f);
+        }
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            renderHandler.post(() -> {
-                surfaceTexture.updateTexImage();
+            surfaceTexture.updateTexImage();
 
-                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-                GLES20.glUseProgram(mProgram);
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+            GLES20.glUseProgram(mProgram);
 
-                // 设置MVP矩阵
-                GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
+            // 设置MVP矩阵
+            GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
 
-                // 绑定顶点坐标
-                GLES20.glEnableVertexAttribArray(positionHandle);
-                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+            // 绑定顶点坐标
+            GLES20.glEnableVertexAttribArray(positionHandle);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
 
-                // 绑定纹理坐标
-                GLES20.glEnableVertexAttribArray(textureCoordHandle);
-                GLES20.glVertexAttribPointer(textureCoordHandle, 2, GLES20.GL_FLOAT, false, 0, textureBuffer);
+            // 绑定纹理坐标
+            GLES20.glEnableVertexAttribArray(textureCoordHandle);
+            GLES20.glVertexAttribPointer(textureCoordHandle, 2, GLES20.GL_FLOAT, false, 0, textureBuffer);
 
-                // 绑定纹理
-                GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-                GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, inputTextureId);
-                GLES20.glUniform1i(textureHandle, 0);
+            // 绑定纹理
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, inputTextureId);
+            GLES20.glUniform1i(textureHandle, 0);
 
-                // 绘制
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            // 绘制
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
-                // 解绑
-                GLES20.glDisableVertexAttribArray(positionHandle);
-                GLES20.glDisableVertexAttribArray(textureCoordHandle);
+            // 解绑
+            GLES20.glDisableVertexAttribArray(positionHandle);
+            GLES20.glDisableVertexAttribArray(textureCoordHandle);
 
-                EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
-            });
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
         }
 
         public void onSurfaceCreated(Surface outputSurface, int width, int height) {
@@ -223,14 +229,6 @@ public class MirrorActivity extends AppCompatActivity {
                 defaultDisplayWidth = defaultDisplayHeight;
                 defaultDisplayHeight = temp;
             }
-
-            mvpMatrix = new float[16];
-
-            // 设置基础矩阵
-            android.opengl.Matrix.setIdentityM(mvpMatrix, 0);
-            // 设置缩放
-            android.opengl.Matrix.scaleM(mvpMatrix, 0, 1, 1, 1.0f);
-            android.opengl.Matrix.setRotateM(mvpMatrix, 0, 90, 0, 0, 1.0f);
 
             // 记录屏幕尺寸信息到日志
             android.util.Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
