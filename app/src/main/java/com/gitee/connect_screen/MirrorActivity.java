@@ -43,12 +43,12 @@ public class MirrorActivity extends AppCompatActivity {
     private android.opengl.EGLSurface eglOutputSurface;
     private android.opengl.EGLContext eglContext;
     private android.opengl.EGLConfig eglConfig;
-    private MyGLRenderer portraitRenderer;
+    private PortraitRenderer portraitRenderer;
 
     private int landscapeInputTextureId = -1;
     private SurfaceTexture landscapeInputSurfaceTexture = null;
     private Surface landscapeInputSurface = null;
-    private MyGLRenderer landscapeRenderer;
+    private PortraitRenderer landscapeRenderer;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -207,13 +207,13 @@ public class MirrorActivity extends AppCompatActivity {
                     android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
                     android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
                     android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 90, 0, 0, 1.0f);
-                    portraitRenderer = new MyGLRenderer(portraitInputTextureId, portraitMvpMatrix, eglDisplay, eglOutputSurface);
+                    portraitRenderer = new PortraitRenderer(portraitInputTextureId, portraitMvpMatrix, eglDisplay, eglOutputSurface);
 
                     // 设置横屏纹理
                     float[] landscapeMvpMatrix = new float[16];
                     android.opengl.Matrix.setIdentityM(landscapeMvpMatrix, 0);
                     android.opengl.Matrix.scaleM(landscapeMvpMatrix, 0, 1, 1, 1.0f);
-                    landscapeRenderer = new MyGLRenderer(landscapeInputTextureId, landscapeMvpMatrix, eglDisplay, eglOutputSurface);
+                    landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, landscapeMvpMatrix, eglDisplay, eglOutputSurface, surfaceView.getWidth(), surfaceView.getHeight());
 
                     GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
@@ -347,7 +347,7 @@ public class MirrorActivity extends AppCompatActivity {
         State.log("MirrorActivity destroyed");
     }
 
-    private static class MyGLRenderer implements SurfaceTexture.OnFrameAvailableListener {
+    private static class PortraitRenderer implements SurfaceTexture.OnFrameAvailableListener {
 
         // 更新顶点坐标为全屏四边形
         private final float[] vertexCoords = {
@@ -386,21 +386,21 @@ public class MirrorActivity extends AppCompatActivity {
             "  gl_FragColor = texture2D(uTexture, vTextureCoord);\n" +
             "}";
 
-        private FloatBuffer textureBuffer;
-        private int textureCoordHandle;
-        private int positionHandle;
-        private int textureHandle;
+        protected FloatBuffer textureBuffer;
+        protected int textureCoordHandle;
+        protected int positionHandle;
+        protected int textureHandle;
 
-        private int mProgram;
-        private FloatBuffer vertexBuffer;
+        protected int mProgram;
+        protected FloatBuffer vertexBuffer;
 
-        private int mvpMatrixHandle;
-        private float[] mvpMatrix;
-        private final int inputTextureId;
-        private final EGLDisplay eglDisplay;
-        private final EGLSurface eglOutputSurface;
+        protected int mvpMatrixHandle;
+        protected float[] mvpMatrix;
+        protected final int inputTextureId;
+        protected final EGLDisplay eglDisplay;
+        protected final EGLSurface eglOutputSurface;
 
-        public MyGLRenderer(int inputTextureId, float[] mvpMatrix, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
+        public PortraitRenderer(int inputTextureId, float[] mvpMatrix, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
             this.inputTextureId = inputTextureId;
             this.eglDisplay = eglDisplay;
             this.eglOutputSurface = eglOutputSurface;
@@ -488,6 +488,157 @@ public class MirrorActivity extends AppCompatActivity {
                 GLES20.glDeleteProgram(mProgram);
                 mProgram = 0;
             }
+        }
+    }
+
+    private static class LandscapeRenderer extends PortraitRenderer {
+        private final int width;
+        private final int height;
+        private int frameCounter = 0;
+        private int[] fbo = new int[1];
+        private int[] tempTexture = new int[1];
+
+        public LandscapeRenderer(int inputTextureId, float[] mvpMatrix, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height) {
+            super(inputTextureId, mvpMatrix, eglDisplay, eglOutputSurface);
+            this.width = width;
+            this.height = height;
+
+            // 创建临时纹理
+            GLES20.glGenTextures(1, tempTexture, 0);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tempTexture[0]);
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0,  // 修改高度为完整高度
+                               GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+
+            // 创建并设置FBO
+            GLES20.glGenFramebuffers(1, fbo, 0);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0]);
+            GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, 
+                                         GLES20.GL_TEXTURE_2D, tempTexture[0], 0);
+
+            // 检查FBO状态
+            int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+            if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+                android.util.Log.e("MirrorActivity", "FBO创建失败，状态: " + status);
+            }
+
+            // 恢复默认帧缓冲
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        }
+
+        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            surfaceTexture.updateTexImage();
+            
+            if (frameCounter == 0) {
+                // 切换到FBO
+                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0]);
+                
+                // 清除缓冲区
+                GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+                
+                // 渲染到FBO
+                renderFrame();
+                
+                // 确保渲染完成
+                GLES20.glFinish();
+                
+                // 读取中间行的像素
+                ByteBuffer pixelBuffer = ByteBuffer.allocateDirect(width * 4);
+                pixelBuffer.order(ByteOrder.nativeOrder());
+                int middleY = height / 2;
+                
+                GLES20.glReadPixels(0, middleY, width, 1, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+                
+                // 分析像素
+                byte[] pixels = new byte[width * 4];
+                pixelBuffer.get(pixels);
+                
+                // 计算连续黑边宽度
+                int leftBlackWidth = 0;
+                int rightBlackWidth = 0;
+                
+                // 从左向右扫描左黑边
+                for (int i = 0; i < width * 4; i += 4) {
+                    int r = pixels[i] & 0xFF;
+                    int g = pixels[i+1] & 0xFF; 
+                    int b = pixels[i+2] & 0xFF;
+                    if (r == 0 && g == 0 && b == 0) {
+                        leftBlackWidth++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 从右向左扫描右黑边
+                for (int i = width * 4 - 4; i >= 0; i -= 4) {
+                    int r = pixels[i] & 0xFF;
+                    int g = pixels[i+1] & 0xFF; 
+                    int b = pixels[i+2] & 0xFF;
+                    if (r == 0 && g == 0 && b == 0) {
+                        rightBlackWidth++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 判断是否存在对称的黑边
+                boolean hasSymmetricBlackBars = Math.abs(leftBlackWidth - rightBlackWidth) <= 2 
+                    && leftBlackWidth > 0 && rightBlackWidth > 0;
+                
+                android.util.Log.d("MirrorActivity", String.format(
+                    "左黑边宽度: %d, 右黑边宽度: %d, 是否对称: %b", 
+                    leftBlackWidth, rightBlackWidth, hasSymmetricBlackBars));
+                
+                // 切回默认帧缓冲
+                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            }
+            
+            // 渲染到屏幕
+            renderFrame();
+            
+            frameCounter = (frameCounter + 1) % 300;
+        }
+
+        // 抽取渲染逻辑到单独的方法
+        private void renderFrame() {
+            GLES20.glUseProgram(mProgram);
+            
+            // 设置MVP矩阵
+            GLES20.glUniformMatrix4fv(mvpMatrixHandle, 1, false, mvpMatrix, 0);
+            
+            // 绑定顶点坐标
+            GLES20.glEnableVertexAttribArray(positionHandle);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+            
+            // 绑定纹理坐标
+            GLES20.glEnableVertexAttribArray(textureCoordHandle);
+            GLES20.glVertexAttribPointer(textureCoordHandle, 2, GLES20.GL_FLOAT, false, 0, textureBuffer);
+            
+            // 绑定纹理
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, inputTextureId);
+            GLES20.glUniform1i(textureHandle, 0);
+            
+            // 绘制
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            
+            // 解绑
+            GLES20.glDisableVertexAttribArray(positionHandle);
+            GLES20.glDisableVertexAttribArray(textureCoordHandle);
+            
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
+        }
+
+        @Override
+        public void release() {
+            super.release();
+            // 清理额外的资源
+            GLES20.glDeleteFramebuffers(1, fbo, 0);
+            GLES20.glDeleteTextures(1, tempTexture, 0);
         }
     }
 }
