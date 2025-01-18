@@ -63,6 +63,38 @@ public class MirrorActivity extends AppCompatActivity {
         return instance;
     }
 
+    private class OrientationChangeCallback implements DisplayManager.DisplayListener {
+        @Override
+        public void onDisplayAdded(int displayId) {}
+
+        @Override
+        public void onDisplayRemoved(int displayId) {}
+
+        @Override
+        public void onDisplayChanged(int displayId) {
+            if (displayId == Display.DEFAULT_DISPLAY) {
+                renderHandler.post(() -> {
+                    DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+                    Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+                    DisplayMetrics metrics = new DisplayMetrics();
+                    display.getRealMetrics(metrics);
+                    
+                    boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                    Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+                    
+                    if (State.mirrorVirtualDisplay != null) {
+                        if (isLandscape) {
+                            State.mirrorVirtualDisplay.resize(surfaceView.getWidth(), surfaceView.getHeight(), 160);
+                        } else {
+                            State.mirrorVirtualDisplay.resize(surfaceView.getHeight(), surfaceView.getWidth(), 160);
+                        }
+                        State.mirrorVirtualDisplay.setSurface(targetSurface);
+                    }
+                });
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,6 +123,10 @@ public class MirrorActivity extends AppCompatActivity {
        window.setNavigationBarColor(Color.TRANSPARENT);
 
         surfaceView = new SurfaceView(this);
+        
+        // 注册屏幕方向变化监听
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        displayManager.registerDisplayListener(new OrientationChangeCallback(), renderHandler);
         
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -208,13 +244,23 @@ public class MirrorActivity extends AppCompatActivity {
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.mediaProjection != null) {
                         stopVirtualDisplay();
+                        DisplayMetrics metrics = new DisplayMetrics();
+                        display.getRealMetrics(metrics);
+                        boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                        Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+                        
                         State.mirrorVirtualDisplay = State.mediaProjection.createVirtualDisplay("Mirror",
                                 surfaceView.getHeight(), surfaceView.getWidth(), 160,
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                                portraitInputSurface, null, renderHandler);
+                                targetSurface, null, renderHandler);
                         State.mediaProjection = null;
                     } else if (State.mirrorVirtualDisplay != null) {
-                        State.mirrorVirtualDisplay.setSurface(portraitInputSurface);
+                        DisplayMetrics metrics = new DisplayMetrics();
+                        display.getRealMetrics(metrics);
+                        boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                        Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+                        
+                        State.mirrorVirtualDisplay.setSurface(targetSurface);
                     }
 
 
@@ -295,6 +341,9 @@ public class MirrorActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // 注销屏幕方向变化监听
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        displayManager.unregisterDisplayListener(new OrientationChangeCallback());
         State.log("MirrorActivity destroyed");
     }
 
