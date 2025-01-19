@@ -197,4 +197,26 @@ public class LauncherActivity extends AppCompatActivity {
         
         popup.show();
     }
+
+    public static void start(Context context, int displayId) {
+        PackageManager pm = context.getPackageManager();
+        List<ApplicationInfo> packages = new ArrayList<>();
+        try {
+            packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        } catch (SecurityException e) {
+            Toast.makeText(context, "需要 '查询所有应用' 权限", Toast.LENGTH_LONG).show();
+            State.log("查询应用列表失败: " + e);
+            return;
+        }
+
+        if (packages.size() <= 1) {
+            Toast.makeText(context, "无法获取应用列表，请检查权限", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Intent intent = new Intent(context, LauncherActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(EXTRA_TARGET_DISPLAY_ID, displayId);
+        context.startActivity(intent);
+    }
 }

@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.displaylink.manager.display.MonitorInfo;
 import com.gitee.connect_screen.DisplaylinkPref;
+import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
@@ -65,9 +66,10 @@ public class NativeDriverListener {
                 displaylinkState.encoderId = encoderId;
                 displaylinkState.monitorInfo = monitorInfo;
                 if (!State.isJobRunning() && wasNoMonitor) {
+                    boolean useSingleApp = State.currentActivity.get() instanceof MainActivity;
                     DisplaylinkPref.load(context);
                     State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
-                    State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
+                    State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs, useSingleApp ? ProjectionMode.SINGLE_APP : ProjectionMode.MIRROR));
                 }
             }
         });

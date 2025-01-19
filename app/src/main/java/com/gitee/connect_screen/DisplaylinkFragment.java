@@ -236,11 +236,7 @@ public class DisplaylinkFragment extends Fragment {
                 );
             });
             launchAppButton.setOnClickListener(v -> {
-                Context context = State.currentActivity.get();
-                Intent intent = new Intent(context, LauncherActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displaylinkState.getVirtualDisplay().getDisplay().getDisplayId());
-                context.startActivity(intent);
+                LauncherActivity.start(getContext(), displaylinkState.getVirtualDisplay().getDisplay().getDisplayId());
             });
         } else {
             viewVirtualDisplayButton.setVisibility(View.GONE);

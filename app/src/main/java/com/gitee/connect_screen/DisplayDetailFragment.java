@@ -149,11 +149,7 @@ public class DisplayDetailFragment extends Fragment {
             launchButton.setVisibility(View.GONE);
         }
         launchButton.setOnClickListener(v -> {
-            Context context = State.currentActivity.get();
-            Intent intent = new Intent(context, LauncherActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(LauncherActivity.EXTRA_TARGET_DISPLAY_ID, displayId);
-            context.startActivity(intent);
+            LauncherActivity.start(getContext(), displayId);
         });
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
