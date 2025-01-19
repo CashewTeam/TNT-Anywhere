@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,6 +32,8 @@ public class MirrorSettingsFragment extends Fragment {
 
         CheckBox autoRotateCheckbox = view.findViewById(R.id.autoRotateCheckbox);
         CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
+        EditText widthEditText = view.findViewById(R.id.widthEditText);
+        EditText heightEditText = view.findViewById(R.id.heightEditText);
         
         // 加载保存的设置
         boolean autoRotate = preferences.getBoolean(KEY_AUTO_ROTATE, true);
@@ -38,14 +41,46 @@ public class MirrorSettingsFragment extends Fragment {
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
 
+        // 设置分辨率初始值
+        widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
+        heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
+
         // 监听复选框变化
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_ROTATE, isChecked).apply();
         });
 
-        // 添加新复选框的监听器
         autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_SCALE, isChecked).apply();
+        });
+
+        // 监听分辨率输入变化
+        widthEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                try {
+                    Context context = requireContext();
+                    DisplaylinkPref.load(context);
+                    int width = Integer.parseInt(widthEditText.getText().toString());
+                    DisplaylinkPref.monitorWidth = width;
+                    DisplaylinkPref.save(context);
+                } catch (NumberFormatException e) {
+                    widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
+                }
+            }
+        });
+
+        heightEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                try {
+                    Context context = requireContext();
+                    DisplaylinkPref.load(context);
+                    int height = Integer.parseInt(heightEditText.getText().toString());
+                    DisplaylinkPref.monitorHeight = height;
+                    DisplaylinkPref.save(context);
+                } catch (NumberFormatException e) {
+                    heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
+                }
+            }
         });
 
         return view;
