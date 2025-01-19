@@ -2,8 +2,6 @@ package com.gitee.connect_screen.job;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
-import static rikka.shizuku.SystemServiceHelper.getSystemService;
-
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
@@ -40,7 +38,7 @@ public class ListenOpenglAndPostFrame {
     private PortraitRenderer portraitRenderer;
     private LandscapeRenderer landscapeRenderer;
     private boolean autoRotate = true;
-    private boolean autoScale = false;
+    private boolean autoScale = true;
     private SurfaceTexture portraitInputSurfaceTexture;
     private Surface portraitInputSurface;
     private SurfaceTexture landscapeInputSurfaceTexture;
@@ -312,7 +310,7 @@ public class ListenOpenglAndPostFrame {
         private final DisplaylinkSender displaylinkSender;
 
         public LandscapeRenderer(int inputTextureId, int width, int height, boolean autoScale) {
-            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
+            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId, true);
             this.autoScale = autoScale;
             this.landscapeAutoScaler = new LandscapeAutoScaler(externalTextureRenderer, width, height, 0);
             this.displaylinkSender = new DisplaylinkSender(width, height);

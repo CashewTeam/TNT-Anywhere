@@ -67,7 +67,9 @@ public class LandscapeAutoScaler {
 
     private void detectBlackBar() {
         // 切换到FBO
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo);
+        if (fbo != 0) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo);
+        }
 
         // 渲染到FBO
         externalTextureRenderer.renderFrame(identityMvpMatrix);
@@ -167,7 +169,9 @@ public class LandscapeAutoScaler {
             }
         }
         // 切回默认帧缓冲
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        if (fbo != 0) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        }
     }
 
     private boolean isBlackPixel(byte r, byte g, byte b) {
