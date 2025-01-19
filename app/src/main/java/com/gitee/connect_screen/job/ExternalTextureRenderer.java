@@ -19,11 +19,19 @@ public class ExternalTextureRenderer {
     };
 
     // 添加纹理坐标
-    private final float[] textureCoords = {
+    private float[] textureCoords = {
             0.0f, 1.0f,  // 左下
             1.0f, 1.0f,  // 右下
             0.0f, 0.0f,  // 左上
             1.0f, 0.0f   // 右上
+    };
+
+
+    private final float[] textureCoordsFlipped = {
+            0.0f, 0.0f,  // 左下
+            1.0f, 0.0f,  // 右下
+            0.0f, 1.0f,  // 左上
+            1.0f, 1.0f   // 右上
     };
 
     // 简化的顶点着色器代码
@@ -58,7 +66,13 @@ public class ExternalTextureRenderer {
     protected int mvpMatrixHandle;
     protected final int inputTextureId;
     public ExternalTextureRenderer(int inputTextureId) {
+        this(inputTextureId, false);
+    }
+    public ExternalTextureRenderer(int inputTextureId, boolean flip) {
         this.inputTextureId = inputTextureId;
+        if (flip) {
+            textureCoords = textureCoordsFlipped;
+        }
 
         // 初始化顶点缓冲
         ByteBuffer bb = ByteBuffer.allocateDirect(vertexCoords.length * 4);
@@ -91,6 +105,7 @@ public class ExternalTextureRenderer {
     }
 
     public void renderFrame(float[] mvpMatrix) {
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         GLES20.glUseProgram(mProgram);
 
         // 设置MVP矩阵

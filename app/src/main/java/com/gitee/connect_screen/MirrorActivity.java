@@ -375,7 +375,6 @@ public class MirrorActivity extends AppCompatActivity {
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
             surfaceTexture.updateTexImage();
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
             externalTextureRenderer.renderFrame(portraitMvpMatrix);
             EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
         }
@@ -487,10 +486,6 @@ public class MirrorActivity extends AppCompatActivity {
         private void detectBlackBar() {
             // 切换到FBO
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0]);
-
-            // 清除缓冲区
-            GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
             // 渲染到FBO
             externalTextureRenderer.renderFrame(identityMvpMatrix);
