@@ -67,7 +67,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
 
-        if(ShizukuUtils.hasShizukuStarted()) {
+        if(projectionMode == ProjectionMode.SINGLE_APP && ShizukuUtils.hasShizukuStarted()) {
             if (!ShizukuUtils.hasPermission()) {
                 acquireShizuku.start();
                 if (!acquireShizuku.acquired) {

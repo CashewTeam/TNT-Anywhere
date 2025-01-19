@@ -32,7 +32,7 @@ import com.gitee.connect_screen.job.DisplayMonitor;
 import com.gitee.connect_screen.job.InputDeviceMonitor;
 import com.gitee.connect_screen.job.MirrorDisplayMonitor;
 import com.gitee.connect_screen.job.ProjectViaDisplaylink;
-import com.gitee.connect_screen.job.DisplaylinkMonitor;
+import com.gitee.connect_screen.job.MirrorDisplaylinkMonitor;
 import com.gitee.connect_screen.job.VirtualDisplayArgs;
 import com.gitee.connect_screen.shizuku.ServiceUtils;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
@@ -52,7 +52,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
     // 添加时间戳和延迟常量
     private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
-    private long lastMonitorInitTime = 0;
+    private long lastCheckTime = 0;
 
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
@@ -128,14 +128,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
             UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            DisplaylinkMonitor.onUsbDeviceAttached(device);
-            // 处理 USB 设备连接的逻辑
-            if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
-                State.log("USB 设备已连接: " + device.getDeviceName());
-                DisplaylinkPref.load(this);
-                State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
-                State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
-            }
+            MirrorDisplaylinkMonitor.onUsbDeviceAttached(this, device);
         }
 
         // 注册 USB 权限广播接收器
@@ -144,9 +137,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        lastMonitorInitTime = System.currentTimeMillis();
+        lastCheckTime = System.currentTimeMillis();
         MirrorDisplayMonitor.init(displayManager);
-        DisplaylinkMonitor.init(this);
+        MirrorDisplaylinkMonitor.init(this);
     }
 
 
@@ -158,10 +151,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         
         // 检查时间间隔
         if (MirrorActivity.getInstance() == null && 
-            (System.currentTimeMillis() - lastMonitorInitTime > MONITOR_INIT_DELAY)) {
-            lastMonitorInitTime = System.currentTimeMillis(); // 记录时间戳
+            (System.currentTimeMillis() - lastCheckTime > MONITOR_INIT_DELAY)) {
+            lastCheckTime = System.currentTimeMillis(); // 记录时间戳
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
             MirrorDisplayMonitor.init(displayManager);
+            MirrorDisplaylinkMonitor.init(this);
         }
     }
 
@@ -182,7 +176,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
-                lastMonitorInitTime = System.currentTimeMillis(); // 记录时间戳
+                lastCheckTime = System.currentTimeMillis(); // 记录时间戳
                 if (State.hasService) {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
