@@ -16,11 +16,13 @@ import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
+import android.content.SharedPreferences;
 
 import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.MirrorSettingsFragment;
 
 import java.nio.ByteBuffer;
 
@@ -37,8 +39,8 @@ public class ListenOpenglAndPostFrame {
     private int landscapeInputTextureId;
     private PortraitRenderer portraitRenderer;
     private LandscapeRenderer landscapeRenderer;
-    private boolean autoRotate = true;
-    private boolean autoScale = true;
+    private boolean autoRotate;
+    private boolean autoScale;
     private SurfaceTexture portraitInputSurfaceTexture;
     private Surface portraitInputSurface;
     private SurfaceTexture landscapeInputSurfaceTexture;
@@ -50,6 +52,12 @@ public class ListenOpenglAndPostFrame {
         }
         instance = this;
         this.virtualDisplayArgs = virtualDisplayArgs;
+        
+        // 从 SharedPreferences 读取设置
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
+        autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
+        
         DisplaylinkState displaylinkState = State.displaylinkState;
         displaylinkState.handlerThread = new HandlerThread("ListenOpenglAndPostFrame");
         displaylinkState.handlerThread.start();
