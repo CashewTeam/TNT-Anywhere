@@ -45,6 +45,7 @@ public class MirrorSettingsFragment extends Fragment {
         autoScaleCheckbox.setChecked(autoScale);
 
         // 设置分辨率初始值
+        DisplaylinkPref.load(requireContext());
         widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
@@ -67,7 +68,7 @@ public class MirrorSettingsFragment extends Fragment {
                     DisplaylinkPref.monitorWidth = width;
                     DisplaylinkPref.save(context);
                 } catch (NumberFormatException e) {
-                    widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
+                    // ignore
                 }
             }
         });
@@ -81,7 +82,7 @@ public class MirrorSettingsFragment extends Fragment {
                     DisplaylinkPref.monitorHeight = height;
                     DisplaylinkPref.save(context);
                 } catch (NumberFormatException e) {
-                    heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
+                    // ignore
                 }
             }
         });
@@ -100,32 +101,36 @@ public class MirrorSettingsFragment extends Fragment {
         resolutionPresetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                switch (position) {
-                    case 1: // 1080p
-                        widthEditText.setText("1920");
-                        heightEditText.setText("1080");
-                        break;
-                    case 2: // 1440p
-                        widthEditText.setText("2560");
-                        heightEditText.setText("1440");
-                        break;
-                    case 3: // 2160p
-                        widthEditText.setText("3840");
-                        heightEditText.setText("2160");
-                        break;
-                    case 4: // ipad4
-                        widthEditText.setText("2048");
-                        heightEditText.setText("1536");
-                        break;
+                try {
+                    switch (position) {
+                        case 1: // 1080p
+                            widthEditText.setText("1920");
+                            heightEditText.setText("1080");
+                            break;
+                        case 2: // 1440p
+                            widthEditText.setText("2560");
+                            heightEditText.setText("1440");
+                            break;
+                        case 3: // 2160p
+                            widthEditText.setText("3840");
+                            heightEditText.setText("2160");
+                            break;
+                        case 4: // ipad4
+                            widthEditText.setText("2048");
+                            heightEditText.setText("1536");
+                            break;
+                    }
+                    
+                    Context context = requireContext();
+                    DisplaylinkPref.load(context);
+                    int height = Integer.parseInt(heightEditText.getText().toString());
+                    int width = Integer.parseInt(widthEditText.getText().toString());
+                    DisplaylinkPref.monitorHeight = height;
+                    DisplaylinkPref.monitorWidth = width;
+                    DisplaylinkPref.save(context);
+                } catch (NumberFormatException e) {
+                    // ignore
                 }
-                
-                Context context = requireContext();
-                DisplaylinkPref.load(context);
-                int height = Integer.parseInt(heightEditText.getText().toString());
-                int width = Integer.parseInt(widthEditText.getText().toString());
-                DisplaylinkPref.monitorHeight = height;
-                DisplaylinkPref.monitorWidth = width;
-                DisplaylinkPref.save(context);
             }
 
             @Override
