@@ -46,6 +46,7 @@ public class ListenOpenglAndPostFrame {
     private SurfaceTexture landscapeInputSurfaceTexture;
     private Surface landscapeInputSurface;
     private Surface currentSurface;
+    private int virtualDisplayId;
 
     public ListenOpenglAndPostFrame(VirtualDisplayArgs virtualDisplayArgs, Context context) {
         if (instance != null) {
@@ -68,7 +69,7 @@ public class ListenOpenglAndPostFrame {
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {
             orientationChangeCallback = new OrientationChangeCallback();
-            displayManager.registerDisplayListener(orientationChangeCallback, displaylinkState.handler);
+            displayManager.registerDisplayListener(orientationChangeCallback, null);
         }
     }
 
@@ -78,6 +79,55 @@ public class ListenOpenglAndPostFrame {
             DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.unregisterDisplayListener(orientationChangeCallback);
         }
+        
+        // 释放 Surface 和 SurfaceTexture
+        if (portraitInputSurface != null) {
+            portraitInputSurface.release();
+            portraitInputSurface = null;
+        }
+        if (portraitInputSurfaceTexture != null) {
+            portraitInputSurfaceTexture.release();
+            portraitInputSurfaceTexture = null;
+        }
+        if (landscapeInputSurface != null) {
+            landscapeInputSurface.release();
+            landscapeInputSurface = null;
+        }
+        if (landscapeInputSurfaceTexture != null) {
+            landscapeInputSurfaceTexture.release();
+            landscapeInputSurfaceTexture = null;
+        }
+        
+        // 释放渲染器
+        if (portraitRenderer != null) {
+            portraitRenderer.release();
+            portraitRenderer = null;
+        }
+        if (landscapeRenderer != null) {
+            landscapeRenderer.release();
+            landscapeRenderer = null;
+        }
+        
+        // 删除 OpenGL 纹理和 FBO
+        if (tempTexture[0] != 0) {
+            GLES20.glDeleteTextures(1, tempTexture, 0);
+            tempTexture[0] = 0;
+        }
+        if (fbo[0] != 0) {
+            GLES20.glDeleteFramebuffers(1, fbo, 0);
+            fbo[0] = 0;
+        }
+        
+        // 释放 EGL 资源
+        if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
+            EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
+            if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                EGL14.eglDestroyContext(eglDisplay, eglContext);
+                eglContext = EGL14.EGL_NO_CONTEXT;
+            }
+            EGL14.eglTerminate(eglDisplay);
+            eglDisplay = EGL14.EGL_NO_DISPLAY;
+        }
     }
 
     private class OrientationChangeCallback implements DisplayManager.DisplayListener {
@@ -86,7 +136,11 @@ public class ListenOpenglAndPostFrame {
         public void onDisplayAdded(int displayId) {}
 
         @Override
-        public void onDisplayRemoved(int displayId) {}
+        public void onDisplayRemoved(int displayId) {
+            if (virtualDisplayId == displayId) {
+                release();
+            }
+        }
 
         @Override
         public void onDisplayChanged(int displayId) {
@@ -107,7 +161,6 @@ public class ListenOpenglAndPostFrame {
         DisplayMetrics metrics = new DisplayMetrics();
         Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
         defaultDisplay.getRealMetrics(metrics);
-        android.util.Log.i("Opengl", "rotate, " + metrics.widthPixels + " , " + metrics.heightPixels);
         boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
         Surface newSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
         if (newSurface != currentSurface && State.displaylinkState.getVirtualDisplay() != null) {
@@ -253,6 +306,11 @@ public class ListenOpenglAndPostFrame {
             currentSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
             displaylinkState.getVirtualDisplay().setSurface(currentSurface);
         }
+        if (displaylinkState.getVirtualDisplay() == null) {
+            this.release();
+        } else {
+            virtualDisplayId = displaylinkState.getVirtualDisplay().getDisplay().getDisplayId();
+        }
     }
 
     private static class DisplaylinkSender {
@@ -303,9 +361,13 @@ public class ListenOpenglAndPostFrame {
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            surfaceTexture.updateTexImage();
-            this.externalTextureRenderer.renderFrame(portraitMvpMatrix);
-            displaylinkSender.postFrame();
+            try {
+                surfaceTexture.updateTexImage();
+                this.externalTextureRenderer.renderFrame(portraitMvpMatrix);
+                displaylinkSender.postFrame();
+            } catch(Exception e) {
+                android.util.Log.e("ListenOpenglAndPostFrame", "failed to handle frame", e);
+            }
         }
 
         public void release() {
@@ -334,6 +396,10 @@ public class ListenOpenglAndPostFrame {
             if (autoScale) {
                 landscapeAutoScaler.onFrame();
             }
+        }
+
+        public void release() {
+            this.externalTextureRenderer.release();
         }
     }
 }
