@@ -152,7 +152,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="启动 Displaylink"/>
+        android:text="Displaylink 单应用投屏"/>
 
     <Button
         android:id="@+id/launch_app_button"

@@ -45,6 +45,7 @@ public class ListenOpenglAndPostFrame {
     private Surface portraitInputSurface;
     private SurfaceTexture landscapeInputSurfaceTexture;
     private Surface landscapeInputSurface;
+    private Surface currentSurface;
 
     public ListenOpenglAndPostFrame(VirtualDisplayArgs virtualDisplayArgs, Context context) {
         if (instance != null) {
@@ -66,8 +67,8 @@ public class ListenOpenglAndPostFrame {
         displaylinkState.handler.post(() -> start(displayManager));
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {
-            orientationChangeCallback = new OrientationChangeCallback(virtualDisplayArgs.width, virtualDisplayArgs.height);
-            displayManager.registerDisplayListener(orientationChangeCallback, null);
+            orientationChangeCallback = new OrientationChangeCallback();
+            displayManager.registerDisplayListener(orientationChangeCallback, displaylinkState.handler);
         }
     }
 
@@ -80,13 +81,6 @@ public class ListenOpenglAndPostFrame {
     }
 
     private class OrientationChangeCallback implements DisplayManager.DisplayListener {
-        private final int width;
-        private final int height;
-
-        private OrientationChangeCallback(int width, int height) {
-            this.width = width;
-            this.height = height;
-        }
 
         @Override
         public void onDisplayAdded(int displayId) {}
@@ -96,26 +90,34 @@ public class ListenOpenglAndPostFrame {
 
         @Override
         public void onDisplayChanged(int displayId) {
-            if (MediaProjectionService.instance == null) {
-                return;
-            }
             if (displayId == Display.DEFAULT_DISPLAY) {
-                DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
-                DisplayMetrics metrics = new DisplayMetrics();
-                Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-                defaultDisplay.getRealMetrics(metrics);
-
-                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
-                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                if (State.displaylinkState.getVirtualDisplay() != null) {
-                    if (isLandscape) {
-                        State.displaylinkState.getVirtualDisplay().resize(width, height, 160);
-                    } else {
-                        State.displaylinkState.getVirtualDisplay().resize(height, width, 160);
-                    }
-                    State.displaylinkState.getVirtualDisplay().setSurface(targetSurface);
-                }
+                updateSurface();
+                new Handler().postDelayed(() -> {
+                    updateSurface();
+                }, 1000);
             }
+        }
+    }
+
+    private void updateSurface() {
+        if (MediaProjectionService.instance == null) {
+            return;
+        }
+        DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+        DisplayMetrics metrics = new DisplayMetrics();
+        Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+        defaultDisplay.getRealMetrics(metrics);
+        android.util.Log.i("Opengl", "rotate, " + metrics.widthPixels + " , " + metrics.heightPixels);
+        boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+        Surface newSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+        if (newSurface != currentSurface && State.displaylinkState.getVirtualDisplay() != null) {
+            currentSurface = newSurface;
+            if (isLandscape) {
+                State.displaylinkState.getVirtualDisplay().resize(virtualDisplayArgs.width, virtualDisplayArgs.height, 160);
+            } else {
+                State.displaylinkState.getVirtualDisplay().resize(virtualDisplayArgs.height, virtualDisplayArgs.width, 160);
+            }
+            State.displaylinkState.getVirtualDisplay().setSurface(currentSurface);
         }
     }
 
@@ -237,19 +239,19 @@ public class ListenOpenglAndPostFrame {
             if (!autoRotate) {
                 isLandscape = true;
             }
-            Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+            currentSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
             displaylinkState.createdVirtualDisplay(State.getMediaProjection().createVirtualDisplay("Displaylink Mirror",
                     isLandscape ? width : height, isLandscape ? height : width, 160,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                    targetSurface, null, displaylinkState.handler));
+                    currentSurface, null, displaylinkState.handler));
             State.setMediaProjection(null);
         } else if (displaylinkState.getVirtualDisplay() != null) {
             DisplayMetrics metrics = new DisplayMetrics();
             Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
             defaultDisplay.getRealMetrics(metrics);
             boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
-            Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-            displaylinkState.getVirtualDisplay().setSurface(targetSurface);
+            currentSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+            displaylinkState.getVirtualDisplay().setSurface(currentSurface);
         }
     }
 
