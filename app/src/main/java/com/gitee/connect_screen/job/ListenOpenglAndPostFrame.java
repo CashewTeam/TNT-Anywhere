@@ -210,12 +210,12 @@ public class ListenOpenglAndPostFrame {
              1.0f,  1.0f, 0.0f   // 右上
         };
         
-        // 添加纹理坐标
+        // 修改纹理坐标，翻转 Y 轴
         private final float[] textureCoords = {
-            0.0f, 1.0f,  // 左下
-            1.0f, 1.0f,  // 右下
-            0.0f, 0.0f,  // 左上
-            1.0f, 0.0f   // 右上
+            0.0f, 0.0f,  // 左下
+            1.0f, 0.0f,  // 右下
+            0.0f, 1.0f,  // 左上
+            1.0f, 1.0f   // 右上
         };
 
         // 简化的顶点着色器代码
@@ -268,7 +268,7 @@ public class ListenOpenglAndPostFrame {
             portraitMvpMatrix = new float[16];
             android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
             android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
-            android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 90, 0, 0, 1.0f);
+            android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 270, 0, 0, 1.0f);
 
             // 初始化顶点缓冲
             ByteBuffer bb = ByteBuffer.allocateDirect(vertexCoords.length * 4);
