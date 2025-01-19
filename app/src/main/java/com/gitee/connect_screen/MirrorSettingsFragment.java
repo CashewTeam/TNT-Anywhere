@@ -6,8 +6,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.Spinner;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -80,6 +83,54 @@ public class MirrorSettingsFragment extends Fragment {
                 } catch (NumberFormatException e) {
                     heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
                 }
+            }
+        });
+
+        // 添加分辨率预设选项
+        Spinner resolutionPresetSpinner = view.findViewById(R.id.resolutionPresetSpinner);
+        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
+        ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
+            getContext(),
+            android.R.layout.simple_spinner_item,
+            resolutionPresets
+        );
+        resolutionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        resolutionPresetSpinner.setAdapter(resolutionAdapter);
+        
+        resolutionPresetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position) {
+                    case 1: // 1080p
+                        widthEditText.setText("1920");
+                        heightEditText.setText("1080");
+                        break;
+                    case 2: // 1440p
+                        widthEditText.setText("2560");
+                        heightEditText.setText("1440");
+                        break;
+                    case 3: // 2160p
+                        widthEditText.setText("3840");
+                        heightEditText.setText("2160");
+                        break;
+                    case 4: // ipad4
+                        widthEditText.setText("2048");
+                        heightEditText.setText("1536");
+                        break;
+                }
+                
+                Context context = requireContext();
+                DisplaylinkPref.load(context);
+                int height = Integer.parseInt(heightEditText.getText().toString());
+                int width = Integer.parseInt(widthEditText.getText().toString());
+                DisplaylinkPref.monitorHeight = height;
+                DisplaylinkPref.monitorWidth = width;
+                DisplaylinkPref.save(context);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // 不做任何操作
             }
         });
 
