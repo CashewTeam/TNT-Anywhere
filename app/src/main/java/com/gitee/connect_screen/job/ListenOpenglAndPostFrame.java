@@ -138,6 +138,7 @@ public class ListenOpenglAndPostFrame {
         @Override
         public void onDisplayRemoved(int displayId) {
             if (virtualDisplayId == displayId) {
+                android.util.Log.i("ListenOpenglAndPostFrame", "display removed, release");
                 release();
             }
         }
