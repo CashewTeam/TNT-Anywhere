@@ -17,13 +17,10 @@ import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
 
-import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.DisplaylinkState;
 import com.gitee.connect_screen.State;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 
 public class ListenOpenglAndPostFrame {
     public static ListenOpenglAndPostFrame instance;
@@ -144,7 +141,7 @@ public class ListenOpenglAndPostFrame {
         landscapeInputTextureId = textures[1];
 
         portraitRenderer = new PortraitRenderer(portraitInputTextureId, width, height);
-        landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, width, height, autoScale);
+        landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, width, height, autoScale);
 
         GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
@@ -196,17 +193,14 @@ public class ListenOpenglAndPostFrame {
         }
     }
 
-    private static class PortraitRenderer implements SurfaceTexture.OnFrameAvailableListener {
+    private static class DisplaylinkSender {
         private final DisplaylinkState displaylinkState;
         private final int width;
         private final int height;
-        private final ExternalTextureRenderer externalTextureRenderer;
         private ByteBuffer[] buffers;
         private int buffersIndex;
-        protected float[] portraitMvpMatrix;
-        
-        public PortraitRenderer(int inputTextureId, int width, int height) {
-            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId, true);
+
+        public DisplaylinkSender(int width, int height) {
             this.width = width;
             this.height = height;
             buffers = new ByteBuffer[] {
@@ -214,19 +208,10 @@ public class ListenOpenglAndPostFrame {
                     ByteBuffer.allocateDirect(width * height * 4),
                     ByteBuffer.allocateDirect(width * height * 4),
             };
-
-
-            portraitMvpMatrix = new float[16];
-            android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
-            android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
-            android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 270, 0, 0, 1.0f);
             displaylinkState = State.displaylinkState;
         }
 
-        @Override
-        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            surfaceTexture.updateTexImage();
-            this.externalTextureRenderer.renderFrame(portraitMvpMatrix);
+        public void postFrame() {
             GLES20.glFinish();
             ByteBuffer buffer = buffers[buffersIndex];
             buffer.position(0);
@@ -239,6 +224,28 @@ public class ListenOpenglAndPostFrame {
                 buffersIndex = (buffersIndex + 1) % buffers.length;
             }
         }
+    }
+
+    private static class PortraitRenderer implements SurfaceTexture.OnFrameAvailableListener {
+        private final ExternalTextureRenderer externalTextureRenderer;
+        private final DisplaylinkSender displaylinkSender;
+        protected float[] portraitMvpMatrix;
+
+        public PortraitRenderer(int inputTextureId, int width, int height) {
+            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId, true);
+            this.displaylinkSender = new DisplaylinkSender(width, height);
+            portraitMvpMatrix = new float[16];
+            android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
+            android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
+            android.opengl.Matrix.setRotateM(portraitMvpMatrix, 0, 270, 0, 0, 1.0f);
+        }
+
+        @Override
+        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            surfaceTexture.updateTexImage();
+            this.externalTextureRenderer.renderFrame(portraitMvpMatrix);
+            displaylinkSender.postFrame();
+        }
 
         public void release() {
             this.externalTextureRenderer.release();
@@ -246,18 +253,26 @@ public class ListenOpenglAndPostFrame {
     }
 
     private static class LandscapeRenderer implements SurfaceTexture.OnFrameAvailableListener {
-        private final int textureId;
-        private final EGLDisplay eglDisplay;
+        private final ExternalTextureRenderer externalTextureRenderer;
+        private final boolean autoScale;
+        private final LandscapeAutoScaler landscapeAutoScaler;
+        private final DisplaylinkSender displaylinkSender;
 
-        public LandscapeRenderer(int textureId, EGLDisplay eglDisplay, int width, int height, boolean autoScale) {
-            this.textureId = textureId;
-            this.eglDisplay = eglDisplay;
+        public LandscapeRenderer(int inputTextureId, int width, int height, boolean autoScale) {
+            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
+            this.autoScale = autoScale;
+            this.landscapeAutoScaler = new LandscapeAutoScaler(externalTextureRenderer, width, height, 0);
+            this.displaylinkSender = new DisplaylinkSender(width, height);
         }
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
             surfaceTexture.updateTexImage();
-            android.util.Log.i("Opengl", "landscape onFrame!!!");
+            externalTextureRenderer.renderFrame(landscapeAutoScaler.landscapeMvpMatrix);
+            displaylinkSender.postFrame();
+            if (autoScale) {
+                landscapeAutoScaler.onFrame();
+            }
         }
     }
 }
