@@ -7,7 +7,6 @@ import android.opengl.EGL14;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 import android.view.Surface;
 
 import com.displaylink.manager.display.DisplayMode;
@@ -23,7 +22,7 @@ import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 
-public class ListenOpenglAndPostFrame implements SurfaceTexture.OnFrameAvailableListener {
+public class ListenOpenglAndPostFrameOld implements SurfaceTexture.OnFrameAvailableListener {
 
     private int textureId;
     public SurfaceTexture surfaceTexture;
