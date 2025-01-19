@@ -549,7 +549,6 @@ public class MirrorActivity extends AppCompatActivity {
                 android.util.Log.e("MirrorActivity", "FBO创建失败，状态: " + status);
             }
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-
         }
 
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {

@@ -20,6 +20,7 @@ import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
+import com.gitee.connect_screen.job.ListenOpenglAndPostFrame;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,9 @@ public class MirrorHomeFragment extends Fragment {
                 State.mediaProjectionInUse = null;
             }
             State.setMediaProjection(null);
+            if (ListenOpenglAndPostFrame.instance != null) {
+                ListenOpenglAndPostFrame.instance.release();
+            }
             // 停止 MediaProjectionService
             Context context = requireContext();
             context.stopService(new Intent(context, MediaProjectionService.class));

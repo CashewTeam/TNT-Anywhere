@@ -108,7 +108,11 @@ public class ProjectViaDisplaylink implements Job {
         if (!requestMediaProjectionPermission(context, displaylinkState)) {
             return;
         }
-        createVirtualDisplay(context, displaylinkState);
+        if (projectionMode == ProjectionMode.MIRROR) {
+            new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
+        } else {
+            createVirtualDisplay(context, displaylinkState);
+        }
     }
 
     private void copyFirmwares(Context context) {
