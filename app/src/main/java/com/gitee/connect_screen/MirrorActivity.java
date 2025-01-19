@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
@@ -31,7 +30,6 @@ import com.gitee.connect_screen.job.ExternalTextureRenderer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 
 public class MirrorActivity extends AppCompatActivity {
     
@@ -52,7 +50,7 @@ public class MirrorActivity extends AppCompatActivity {
     private int landscapeInputTextureId = -1;
     private SurfaceTexture landscapeInputSurfaceTexture = null;
     private Surface landscapeInputSurface = null;
-    private PortraitRenderer landscapeRenderer;
+    private LandscapeRenderer landscapeRenderer;
 
     private boolean autoRotate;
     private boolean autoScale;
@@ -388,12 +386,15 @@ public class MirrorActivity extends AppCompatActivity {
         }
     }
 
-    private static class LandscapeRenderer extends PortraitRenderer {
+    private static class LandscapeRenderer implements SurfaceTexture.OnFrameAvailableListener {
+        private final EGLDisplay eglDisplay;
+        private final EGLSurface eglOutputSurface;
         private final int width;
         private final int height;
         private final boolean autoScale;
         private final float[] landscapeMvpMatrix;
         private final float[] identityMvpMatrix;
+        private final ExternalTextureRenderer externalTextureRenderer;
         private int frameCounter = 0;
         private int[] fbo = new int[1];
         private int[] tempTexture = new int[1];
@@ -402,7 +403,9 @@ public class MirrorActivity extends AppCompatActivity {
         private int leftRightBlackBarSize = 0;
 
         public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale) {
-            super(inputTextureId, eglDisplay, eglOutputSurface);
+            this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
+            this.eglDisplay = eglDisplay;
+            this.eglOutputSurface = eglOutputSurface;
             this.width = width;
             this.height = height;
             this.autoScale = autoScale;
@@ -595,9 +598,8 @@ public class MirrorActivity extends AppCompatActivity {
             return (r & 0xFF) == 0 && (g & 0xFF) == 0 && (b & 0xFF) == 0;
         }
 
-        @Override
         public void release() {
-            super.release();
+            this.externalTextureRenderer.release();
             // 清理额外的资源
             GLES20.glDeleteFramebuffers(1, fbo, 0);
             GLES20.glDeleteTextures(1, tempTexture, 0);
