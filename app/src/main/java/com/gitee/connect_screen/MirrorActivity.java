@@ -269,14 +269,6 @@ public class MirrorActivity extends AppCompatActivity {
 
 
                 });
-
-                State.mirrorStatus = "镜像投屏中";
-                if (autoRotate) {
-                    State.mirrorStatus += "，会自动旋转";
-                }
-                if (autoScale) {
-                    State.mirrorStatus += "，会自动缩放";
-                }
                 State.breadcrumbManager.refreshCurrentFragment();
             }
 
@@ -354,6 +346,7 @@ public class MirrorActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        instance = null;
         // 只在autoRotate为true时注销屏幕方向变化监听
         if (autoRotate) {
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
