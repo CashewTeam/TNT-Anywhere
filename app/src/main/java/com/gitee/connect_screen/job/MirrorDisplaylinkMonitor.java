@@ -22,7 +22,7 @@ public class MirrorDisplaylinkMonitor {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                DisplaylinkMonitor.onUsbDeviceDetached(device);
+                MirrorDisplaylinkMonitor.onUsbDeviceDetached(device);
             }
         }
     };
