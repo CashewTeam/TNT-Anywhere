@@ -110,7 +110,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         if (projectionMode == ProjectionMode.MIRROR) {
-            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.monitorWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.refreshRate), virtualDisplayArgs.monitorWidth * 4, 1);
+            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);
             new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
         } else {
             createVirtualDisplay(context, displaylinkState);
@@ -316,8 +316,8 @@ public class ProjectViaDisplaylink implements Job {
     }
 
     private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState) {
-        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
-        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.monitorHeight, 1, 2);
+        int virtualDisplayWidth = virtualDisplayArgs.width;
+        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.height, 1, 2);
         displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
         displaylinkState.handlerThread.start();
         displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());

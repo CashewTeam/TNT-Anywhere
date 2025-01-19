@@ -65,8 +65,8 @@ public class ListenOpenglAndPostFrame {
     }
 
     public void start() {
-        int width = virtualDisplayArgs.virtualDisplayWidth;
-        int height = virtualDisplayArgs.monitorHeight;
+        int width = virtualDisplayArgs.width;
+        int height = virtualDisplayArgs.height;
         // 初始化 EGL
         eglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
         if (eglDisplay == EGL14.EGL_NO_DISPLAY) {

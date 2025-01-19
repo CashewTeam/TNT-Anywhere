@@ -287,7 +287,6 @@ public class DisplaylinkFragment extends Fragment {
             "DisplayLink",
             DisplaylinkPref.monitorWidth,
             DisplaylinkPref.monitorHeight,
-            DisplaylinkPref.monitorWidth,
             DisplaylinkPref.refreshRate,
             DisplaylinkPref.dpi,
             DisplaylinkPref.rotatesWithContent

@@ -145,7 +145,7 @@ public class BridgeActivity extends AppCompatActivity {
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
                 if (State.bridgeVirtualDisplay != null) {
-                    ImageReader imageReader = ImageReader.newInstance(args.monitorWidth, args.monitorHeight, 1, 2);
+                    ImageReader imageReader = ImageReader.newInstance(args.width, args.height, 1, 2);
                     State.bridgeVirtualDisplay.setSurface(imageReader.getSurface());
                 }
                 return true;
@@ -169,7 +169,7 @@ public class BridgeActivity extends AppCompatActivity {
                 
                 // 根据旋转角度调整坐标
                 float[] adjustedCoords = adjustTouchCoordinates(x, y, rotation, 
-                    args.monitorWidth, args.monitorHeight, 
+                    args.width, args.height,
                     textureView.getWidth(), textureView.getHeight());
                 
                 // 设置调整后的坐标

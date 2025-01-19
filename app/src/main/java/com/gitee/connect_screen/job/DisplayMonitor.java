@@ -123,7 +123,7 @@ public class DisplayMonitor {
             new Handler().postDelayed(() -> {
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getMetrics(metrics);
-                State.startNewJob(new ProjectViaBridge(display, new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), display.getWidth(), (int) display.getRefreshRate(), metrics.densityDpi, BridgePref.rotatesWithContent)));
+                State.startNewJob(new ProjectViaBridge(display, new VirtualDisplayArgs("桥接屏幕", display.getWidth(), display.getHeight(), (int) display.getRefreshRate(), metrics.densityDpi, BridgePref.rotatesWithContent)));
             }, 500);
             return;
         }

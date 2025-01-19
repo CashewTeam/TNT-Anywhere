@@ -55,7 +55,6 @@ public class BridgeDialog {
                             "桥接屏幕",
                             initialSize.x,
                             initialSize.y,
-                            initialSize.x,
                             (int) display.getRefreshRate(),
                             metrics.densityDpi,
                             BridgePref.rotatesWithContent)));

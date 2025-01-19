@@ -30,8 +30,8 @@ public class ListenImageReaderAndPostFrame implements ImageReader.OnImageAvailab
 
     public ListenImageReaderAndPostFrame(VirtualDisplayArgs virtualDisplayArgs) {
         this.displaylinkState = State.displaylinkState;
-        this.monitorWidth = virtualDisplayArgs.monitorWidth;
-        this.monitorHeight = virtualDisplayArgs.monitorHeight;
+        this.monitorWidth = virtualDisplayArgs.width;
+        this.monitorHeight = virtualDisplayArgs.height;
         this.refreshRate = virtualDisplayArgs.refreshRate;
     }
 

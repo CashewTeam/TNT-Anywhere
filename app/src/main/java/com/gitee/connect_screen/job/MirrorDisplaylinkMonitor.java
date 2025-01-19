@@ -89,7 +89,7 @@ public class MirrorDisplaylinkMonitor {
         // 处理 USB 设备连接的逻辑
         if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
             DisplaylinkPref.load(context);
-            State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
+            State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
             State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
         }
     }

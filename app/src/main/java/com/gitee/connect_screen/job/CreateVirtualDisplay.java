@@ -59,9 +59,8 @@ public class CreateVirtualDisplay {
     }
 
     private static VirtualDisplay createByMediaProjection(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
-        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
         VirtualDisplay virtualDisplay = State.getMediaProjection().createVirtualDisplay(virtualDisplayArgs.virtualDisplayName,
-                virtualDisplayWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.dpi,
+                virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                 surface, null, null);
         State.setMediaProjection(null);
@@ -69,14 +68,14 @@ public class CreateVirtualDisplay {
     }
 
     private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly) {
-        int virtualDisplayWidth = virtualDisplayArgs.virtualDisplayWidth;
+        int virtualDisplayWidth = virtualDisplayArgs.width;
         IDisplayManager displayManager = ServiceUtils.getDisplayManager();
         int flags = getFlags(virtualDisplayArgs, ownContentOnly);
         VirtualDisplayConfig config = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             config = new VirtualDisplayConfig.Builder(
                     virtualDisplayArgs.virtualDisplayName,
-                    virtualDisplayWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.dpi)
+                    virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi)
                     .setSurface(surface)
                     .setFlags(flags)
                     .setRequestedRefreshRate(virtualDisplayArgs.refreshRate)
@@ -84,7 +83,7 @@ public class CreateVirtualDisplay {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             config = new VirtualDisplayConfig.Builder(
                     virtualDisplayArgs.virtualDisplayName,
-                    virtualDisplayWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.dpi)
+                    virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi)
                     .setSurface(surface)
                     .setFlags(flags)
                     .build();
@@ -101,7 +100,7 @@ public class CreateVirtualDisplay {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
         } else {
-            displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.dpi, surface, flags, virtualDisplayArgs.virtualDisplayName);
+            displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi, surface, flags, virtualDisplayArgs.virtualDisplayName);
         }
         DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
         State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);

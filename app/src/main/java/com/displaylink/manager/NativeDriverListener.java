@@ -68,7 +68,7 @@ public class NativeDriverListener {
                 if (!State.isJobRunning() && wasNoMonitor) {
                     boolean useSingleApp = State.currentActivity.get() instanceof MainActivity;
                     DisplaylinkPref.load(context);
-                    State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.monitorWidth, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
+                    State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
                     State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs, useSingleApp ? ProjectionMode.SINGLE_APP : ProjectionMode.MIRROR));
                 }
             }
