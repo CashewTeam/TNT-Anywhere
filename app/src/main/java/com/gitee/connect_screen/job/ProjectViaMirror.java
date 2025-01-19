@@ -63,7 +63,7 @@ public class ProjectViaMirror implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (MediaProjectionService.isStarting && !State.hasService) {
+            if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
                 throw new YieldException("等待服务启动");
             }
             State.log("因为未授予投屏权限，跳过任务");

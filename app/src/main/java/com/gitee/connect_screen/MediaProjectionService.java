@@ -23,6 +23,7 @@ import android.view.Surface;
 
 public class MediaProjectionService extends Service {
 
+    public static Service instance;
     public static boolean isStarting = false;
     private final IBinder binder = new LocalBinder();
     private static final int NOTIFICATION_ID = 1;
@@ -37,7 +38,7 @@ public class MediaProjectionService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        State.hasService = true;
+        instance = this;
         State.log("MediaProjectionService onCreate");
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
@@ -70,7 +71,7 @@ public class MediaProjectionService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        State.hasService = false;
+        instance = null;
         State.log("MediaProjectionService onDestroy");
     }
 

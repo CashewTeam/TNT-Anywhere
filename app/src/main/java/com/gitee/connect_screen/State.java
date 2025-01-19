@@ -26,7 +26,6 @@ public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<Activity> currentActivity;
     public static BreadcrumbManager breadcrumbManager;
-    public static boolean hasService = false;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
@@ -41,6 +40,7 @@ public class State {
     public static int mirrorDisplayId = -1;
     public static FloatingButtonService floatingButtonService;
     public static Activity isInPureBlackActivity = null;
+
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 

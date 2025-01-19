@@ -55,6 +55,7 @@ public class MirrorActivity extends AppCompatActivity {
 
     private boolean autoRotate;
     private boolean autoScale;
+    private OrientationChangeCallback orientationChangeCallback;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -79,24 +80,22 @@ public class MirrorActivity extends AppCompatActivity {
         @Override
         public void onDisplayChanged(int displayId) {
             if (displayId == Display.DEFAULT_DISPLAY) {
-                renderHandler.post(() -> {
-                    DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-                    Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-                    DisplayMetrics metrics = new DisplayMetrics();
-                    display.getRealMetrics(metrics);
-                    
-                    boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
-                    Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                    
-                    if (State.mirrorVirtualDisplay != null) {
-                        if (isLandscape) {
-                            State.mirrorVirtualDisplay.resize(surfaceView.getWidth(), surfaceView.getHeight(), 160);
-                        } else {
-                            State.mirrorVirtualDisplay.resize(surfaceView.getHeight(), surfaceView.getWidth(), 160);
-                        }
-                        State.mirrorVirtualDisplay.setSurface(targetSurface);
+                DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+                Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+                DisplayMetrics metrics = new DisplayMetrics();
+                display.getRealMetrics(metrics);
+
+                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+
+                if (State.mirrorVirtualDisplay != null) {
+                    if (isLandscape) {
+                        State.mirrorVirtualDisplay.resize(surfaceView.getWidth(), surfaceView.getHeight(), 160);
+                    } else {
+                        State.mirrorVirtualDisplay.resize(surfaceView.getHeight(), surfaceView.getWidth(), 160);
                     }
-                });
+                    State.mirrorVirtualDisplay.setSurface(targetSurface);
+                }
             }
         }
     }
@@ -138,7 +137,8 @@ public class MirrorActivity extends AppCompatActivity {
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-            displayManager.registerDisplayListener(new OrientationChangeCallback(), renderHandler);
+            orientationChangeCallback = new OrientationChangeCallback();
+            displayManager.registerDisplayListener(orientationChangeCallback, renderHandler);
         }
         
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
@@ -348,10 +348,9 @@ public class MirrorActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         instance = null;
-        // 只在autoRotate为true时注销屏幕方向变化监听
-        if (autoRotate) {
+        if (orientationChangeCallback != null) {
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-            displayManager.unregisterDisplayListener(new OrientationChangeCallback());
+            displayManager.unregisterDisplayListener(orientationChangeCallback);
         }
         State.log("MirrorActivity destroyed");
     }

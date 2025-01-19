@@ -177,7 +177,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
                 lastCheckTime = System.currentTimeMillis(); // 记录时间戳
-                if (State.hasService) {
+                if (MediaProjectionService.instance != null) {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
                     State.getMediaProjection().registerCallback(new MediaProjection.Callback() {

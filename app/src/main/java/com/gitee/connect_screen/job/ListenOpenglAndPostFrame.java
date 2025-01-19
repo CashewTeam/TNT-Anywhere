@@ -2,6 +2,8 @@ package com.gitee.connect_screen.job;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
+import static rikka.shizuku.SystemServiceHelper.getSystemService;
+
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
@@ -18,6 +20,8 @@ import android.view.Display;
 import android.view.Surface;
 
 import com.gitee.connect_screen.DisplaylinkState;
+import com.gitee.connect_screen.MediaProjectionService;
+import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
 
 import java.nio.ByteBuffer;
@@ -25,7 +29,7 @@ import java.nio.ByteBuffer;
 public class ListenOpenglAndPostFrame {
     public static ListenOpenglAndPostFrame instance;
     private final VirtualDisplayArgs virtualDisplayArgs;
-    private final Display defaultDisplay;
+    private OrientationChangeCallback orientationChangeCallback;
     private EGLDisplay eglDisplay;
     private EGLConfig eglConfig;
     private EGLContext eglContext;
@@ -36,7 +40,7 @@ public class ListenOpenglAndPostFrame {
     private PortraitRenderer portraitRenderer;
     private LandscapeRenderer landscapeRenderer;
     private boolean autoRotate = true;
-    private boolean autoScale = true;
+    private boolean autoScale = false;
     private SurfaceTexture portraitInputSurfaceTexture;
     private Surface portraitInputSurface;
     private SurfaceTexture landscapeInputSurfaceTexture;
@@ -51,17 +55,65 @@ public class ListenOpenglAndPostFrame {
         DisplaylinkState displaylinkState = State.displaylinkState;
         displaylinkState.handlerThread = new HandlerThread("ListenOpenglAndPostFrame");
         displaylinkState.handlerThread.start();
-        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
-        displaylinkState.handler.post(this::start);
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-        defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
+        displaylinkState.handler.post(() -> start(displayManager));
+        // 只在autoRotate为true时注册屏幕方向变化监听
+        if (autoRotate) {
+            orientationChangeCallback = new OrientationChangeCallback(virtualDisplayArgs.width, virtualDisplayArgs.height);
+            displayManager.registerDisplayListener(orientationChangeCallback, null);
+        }
     }
 
     public void release() {
         instance = null;
+        if (orientationChangeCallback != null && MediaProjectionService.instance != null) {
+            DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+            displayManager.unregisterDisplayListener(orientationChangeCallback);
+        }
     }
 
-    public void start() {
+    private class OrientationChangeCallback implements DisplayManager.DisplayListener {
+        private final int width;
+        private final int height;
+
+        private OrientationChangeCallback(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        @Override
+        public void onDisplayAdded(int displayId) {}
+
+        @Override
+        public void onDisplayRemoved(int displayId) {}
+
+        @Override
+        public void onDisplayChanged(int displayId) {
+            if (MediaProjectionService.instance == null) {
+                return;
+            }
+            if (displayId == Display.DEFAULT_DISPLAY) {
+                DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+                DisplayMetrics metrics = new DisplayMetrics();
+                Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+                defaultDisplay.getRealMetrics(metrics);
+
+                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+                if (State.displaylinkState.getVirtualDisplay() != null) {
+                    if (isLandscape) {
+                        State.displaylinkState.getVirtualDisplay().resize(width, height, 160);
+                    } else {
+                        State.displaylinkState.getVirtualDisplay().resize(height, width, 160);
+                    }
+                    State.displaylinkState.getVirtualDisplay().setSurface(targetSurface);
+                }
+            }
+        }
+    }
+
+    public void start(DisplayManager displayManager) {
         int width = virtualDisplayArgs.width;
         int height = virtualDisplayArgs.height;
         // 初始化 EGL
@@ -173,6 +225,7 @@ public class ListenOpenglAndPostFrame {
         if (displaylinkState.getVirtualDisplay() == null && State.getMediaProjection() != null) {
             displaylinkState.stopVirtualDisplay();
             DisplayMetrics metrics = new DisplayMetrics();
+            Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
             defaultDisplay.getRealMetrics(metrics);
             boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
             if (!autoRotate) {
@@ -186,6 +239,7 @@ public class ListenOpenglAndPostFrame {
             State.setMediaProjection(null);
         } else if (displaylinkState.getVirtualDisplay() != null) {
             DisplayMetrics metrics = new DisplayMetrics();
+            Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
             defaultDisplay.getRealMetrics(metrics);
             boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
             Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
@@ -218,7 +272,6 @@ public class ListenOpenglAndPostFrame {
             GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
             buffer.rewind();
             int resultCode = displaylinkState.nativeDriver.postFrame(displaylinkState.encoderId, buffer);
-            android.util.Log.i("Opengl", "portrait onFrame!!! " + resultCode);
             boolean buffered = resultCode != 1 && resultCode != -2;
             if (buffered) {
                 buffersIndex = (buffersIndex + 1) % buffers.length;
