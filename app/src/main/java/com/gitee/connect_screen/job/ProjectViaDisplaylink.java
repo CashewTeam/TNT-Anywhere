@@ -19,6 +19,7 @@ import android.view.Surface;
 
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
+import com.displaylink.manager.display.DisplayMode;
 import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.MainActivity;
@@ -109,6 +110,7 @@ public class ProjectViaDisplaylink implements Job {
             return;
         }
         if (projectionMode == ProjectionMode.MIRROR) {
+            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.monitorWidth, virtualDisplayArgs.monitorHeight, virtualDisplayArgs.refreshRate), virtualDisplayArgs.monitorWidth * 4, 1);
             new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
         } else {
             createVirtualDisplay(context, displaylinkState);
