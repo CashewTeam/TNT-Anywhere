@@ -10,6 +10,7 @@ import android.view.Display;
 import android.view.DisplayHidden;
 
 import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
 
@@ -17,6 +18,7 @@ import dev.rikka.tools.refine.Refine;
 
 public class ProjectViaMirror implements Job {
     private static int TYPE_WIFI = 3;
+    private Thread waitThread;
     private final Display mirrorDisplay;
     private boolean mediaProjectionRequested;
 
@@ -26,6 +28,10 @@ public class ProjectViaMirror implements Job {
 
     @Override
     public void start() throws YieldException {
+        if (waitThread != null) {
+            waitThread.interrupt();
+            waitThread = null;
+        }
         DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);
         if (displayHidden.getType() == TYPE_WIFI) {
             return;
@@ -57,32 +63,13 @@ public class ProjectViaMirror implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (!State.hasService) {
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(6000);
-                        if (State.mirrorVirtualDisplay != null) {
-                            return;
-                        }
-                        if (State.getMediaProjection() != null) {
-                            return;
-                        }
-                        mediaProjectionRequested = false;
-                        Activity activity = State.currentActivity.get();
-                        if (activity != null) {
-                            activity.runOnUiThread(() -> {
-                                State.resumeJob();
-                            });
-                        }
-                    } catch (InterruptedException e) {
-                        // ignore
-                    }
-                }).start();
+            if (MediaProjectionService.isStarting && !State.hasService) {
                 throw new YieldException("等待服务启动");
             }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
+        MediaProjectionService.isStarting = true;
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {

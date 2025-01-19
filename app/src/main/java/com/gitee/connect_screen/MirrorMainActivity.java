@@ -50,6 +50,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     private RecyclerView logRecyclerView;
     private LogAdapter logAdapter;
 
+    // 添加时间戳和延迟常量
+    private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
+    private long lastMonitorInitTime = 0;
+
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -140,6 +144,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        lastMonitorInitTime = System.currentTimeMillis();
         MirrorDisplayMonitor.init(displayManager);
         DisplaylinkMonitor.init(this);
     }
@@ -148,10 +153,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onResume() {
         super.onResume();
-        // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
         State.resumeJob();
-        if (MirrorActivity.getInstance() == null) {
+        
+        // 检查时间间隔
+        if (MirrorActivity.getInstance() == null && 
+            (System.currentTimeMillis() - lastMonitorInitTime > MONITOR_INIT_DELAY)) {
+            lastMonitorInitTime = System.currentTimeMillis(); // 记录时间戳
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
             MirrorDisplayMonitor.init(displayManager);
         }
@@ -170,9 +178,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+       
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
+                lastMonitorInitTime = System.currentTimeMillis(); // 记录时间戳
                 if (State.hasService) {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
@@ -190,6 +200,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                     startService(serviceIntent);
                 }
             } else {
+                MediaProjectionService.isStarting = false;
                 State.log("用户拒绝了投屏权限");
                 State.resumeJob();
             }

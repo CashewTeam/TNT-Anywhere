@@ -45,7 +45,9 @@ public class MirrorHomeFragment extends Fragment {
         exitBtn.setOnClickListener(v -> {
             if (State.mediaProjectionInUse != null) {
                 State.mediaProjectionInUse.stop();
+                State.mediaProjectionInUse = null;
             }
+            State.setMediaProjection(null);
             // 停止 MediaProjectionService
             Context context = requireContext();
             context.stopService(new Intent(context, MediaProjectionService.class));

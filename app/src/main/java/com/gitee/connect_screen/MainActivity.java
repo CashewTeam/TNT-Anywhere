@@ -187,6 +187,7 @@ public class MainActivity extends AppCompatActivity implements IMainActivity {
                     startService(serviceIntent);
                 }
             } else {
+                MediaProjectionService.isStarting = false;
                 State.log("用户拒绝了投屏权限");
                 State.resumeJob();
             }

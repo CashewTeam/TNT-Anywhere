@@ -23,6 +23,7 @@ import android.view.Surface;
 
 public class MediaProjectionService extends Service {
 
+    public static boolean isStarting = false;
     private final IBinder binder = new LocalBinder();
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "MediaProjectionServiceChannel";
@@ -45,6 +46,7 @@ public class MediaProjectionService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         State.log("MediaProjectionService onStartCommand");
+        isStarting = false;
         if (intent != null && intent.hasExtra("data")) {
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             Intent data = intent.getParcelableExtra("data");
@@ -56,6 +58,10 @@ public class MediaProjectionService extends Service {
                     State.log("MediaProjection onStop 回调");
                 }
             }, null);
+            State.resumeJob();
+        } else {
+            MediaProjectionService.isStarting = false;
+            State.log("MediaProjectionService 收到错误数据");
             State.resumeJob();
         }
         return START_NOT_STICKY;

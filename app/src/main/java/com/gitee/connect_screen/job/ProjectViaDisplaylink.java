@@ -22,6 +22,7 @@ import com.displaylink.manager.NativeDriverListener;
 import com.gitee.connect_screen.DisplaylinkPref;
 import com.gitee.connect_screen.LauncherActivity;
 import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
@@ -284,13 +285,14 @@ public class ProjectViaDisplaylink implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (!State.hasService) {
+            if (MediaProjectionService.isStarting && !State.hasService) {
                 throw new YieldException("等待服务启动");
             }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
         displaylinkState.stopVirtualDisplay();
+        MediaProjectionService.isStarting = true;
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {

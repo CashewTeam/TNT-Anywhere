@@ -11,6 +11,7 @@ import android.view.DisplayHidden;
 import com.gitee.connect_screen.BridgeActivity;
 import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.MainActivity;
+import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
@@ -62,12 +63,13 @@ public class ProjectViaBridge implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (!State.hasService) {
+            if (MediaProjectionService.isStarting && !State.hasService) {
                 throw new YieldException("等待服务启动");
             }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
+        MediaProjectionService.isStarting = true;
         mediaProjectionRequested = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {
