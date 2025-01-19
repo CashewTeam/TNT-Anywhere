@@ -80,53 +80,58 @@ public class ListenOpenglAndPostFrame {
             displayManager.unregisterDisplayListener(orientationChangeCallback);
         }
         
-        // 释放 Surface 和 SurfaceTexture
-        if (portraitInputSurface != null) {
-            portraitInputSurface.release();
-            portraitInputSurface = null;
-        }
-        if (portraitInputSurfaceTexture != null) {
-            portraitInputSurfaceTexture.release();
-            portraitInputSurfaceTexture = null;
-        }
-        if (landscapeInputSurface != null) {
-            landscapeInputSurface.release();
-            landscapeInputSurface = null;
-        }
-        if (landscapeInputSurfaceTexture != null) {
-            landscapeInputSurfaceTexture.release();
-            landscapeInputSurfaceTexture = null;
-        }
-        
-        // 释放渲染器
-        if (portraitRenderer != null) {
-            portraitRenderer.release();
-            portraitRenderer = null;
-        }
-        if (landscapeRenderer != null) {
-            landscapeRenderer.release();
-            landscapeRenderer = null;
-        }
-        
-        // 删除 OpenGL 纹理和 FBO
-        if (tempTexture[0] != 0) {
-            GLES20.glDeleteTextures(1, tempTexture, 0);
-            tempTexture[0] = 0;
-        }
-        if (fbo[0] != 0) {
-            GLES20.glDeleteFramebuffers(1, fbo, 0);
-            fbo[0] = 0;
-        }
-        
-        // 释放 EGL 资源
-        if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
-            EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
-            if (eglContext != EGL14.EGL_NO_CONTEXT) {
-                EGL14.eglDestroyContext(eglDisplay, eglContext);
-                eglContext = EGL14.EGL_NO_CONTEXT;
-            }
-            EGL14.eglTerminate(eglDisplay);
-            eglDisplay = EGL14.EGL_NO_DISPLAY;
+        // 在 OpenGL 线程中释放资源
+        if (State.displaylinkState != null && State.displaylinkState.handler != null) {
+            State.displaylinkState.handler.post(() -> {
+                // 释放 Surface 和 SurfaceTexture
+                if (portraitInputSurface != null) {
+                    portraitInputSurface.release();
+                    portraitInputSurface = null;
+                }
+                if (portraitInputSurfaceTexture != null) {
+                    portraitInputSurfaceTexture.release();
+                    portraitInputSurfaceTexture = null;
+                }
+                if (landscapeInputSurface != null) {
+                    landscapeInputSurface.release();
+                    landscapeInputSurface = null;
+                }
+                if (landscapeInputSurfaceTexture != null) {
+                    landscapeInputSurfaceTexture.release();
+                    landscapeInputSurfaceTexture = null;
+                }
+                
+                // 释放渲染器
+                if (portraitRenderer != null) {
+                    portraitRenderer.release();
+                    portraitRenderer = null;
+                }
+                if (landscapeRenderer != null) {
+                    landscapeRenderer.release();
+                    landscapeRenderer = null;
+                }
+                
+                // 删除 OpenGL 纹理和 FBO
+                if (tempTexture[0] != 0) {
+                    GLES20.glDeleteTextures(1, tempTexture, 0);
+                    tempTexture[0] = 0;
+                }
+                if (fbo[0] != 0) {
+                    GLES20.glDeleteFramebuffers(1, fbo, 0);
+                    fbo[0] = 0;
+                }
+                
+                // 释放 EGL 资源
+                if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
+                    EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
+                    if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                        EGL14.eglDestroyContext(eglDisplay, eglContext);
+                        eglContext = EGL14.EGL_NO_CONTEXT;
+                    }
+                    EGL14.eglTerminate(eglDisplay);
+                    eglDisplay = EGL14.EGL_NO_DISPLAY;
+                }
+            });
         }
     }
 
