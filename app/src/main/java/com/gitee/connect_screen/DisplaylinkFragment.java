@@ -21,6 +21,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.DisplaylinkMonitor;
@@ -186,6 +188,10 @@ public class DisplaylinkFragment extends Fragment {
         detailContent.setText(sb.toString());
 
         mirrorViaDisplaylinkButton.setOnClickListener(v -> {
+            if (!ShizukuUtils.hasPermission()) {
+                Toast.makeText(requireContext(), "Displaylink 单应用投屏需要 shizuku 权限", Toast.LENGTH_SHORT).show();
+                return;
+            }
             DisplaylinkPref.save(getContext());
             State.startNewJob(new ProjectViaDisplaylink(device, displaylinkState.virtualDisplayArgs, ProjectionMode.SINGLE_APP));
         });
