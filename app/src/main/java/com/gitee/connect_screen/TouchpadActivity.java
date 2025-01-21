@@ -79,6 +79,18 @@ public class TouchpadActivity extends AppCompatActivity {
         float initialTouchY = 0;
     }
 
+    private static class StrokePoint {
+        float x;
+        float y;
+        long time;
+
+        StrokePoint(float x, float y, long time) {
+            this.x = x;
+            this.y = y;
+            this.time = time;
+        }
+    }
+
     public static boolean startTouchpad(Context context,int displayId, boolean dryRun) {
         if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.Q && !ShizukuUtils.hasPermission()) {
             return false;
@@ -604,78 +616,91 @@ public class TouchpadActivity extends AppCompatActivity {
     // 添加新方法：通过无障碍服务回放手势
     private void replayGestureViaAccessibility() {
         TouchpadAccessibilityService service = TouchpadAccessibilityService.getInstance();
-        if (service == null || gestureState.allMotionEvents.isEmpty()) {
-            Log.w(TAG, "无法回放手势：service=" + service + ", 事件数量=" + 
-                (gestureState.allMotionEvents != null ? gestureState.allMotionEvents.size() : 0));
-            return;
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        if (service == null || gestureState.allMotionEvents.isEmpty() || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return;
         }
 
-        Log.d(TAG, "开始构建手势，共有 " + gestureState.allMotionEvents.size() + " 个事件");
+        // 为每个触点记录起点和终点
+        SparseArray<StrokePoint> startPoints = new SparseArray<>();
+        SparseArray<StrokePoint> endPoints = new SparseArray<>();
+        long baseTime = gestureState.allMotionEvents.get(0).getDownTime();
 
-        // 为每个触点创建一个路径
-        SparseArray<Path> pointerPaths = new SparseArray<>();
-        
-        // 遍历所有事件，构建每个触点的路径
+        // 遍历所有事件来记录每个触点的起点和终点
         for (MotionEvent event : gestureState.allMotionEvents) {
-            Log.d(TAG, String.format("处理事件：动作=%d, 触点数=%d, 坐标=(%.1f, %.1f)", 
-                event.getAction(), event.getPointerCount(), event.getX(), event.getY()));
+            int action = event.getActionMasked();
+            int pointerIndex = event.getActionIndex();
             
-            for (int i = 0; i < event.getPointerCount(); i++) {
-                int pointerId = event.getPointerId(i);
-                Path path = pointerPaths.get(pointerId);
-                float x = event.getX(i);
-                float y = event.getY(i);
-                if (x < 0) x = 0;
-                if (y < 0) y = 0;
-                
-                if (path == null) {
-                    path = new Path();
-                    pointerPaths.put(pointerId, path);
-                    path.moveTo(x, y);
-                    Log.d(TAG, String.format("触点 #%d 开始新路径：(%.1f, %.1f)", pointerId, x, y));
-                } else {
-                    path.lineTo(x, y);
-                    Log.d(TAG, String.format("触点 #%d 继续路径到：(%.1f, %.1f)", pointerId, x, y));
-                }
+            switch (action) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    int pointerId = event.getPointerId(pointerIndex);
+                    startPoints.put(pointerId, new StrokePoint(
+                        Math.max(0, event.getX(pointerIndex)),
+                        Math.max(0, event.getY(pointerIndex)),
+                        event.getEventTime() - baseTime
+                    ));
+                    break;
+                    
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_POINTER_UP:
+                    pointerId = event.getPointerId(pointerIndex);
+                    endPoints.put(pointerId, new StrokePoint(
+                        Math.max(0, event.getX(pointerIndex)),
+                        Math.max(0, event.getY(pointerIndex)),
+                        event.getEventTime() - baseTime
+                    ));
+                    break;
+                    
+                case MotionEvent.ACTION_MOVE:
+                    // 更新所有活动触点的当前位置
+                    for (int i = 0; i < event.getPointerCount(); i++) {
+                        pointerId = event.getPointerId(i);
+                        endPoints.put(pointerId, new StrokePoint(
+                            Math.max(0, event.getX(i)),
+                            Math.max(0, event.getY(i)),
+                            event.getEventTime() - baseTime
+                        ));
+                    }
+                    break;
             }
         }
-
-        Log.d(TAG, "共构建了 " + pointerPaths.size() + " 条触点路径");
 
         // 创建手势构建器
         GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
-        // 设置目标显示器
         gestureBuilder.setDisplayId(displayId);
-        long startTime = 0;
-        long duration = gestureState.allMotionEvents.get(gestureState.allMotionEvents.size() - 1).getEventTime() - 
-                       gestureState.allMotionEvents.get(0).getDownTime();
 
-        // 为每个触点添加笔画
-        for (int i = 0; i < pointerPaths.size(); i++) {
-            Path path = pointerPaths.valueAt(i);
-            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(path, startTime, duration));
-            Log.d(TAG, String.format("添加第 %d 条路径，持续时间：%d ms", i, duration));
+        // 为每个触点添加一个笔画
+        for (int i = 0; i < startPoints.size(); i++) {
+            int pointerId = startPoints.keyAt(i);
+            StrokePoint start = startPoints.get(pointerId);
+            StrokePoint end = endPoints.get(pointerId);
+
+            if (end == null) {
+                // 如果没有结束点，使用最后一个已知位置
+                end = start;
+            }
+
+            Path strokePath = new Path();
+            strokePath.moveTo(start.x, start.y);
+            strokePath.lineTo(end.x, end.y);
+
+            long duration = end.time - start.time;
+            if (duration <= 0) duration = 100; // 确保持续时间至少为100ms
+
+            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(
+                strokePath,
+                start.time,  // 开始时间
+                duration,    // 持续时间
+                false       // 不继续
+            ));
         }
 
-        // 构建最终的手势描述
-        GestureDescription gestureDescription = gestureBuilder.build();
-
-        // 在目标显示器上执行手势
-        Log.d(TAG, "准备在显示器 " + displayId + " 上执行手势");
-        service.setFocus(displayId);
-        service.dispatchGesture(gestureDescription, new AccessibilityService.GestureResultCallback() {
-            @Override
-            public void onCompleted(GestureDescription gestureDescription) {
-                Log.d(TAG, "手势执行完成");
-            }
-
-            @Override
-            public void onCancelled(GestureDescription gestureDescription) {
-                Log.e(TAG, "手势被取消");
-            }
-        }, null);
+        // 检查是否有至少一个笔画
+        if (startPoints.size() > 0) {
+            // 执行手势
+            GestureDescription gestureDescription = gestureBuilder.build();
+            service.setFocus(displayId);
+            service.dispatchGesture(gestureDescription, null, null);
+        }
     }
 }
