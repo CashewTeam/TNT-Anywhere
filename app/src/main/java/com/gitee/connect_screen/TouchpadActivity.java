@@ -176,13 +176,51 @@ public class TouchpadActivity extends AppCompatActivity {
         touchpadArea = findViewById(R.id.touchpad_area);
         
         // 替换触控板的触摸事件监听
+        if (inputManager == null) {
+            // 使用无障碍
+        } else {
+            setupTouchListenerForInputManager();
+        }
+        
+        // 修改暗色模式按钮点击事件
+        ImageButton goDarkButton = findViewById(R.id.goDarkButton);
+        goDarkButton.setOnClickListener(v -> toggleDarkMode());
+        
+        // 添加返回按钮的点击监听器
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> {
+            performBackGesture(inputManager, displayId);
+        });
+
+        // 添加Home按钮的点击监听器
+        ImageButton homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(v -> {
+            launchLastPackage(this, displayId);
+        });
+
+        setupModeSpinner();
+
+        // 添加退出按钮的点击监听器
+        Button exitButton = findViewById(R.id.exitButton);
+        exitButton.setOnClickListener(v -> finish());
+
+        if (ShizukuUtils.hasPermission()) {
+            setFocus(inputManager, displayId);
+        }
+
+        // 获取切换模式按钮并设置点击监听器
+        Button switchModeButton = findViewById(R.id.switchModeButton);
+        switchModeButton.setOnClickListener(v -> switchMode());
+    }
+
+    private void setupTouchListenerForInputManager() {
         touchpadArea.setOnTouchListener((v, event) -> {
             // 计算偏移量并存储修改后的事件
             if (gestureState.allMotionEvents.isEmpty()) {
                 gestureState.initialTouchX = event.getX();
                 gestureState.initialTouchY = event.getY();
             }
-            
+
             float relativeX = event.getX() - gestureState.initialTouchX;
             float relativeY = event.getY() - gestureState.initialTouchY;
 
@@ -190,7 +228,7 @@ public class TouchpadActivity extends AppCompatActivity {
             float absoluteY = cursorY + halfHeight + relativeY * 2;
             float offsetX = absoluteX - event.getX();
             float offsetY = absoluteY - event.getY();
-            
+
             MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event, offsetX, offsetY);
             gestureState.allMotionEvents.add(copiedEventWithOffset);
 
@@ -228,36 +266,6 @@ public class TouchpadActivity extends AppCompatActivity {
             replayBufferedEvents();
             return true;
         });
-        
-        // 修改暗色模式按钮点击事件
-        ImageButton goDarkButton = findViewById(R.id.goDarkButton);
-        goDarkButton.setOnClickListener(v -> toggleDarkMode());
-        
-        // 添加返回按钮的点击监听器
-        ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> {
-            performBackGesture(inputManager, displayId);
-        });
-
-        // 添加Home按钮的点击监听器
-        ImageButton homeButton = findViewById(R.id.homeButton);
-        homeButton.setOnClickListener(v -> {
-            launchLastPackage(this, displayId);
-        });
-
-        setupModeSpinner();
-
-        // 添加退出按钮的点击监听器
-        Button exitButton = findViewById(R.id.exitButton);
-        exitButton.setOnClickListener(v -> finish());
-
-        if (ShizukuUtils.hasPermission()) {
-            setFocus(inputManager, displayId);
-        }
-
-        // 获取切换模式按钮并设置点击监听器
-        Button switchModeButton = findViewById(R.id.switchModeButton);
-        switchModeButton.setOnClickListener(v -> switchMode());
     }
 
     public static void launchLastPackage(Context context, int displayId) {
