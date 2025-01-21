@@ -1,19 +1,24 @@
 package com.gitee.connect_screen;
 
+import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.Display;
 import android.view.GestureDetector;
 import android.view.InputDevice;
@@ -177,7 +182,7 @@ public class TouchpadActivity extends AppCompatActivity {
         
         // 替换触控板的触摸事件监听
         if (inputManager == null) {
-            // 使用无障碍
+            setupTouchListenerForAccessibility();
         } else {
             setupTouchListenerForInputManager();
         }
@@ -211,6 +216,55 @@ public class TouchpadActivity extends AppCompatActivity {
         // 获取切换模式按钮并设置点击监听器
         Button switchModeButton = findViewById(R.id.switchModeButton);
         switchModeButton.setOnClickListener(v -> switchMode());
+    }
+
+    private void setupTouchListenerForAccessibility() {
+        touchpadArea.setOnTouchListener((v, event) -> {
+            // 计算偏移量并存储修改后的事件
+            if (gestureState.allMotionEvents.isEmpty()) {
+                gestureState.initialTouchX = event.getX();
+                gestureState.initialTouchY = event.getY();
+            }
+
+            float relativeX = event.getX() - gestureState.initialTouchX;
+            float relativeY = event.getY() - gestureState.initialTouchY;
+
+            float absoluteX = cursorX + halfWidth + relativeX * 2;
+            float absoluteY = cursorY + halfHeight + relativeY * 2;
+            float offsetX = absoluteX - event.getX();
+            float offsetY = absoluteY - event.getY();
+
+            MotionEvent copiedEventWithOffset = obtainMotionEventWithOffset(event, offsetX, offsetY);
+            gestureState.allMotionEvents.add(copiedEventWithOffset);
+
+            // 处理手势结束
+            if (event.getAction() == MotionEvent.ACTION_UP ||
+                    event.getAction() == MotionEvent.ACTION_CANCEL) {
+                Log.d(TAG, "触摸事件结束");
+                if (!gestureState.isSingleFinger) {
+                    // 构建手势路径并通过无障碍服务执行
+                    replayGestureViaAccessibility();
+                }
+                gestureState.lastReplayed = 0;
+                gestureState.isSingleFinger = false;
+                gestureState.allMotionEvents.clear();
+                return true;
+            }
+
+            if (!isCursorLocked) {
+                // 在非锁定模式下，单指移动光标
+                if (gestureState.isSingleFinger || (event.getPointerCount() == 1 && gestureState.allMotionEvents.size() == 4)) {
+                    gestureState.isSingleFinger = true;
+                    if (event.getPointerCount() == 1) {
+                        updateCursorPosition(relativeX * 0.5f, relativeY * 0.5f);
+                        gestureState.initialTouchX = event.getX();
+                        gestureState.initialTouchY = event.getY();
+                    }
+                    return true;
+                }
+            }
+            return true;
+        });
     }
 
     private void setupTouchListenerForInputManager() {
@@ -545,5 +599,83 @@ public class TouchpadActivity extends AppCompatActivity {
         int currentMode = modeSpinner.getSelectedItemPosition();
         int nextMode = (currentMode + 1) % modeSpinner.getCount();
         modeSpinner.setSelection(nextMode);
+    }
+
+    // 添加新方法：通过无障碍服务回放手势
+    private void replayGestureViaAccessibility() {
+        TouchpadAccessibilityService service = TouchpadAccessibilityService.getInstance();
+        if (service == null || gestureState.allMotionEvents.isEmpty()) {
+            Log.w(TAG, "无法回放手势：service=" + service + ", 事件数量=" + 
+                (gestureState.allMotionEvents != null ? gestureState.allMotionEvents.size() : 0));
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return;
+        }
+
+        Log.d(TAG, "开始构建手势，共有 " + gestureState.allMotionEvents.size() + " 个事件");
+
+        // 为每个触点创建一个路径
+        SparseArray<Path> pointerPaths = new SparseArray<>();
+        
+        // 遍历所有事件，构建每个触点的路径
+        for (MotionEvent event : gestureState.allMotionEvents) {
+            Log.d(TAG, String.format("处理事件：动作=%d, 触点数=%d, 坐标=(%.1f, %.1f)", 
+                event.getAction(), event.getPointerCount(), event.getX(), event.getY()));
+            
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                int pointerId = event.getPointerId(i);
+                Path path = pointerPaths.get(pointerId);
+                float x = event.getX(i);
+                float y = event.getY(i);
+                if (x < 0) x = 0;
+                if (y < 0) y = 0;
+                
+                if (path == null) {
+                    path = new Path();
+                    pointerPaths.put(pointerId, path);
+                    path.moveTo(x, y);
+                    Log.d(TAG, String.format("触点 #%d 开始新路径：(%.1f, %.1f)", pointerId, x, y));
+                } else {
+                    path.lineTo(x, y);
+                    Log.d(TAG, String.format("触点 #%d 继续路径到：(%.1f, %.1f)", pointerId, x, y));
+                }
+            }
+        }
+
+        Log.d(TAG, "共构建了 " + pointerPaths.size() + " 条触点路径");
+
+        // 创建手势构建器
+        GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
+        // 设置目标显示器
+        gestureBuilder.setDisplayId(displayId);
+        long startTime = 0;
+        long duration = gestureState.allMotionEvents.get(gestureState.allMotionEvents.size() - 1).getEventTime() - 
+                       gestureState.allMotionEvents.get(0).getDownTime();
+
+        // 为每个触点添加笔画
+        for (int i = 0; i < pointerPaths.size(); i++) {
+            Path path = pointerPaths.valueAt(i);
+            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(path, startTime, duration));
+            Log.d(TAG, String.format("添加第 %d 条路径，持续时间：%d ms", i, duration));
+        }
+
+        // 构建最终的手势描述
+        GestureDescription gestureDescription = gestureBuilder.build();
+
+        // 在目标显示器上执行手势
+        Log.d(TAG, "准备在显示器 " + displayId + " 上执行手势");
+        service.setFocus(displayId);
+        service.dispatchGesture(gestureDescription, new AccessibilityService.GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                Log.d(TAG, "手势执行完成");
+            }
+
+            @Override
+            public void onCancelled(GestureDescription gestureDescription) {
+                Log.e(TAG, "手势被取消");
+            }
+        }, null);
     }
 }
