@@ -1,30 +1,18 @@
 package com.gitee.connect_screen;
 
-import android.app.ActivityManager;
 import android.app.ActivityOptions;
-import android.app.ActivityOptionsHidden;
 import android.app.ActivityTaskManager;
-import android.app.IActivityTaskManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.graphics.Color;
-import android.graphics.Insets;
 import android.graphics.PixelFormat;
-import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
-import android.hardware.input.InputManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.provider.Settings;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -35,8 +23,6 @@ import android.view.KeyEventHidden;
 import android.view.MotionEvent;
 import android.view.MotionEventHidden;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -186,7 +172,7 @@ public class TouchpadActivity extends AppCompatActivity {
         halfHeight = targetDisplay.getHeight() / 2.0f;
 
         // 显示光标
-        showMouseCursor();
+        showMouseCursor(targetDisplay);
 
         touchpadArea = findViewById(R.id.touchpad_area);
         
@@ -316,6 +302,10 @@ public class TouchpadActivity extends AppCompatActivity {
 
         setupModeSpinner();
 
+        // 添加退出按钮的点击监听器
+        Button exitButton = findViewById(R.id.exitButton);
+        exitButton.setOnClickListener(v -> finish());
+
         if (ShizukuUtils.hasPermission()) {
             setFocus(inputManager, displayId);
         }
@@ -392,7 +382,7 @@ public class TouchpadActivity extends AppCompatActivity {
         inputManager.injectInputEvent(event, injectMode);
     }
 
-    private void showMouseCursor() {
+    private void showMouseCursor(Display targetDisplay) {
         cursorParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -408,9 +398,6 @@ public class TouchpadActivity extends AppCompatActivity {
         
         cursorView = new ImageView(this);
         cursorView.setImageResource(R.drawable.mouse_cursor);
-        
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        Display targetDisplay = displayManager.getDisplay(displayId);
         
         Context displayContext = createDisplayContext(targetDisplay);
         WindowManager windowManager = (WindowManager) displayContext.getSystemService(Context.WINDOW_SERVICE);
