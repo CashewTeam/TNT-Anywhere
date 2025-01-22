@@ -50,8 +50,8 @@ public class ProjectViaMirror implements Job {
                 return;
             }
             context.startActivity(intent, options.toBundle());
+            State.mirrorDisplayId = mirrorDisplay.getDisplayId();
         }
-        State.mirrorDisplayId = mirrorDisplay.getDisplayId();
     }
 
     private boolean requestMediaProjectionPermission(Context context) throws YieldException {
