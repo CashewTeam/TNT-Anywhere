@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.gitee.connect_screen.State;
+import com.gitee.connect_screen.TouchpadAccessibilityService;
 import com.gitee.connect_screen.TouchpadActivity;
 
 public class StartTouchPad implements Job {
@@ -26,5 +27,6 @@ public class StartTouchPad implements Job {
         intent.putExtra("display_id", displayId);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
+        TouchpadAccessibilityService.startServiceByShizuku(context);
     }
 }

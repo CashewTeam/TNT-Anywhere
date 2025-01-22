@@ -174,31 +174,7 @@ public class PureBlackActivity extends AppCompatActivity {
        if (ShizukuUtils.hasPermission()) {
            inputManager = ServiceUtils.getInputManager();
            TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
-           if(TouchpadAccessibilityService.getInstance() == null) {
-               if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
-                   // 获取现有的无障碍服务配置
-                   String existingServices = Settings.Secure.getString(getContentResolver(), 
-                       Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-                   
-                   // 准备新的服务字符串
-                   String newService = "com.gitee.connect_screen/.TouchpadAccessibilityService";
-                   String finalServices;
-                   
-                   // 如果已有配置，则追加新服务；否则直接使用新服务
-                   if (existingServices != null && !existingServices.isEmpty()) {
-                       finalServices = existingServices + ":" + newService;
-                   } else {
-                       finalServices = newService;
-                   }
-                   
-                   // 更新无障碍服务配置
-                   Settings.Secure.putString(getContentResolver(), 
-                       Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, finalServices);
-                   Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
-                   Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-                   this.startService(serviceIntent);
-               }
-           }
+           TouchpadAccessibilityService.startServiceByShizuku(this);
            powerOffScreen();
            new Handler().postDelayed(() -> {
                TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);

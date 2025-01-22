@@ -17,6 +17,7 @@ import java.util.Queue;
 import java.util.LinkedList;
 import android.view.KeyEvent;
 
+import com.gitee.connect_screen.shizuku.PermissionManager;
 import com.termux.x11.MainActivity;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
@@ -34,6 +35,35 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             return enabledServices.contains(serviceName);
         }
         return false;
+    }
+
+    public static void startServiceByShizuku(Context context) {
+        if(TouchpadAccessibilityService.getInstance() != null) {
+            return;
+        }
+        if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+            // 获取现有的无障碍服务配置
+            String existingServices = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+
+            // 准备新的服务字符串
+            String newService = "com.gitee.connect_screen/.TouchpadAccessibilityService";
+            String finalServices;
+
+            // 如果已有配置，则追加新服务；否则直接使用新服务
+            if (existingServices != null && !existingServices.isEmpty()) {
+                finalServices = existingServices + ":" + newService;
+            } else {
+                finalServices = newService;
+            }
+
+            // 更新无障碍服务配置
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, finalServices);
+            Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
+            Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
+            context.startService(serviceIntent);
+        }
     }
 
     @Override
@@ -58,6 +88,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     protected boolean onKeyEvent(KeyEvent event) {
         if (State.isInPureBlackActivity != null && MainActivity.mInputHandler != null) {
             MainActivity.mInputHandler.sendKeyEvent(event);
+            return true;
+        } else if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && State.lastSingleAppDisplay > 0) {
+            TouchpadActivity.launchLastPackage(getApplicationContext(), State.lastSingleAppDisplay);
             return true;
         }
         return false;
