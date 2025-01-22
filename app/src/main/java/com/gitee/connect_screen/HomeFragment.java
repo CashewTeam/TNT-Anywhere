@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.gitee.connect_screen.job.AcquireShizuku;
+import com.gitee.connect_screen.job.ExitAll;
 import com.gitee.connect_screen.shizuku.ShizukuUtils;
 
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,11 @@ public class HomeFragment extends Fragment {
         Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
         Button shizukuBtn = view.findViewById(R.id.shizukuBtn);
         Button aboutBtn = view.findViewById(R.id.aboutBtn);
+        Button exitBtn = view.findViewById(R.id.exitBtn);
+
+        exitBtn.setOnClickListener(v -> {
+            ExitAll.execute(requireContext());
+        });
 
         displayDeviceBtn.setOnClickListener(v -> {
             State.breadcrumbManager.pushBreadcrumb("屏幕", () -> new DisplayListFragment());
