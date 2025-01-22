@@ -164,7 +164,7 @@ public class DisplayDetailFragment extends Fragment {
 
         // 添加修改按钮点击事件
         Button editResolutionButton = view.findViewById(R.id.edit_resolution_button);
-        if(ShizukuUtils.hasShizukuStarted()) {
+        if(ShizukuUtils.hasShizukuStarted() && displayId == Display.DEFAULT_DISPLAY) {
             editResolutionButton.setVisibility(View.VISIBLE);
             editResolutionButton.setOnClickListener(v -> {
                 ResolutionDialog.show(getContext(), displayId, display.getWidth(), display.getHeight());

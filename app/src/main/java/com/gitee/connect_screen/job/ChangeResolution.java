@@ -43,7 +43,7 @@ public class ChangeResolution implements Job {
             wm.setForcedDisplaySize(displayId, width, height);
             new Thread(() -> {
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(2000);
                     Activity activity = State.currentActivity.get();
                     if (activity != null) {
                         activity.runOnUiThread(() -> {
@@ -54,7 +54,7 @@ public class ChangeResolution implements Job {
                     // ignore
                 }
             }).start();
-            throw new YieldException("500ms后弹窗确认");
+            throw new YieldException("2000ms后弹窗确认");
         }
         if (!requestedConfirmation) {
             requestedConfirmation = true;
