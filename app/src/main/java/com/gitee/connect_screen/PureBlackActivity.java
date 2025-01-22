@@ -200,8 +200,14 @@ public class PureBlackActivity extends AppCompatActivity {
                }
            }
            powerOffScreen();
+           new Handler().postDelayed(() -> {
+               TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
+           }, 500);
        } else if(TouchpadAccessibilityService.getInstance() != null) {
            TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+           new Handler().postDelayed(() -> {
+               TouchpadActivity.setFocus(null, State.lastSingleAppDisplay);
+           }, 500);
        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
            this.startService(serviceIntent);
