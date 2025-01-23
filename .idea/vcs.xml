@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/connect-screen.com" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/pyatv" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/termux-x11" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/termux-x11/app/src/main/cpp/OpenXR-SDK" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/termux-x11/app/src/main/cpp/bzip2" vcs="Git" />
