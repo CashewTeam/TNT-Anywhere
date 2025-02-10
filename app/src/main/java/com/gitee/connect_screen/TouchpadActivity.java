@@ -252,10 +252,20 @@ public class TouchpadActivity extends AppCompatActivity {
             // 处理手势结束
             if (event.getAction() == MotionEvent.ACTION_UP ||
                     event.getAction() == MotionEvent.ACTION_CANCEL) {
-                Log.d(TAG, "触摸事件结束");
+                Log.d(TAG, "触摸事件结束, isSingleFinger: " + gestureState.isSingleFinger);
                 if (!gestureState.isSingleFinger) {
-                    // 构建手势路径并通过无障碍服务执行
-                    replayGestureViaAccessibility();
+                    boolean alwaysSingleFinger = true;
+                    for (MotionEvent e : gestureState.allMotionEvents) {
+                        if (e.getPointerCount() > 1) {
+                            alwaysSingleFinger = false;
+                        }
+                    }
+                    if (!isCursorLocked && alwaysSingleFinger && (Math.abs(relativeX) > 10 || Math.abs(relativeY) > 10)) {
+                        // ignore
+                    } else {
+                        // 构建手势路径并通过无障碍服务执行
+                        replayGestureViaAccessibility();
+                    }
                 }
                 gestureState.lastReplayed = 0;
                 gestureState.isSingleFinger = false;
@@ -265,7 +275,11 @@ public class TouchpadActivity extends AppCompatActivity {
 
             if (!isCursorLocked) {
                 // 在非锁定模式下，单指移动光标
-                if (gestureState.isSingleFinger || (event.getPointerCount() == 1 && gestureState.allMotionEvents.size() == 4)) {
+                if (gestureState.isSingleFinger || (event.getPointerCount() == 1 && (gestureState.allMotionEvents.size() == 5 || Math.abs(relativeX) > 10 || Math.abs(relativeY) > 10))) {
+                    if (gestureState.allMotionEvents.size() == 5 && Math.abs(relativeX) < 1 && Math.abs(relativeY) < 1) {
+                        Log.d(TAG, "未检测到移动");
+                        return true;
+                    }
                     gestureState.isSingleFinger = true;
                     if (event.getPointerCount() == 1) {
                         updateCursorPosition(relativeX * 0.5f, relativeY * 0.5f);
@@ -301,9 +315,13 @@ public class TouchpadActivity extends AppCompatActivity {
             // 处理手势结束
             if (event.getAction() == MotionEvent.ACTION_UP ||
                     event.getAction() == MotionEvent.ACTION_CANCEL) {
-                Log.d(TAG, "触摸事件结束");
+                Log.d(TAG, "触摸事件结束, isSingleFinger: " + gestureState.isSingleFinger);
                 if (!gestureState.isSingleFinger) {
-                    replayBufferedEvents();
+                    if (!isCursorLocked && gestureState.lastReplayed == 0 && (Math.abs(relativeX) > 10 || Math.abs(relativeY) > 10)) {
+                        // ignore
+                    } else {
+                        replayBufferedEvents();
+                    }
                 }
                 gestureState.lastReplayed = 0;
                 gestureState.isSingleFinger = false;
@@ -311,9 +329,13 @@ public class TouchpadActivity extends AppCompatActivity {
                 return true;
             }
 
-            if (!isCursorLocked) {
+            if (!isCursorLocked && gestureState.lastReplayed == 0) {
                 // 在非锁定模式下，单指移动光标
-                if (gestureState.isSingleFinger || (event.getPointerCount() == 1 && gestureState.allMotionEvents.size() == 4)) {
+                if (gestureState.isSingleFinger || (event.getPointerCount() == 1 && (gestureState.allMotionEvents.size() == 5 || Math.abs(relativeX) > 10 || Math.abs(relativeY) > 10))) {
+                    if (gestureState.allMotionEvents.size() == 5 && Math.abs(relativeX) < 1 && Math.abs(relativeY) < 1) {
+                        Log.d(TAG, "未检测到移动");
+                        return true;
+                    }
                     gestureState.isSingleFinger = true;
                     if (event.getPointerCount() == 1) {
                         updateCursorPosition(relativeX * 0.5f, relativeY * 0.5f);
@@ -323,7 +345,7 @@ public class TouchpadActivity extends AppCompatActivity {
                     return true;
                 }
 
-                if (gestureState.allMotionEvents.size() < 4) {
+                if (event.getPointerCount() == 1) {
                     // buffer it
                     return true;
                 }
