@@ -13,7 +13,6 @@ import android.util.Log;
 
 import com.gitee.connect_screen.job.Job;
 import com.gitee.connect_screen.job.YieldException;
-import com.gitee.connect_screen.shizuku.IUserService;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -34,7 +33,6 @@ public class State {
     public static MediaProjection mediaProjectionInUse;
     public static int lastSingleAppDisplay;
     public static String displaylinkDeviceName;
-    public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
     public static int bridgeDisplayId = -1;
     public static VirtualDisplay mirrorVirtualDisplay;
@@ -43,24 +41,6 @@ public class State {
 
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-
-    public static final ServiceConnection userServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            State.log("user service connected");
-            State.userService = IUserService.Stub.asInterface(binder);
-            if (State.currentActivity.get() != null) {
-                State.currentActivity.get().runOnUiThread(() -> {
-                    State.resumeJob();
-                });
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            State.log("user service disconnected");
-        }
-    };
 
     public static boolean isJobRunning() {
         return currentJob != null;
