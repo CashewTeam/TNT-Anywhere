@@ -15,11 +15,15 @@ add_library(
         config.cpp
         platform/common.cpp
         crypto.cpp
+        dependencies/nanors/rs.c
+        stat_trackers.cpp
 )
 
 target_include_directories(sunshine PRIVATE
         dependencies/moonlight-common-c/enet/include
         dependencies/ffmpeg
+        dependencies/nanors/deps/obl
+        dependencies/nanors
         dependencies
         ${Boost_INCLUDE_DIRS})
 

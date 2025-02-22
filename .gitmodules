@@ -13,3 +13,6 @@
 [submodule "app-mirror/src/main/cpp/dependencies/openssl-cmake"]
 	path = app-mirror/src/main/cpp/dependencies/openssl-cmake
 	url = https://github.com/viaduck/openssl-cmake
+[submodule "app-mirror/src/main/cpp/dependencies/nanors"]
+	path = app-mirror/src/main/cpp/dependencies/nanors
+	url = https://github.com/sleepybishop/nanors.git
