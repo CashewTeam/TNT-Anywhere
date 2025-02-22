@@ -62,13 +62,15 @@ public class State {
         }
     };
 
+    public static final String APPLICATION_ID = "com.gitee.connect_screen";
+    public static final int VERSION_CODE = 1;
     public static final Shizuku.UserServiceArgs userServiceArgs =
-            new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+            new Shizuku.UserServiceArgs(new ComponentName(State.APPLICATION_ID, UserService.class.getName()))
                     .daemon(true)
                     .tag("temp6")
                     .processNameSuffix("connect-screen")
                     .debuggable(false)
-                    .version(BuildConfig.VERSION_CODE);
+                    .version(State.VERSION_CODE);
 
     public static boolean isJobRunning() {
         return currentJob != null;

@@ -23,7 +23,7 @@ public class PermissionManager {
     private static boolean _grant(String permissionName) {
         UserHandle userHandle = Process.myUserHandle();
         UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-        String packageName = BuildConfig.APPLICATION_ID;
+        String packageName = State.APPLICATION_ID;
         IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
         if (permissionManager == null) {
             IPackageManager packageManager = ServiceUtils.getPackageManager();
