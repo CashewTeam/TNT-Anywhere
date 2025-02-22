@@ -1,6 +1,7 @@
 package com.gitee.connect_screen.job;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -26,6 +27,12 @@ public class FetchLogAndShare implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
     private boolean userServiceRequested = false;
 
+    private final Context context;
+
+    public FetchLogAndShare(Context context) {
+        this.context = context;
+    }
+
     @Override
     public void start() throws YieldException {
         acquireShizuku.start();
@@ -35,8 +42,8 @@ public class FetchLogAndShare implements Job {
         if (State.userService == null) {
             if (!userServiceRequested) {
                 userServiceRequested = true;
-                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+                Shizuku.peekUserService(State.createUserServiceArgs(context), State.userServiceConnection);
+                Shizuku.bindUserService(State.createUserServiceArgs(context), State.userServiceConnection);
                 State.resumeJobLater(1000);
                 throw new YieldException("等待 user service 启动");
             }

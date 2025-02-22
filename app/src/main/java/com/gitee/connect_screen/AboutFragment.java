@@ -75,7 +75,7 @@ public class AboutFragment extends Fragment {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
                     return false;
                 }
-                State.startNewJob(new FetchLogAndShare());
+                State.startNewJob(new FetchLogAndShare(getContext()));
                 return true;
             }
 

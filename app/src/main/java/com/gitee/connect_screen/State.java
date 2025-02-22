@@ -2,7 +2,9 @@ package com.gitee.connect_screen;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.media.projection.MediaProjection;
@@ -64,13 +66,19 @@ public class State {
 
     public static final String APPLICATION_ID = "com.gitee.connect_screen";
     public static final int VERSION_CODE = 1;
-    public static final Shizuku.UserServiceArgs userServiceArgs =
-            new Shizuku.UserServiceArgs(new ComponentName(State.APPLICATION_ID, UserService.class.getName()))
+    public static Shizuku.UserServiceArgs createUserServiceArgs(Context context) {
+        try {
+            return new Shizuku.UserServiceArgs(new ComponentName(context.getPackageName(), UserService.class.getName()))
                     .daemon(true)
                     .tag("temp6")
                     .processNameSuffix("connect-screen")
                     .debuggable(false)
-                    .version(State.VERSION_CODE);
+                    .version((int) context.getPackageManager()
+                            .getPackageInfo(context.getPackageName(), 0).getLongVersionCode());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static boolean isJobRunning() {
         return currentJob != null;
@@ -138,10 +146,10 @@ public class State {
         }
     }
 
-    public static void unbindUserService() {
+    public static void unbindUserService(Context context) {
         try {
             if (userService == null) {
-                Shizuku.unbindUserService(userServiceArgs, userServiceConnection, true); // 解绑用户服务
+                Shizuku.unbindUserService(State.createUserServiceArgs(context), userServiceConnection, true); // 解绑用户服务
             }
         } catch (Exception e) {
             // ignore

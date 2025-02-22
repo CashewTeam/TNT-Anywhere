@@ -83,8 +83,8 @@ public class ProjectViaDisplaylink implements Job {
             }
             if (State.userService == null && !userServiceRequested) {
                 userServiceRequested = true;
-                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+                Shizuku.peekUserService(State.createUserServiceArgs(context), State.userServiceConnection);
+                Shizuku.bindUserService(State.createUserServiceArgs(context), State.userServiceConnection);
                 State.resumeJobLater(1000);
                 throw new YieldException("等待 user service 启动");
             }
