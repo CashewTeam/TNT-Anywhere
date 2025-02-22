@@ -7,3 +7,6 @@
 [submodule "app-mirror/src/main/cpp/dependencies/libwordexp"]
 	path = app-mirror/src/main/cpp/dependencies/libwordexp
 	url = https://github.com/leleliu008/libwordexp.git
+[submodule "app-mirror/src/main/cpp/dependencies/moonlight-common-c"]
+	path = app-mirror/src/main/cpp/dependencies/moonlight-common-c
+	url = https://github.com/moonlight-stream/moonlight-common-c.git
