@@ -36,7 +36,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 public class ProjectViaDisplaylink implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();
@@ -111,10 +110,14 @@ public class ProjectViaDisplaylink implements Job {
         }
         if (projectionMode == ProjectionMode.MIRROR) {
             displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);
-            new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
+            listenOpenglAndPostFrame(virtualDisplayArgs, context);
         } else {
             createVirtualDisplay(context, displaylinkState);
         }
+    }
+
+    protected void listenOpenglAndPostFrame(VirtualDisplayArgs virtualDisplayArgs, Context context) {
+
     }
 
     private void copyFirmwares(Context context) {

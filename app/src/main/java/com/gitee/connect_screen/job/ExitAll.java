@@ -6,21 +6,16 @@ import android.content.Intent;
 import com.gitee.connect_screen.BridgeActivity;
 import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.MediaProjectionService;
-import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.TouchpadAccessibilityService;
 
 public class ExitAll {
     public static void execute(Context context) {
-
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
             State.mediaProjectionInUse = null;
         }
         State.setMediaProjection(null);
-        if (ListenOpenglAndPostFrame.instance != null) {
-            ListenOpenglAndPostFrame.instance.release();
-        }
         // 停止 MediaProjectionService
         context.stopService(new Intent(context, MediaProjectionService.class));
 
@@ -32,10 +27,6 @@ public class ExitAll {
         touchpadIntent.setAction(TouchpadAccessibilityService.class.getName());
         context.stopService(touchpadIntent);
 
-        // 原有的清理代码
-        if (MirrorActivity.getInstance() != null) {
-            MirrorActivity.getInstance().finish();
-        }
         if (BridgeActivity.getInstance() != null) {
             BridgeActivity.getInstance().finish();
         }
