@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -138,6 +139,12 @@ public class MirrorSettingsFragment extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) {
                 // 不做任何操作
             }
+        });
+
+        // 添加关于按钮点击事件
+        Button aboutButton = view.findViewById(R.id.aboutButton);
+        aboutButton.setOnClickListener(v -> {
+            State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
         });
 
         return view;
