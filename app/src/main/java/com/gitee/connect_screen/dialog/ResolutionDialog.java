@@ -22,7 +22,7 @@ public class ResolutionDialog {
         heightInput.setText(String.valueOf(currentHeight));
 
         new AlertDialog.Builder(context)
-                .setTitle("修改主屏分辨率适配外接屏的比例")
+                .setTitle("修改分辨率")
                 .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     try {
