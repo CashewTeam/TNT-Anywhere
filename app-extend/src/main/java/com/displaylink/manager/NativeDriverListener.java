@@ -4,13 +4,13 @@ import android.app.Activity;
 import android.util.Log;
 
 import com.displaylink.manager.display.MonitorInfo;
-import com.gitee.connect_screen.DisplaylinkPref;
-import com.gitee.connect_screen.MainActivity;
-import com.gitee.connect_screen.ProjectionMode;
-import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.DisplaylinkState;
-import com.connect_screen.mirror.job.ProjectViaDisplaylink;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.extend.DisplaylinkPref;
+import com.connect_screen.extend.MainActivity;
+import com.connect_screen.extend.ProjectionMode;
+import com.connect_screen.extend.State;
+import com.connect_screen.extend.DisplaylinkState;
+import com.connect_screen.extend.job.ProjectViaDisplaylink;
+import com.connect_screen.extend.job.VirtualDisplayArgs;
 
 public class NativeDriverListener {
     private final String usbDeviceName;
