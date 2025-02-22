@@ -16,6 +16,7 @@
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 //#include <display_device/logging.h>
+#include <android/log.h>
 
 // local includes
 #include "logging.h"
@@ -59,24 +60,31 @@ namespace logging {
 
         auto log_level = view.attribute_values()[severity].extract<int>().get();
 
+        android_LogPriority android_priority;
         std::string_view log_type;
         switch (log_level) {
             case 0:
+                android_priority = ANDROID_LOG_VERBOSE;
                 log_type = "Verbose: "sv;
                 break;
             case 1:
+                android_priority = ANDROID_LOG_DEBUG;
                 log_type = "Debug: "sv;
                 break;
             case 2:
+                android_priority = ANDROID_LOG_INFO;
                 log_type = "Info: "sv;
                 break;
             case 3:
+                android_priority = ANDROID_LOG_WARN;
                 log_type = "Warning: "sv;
                 break;
             case 4:
+                android_priority = ANDROID_LOG_ERROR;
                 log_type = "Error: "sv;
                 break;
             case 5:
+                android_priority = ANDROID_LOG_FATAL;
                 log_type = "Fatal: "sv;
                 break;
 #ifdef SUNSHINE_TESTS
@@ -85,6 +93,12 @@ namespace logging {
         break;
 #endif
         };
+
+        // 获取日志消息
+        std::string log_message = view.attribute_values()[message].extract<std::string>().get();
+        
+        // 输出到 Android 日志系统
+        __android_log_print(android_priority, "Sunshine", "%s%s", log_type.data(), log_message.c_str());
 
         auto now = std::chrono::system_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -16,6 +16,7 @@ target_include_directories(sunshine PRIVATE
 
 target_link_libraries(
         sunshine
-        ${log-lib}
+        android
+        log
         ${Boost_LIBRARIES}
 ) 
