@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
+import com.connect_screen.mirror.job.SunshineServer;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
@@ -123,6 +124,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         lastCheckTime = System.currentTimeMillis();
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
+
+        new SunshineServer().start();
     }
 
 
