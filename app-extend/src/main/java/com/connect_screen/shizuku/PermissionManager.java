@@ -1,5 +1,6 @@
 package com.gitee.connect_screen.shizuku;
 
+import android.content.Context;
 import android.content.pm.IPackageManager;
 import android.os.Process;
 import android.os.UserHandle;
@@ -23,7 +24,7 @@ public class PermissionManager {
     private static boolean _grant(String permissionName) {
         UserHandle userHandle = Process.myUserHandle();
         UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-        String packageName = State.APPLICATION_ID;
+        String packageName = "com.gitee.connect_screen";
         IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
         if (permissionManager == null) {
             IPackageManager packageManager = ServiceUtils.getPackageManager();

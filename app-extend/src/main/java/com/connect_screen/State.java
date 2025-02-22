@@ -64,8 +64,6 @@ public class State {
         }
     };
 
-    public static final String APPLICATION_ID = "com.gitee.connect_screen";
-    public static final int VERSION_CODE = 1;
     public static Shizuku.UserServiceArgs createUserServiceArgs(Context context) {
         try {
             return new Shizuku.UserServiceArgs(new ComponentName(context.getPackageName(), UserService.class.getName()))

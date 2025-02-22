@@ -9,9 +9,9 @@ import android.media.projection.MediaProjectionManager;
 import android.view.Display;
 import android.view.DisplayHidden;
 
-import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.MirrorActivity;
+import com.gitee.connect_screen.MirrorMainActivity;
 import com.gitee.connect_screen.State;
 
 import dev.rikka.tools.refine.Refine;
@@ -79,7 +79,7 @@ public class ProjectViaMirror implements Job {
             } else {
                 captureIntent = mediaProjectionManager.createScreenCaptureIntent();
             }
-            State.currentActivity.get().startActivityForResult(captureIntent, MainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
             throw new YieldException("等待用户投屏授权");
         } else {
             throw new RuntimeException("无法获取 MediaProjectionManager 服务");

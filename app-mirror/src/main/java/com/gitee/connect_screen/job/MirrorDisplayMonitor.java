@@ -1,28 +1,10 @@
 package com.gitee.connect_screen.job;
 
-import android.app.ActivityManager;
-import android.app.ActivityTaskManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
-import android.media.AudioAttributes;
-import android.media.AudioDeviceAttributes;
-import android.media.AudioDeviceInfo;
-import android.media.AudioManager;
-import android.media.IAudioService;
-import android.os.Build;
-import android.os.Handler;
-import android.util.DisplayMetrics;
 import android.view.Display;
 
-import com.gitee.connect_screen.FloatingButtonService;
-import com.gitee.connect_screen.BridgePref;
-import com.gitee.connect_screen.MirrorActivity;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
-
-import java.util.List;
 
 public class MirrorDisplayMonitor {
     private static boolean registered = false;

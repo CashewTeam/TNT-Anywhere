@@ -35,21 +35,7 @@ public class MirrorDisplaylinkMonitor {
             String action = intent.getAction();
             if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                DisplaylinkMonitor.onUsbDeviceAttached(device);
-                if (device != null && device.getVendorId() == 6121) {
-                    State.log("USB 设备已连接: " + device.getDeviceName());
-                    if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
-                        State.log("识别为 Displaylink: " + device.getDeviceName());
-                        State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR){
-                            @Override
-                            protected void listenOpenglAndPostFrame(VirtualDisplayArgs virtualDisplayArgs, Context context) {
-                                new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
-                            }
-                        });
-                    } else {
-                        State.log("已有其他 Displaylink: " + State.displaylinkDeviceName);
-                    }
-                }
+                MirrorDisplaylinkMonitor.onUsbDeviceAttached(context, device);
             }
         }
     };
