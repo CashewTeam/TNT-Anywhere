@@ -14,6 +14,7 @@ add_library(
         network.cpp
         config.cpp
         platform/common.cpp
+        crypto.cpp
 )
 
 target_include_directories(sunshine PRIVATE
