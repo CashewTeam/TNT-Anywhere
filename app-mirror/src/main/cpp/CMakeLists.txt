@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project("sunshine")
 
 add_subdirectory(dependencies/moonlight-common-c/enet)
+add_subdirectory(dependencies/openssl-cmake)
 include(dependencies/Boost_Sunshine.cmake)
 
 add_library(
@@ -10,10 +11,15 @@ add_library(
         SHARED
         sunshine.cpp
         logging.cpp
+        network.cpp
+        config.cpp
+        platform/common.cpp
 )
 
 target_include_directories(sunshine PRIVATE
         dependencies/moonlight-common-c/enet/include
+        dependencies/ffmpeg
+        dependencies
         ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(
@@ -21,5 +27,7 @@ target_link_libraries(
         android
         log
         enet
+        ssl
+        crypto
         ${Boost_LIBRARIES}
 ) 

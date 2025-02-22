@@ -36,13 +36,13 @@ namespace config {
 //        bool nv_opengl_vulkan_on_dxgi;
 //        bool nv_sunshine_high_power_mode;
 
-        struct {
-            int preset;
-            int multipass;
-            int h264_coder;
-            int aq;
-            int vbv_percentage_increase;
-        } nv_legacy;
+//        struct {
+//            int preset;
+//            int multipass;
+//            int h264_coder;
+//            int aq;
+//            int vbv_percentage_increase;
+//        } nv_legacy;
 
         struct {
             std::optional<int> qsv_preset;

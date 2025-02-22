@@ -10,3 +10,6 @@
 [submodule "app-mirror/src/main/cpp/dependencies/moonlight-common-c"]
 	path = app-mirror/src/main/cpp/dependencies/moonlight-common-c
 	url = https://github.com/moonlight-stream/moonlight-common-c.git
+[submodule "app-mirror/src/main/cpp/dependencies/openssl-cmake"]
+	path = app-mirror/src/main/cpp/dependencies/openssl-cmake
+	url = https://github.com/viaduck/openssl-cmake
