@@ -4,3 +4,6 @@
 [submodule "termux-x11"]
 	path = termux-x11
 	url = https://github.com/termux/termux-x11.git
+[submodule "app-mirror/src/main/cpp/dependencies/libwordexp"]
+	path = app-mirror/src/main/cpp/dependencies/libwordexp
+	url = https://github.com/leleliu008/libwordexp.git
