@@ -27,7 +27,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.gitee.connect_screen.MirrorMainActivity"
+            android:name=".MirrorMainActivity"
             android:launchMode="singleTask"
             android:exported="true"
             android:icon="@mipmap/ic_mirror"
@@ -47,27 +47,15 @@
         </activity>
         
         <activity
-            android:name="com.gitee.connect_screen.MirrorActivity"
+            android:name=".MirrorActivity"
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
         
         <service
-            android:name="com.gitee.connect_screen.MediaProjectionService"
+            android:name=".MediaProjectionService"
             android:foregroundServiceType="mediaProjection"
             android:exported="false" />
-
-        <service
-            android:name="com.gitee.connect_screen.TouchpadAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

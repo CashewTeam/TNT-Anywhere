@@ -19,9 +19,9 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
-import com.gitee.connect_screen.job.StartFloatingButton;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.StartFloatingButton;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class FloatingButtonService extends Service {
     private WindowManager windowManager;

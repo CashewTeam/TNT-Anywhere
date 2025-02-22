@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.os.Build;
 

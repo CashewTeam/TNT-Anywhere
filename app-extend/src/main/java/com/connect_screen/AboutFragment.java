@@ -1,6 +1,6 @@
 package com.gitee.connect_screen;
 
-import static com.gitee.connect_screen.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
+import static com.connect_screen.mirror.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -15,8 +15,8 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.FetchLogAndShare;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.FetchLogAndShare;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 

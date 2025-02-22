@@ -10,7 +10,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.gitee.connect_screen.R;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.job.ChangeDPI;
+import com.connect_screen.mirror.job.ChangeDPI;
 
 public class DpiDialog {
     public static void show(Context context, int displayId, int currentDpi) {

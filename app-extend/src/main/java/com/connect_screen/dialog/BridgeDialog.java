@@ -14,9 +14,9 @@ import androidx.appcompat.app.AlertDialog;
 import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.R;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.job.ProjectViaBridge;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.job.ProjectViaBridge;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 import static android.content.Context.MODE_PRIVATE;
 

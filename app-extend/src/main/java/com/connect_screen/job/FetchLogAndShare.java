@@ -1,6 +1,5 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -17,11 +16,7 @@ import com.gitee.connect_screen.State;
 import rikka.shizuku.Shizuku;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class FetchLogAndShare implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();

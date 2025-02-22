@@ -10,7 +10,7 @@ import android.os.HandlerThread;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
 
 public class DisplaylinkState {
     public UsbDevice device;

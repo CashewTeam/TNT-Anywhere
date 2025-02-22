@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.app.Activity;
 import android.graphics.Point;
@@ -7,7 +7,7 @@ import android.view.IWindowManager;
 import androidx.appcompat.app.AlertDialog;
 
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 public class ChangeResolution implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();

@@ -1,9 +1,9 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.view.IWindowManager;
 
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 public class ChangeRotation implements Job {
     private final static int FIXED_TO_USER_ROTATION_DEFAULT = 0;

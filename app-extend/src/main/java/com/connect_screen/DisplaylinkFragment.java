@@ -1,7 +1,6 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
-import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -13,7 +12,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.view.WindowMetrics;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,12 +23,10 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.DisplaylinkMonitor;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.job.ProjectViaDisplaylink;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
-
-import java.util.Arrays;
+import com.connect_screen.mirror.job.DisplaylinkMonitor;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.job.ProjectViaDisplaylink;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class DisplaylinkFragment extends Fragment {
     private static final String ARG_DEVICE = "device";

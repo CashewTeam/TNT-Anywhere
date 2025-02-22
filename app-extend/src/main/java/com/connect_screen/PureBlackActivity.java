@@ -1,7 +1,6 @@
 package com.gitee.connect_screen;
 
 import android.content.Context;
-import android.os.IBinder;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -11,8 +10,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
-import android.provider.Settings;
-import android.util.Log;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.MotionEvent;
@@ -23,15 +20,12 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.KeyEvent;
 import android.content.BroadcastReceiver;
-import android.content.IntentFilter;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.gitee.connect_screen.job.AndroidVersions;
-import com.gitee.connect_screen.shizuku.PermissionManager;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
-import com.gitee.connect_screen.shizuku.SurfaceControl;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.SurfaceControl;
 import com.termux.x11.MainActivity;
 
 import dev.rikka.tools.refine.Refine;

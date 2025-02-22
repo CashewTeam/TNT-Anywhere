@@ -2,7 +2,6 @@ package com.gitee.connect_screen;
 
 import static android.content.Context.MODE_PRIVATE;
 
-import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,15 +25,13 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
-import com.gitee.connect_screen.job.TermuxDisablePhantomProcess;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.gitee.connect_screen.dialog.RotationDialog;
 import com.gitee.connect_screen.dialog.ResolutionDialog;
 import com.gitee.connect_screen.dialog.BridgeDialog;
 import com.gitee.connect_screen.dialog.DpiDialog;
-import com.gitee.connect_screen.shizuku.WindowingMode;
+import com.connect_screen.mirror.shizuku.WindowingMode;
 
 public class DisplayDetailFragment extends Fragment {
     private static final String ARG_DISPLAY_ID = "display_id";

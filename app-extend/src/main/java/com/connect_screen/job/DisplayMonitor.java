@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -13,11 +13,10 @@ import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.Display;
 
-import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.List;
 

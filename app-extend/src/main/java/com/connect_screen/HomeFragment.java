@@ -4,7 +4,6 @@ import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Paint;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,11 +17,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.AcquireShizuku;
-import com.gitee.connect_screen.job.ExitAll;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
-
-import java.util.concurrent.TimeUnit;
+import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.job.ExitAll;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class HomeFragment extends Fragment {
 

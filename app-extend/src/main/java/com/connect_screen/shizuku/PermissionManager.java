@@ -1,13 +1,11 @@
-package com.gitee.connect_screen.shizuku;
+package com.connect_screen.mirror.shizuku;
 
-import android.content.Context;
 import android.content.pm.IPackageManager;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserHandleHidden;
 import android.permission.IPermissionManager;
 
-import com.gitee.connect_screen.BuildConfig;
 import com.gitee.connect_screen.State;
 
 import dev.rikka.tools.refine.Refine;

@@ -1,7 +1,7 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.PermissionManager;
+import com.connect_screen.mirror.shizuku.PermissionManager;
 
 import android.content.ContentResolver;
 import android.provider.Settings;

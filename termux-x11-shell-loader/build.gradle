@@ -17,7 +17,7 @@ dependencies.compileOnly project(':hidden-api-stub')
 if (!gradle.startParameter.taskNames.isEmpty())
     android.applicationVariants.configureEach { outputs.configureEach { outputFileName = "安卓屏连-x11.apk" } }
 
-def signingConfig = project(':app').android.signingConfigs.debug
+def signingConfig = project(':app-extend').android.signingConfigs.debug
 def keyStore = java.security.KeyStore.getInstance(java.security.KeyStore.getDefaultType())
 keyStore.load(new FileInputStream(signingConfig.storeFile), signingConfig.keyPassword.toCharArray())
 

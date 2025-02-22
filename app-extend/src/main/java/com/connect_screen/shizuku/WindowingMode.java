@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.shizuku;
+package com.connect_screen.mirror.shizuku;
 
 public class WindowingMode {
     /** Windowing mode is currently not defined. */

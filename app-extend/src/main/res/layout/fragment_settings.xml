@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <CheckBox
+        android:id="@+id/cbDisableUsbAudio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="停用外接屏幕的声音输出"
+        android:layout_marginBottom="8dp"/>
+        
+    <CheckBox
+        android:id="@+id/cbForceDesktop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="强制桌面模式（安卓14以及以下的系统绑定鼠标到外接显示器，可能需重启）"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbForceResizable"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="强制将 activity 设为可调整大小"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbEnableFreeform"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="启用可自由调整的窗口"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbEnableNonResizable"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="允许以多窗口模式显示不可调整大小的应用"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbDisableScreenShareProtection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="停用屏幕共享防护"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbUseRealScreenOff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="使用真实熄屏代替模拟熄屏（需要使用音量键唤醒）"
+        android:layout_marginBottom="8dp"/>
+
+    <CheckBox
+        android:id="@+id/cbStayOnWhilePlugged"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="充电时屏幕不休眠"
+        android:layout_marginBottom="8dp"/>
+
+    <LinearLayout
+        android:id="@+id/externalDeviceContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Spinner
+                android:id="@+id/spinnerDisplays"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/btnBind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="绑定输入设备"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="外接输入设备："
+            android:textStyle="bold"
+            android:textSize="16sp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvExternalDevices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="内置输入设备："
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvInternalDevices"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+</LinearLayout> 

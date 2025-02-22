@@ -1,9 +1,7 @@
-package com.gitee.connect_screen.job;
-
-import android.content.pm.PackageManager;
+package com.connect_screen.mirror.job;
 
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 

@@ -7,8 +7,8 @@ import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.view.Display;
 
-import com.gitee.connect_screen.job.TermuxDisablePhantomProcess;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.job.TermuxDisablePhantomProcess;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 public class LaunchX11Receiver extends BroadcastReceiver {
     private static final String PREF_NAME = "x11_launch_prefs";

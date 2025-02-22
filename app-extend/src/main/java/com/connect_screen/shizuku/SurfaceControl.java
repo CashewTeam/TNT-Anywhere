@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.shizuku;
+package com.connect_screen.mirror.shizuku;
 
 
 import android.util.Log;
@@ -8,8 +8,7 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.IBinder;
 
-import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.job.AndroidVersions;
+import com.connect_screen.mirror.job.AndroidVersions;
 
 import java.lang.reflect.Method;
 

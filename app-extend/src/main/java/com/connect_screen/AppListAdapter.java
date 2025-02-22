@@ -1,16 +1,10 @@
 package com.gitee.connect_screen;
 
 import android.app.ActivityOptions;
-import android.app.ActivityOptionsHidden;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Handler;
-import android.text.method.Touch;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,8 +16,8 @@ import android.widget.Toast;
 import androidx.recyclerview.widget.RecyclerView;
 
 
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.List;
 import java.util.Collections;

@@ -5,7 +5,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.InputManager;
@@ -15,11 +14,6 @@ import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Build;
-import android.os.Process;
-import android.os.UserHandle;
-import android.os.UserHandleHidden;
-import android.permission.IPermissionManager;
-import android.widget.FrameLayout;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import androidx.annotation.Nullable;
@@ -27,18 +21,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.gitee.connect_screen.job.AcquireShizuku;
-import com.gitee.connect_screen.job.DisplayMonitor;
-import com.gitee.connect_screen.job.InputDeviceMonitor;
-import com.gitee.connect_screen.job.ProjectViaDisplaylink;
-import com.gitee.connect_screen.job.DisplaylinkMonitor;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.job.DisplayMonitor;
+import com.connect_screen.mirror.job.InputDeviceMonitor;
+import com.connect_screen.mirror.job.ProjectViaDisplaylink;
+import com.connect_screen.mirror.job.DisplaylinkMonitor;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.lang.ref.WeakReference;
 
-import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.Shizuku;
 
 public class MainActivity extends AppCompatActivity implements IMainActivity {

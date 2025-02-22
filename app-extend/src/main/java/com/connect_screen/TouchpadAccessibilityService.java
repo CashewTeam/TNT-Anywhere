@@ -1,23 +1,19 @@
 package com.gitee.connect_screen;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.GestureDescription;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Path;
 import android.provider.Settings;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.LinkedList;
+
 import android.view.KeyEvent;
 
-import com.gitee.connect_screen.shizuku.PermissionManager;
+import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.termux.x11.MainActivity;
 
 public class TouchpadAccessibilityService extends AccessibilityService {

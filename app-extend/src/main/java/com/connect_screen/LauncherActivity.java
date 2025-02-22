@@ -9,17 +9,14 @@ import android.os.Bundle;
 import android.view.Display;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import java.util.List;
-import android.view.WindowManager;
-import android.os.Build;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
+
 import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.util.DisplayMetrics;
@@ -31,7 +28,7 @@ import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.view.Menu;
 
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.stream.Collectors;
 import java.util.ArrayList;

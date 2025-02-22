@@ -1,6 +1,5 @@
 package com.gitee.connect_screen;
 
-import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
@@ -20,7 +19,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
-import android.view.GestureDetector;
 import android.view.InputDevice;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
@@ -40,9 +38,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.gitee.connect_screen.job.StartTouchPad;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.StartTouchPad;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

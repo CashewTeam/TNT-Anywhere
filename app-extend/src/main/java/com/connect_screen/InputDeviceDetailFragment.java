@@ -19,8 +19,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.gitee.connect_screen.job.BindInputToDisplay;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.BindInputToDisplay;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;

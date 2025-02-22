@@ -24,9 +24,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.hardware.input.InputManager;
 import android.hardware.display.DisplayManager;
 
-import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
-import com.gitee.connect_screen.shizuku.PermissionManager;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
+import com.connect_screen.mirror.shizuku.PermissionManager;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;

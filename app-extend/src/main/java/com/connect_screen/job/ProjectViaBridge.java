@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.app.ActivityOptions;
 import android.content.Context;
@@ -13,7 +13,7 @@ import com.gitee.connect_screen.BridgePref;
 import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.MediaProjectionService;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 

@@ -3,31 +3,23 @@ package com.gitee.connect_screen;
 import android.app.ActivityOptions;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.SurfaceTexture;
-import android.hardware.display.VirtualDisplay;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEventHidden;
 import android.view.Surface;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.TextureView;
 import android.view.SurfaceView;
 import android.view.SurfaceHolder;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.gitee.connect_screen.job.CreateVirtualDisplay;
-import com.gitee.connect_screen.job.VirtualDisplayArgs;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import com.connect_screen.mirror.job.CreateVirtualDisplay;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 import dev.rikka.tools.refine.Refine;
 

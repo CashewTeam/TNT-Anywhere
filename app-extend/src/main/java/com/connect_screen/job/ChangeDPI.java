@@ -1,12 +1,10 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.view.IWindowManager;
-import android.view.WindowManager;
 
 public class ChangeDPI implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();

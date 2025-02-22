@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.shizuku;
+package com.connect_screen.mirror.shizuku;
 
 import android.app.ActivityManager;
 import android.app.ActivityOptions;
@@ -25,7 +25,7 @@ import android.widget.Toast;
 
 import com.gitee.connect_screen.FloatingButtonService;
 import com.gitee.connect_screen.State;
-import com.gitee.connect_screen.job.BindAllExternalInputToDisplay;
+import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
 
 import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.ShizukuBinderWrapper;

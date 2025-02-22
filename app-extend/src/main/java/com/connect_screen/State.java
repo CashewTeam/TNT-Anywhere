@@ -4,23 +4,19 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.hardware.display.VirtualDisplay;
-import android.hardware.usb.UsbDevice;
 import android.media.projection.MediaProjection;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.gitee.connect_screen.job.Job;
-import com.gitee.connect_screen.job.YieldException;
-import com.gitee.connect_screen.shizuku.IUserService;
-import com.gitee.connect_screen.shizuku.UserService;
+import com.connect_screen.mirror.job.Job;
+import com.connect_screen.mirror.job.YieldException;
+import com.connect_screen.mirror.shizuku.IUserService;
+import com.connect_screen.mirror.shizuku.UserService;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import rikka.shizuku.Shizuku;
 

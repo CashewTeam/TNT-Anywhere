@@ -1,10 +1,10 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.InputDevice;
 
-import com.gitee.connect_screen.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 import java.util.Map;
 

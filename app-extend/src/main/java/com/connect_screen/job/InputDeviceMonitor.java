@@ -1,4 +1,4 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.app.Activity;
 import android.content.Context;
@@ -7,7 +7,6 @@ import android.hardware.input.InputManager;
 import android.view.Display;
 import android.view.InputDevice;
 
-import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.State;
 
 public class InputDeviceMonitor {

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.gitee.connect_screen'
+    namespace 'com.connect_screen.extend'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.gitee.connect_screen"
+        applicationId "com.connect_screen.extend"
         minSdk 29
         targetSdk 34
         versionCode 35
@@ -36,7 +36,6 @@ android {
 }
 
 dependencies {
-    implementation project(':app')  // 依赖共享库
     implementation project(':hidden-api-stub')
     implementation project(':termux-x11-app')
     

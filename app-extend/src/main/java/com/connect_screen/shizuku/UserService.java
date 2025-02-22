@@ -1,6 +1,5 @@
-package com.gitee.connect_screen.shizuku;
+package com.connect_screen.mirror.shizuku;
 
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.IDisplayManager;
@@ -13,9 +12,6 @@ import android.view.Display;
 
 import androidx.annotation.Keep;
 
-import com.gitee.connect_screen.State;
-
-import rikka.shizuku.ShizukuBinderWrapper;
 import rikka.shizuku.SystemServiceHelper;
 
 public class UserService extends IUserService.Stub  {

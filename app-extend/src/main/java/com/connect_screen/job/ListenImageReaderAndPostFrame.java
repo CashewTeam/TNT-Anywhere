@@ -1,13 +1,10 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
-import android.hardware.display.IVirtualDisplayCallback;
 import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
 
 import com.displaylink.manager.display.DisplayMode;
-import com.gitee.connect_screen.DisplaylinkPref;
-import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.DisplaylinkState;
 

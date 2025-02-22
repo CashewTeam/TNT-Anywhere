@@ -1,18 +1,13 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.display.DisplayManager;
-import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
-import android.view.Display;
-import android.view.InputDevice;
 
-import com.gitee.connect_screen.MainActivity;
 import com.gitee.connect_screen.ProjectionMode;
 import com.gitee.connect_screen.State;
 

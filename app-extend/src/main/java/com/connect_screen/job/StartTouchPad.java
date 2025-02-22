@@ -1,9 +1,8 @@
-package com.gitee.connect_screen.job;
+package com.connect_screen.mirror.job;
 
 import android.content.Context;
 import android.content.Intent;
 
-import com.gitee.connect_screen.State;
 import com.gitee.connect_screen.TouchpadAccessibilityService;
 import com.gitee.connect_screen.TouchpadActivity;
 
