@@ -20,6 +20,9 @@ add_library(
         stat_trackers.cpp
         globals.cpp
         stream.cpp
+        rtsp.cpp
+        dependencies/moonlight-common-c/src/RtspParser.c
+        audio.cpp
 )
 
 target_include_directories(sunshine PRIVATE

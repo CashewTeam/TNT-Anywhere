@@ -24,6 +24,19 @@ namespace platf {
         // TODO
         return false;
     }
+    
+  platform_caps::caps_t get_capabilities() {
+    platform_caps::caps_t caps = 0;
+    // TODO: if has_uinput
+    caps |= platform_caps::pen_touch;
+
+    // We support controller touchpad input only when emulating the PS5 controller
+    if (config::input.gamepad == "ds5"sv || config::input.gamepad == "auto"sv) {
+      caps |= platform_caps::controller_touch;
+    }
+
+    return caps;
+  }
     std::string from_sockaddr(const sockaddr *const ip_addr) {
         char data[INET6_ADDRSTRLEN] = {};
 
