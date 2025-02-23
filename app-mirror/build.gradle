@@ -17,6 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
+            ndkVersion "28.0.13004108"
         }
 
         externalNativeBuild {
