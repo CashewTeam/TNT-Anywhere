@@ -27,7 +27,9 @@ import com.connect_screen.mirror.job.SunshineServer;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -133,11 +135,12 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
         Context context = this;
-        new SunshineServer().start();
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
             try {
+                writeCertAndKey(context);
+                new Thread(() -> { SunshineServer.start(); }).start();
                 InetAddress addr = getWifiIpAddress(context);
                 if (addr == null) {
                     android.util.Log.e("MirrorHomeFragment", "无法获取WiFi IP地址");
@@ -154,12 +157,41 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
                 jmdns.registerService(serviceInfo);
                 android.util.Log.i("MirrorHomeFragment", "JmDNS服务注册成功");
-            } catch (IOException e) {
+            } catch (Exception e) {
                 android.util.Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
             }
         }).start();
     }
 
+    public static void writeCertAndKey(Context context) {
+        try {
+            // 写入证书文件
+            try (InputStream certInput = context.getAssets().open("cacert.pem");
+                 FileOutputStream certOutput = context.openFileOutput("cacert.pem", Context.MODE_PRIVATE)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = certInput.read(buffer)) > 0) {
+                    certOutput.write(buffer, 0, length);
+                }
+                SunshineServer.setCertPath(context.getFilesDir().getAbsolutePath() + "/cacert.pem");
+            }
+
+            // 写入密钥文件
+            try (InputStream keyInput = context.getAssets().open("cakey.pem");
+                 FileOutputStream keyOutput = context.openFileOutput("cakey.pem", Context.MODE_PRIVATE)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = keyInput.read(buffer)) > 0) {
+                    keyOutput.write(buffer, 0, length);
+                }
+                SunshineServer.setPkeyPath(context.getFilesDir().getAbsolutePath() + "/cakey.pem");
+            }
+
+            android.util.Log.i("MirrorMainActivity", "证书和密钥文件写入成功: " + context.getFilesDir().getAbsolutePath());
+        } catch (IOException e) {
+            android.util.Log.e("MirrorMainActivity", "写入证书文件失败", e);
+        }
+    }
 
     public static InetAddress getWifiIpAddress(Context context) throws UnknownHostException {
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);

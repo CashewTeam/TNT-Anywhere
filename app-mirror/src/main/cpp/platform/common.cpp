@@ -12,7 +12,7 @@ namespace platf {
     }
     std::string get_host_name() {
         // TODO
-        return "todo-host";
+        return "屏易连";
     }
     std::vector<supported_gamepad_t> gamepads_list {
     };

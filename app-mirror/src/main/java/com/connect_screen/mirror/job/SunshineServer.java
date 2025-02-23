@@ -6,5 +6,8 @@ public class SunshineServer {
         System.loadLibrary("sunshine");
     }
 
-    public native void start();
+    public static native void start();
+    
+    public static native void setPkeyPath(String path);
+    public static native void setCertPath(String path);
 }
