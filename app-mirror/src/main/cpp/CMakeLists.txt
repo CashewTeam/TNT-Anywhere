@@ -19,6 +19,7 @@ add_library(
         dependencies/nanors/rs.c
         stat_trackers.cpp
         globals.cpp
+        stream.cpp
 )
 
 target_include_directories(sunshine PRIVATE
