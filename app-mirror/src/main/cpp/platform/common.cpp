@@ -24,6 +24,10 @@ namespace platf {
         // TODO
         return false;
     }
+    std::string get_mac_address(const std::string_view &address) {
+        // TODO
+        return {};
+    }
     
   platform_caps::caps_t get_capabilities() {
     platform_caps::caps_t caps = 0;

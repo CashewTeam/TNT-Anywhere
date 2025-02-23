@@ -23,6 +23,8 @@ add_library(
         rtsp.cpp
         dependencies/moonlight-common-c/src/RtspParser.c
         audio.cpp
+        nvhttp.cpp
+        file_handler.cpp
 )
 
 target_include_directories(sunshine PRIVATE
