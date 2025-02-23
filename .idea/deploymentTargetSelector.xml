@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app-mirror">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-02-22T14:26:13.879085Z">
+        <DropdownSelection timestamp="2025-02-23T09:39:46.143466700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="Default" identifier="serial=192.168.2.116:5555;connection=702c791c" />
+              <DeviceId pluginId="Default" identifier="serial=192.168.2.116:5555;connection=96c4438e" />
             </handle>
           </Target>
         </DropdownSelection>

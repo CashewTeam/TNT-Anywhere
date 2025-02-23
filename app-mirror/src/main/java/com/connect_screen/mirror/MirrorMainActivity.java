@@ -11,6 +11,7 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -26,7 +27,13 @@ import com.connect_screen.mirror.job.SunshineServer;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceInfo;
 
 import rikka.shizuku.Shizuku;
 
@@ -41,6 +48,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     // 添加时间戳和延迟常量
     private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
     private long lastCheckTime = 0;
+    private JmDNS jmdns;
 
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
@@ -53,7 +61,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
     };
 
-    
+
     private void onRequestPermissionsResult(int requestCode, int grantResult) {
         if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
             State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
@@ -124,10 +132,51 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         lastCheckTime = System.currentTimeMillis();
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
-
+        Context context = this;
         new SunshineServer().start();
+
+        // 将网络初始化操作移到后台线程
+        new Thread(() -> {
+            try {
+                InetAddress addr = getWifiIpAddress(context);
+                if (addr == null) {
+                    android.util.Log.e("MirrorHomeFragment", "无法获取WiFi IP地址");
+                    return;
+                }
+                android.util.Log.i("MirrorHomeFragment", "获取到WiFi IP地址: " + addr.getHostAddress());
+                jmdns = JmDNS.create(addr);
+                ServiceInfo serviceInfo = ServiceInfo.create(
+                        "_nvstream._tcp.local.",
+                        "ConnectScreen",
+                        47989,
+                        "ConnectScreen"
+                );
+
+                jmdns.registerService(serviceInfo);
+                android.util.Log.i("MirrorHomeFragment", "JmDNS服务注册成功");
+            } catch (IOException e) {
+                android.util.Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
+            }
+        }).start();
     }
 
+
+    public static InetAddress getWifiIpAddress(Context context) throws UnknownHostException {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager == null || !wifiManager.isWifiEnabled()) {
+            return null;
+        }
+
+        int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+        // Convert little-endian to big-endian if needed
+        byte[] bytes = new byte[4];
+        bytes[0] = (byte) (ipAddress & 0xFF);
+        bytes[1] = (byte) ((ipAddress >> 8) & 0xFF);
+        bytes[2] = (byte) ((ipAddress >> 16) & 0xFF);
+        bytes[3] = (byte) ((ipAddress >> 24) & 0xFF);
+
+        return InetAddress.getByAddress(bytes);
+    }
 
     @Override
     protected void onResume() {
