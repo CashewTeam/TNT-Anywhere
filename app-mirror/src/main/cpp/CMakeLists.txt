@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.24.0)
 
 project("sunshine")
 
+include(dependencies/Boost_Sunshine.cmake)
 add_subdirectory(dependencies/moonlight-common-c/enet)
 add_subdirectory(dependencies/openssl-cmake)
-include(dependencies/Boost_Sunshine.cmake)
+add_subdirectory(dependencies/Simple-Web-Server)
 
 add_library(
         sunshine
@@ -35,5 +36,6 @@ target_link_libraries(
         enet
         ssl
         crypto
+        simple-web-server
         ${Boost_LIBRARIES}
 ) 

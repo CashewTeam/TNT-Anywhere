@@ -74,6 +74,13 @@ if(NOT Boost_FOUND)
     set(Boost_INCLUDE_DIRS  # cmake-lint: disable=C0103
             "$<BUILD_INTERFACE:${Boost_SOURCE_DIR}/libs/headers/include>;$<INSTALL_INTERFACE:include/boost-1_85>")
 
+    # 添加 Boost::boost 别名目标
+    if(NOT TARGET Boost::boost)
+        add_library(Boost::boost INTERFACE IMPORTED)
+        set_target_properties(Boost::boost PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIRS}")
+    endif()
+
     # Add wordexp include directory for Android
     if(ANDROID)
         # 确保在 Android 平台上添加 wordexp 头文件目录
