@@ -2,6 +2,11 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app-mirror/src/main/cpp/dependencies/libwordexp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app-mirror/src/main/cpp/dependencies/moonlight-common-c" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app-mirror/src/main/cpp/dependencies/moonlight-common-c/enet" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app-mirror/src/main/cpp/dependencies/nanors" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app-mirror/src/main/cpp/dependencies/openssl-cmake" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/connect-screen.com" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/termux-x11" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/termux-x11/app/src/main/cpp/OpenXR-SDK" vcs="Git" />

@@ -17,6 +17,7 @@ add_library(
         crypto.cpp
         dependencies/nanors/rs.c
         stat_trackers.cpp
+        globals.cpp
 )
 
 target_include_directories(sunshine PRIVATE
