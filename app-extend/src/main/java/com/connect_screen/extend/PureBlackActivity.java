@@ -44,7 +44,7 @@ public class PureBlackActivity extends AppCompatActivity {
     public static class ExitReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("com.gitee.connect_screen.EXIT_PURE_BLACK".equals(intent.getAction())) {
+            if ("com.connect_screen.extend.EXIT_PURE_BLACK".equals(intent.getAction())) {
                 if (State.isInPureBlackActivity != null) {
                     State.isInPureBlackActivity.finish();
                 }

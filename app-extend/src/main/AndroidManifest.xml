@@ -138,7 +138,7 @@
             android:name=".PureBlackActivity$ExitReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.gitee.connect_screen.EXIT_PURE_BLACK" />
+                <action android:name="com.connect_screen.extend.EXIT_PURE_BLACK" />
             </intent-filter>
         </receiver>
 
@@ -146,7 +146,7 @@
             android:name=".LaunchX11Receiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.gitee.connect_screen.LAUNCH_X11" />
+                <action android:name="com.connect_screen.extend.LAUNCH_X11" />
             </intent-filter>
         </receiver>
         

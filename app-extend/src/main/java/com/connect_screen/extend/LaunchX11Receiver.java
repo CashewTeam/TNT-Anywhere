@@ -16,7 +16,7 @@ public class LaunchX11Receiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if ("com.gitee.connect_screen.LAUNCH_X11".equals(intent.getAction())) {
+        if ("com.connect_screen.extend.LAUNCH_X11".equals(intent.getAction())) {
             SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             String targetDisplayName = prefs.getString(KEY_LAST_DISPLAY_NAME, "");
             int displayId = getDisplayIdByName(context, targetDisplayName);

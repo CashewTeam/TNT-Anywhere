@@ -153,8 +153,8 @@ public class UserService extends IUserService.Stub  {
                         Log.i("UserService", "try to exit pure black activity");
                         setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
                         if (context != null) {
-                            Intent intent = new Intent("com.gitee.connect_screen.EXIT_PURE_BLACK");
-                            intent.setPackage("com.gitee.connect_screen");
+                            Intent intent = new Intent("com.connect_screen.extend.EXIT_PURE_BLACK");
+                            intent.setPackage("com.connect_screen.extend");
                             context.sendBroadcast(intent);
                         } else {
                             Log.i("UserService", "context is null, can not send EXIT_PURE_BLACK");

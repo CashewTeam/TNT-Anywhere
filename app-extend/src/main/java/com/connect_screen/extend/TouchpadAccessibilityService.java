@@ -43,7 +43,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
 
             // 准备新的服务字符串
-            String newService = "com.gitee.connect_screen/.TouchpadAccessibilityService";
+            String newService = "com.connect_screen.extend/.TouchpadAccessibilityService";
             String finalServices;
 
             // 如果已有配置，则追加新服务；否则直接使用新服务
