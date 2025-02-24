@@ -22,7 +22,7 @@ public class PermissionManager {
     private static boolean _grant(String permissionName) {
         UserHandle userHandle = Process.myUserHandle();
         UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-        String packageName = "com.gitee.connect_screen";
+        String packageName = "com.connect_screen.extend";
         IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
         if (permissionManager == null) {
             IPackageManager packageManager = ServiceUtils.getPackageManager();
