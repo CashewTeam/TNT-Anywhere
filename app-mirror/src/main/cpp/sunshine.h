@@ -2,4 +2,5 @@
 
 namespace sunshine_callbacks {
     void callJavaOnPinRequested();
+    void captureVideoLoop();
 }

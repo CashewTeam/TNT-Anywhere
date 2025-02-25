@@ -63,4 +63,9 @@ public class SunshineServer {
     
     // 添加提交PIN码的native方法
     public static native void submitPin(String pin);
+
+    
+    public static void captureVideoLoop() {
+        android.util.Log.d("SunshineServer", "captureVideoLoop");
+    }
 }

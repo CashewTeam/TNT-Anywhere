@@ -110,4 +110,38 @@ namespace sunshine_callbacks {
 
         jvm->DetachCurrentThread();
     }
+    void captureVideoLoop() {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jmethodID captureVideoLoopMethod = env->GetStaticMethodID(sunshineServerClass, "captureVideoLoop", "()V");
+        if (captureVideoLoopMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 captureVideoLoop 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        env->CallStaticVoidMethod(sunshineServerClass, captureVideoLoopMethod);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
+    }
 }

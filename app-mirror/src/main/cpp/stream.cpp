@@ -33,6 +33,7 @@ extern "C" {
 #include "system_tray.h"
 #include "thread_safe.h"
 #include "utility.h"
+#include "sunshine.h"
 
 #define IDX_START_A 0
 #define IDX_START_B 1
@@ -1799,6 +1800,7 @@ namespace stream {
     return -1;
   }
 
+    safe::mail_raw_t::queue_t<video::packet_t> videoPackets;
   void videoThread(session_t *session) {
 //    auto fg = util::fail_guard([&]() {
 //      session::stop(*session);
@@ -1816,7 +1818,9 @@ namespace stream {
     auto address = session->video.peer.address();
     session->video.qos = platf::enable_socket_qos(ref->video_sock.native_handle(), address, session->video.peer.port(), platf::qos_data_type_e::video, session->config.videoQosType != 0);
 
+        videoPackets = mail::man->queue<video::packet_t>(mail::video_packets);
     BOOST_LOG(debug) << "Start capturing Video"sv;
+    sunshine_callbacks::captureVideoLoop();
 //    video::capture(session->mail, session->config.monitor, session);
   }
 
