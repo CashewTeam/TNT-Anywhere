@@ -218,9 +218,79 @@ namespace sunshine_callbacks {
         // 调用 createVirtualDisplay 方法
         createVirtualDisplay(env, javaSurface);
         
+        // 启动编码器
+        status = AMediaCodec_start(codec);
+        if (status != AMEDIA_OK) {
+            BOOST_LOG(error) << "无法启动编码器，错误码: "sv << status;
+            env->DeleteLocalRef(javaSurface);
+            jvm->DetachCurrentThread();
+            ANativeWindow_release(inputSurface);
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 编码循环
+        bool isRunning = true;
+        while (isRunning) {
+            // 获取输出缓冲区
+            AMediaCodecBufferInfo bufferInfo;
+            ssize_t outputBufferIndex = AMediaCodec_dequeueOutputBuffer(codec, &bufferInfo, -1);
+            
+            if (outputBufferIndex >= 0) {
+                // 获取到有效的输出缓冲区
+                size_t bufferSize = bufferInfo.size;
+                uint8_t* buffer = nullptr;
+                size_t out_size = 0;
+                
+                // 获取缓冲区数据
+                buffer = AMediaCodec_getOutputBuffer(codec, outputBufferIndex, &out_size);
+                if (buffer != nullptr) {
+                    // 处理编码后的数据
+                    if (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG) {
+                        // 这是编解码器配置数据（SPS/PPS）
+                        BOOST_LOG(info) << "收到编解码器配置数据，大小: "sv << bufferSize;
+                        // 这里可以保存SPS/PPS数据用于流传输
+                    } else {
+                        // 这是正常的编码帧
+                        bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
+                        BOOST_LOG(info) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
+                        
+                        // 这里可以将编码后的数据发送到RTSP流
+                        // rtsp_stream::sendVideoFrame(buffer, bufferSize, isKeyFrame, bufferInfo.presentationTimeUs);
+                    }
+                }
+                
+                // 释放输出缓冲区
+                AMediaCodec_releaseOutputBuffer(codec, outputBufferIndex, false);
+            } else if (outputBufferIndex == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+                // 输出格式已更改
+                AMediaFormat* format = AMediaCodec_getOutputFormat(codec);
+                BOOST_LOG(info) << "编码器输出格式已更改"sv;
+                // 可以从format中获取更多信息
+                AMediaFormat_delete(format);
+            } else if (outputBufferIndex == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+                // 超时，没有可用的输出
+                BOOST_LOG(info) << "编码器暂时没有输出"sv;
+            } else {
+                // 出错
+                BOOST_LOG(error) << "编码器出错，错误码: "sv << outputBufferIndex;
+                isRunning = false;
+            }
+            
+            // 这里可以添加停止条件
+            // if (shouldStop) isRunning = false;
+        }
+        
+        // 停止编码器
+        AMediaCodec_stop(codec);
+        
+        // 清理资源
+        ANativeWindow_release(inputSurface);
+        AMediaCodec_delete(codec);
+        AMediaFormat_delete(format);
+        
         // 清理 Java Surface 引用
         jvm->DetachCurrentThread();
-        
-        // 这里可以继续编码循环的其他部分...
     }
 }

@@ -70,6 +70,8 @@ public class SunshineServer {
 
     
     public static void createVirtualDisplay(Surface surface) {
-        android.util.Log.i("Sunshine", "recev surface " + surface.toString());
+        new Handler(Looper.getMainLooper()).post(() -> {
+            State.startNewJob(new ProjectViaMoonlight(surface));
+        });
     }
 }
