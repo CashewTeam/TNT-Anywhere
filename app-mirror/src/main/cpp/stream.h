@@ -39,6 +39,8 @@ namespace stream {
     std::optional<int> gcmap;
   };
 
+  void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr);
+
   namespace session {
     enum class state_e : int {
       STOPPED,  ///< The session is stopped

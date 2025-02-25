@@ -1800,7 +1800,8 @@ namespace stream {
     return -1;
   }
 
-    safe::mail_raw_t::queue_t<video::packet_t> videoPackets;
+    safe::mail_raw_t::queue_t<video::packet_t> currentSessionVideoQueue;
+    session_t * currentSession;
   void videoThread(session_t *session) {
 //    auto fg = util::fail_guard([&]() {
 //      session::stop(*session);
@@ -1818,11 +1819,24 @@ namespace stream {
     auto address = session->video.peer.address();
     session->video.qos = platf::enable_socket_qos(ref->video_sock.native_handle(), address, session->video.peer.port(), platf::qos_data_type_e::video, session->config.videoQosType != 0);
 
-        videoPackets = mail::man->queue<video::packet_t>(mail::video_packets);
+      currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
+      currentSession = session;
     BOOST_LOG(debug) << "Start capturing Video"sv;
     sunshine_callbacks::captureVideoLoop();
 //    video::capture(session->mail, session->config.monitor, session);
   }
+
+    void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr)  {
+        if(currentSessionVideoQueue) {
+            auto packet = std::make_unique<video::packet_raw_generic>(
+                    std::move(frame_data),
+                    frame_index,
+                    idr
+            );
+            packet->channel_data = currentSession;
+            currentSessionVideoQueue->raise(std::move(packet));
+        }
+    }
 
   void audioThread(session_t *session) {
 //    auto fg = util::fail_guard([&]() {
