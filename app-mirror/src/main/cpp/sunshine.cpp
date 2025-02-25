@@ -5,6 +5,7 @@
 #include "nvhttp.h"
 #include "globals.h"
 #include "sunshine.h"
+#include "rtsp.h"
 
 using namespace std::literals;
 
@@ -29,7 +30,10 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
     deinit = logging::init(0, "/dev/null");
     BOOST_LOG(info) << "start sunshine server"sv;
     mail::man = std::make_shared<safe::mail_raw_t>();
-    nvhttp::start();
+    
+    std::thread httpThread {nvhttp::start};
+    rtsp_stream::rtpThread();
+    httpThread.join();
 }
 
 JNIEXPORT void JNICALL
