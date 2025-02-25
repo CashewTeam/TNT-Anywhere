@@ -233,8 +233,7 @@ namespace sunshine_callbacks {
         
         // 编码循环
         bool isRunning = true;
-        std::vector<uint8_t> spsData;
-        std::vector<uint8_t> ppsData;
+        std::vector<uint8_t> codecConfigData;  // 用于存储完整的编解码器配置数据
         int64_t frameIndex = 0;
         
         while (isRunning) {
@@ -254,77 +253,34 @@ namespace sunshine_callbacks {
                     // 处理编码后的数据
                     if (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG) {
                         // 这是编解码器配置数据（SPS/PPS）
-                        BOOST_LOG(info) << "收到编解码器配置数据，大小: "sv << bufferSize << ", " << out_size;
-                        // 保存SPS/PPS数据用于流传输
-                        spsData.clear();
-                        ppsData.clear();
+                        BOOST_LOG(info) << "收到编解码器配置数据，大小: "sv << bufferSize;
                         
-                        // 解析SPS和PPS数据
-                        // H.264编码配置数据通常格式为: [0, 0, 0, 1, SPS, 0, 0, 0, 1, PPS]
-                        uint8_t* p = buffer;
-                        int remaining = bufferSize;
-                        
-                        while (remaining > 4) {
-                            // 查找起始码 0x00 0x00 0x00 0x01
-                            if (p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 1) {
-                                p += 4;
-                                remaining -= 4;
-                                
-                                // 获取NAL单元类型 (5位，在第一个字节的低5位)
-                                uint8_t nalType = p[0] & 0x1F;
-                                
-                                // 查找下一个起始码或到达缓冲区末尾
-                                uint8_t* nextNal = p + 1;
-                                int nalSize = 1;
-                                while (nalSize < remaining - 3) {
-                                    if (nextNal[0] == 0 && nextNal[1] == 0 && nextNal[2] == 0 && nextNal[3] == 1) {
-                                        break;
-                                    }
-                                    nextNal++;
-                                    nalSize++;
-                                }
-                                
-                                // 根据NAL类型保存SPS或PPS
-                                if (nalType == 7) { // SPS
-                                    spsData.assign(p, p + nalSize);
-                                    BOOST_LOG(info) << "保存SPS数据，大小: "sv << nalSize;
-                                } else if (nalType == 8) { // PPS
-                                    ppsData.assign(p, p + nalSize);
-                                    BOOST_LOG(info) << "保存PPS数据，大小: "sv << nalSize;
-                                }
-                                
-                                p = nextNal;
-                                remaining = bufferSize - (p - buffer);
-                            } else {
-                                p++;
-                                remaining--;
-                            }
-                        }
+                        // 直接保存整个配置数据
+                        codecConfigData.assign(buffer, buffer + bufferSize);
+                        BOOST_LOG(info) << "保存完整的编解码器配置数据，大小: "sv << codecConfigData.size();
                     } else {
                         // 这是正常的编码帧
                         bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
                         BOOST_LOG(info) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
                         frameIndex++;
+                        
                         if(isKeyFrame) {
-                            // 对于关键帧，需要在数据前附加SPS和PPS
-                            if (!spsData.empty() && !ppsData.empty()) {
-                                // 创建包含SPS、PPS和关键帧的完整数据
+                            // 对于关键帧，需要在数据前附加编解码器配置数据
+                            if (!codecConfigData.empty()) {
+                                // 创建包含配置数据和关键帧的完整数据
                                 std::vector<uint8_t> frameData;
                                 
-                                // 添加SPS
-                                frameData.insert(frameData.end(), spsData.begin(), spsData.end());
-                                
-                                // 添加PPS
-                                frameData.insert(frameData.end(), ppsData.begin(), ppsData.end());
+                                // 添加配置数据
+                                frameData.insert(frameData.end(), codecConfigData.begin(), codecConfigData.end());
                                 
                                 // 添加关键帧数据
                                 frameData.insert(frameData.end(), buffer, buffer + bufferSize);
 
-                                BOOST_LOG(info) << "发送关键帧(带SPS/PPS)，总大小: "sv << frameData.size();
+                                BOOST_LOG(info) << "发送关键帧(带配置数据)，总大小: "sv << frameData.size();
                                 // 发送完整的关键帧数据
                                 stream::postFrame(std::move(frameData), frameIndex, true);
                             } else {
-                                BOOST_LOG(error) << "没有SPS/PPS数据，无法发送完整关键帧"sv;
+                                BOOST_LOG(error) << "没有编解码器配置数据，无法发送完整关键帧"sv;
                             }
                         } else {
                             std::vector<uint8_t> frameData;
