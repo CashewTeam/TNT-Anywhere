@@ -34,6 +34,7 @@
 #include "utility.h"
 #include "uuid.h"
 #include "video.h"
+#include "sunshine.h"
 
 using namespace std::literals;
 namespace http {
@@ -591,6 +592,7 @@ namespace nvhttp {
 #if defined SUNSHINE_TRAY && SUNSHINE_TRAY >= 1
                     system_tray::update_tray_require_pin();
 #endif
+                    sunshine_callbacks::callJavaOnPinRequested();
                     ptr->second.async_insert_pin.response = std::move(response);
 
                     fg.disable();

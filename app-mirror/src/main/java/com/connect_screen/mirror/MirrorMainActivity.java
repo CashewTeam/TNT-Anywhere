@@ -139,6 +139,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
             try {
+                SunshineServer.setFileStatePath(context.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(context);
                 new Thread(() -> { SunshineServer.start(); }).start();
                 InetAddress addr = getWifiIpAddress(context);
