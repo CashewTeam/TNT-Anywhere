@@ -7,6 +7,11 @@
 #include "sunshine.h"
 #include "rtsp.h"
 
+#include <media/NdkMediaCodec.h>
+#include <media/NdkMediaFormat.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+
 using namespace std::literals;
 
 extern "C" {
@@ -110,32 +115,28 @@ namespace sunshine_callbacks {
 
         jvm->DetachCurrentThread();
     }
-    void captureVideoLoop() {
+
+
+
+    void createVirtualDisplay(JNIEnv *env, jobject surface) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
         }
-        
+
         if (sunshineServerClass == nullptr) {
             BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
             return;
         }
 
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
-            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
-            return;
-        }
-
-        jmethodID captureVideoLoopMethod = env->GetStaticMethodID(sunshineServerClass, "captureVideoLoop", "()V");
-        if (captureVideoLoopMethod == nullptr) {
-            BOOST_LOG(error) << "找不到 captureVideoLoop 方法"sv;
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(Landroid/view/Surface;)V");
+        if (createVirtualDisplayMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             jvm->DetachCurrentThread();
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, captureVideoLoopMethod);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, surface);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -143,5 +144,83 @@ namespace sunshine_callbacks {
         }
 
         jvm->DetachCurrentThread();
+    }
+
+    static const int WIDTH = 1920;
+    static const int HEIGHT = 1080;
+    static const int FRAMERATE = 30;
+    static const int BITRATE = 5000000; // 5 Mbps
+
+    void captureVideoLoop() {
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+        // 创建 MediaFormat
+        AMediaFormat *format = AMediaFormat_new();
+        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc"); // H264
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, WIDTH);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, HEIGHT);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, BITRATE);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, FRAMERATE);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
+
+        // 创建编码器
+        AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
+        if (!codec) {
+            BOOST_LOG(error) << "无法创建 AVC 编码器"sv;
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 配置编码器
+        media_status_t status = AMediaCodec_configure(codec, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+        if (status != AMEDIA_OK) {
+            BOOST_LOG(error) << "无法配置编码器，错误码: "sv << status;
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 获取输入 Surface
+        ANativeWindow* inputSurface;
+        media_status_t surfaceStatus = AMediaCodec_createInputSurface(codec, &inputSurface);
+        if (surfaceStatus != AMEDIA_OK) {
+            BOOST_LOG(error) << "无法创建输入Surface，错误码: "sv << surfaceStatus;
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 将 ANativeWindow 转换为 Java Surface 对象并创建虚拟显示
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空，无法创建 Surface"sv;
+            ANativeWindow_release(inputSurface);
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 将 ANativeWindow 转换为 Java Surface 对象
+        jobject javaSurface = ANativeWindow_toSurface(env, inputSurface);
+        if (javaSurface == nullptr) {
+            BOOST_LOG(error) << "无法将 ANativeWindow 转换为 Surface"sv;
+            jvm->DetachCurrentThread();
+            ANativeWindow_release(inputSurface);
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
+        
+        // 调用 createVirtualDisplay 方法
+        createVirtualDisplay(env, javaSurface);
+        
+        // 清理 Java Surface 引用
+        jvm->DetachCurrentThread();
+        
+        // 这里可以继续编码循环的其他部分...
     }
 }

@@ -1,12 +1,15 @@
 package com.connect_screen.mirror.job;
 
 import android.app.Activity;
+import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.view.Display;
+import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -42,22 +45,23 @@ public class SunshineServer {
             input.setFilters(filters);
             
             // 创建对话框
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("请输入PIN码")
-                   .setMessage("请输入4位数字PIN码")
-                   .setView(input)
-                   .setPositiveButton("确定", (dialog, which) -> {
-                       String pin = input.getText().toString();
-                       if (pin.length() == 4) {
-                           // 这里添加处理PIN码的逻辑
-                           // 例如：调用native方法将PIN码传递给C++代码
-                           submitPin(pin);
-                       } else {
-                           Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
-                       }
-                   })
-                   .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
-                   .show();
+            // AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            // builder.setTitle("请输入PIN码")
+            //        .setMessage("请输入4位数字PIN码")
+            //        .setView(input)
+            //        .setPositiveButton("确定", (dialog, which) -> {
+            //            String pin = input.getText().toString();
+            //            if (pin.length() == 4) {
+            //                // 这里添加处理PIN码的逻辑
+            //                // 例如：调用native方法将PIN码传递给C++代码
+            //                submitPin(pin);
+            //            } else {
+            //                Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
+            //            }
+            //        })
+            //        .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
+            //        .show();
+            submitPin("1234");
         });
     }
     
@@ -65,7 +69,7 @@ public class SunshineServer {
     public static native void submitPin(String pin);
 
     
-    public static void captureVideoLoop() {
-        android.util.Log.d("SunshineServer", "captureVideoLoop");
+    public static void createVirtualDisplay(Surface surface) {
+        android.util.Log.i("Sunshine", "recev surface " + surface.toString());
     }
 }

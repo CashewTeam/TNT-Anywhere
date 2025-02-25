@@ -38,6 +38,7 @@ target_include_directories(sunshine PRIVATE
 target_link_libraries(
         sunshine
         android
+        mediandk
         log
         enet
         ssl
