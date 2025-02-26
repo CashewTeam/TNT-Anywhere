@@ -195,7 +195,7 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, config.framerate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 2); // COLOR_RANGE_LIMITED
@@ -336,6 +336,10 @@ namespace sunshine_callbacks {
                 BOOST_LOG(info) << "编码器输出格式已更改"sv;
                 // 可以从format中获取更多信息
                 AMediaFormat_delete(format);
+            } else if (outputBufferIndex == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+                // 输出缓冲区已更改
+                BOOST_LOG(info) << "编码器输出缓冲区已更改"sv;
+                // 在较新的 NDK 版本中，这个事件通常可以忽略，因为 AMediaCodec_getOutputBuffer 会自动处理缓冲区变化
             } else {
                 // 出错
                 BOOST_LOG(error) << "编码器出错，错误码: "sv << outputBufferIndex;
