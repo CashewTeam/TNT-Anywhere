@@ -20,10 +20,6 @@ namespace platf {
         // TODO
         return gamepads_list;
     }
-    bool send_batch(batched_send_info_t &send_info) {
-        // TODO
-        return false;
-    }
     std::string get_mac_address(const std::string_view &address) {
         // TODO
         return {};
@@ -106,6 +102,217 @@ namespace platf {
         memcpy(&saddr_v6.sin6_addr, addr_bytes.data(), sizeof(saddr_v6.sin6_addr));
 
         return saddr_v6;
+    }
+
+
+    bool send_batch(batched_send_info_t &send_info) {
+        auto sockfd = (int) send_info.native_socket;
+        struct msghdr msg = {};
+
+        // Convert the target address into a sockaddr
+        struct sockaddr_in taddr_v4 = {};
+        struct sockaddr_in6 taddr_v6 = {};
+        if (send_info.target_address.is_v6()) {
+            taddr_v6 = to_sockaddr(send_info.target_address.to_v6(), send_info.target_port);
+
+            msg.msg_name = (struct sockaddr *) &taddr_v6;
+            msg.msg_namelen = sizeof(taddr_v6);
+        } else {
+            taddr_v4 = to_sockaddr(send_info.target_address.to_v4(), send_info.target_port);
+
+            msg.msg_name = (struct sockaddr *) &taddr_v4;
+            msg.msg_namelen = sizeof(taddr_v4);
+        }
+
+        union {
+            char buf[CMSG_SPACE(sizeof(uint16_t)) + std::max(CMSG_SPACE(sizeof(struct in_pktinfo)), CMSG_SPACE(sizeof(struct in6_pktinfo)))];
+            struct cmsghdr alignment;
+        } cmbuf = {};  // Must be zeroed for CMSG_NXTHDR()
+
+        socklen_t cmbuflen = 0;
+
+        msg.msg_control = cmbuf.buf;
+        msg.msg_controllen = sizeof(cmbuf.buf);
+
+        // The PKTINFO option will always be first, then we will conditionally
+        // append the UDP_SEGMENT option next if applicable.
+        auto pktinfo_cm = CMSG_FIRSTHDR(&msg);
+        if (send_info.source_address.is_v6()) {
+            struct in6_pktinfo pktInfo;
+
+            struct sockaddr_in6 saddr_v6 = to_sockaddr(send_info.source_address.to_v6(), 0);
+            pktInfo.ipi6_addr = saddr_v6.sin6_addr;
+            pktInfo.ipi6_ifindex = 0;
+
+            cmbuflen += CMSG_SPACE(sizeof(pktInfo));
+
+            pktinfo_cm->cmsg_level = IPPROTO_IPV6;
+            pktinfo_cm->cmsg_type = IPV6_PKTINFO;
+            pktinfo_cm->cmsg_len = CMSG_LEN(sizeof(pktInfo));
+            memcpy(CMSG_DATA(pktinfo_cm), &pktInfo, sizeof(pktInfo));
+        } else {
+            struct in_pktinfo pktInfo;
+
+            struct sockaddr_in saddr_v4 = to_sockaddr(send_info.source_address.to_v4(), 0);
+            pktInfo.ipi_spec_dst = saddr_v4.sin_addr;
+            pktInfo.ipi_ifindex = 0;
+
+            cmbuflen += CMSG_SPACE(sizeof(pktInfo));
+
+            pktinfo_cm->cmsg_level = IPPROTO_IP;
+            pktinfo_cm->cmsg_type = IP_PKTINFO;
+            pktinfo_cm->cmsg_len = CMSG_LEN(sizeof(pktInfo));
+            memcpy(CMSG_DATA(pktinfo_cm), &pktInfo, sizeof(pktInfo));
+        }
+
+        auto const max_iovs_per_msg = send_info.payload_buffers.size() + (send_info.headers ? 1 : 0);
+
+#ifdef UDP_SEGMENT
+        {
+      // UDP GSO on Linux currently only supports sending 64K or 64 segments at a time
+      size_t seg_index = 0;
+      const size_t seg_max = 65536 / 1500;
+      struct iovec iovs[(send_info.headers ? std::min(seg_max, send_info.block_count) : 1) * max_iovs_per_msg] = {};
+      auto msg_size = send_info.header_size + send_info.payload_size;
+      while (seg_index < send_info.block_count) {
+        int iovlen = 0;
+        auto segs_in_batch = std::min(send_info.block_count - seg_index, seg_max);
+        if (send_info.headers) {
+          // Interleave iovs for headers and payloads
+          for (auto i = 0; i < segs_in_batch; i++) {
+            iovs[iovlen].iov_base = (void *) &send_info.headers[(send_info.block_offset + seg_index + i) * send_info.header_size];
+            iovs[iovlen].iov_len = send_info.header_size;
+            iovlen++;
+            auto payload_desc = send_info.buffer_for_payload_offset((send_info.block_offset + seg_index + i) * send_info.payload_size);
+            iovs[iovlen].iov_base = (void *) payload_desc.buffer;
+            iovs[iovlen].iov_len = send_info.payload_size;
+            iovlen++;
+          }
+        } else {
+          // Translate buffer descriptors into iovs
+          auto payload_offset = (send_info.block_offset + seg_index) * send_info.payload_size;
+          auto payload_length = payload_offset + (segs_in_batch * send_info.payload_size);
+          while (payload_offset < payload_length) {
+            auto payload_desc = send_info.buffer_for_payload_offset(payload_offset);
+            iovs[iovlen].iov_base = (void *) payload_desc.buffer;
+            iovs[iovlen].iov_len = std::min(payload_desc.size, payload_length - payload_offset);
+            payload_offset += iovs[iovlen].iov_len;
+            iovlen++;
+          }
+        }
+
+        msg.msg_iov = iovs;
+        msg.msg_iovlen = iovlen;
+
+        // We should not use GSO if the data is <= one full block size
+        if (segs_in_batch > 1) {
+          msg.msg_controllen = cmbuflen + CMSG_SPACE(sizeof(uint16_t));
+
+          // Enable GSO to perform segmentation of our buffer for us
+          auto cm = CMSG_NXTHDR(&msg, pktinfo_cm);
+          cm->cmsg_level = SOL_UDP;
+          cm->cmsg_type = UDP_SEGMENT;
+          cm->cmsg_len = CMSG_LEN(sizeof(uint16_t));
+          *((uint16_t *) CMSG_DATA(cm)) = msg_size;
+        } else {
+          msg.msg_controllen = cmbuflen;
+        }
+
+        // This will fail if GSO is not available, so we will fall back to non-GSO if
+        // it's the first sendmsg() call. On subsequent calls, we will treat errors as
+        // actual failures and return to the caller.
+        auto bytes_sent = sendmsg(sockfd, &msg, 0);
+        if (bytes_sent < 0) {
+          // If there's no send buffer space, wait for some to be available
+          if (errno == EAGAIN) {
+            struct pollfd pfd;
+
+            pfd.fd = sockfd;
+            pfd.events = POLLOUT;
+
+            if (poll(&pfd, 1, -1) != 1) {
+              BOOST_LOG(warning) << "poll() failed: "sv << errno;
+              break;
+            }
+
+            // Try to send again
+            continue;
+          }
+
+          BOOST_LOG(verbose) << "sendmsg() failed: "sv << errno;
+          break;
+        }
+
+        seg_index += bytes_sent / msg_size;
+      }
+
+      // If we sent something, return the status and don't fall back to the non-GSO path.
+      if (seg_index != 0) {
+        return seg_index >= send_info.block_count;
+      }
+    }
+#endif
+
+        {
+            // If GSO is not supported, use sendmmsg() instead.
+            struct mmsghdr msgs[send_info.block_count];
+            struct iovec iovs[send_info.block_count * (send_info.headers ? 2 : 1)];
+
+            // 手动初始化数组
+            memset(msgs, 0, sizeof(msgs));
+            memset(iovs, 0, sizeof(iovs));
+
+            int iov_idx = 0;
+            for (size_t i = 0; i < send_info.block_count; i++) {
+                msgs[i].msg_hdr.msg_iov = &iovs[iov_idx];
+                msgs[i].msg_hdr.msg_iovlen = send_info.headers ? 2 : 1;
+
+                if (send_info.headers) {
+                    iovs[iov_idx].iov_base = (void *) &send_info.headers[(send_info.block_offset + i) * send_info.header_size];
+                    iovs[iov_idx].iov_len = send_info.header_size;
+                    iov_idx++;
+                }
+                auto payload_desc = send_info.buffer_for_payload_offset((send_info.block_offset + i) * send_info.payload_size);
+                iovs[iov_idx].iov_base = (void *) payload_desc.buffer;
+                iovs[iov_idx].iov_len = send_info.payload_size;
+                iov_idx++;
+
+                msgs[i].msg_hdr.msg_name = msg.msg_name;
+                msgs[i].msg_hdr.msg_namelen = msg.msg_namelen;
+                msgs[i].msg_hdr.msg_control = cmbuf.buf;
+                msgs[i].msg_hdr.msg_controllen = cmbuflen;
+            }
+
+            // Call sendmmsg() until all messages are sent
+            size_t blocks_sent = 0;
+            while (blocks_sent < send_info.block_count) {
+                int msgs_sent = sendmmsg(sockfd, &msgs[blocks_sent], send_info.block_count - blocks_sent, 0);
+                if (msgs_sent < 0) {
+                    // If there's no send buffer space, wait for some to be available
+                    if (errno == EAGAIN) {
+                        struct pollfd pfd;
+
+                        pfd.fd = sockfd;
+                        pfd.events = POLLOUT;
+
+                        if (poll(&pfd, 1, -1) != 1) {
+                            BOOST_LOG(warning) << "poll() failed: "sv << errno;
+                            break;
+                        }
+
+                        // Try to send again
+                        continue;
+                    }
+
+                    BOOST_LOG(warning) << "sendmmsg() failed: "sv << errno;
+                    return false;
+                }
+
+                blocks_sent += msgs_sent;
+            }
+
+            return true;
+        }
     }
 
     // We can't track QoS state separately for each destination on this OS,
