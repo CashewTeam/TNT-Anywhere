@@ -31,6 +31,7 @@ public class ProjectViaMoonlight implements Job {
                     1920, 1080, 160,
                     android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
+            State.setMediaProjection(null);
         }
     }
 

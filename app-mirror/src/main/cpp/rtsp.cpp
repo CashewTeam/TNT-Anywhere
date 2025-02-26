@@ -1109,12 +1109,12 @@ namespace rtsp_stream {
     while (!shutdown_event->peek()) {
       server.iterate(std::min(500ms, config::stream.ping_timeout));
 
-      if (broadcast_shutdown_event->peek()) {
-        server.clear();
-      } else {
+//      if (broadcast_shutdown_event->peek()) {
+//        server.clear();
+//      } else {
         // cleanup all stopped sessions
         server.clear(false);
-      }
+//      }
     }
 
     server.clear();

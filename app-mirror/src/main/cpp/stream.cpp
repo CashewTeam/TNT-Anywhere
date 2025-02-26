@@ -1106,6 +1106,8 @@ namespace stream {
       server->iterate(150ms);
     }
 
+  BOOST_LOG(debug) << "control loop end"sv;
+
     // Let all remaining connections know the server is shutting down
     // reason: graceful termination
     std::uint32_t reason = 0x80030023;
@@ -1843,19 +1845,19 @@ namespace stream {
 //      session::stop(*session);
 //    });
 
-    while_starting_do_nothing(session->state);
-
-    auto ref = broadcast.ref();
-    auto error = recv_ping(session, ref, socket_e::audio, session->audio.ping_payload, session->audio.peer, config::stream.ping_timeout);
-    if (error < 0) {
-      return;
-    }
-
-    // Enable local prioritization and QoS tagging on audio traffic if requested by the client
-    auto address = session->audio.peer.address();
-    session->audio.qos = platf::enable_socket_qos(ref->audio_sock.native_handle(), address, session->audio.peer.port(), platf::qos_data_type_e::audio, session->config.audioQosType != 0);
-
-    BOOST_LOG(debug) << "Start capturing Audio"sv;
+//    while_starting_do_nothing(session->state);
+//
+//    auto ref = broadcast.ref();
+//    auto error = recv_ping(session, ref, socket_e::audio, session->audio.ping_payload, session->audio.peer, config::stream.ping_timeout);
+//    if (error < 0) {
+//      return;
+//    }
+//
+//    // Enable local prioritization and QoS tagging on audio traffic if requested by the client
+//    auto address = session->audio.peer.address();
+//    session->audio.qos = platf::enable_socket_qos(ref->audio_sock.native_handle(), address, session->audio.peer.port(), platf::qos_data_type_e::audio, session->config.audioQosType != 0);
+//
+//    BOOST_LOG(debug) << "Start capturing Audio"sv;
 //    audio::capture(session->mail, session->config.audio, session);
   }
 

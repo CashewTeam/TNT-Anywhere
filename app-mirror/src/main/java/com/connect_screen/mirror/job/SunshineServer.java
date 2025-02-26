@@ -81,6 +81,7 @@ public class SunshineServer {
                 State.log("停止 Moonlight 投屏");
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
+                ExitAll.execute(State.currentActivity.get());
             }
         });
     }
