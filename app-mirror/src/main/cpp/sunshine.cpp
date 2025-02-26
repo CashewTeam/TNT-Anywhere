@@ -33,7 +33,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
         BOOST_LOG(error) << "无法在启动时找到 SunshineServer 类"sv;
     }
     
-    deinit = logging::init(0, "/dev/null");
+    deinit = logging::init(1, "/dev/null");
     BOOST_LOG(info) << "start sunshine server"sv;
     mail::man = std::make_shared<safe::mail_raw_t>();
     
@@ -119,7 +119,7 @@ namespace sunshine_callbacks {
 
 
 
-    void createVirtualDisplay(JNIEnv *env, jobject surface) {
+    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jobject surface) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -130,14 +130,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(Landroid/view/Surface;)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IILandroid/view/Surface;)V");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             jvm->DetachCurrentThread();
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, surface);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, surface);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -181,12 +181,7 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-    static const int WIDTH = 1920;
-    static const int HEIGHT = 1080;
-    static const int FRAMERATE = 60;
-    static const int BITRATE = 8000000; // 8 Mbps
-
-    void captureVideoLoop(safe::mail_t mail) {
+    void captureVideoLoop(safe::mail_t mail, const video::config_t& config) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
         if (result != JNI_OK) {
@@ -197,18 +192,13 @@ namespace sunshine_callbacks {
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
         AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc"); // H264
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, WIDTH);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, HEIGHT);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, BITRATE);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, FRAMERATE);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
-        
-        // 添加低延迟配置
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0); // 实时优先级
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 1); // 低延迟模式
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 2); // 基线配置文件 (Baseline Profile)
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 0); // 低复杂度编码
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 2); // COLOR_RANGE_LIMITED
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
@@ -258,7 +248,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, javaSurface);
+        createVirtualDisplay(env, config.width, config.height, javaSurface);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
@@ -301,7 +291,7 @@ namespace sunshine_callbacks {
                     } else {
                         // 这是正常的编码帧
                         bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
-                        BOOST_LOG(info) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
+                        BOOST_LOG(verbose) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
                         frameIndex++;
                         
                         if(isKeyFrame) {
@@ -316,7 +306,7 @@ namespace sunshine_callbacks {
                                 // 添加关键帧数据
                                 frameData.insert(frameData.end(), buffer, buffer + bufferSize);
 
-                                BOOST_LOG(info) << "发送关键帧(带配置数据)，总大小: "sv << frameData.size();
+                                BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << frameData.size();
                                 // 发送完整的关键帧数据
                                 stream::postFrame(std::move(frameData), frameIndex, true);
                             } else {

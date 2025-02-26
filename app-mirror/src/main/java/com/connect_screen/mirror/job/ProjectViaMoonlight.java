@@ -2,7 +2,6 @@ package com.connect_screen.mirror.job;
 
 import android.content.Context;
 import android.content.Intent;
-import android.media.MediaCodec;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
@@ -15,10 +14,14 @@ import com.connect_screen.mirror.State;
 
 
 public class ProjectViaMoonlight implements Job {
+    private final int width;
+    private final int height;
     private final Surface surface;
     private boolean mediaProjectionRequested;
 
-    public ProjectViaMoonlight(Surface surface) {
+    public ProjectViaMoonlight(int width, int height, Surface surface) {
+        this.width = width;
+        this.height = height;
         this.surface = surface;
     }
 
@@ -28,7 +31,7 @@ public class ProjectViaMoonlight implements Job {
             MediaProjection mediaProjection = State.getMediaProjection();
             State.mirrorVirtualDisplay = mediaProjection.createVirtualDisplay(
                     "ScreenCapture",
-                    1920, 1080, 160,
+                    width, height, 160,
                     android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
             State.setMediaProjection(null);
