@@ -199,6 +199,14 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 2); // COLOR_RANGE_LIMITED
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
+        // 设置低延迟模式
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0); // 实时优先级
+        // 设置编码配置
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x01); // BASELINE profile
+
+        
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
