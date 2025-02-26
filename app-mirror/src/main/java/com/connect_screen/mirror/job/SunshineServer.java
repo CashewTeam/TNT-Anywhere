@@ -45,22 +45,22 @@ public class SunshineServer {
             input.setFilters(filters);
             
             // 创建对话框
-            // AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            // builder.setTitle("请输入PIN码")
-            //        .setMessage("请输入4位数字PIN码")
-            //        .setView(input)
-            //        .setPositiveButton("确定", (dialog, which) -> {
-            //            String pin = input.getText().toString();
-            //            if (pin.length() == 4) {
-            //                // 这里添加处理PIN码的逻辑
-            //                // 例如：调用native方法将PIN码传递给C++代码
-            //                submitPin(pin);
-            //            } else {
-            //                Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
-            //            }
-            //        })
-            //        .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
-            //        .show();
+//             AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//             builder.setTitle("请输入PIN码")
+//                    .setMessage("请输入4位数字PIN码")
+//                    .setView(input)
+//                    .setPositiveButton("确定", (dialog, which) -> {
+//                        String pin = input.getText().toString();
+//                        if (pin.length() == 4) {
+//                            // 这里添加处理PIN码的逻辑
+//                            // 例如：调用native方法将PIN码传递给C++代码
+//                            submitPin(pin);
+//                        } else {
+//                            Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
+//                        }
+//                    })
+//                    .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
+//                    .show();
             submitPin("1234");
         });
     }
@@ -72,6 +72,16 @@ public class SunshineServer {
     public static void createVirtualDisplay(Surface surface) {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(surface));
+        });
+    }
+
+    public static void stopVirtualDisplay() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (State.mirrorVirtualDisplay != null) {
+                State.log("停止 Moonlight 投屏");
+                State.mirrorVirtualDisplay.release();
+                State.mirrorVirtualDisplay = null;
+            }
         });
     }
 }

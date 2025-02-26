@@ -525,7 +525,7 @@ namespace config {
             20,  // fecPercentage
 
             ENCRYPTION_MODE_NEVER,  // lan_encryption_mode
-            ENCRYPTION_MODE_OPPORTUNISTIC,  // wan_encryption_mode
+            ENCRYPTION_MODE_NEVER,  // wan_encryption_mode
     };
 
     nvhttp_t nvhttp {

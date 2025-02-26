@@ -1,6 +1,7 @@
 #pragma once
+#include "stream.h"
 
 namespace sunshine_callbacks {
     void callJavaOnPinRequested();
-    void captureVideoLoop();
+    void captureVideoLoop(safe::mail_t mail);
 }

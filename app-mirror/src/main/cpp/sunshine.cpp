@@ -147,18 +147,53 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-    static const int WIDTH = 1920;
-    static const int HEIGHT = 1080;
-    static const int FRAMERATE = 60;
-    static const int BITRATE = 8000000; // 8 Mbps
-
-    void captureVideoLoop() {
+    void stopVirtualDisplay() {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
         if (result != JNI_OK) {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        jmethodID stopVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "stopVirtualDisplay", "()V");
+        if (stopVirtualDisplayMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 stopVirtualDisplay 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        env->CallStaticVoidMethod(sunshineServerClass, stopVirtualDisplayMethod);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
+    }
+
+    static const int WIDTH = 1920;
+    static const int HEIGHT = 1080;
+    static const int FRAMERATE = 60;
+    static const int BITRATE = 8000000; // 8 Mbps
+
+    void captureVideoLoop(safe::mail_t mail) {
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+        safe::mail_raw_t::event_t<bool> shutdown_event = mail->event<bool>(mail::shutdown);
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
         AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc"); // H264
@@ -168,6 +203,12 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, FRAMERATE);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
+        
+        // 添加低延迟配置
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0); // 实时优先级
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 1); // 低延迟模式
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 2); // 基线配置文件 (Baseline Profile)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 0); // 低复杂度编码
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
@@ -232,12 +273,11 @@ namespace sunshine_callbacks {
         }
         
         // 编码循环
-        bool isRunning = true;
         std::vector<uint8_t> codecConfigData;  // 用于存储完整的编解码器配置数据
         int64_t frameIndex = 0;
         
-        while (isRunning) {
-            // 获取输出缓冲区
+        while (!shutdown_event->peek()) {
+            // 获取输出缓冲区，使用较短的超时时间
             AMediaCodecBufferInfo bufferInfo;
             ssize_t outputBufferIndex = AMediaCodec_dequeueOutputBuffer(codec, &bufferInfo, -1);
             
@@ -301,13 +341,11 @@ namespace sunshine_callbacks {
             } else {
                 // 出错
                 BOOST_LOG(error) << "编码器出错，错误码: "sv << outputBufferIndex;
-                isRunning = false;
+                break;
             }
-            
-            // 这里可以添加停止条件
-            // if (shouldStop) isRunning = false;
         }
-        
+
+        stopVirtualDisplay();
         // 停止编码器
         AMediaCodec_stop(codec);
         

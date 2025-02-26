@@ -26,13 +26,11 @@ public class ProjectViaMoonlight implements Job {
     public void start() throws YieldException {
         if (requestMediaProjectionPermission(State.currentActivity.get())) {
             MediaProjection mediaProjection = State.getMediaProjection();
-            android.hardware.display.VirtualDisplay virtualDisplay = mediaProjection.createVirtualDisplay(
+            State.mirrorVirtualDisplay = mediaProjection.createVirtualDisplay(
                     "ScreenCapture",
                     1920, 1080, 160,
                     android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
-
-            State.log("已创建1080p虚拟显示器并开始H.264编码");
         }
     }
 
