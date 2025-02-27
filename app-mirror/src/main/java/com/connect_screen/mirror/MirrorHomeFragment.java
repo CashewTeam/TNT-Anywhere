@@ -24,10 +24,10 @@ public class MirrorHomeFragment extends Fragment {
         Button settingsBtn = view.findViewById(R.id.settingsBtn);
         Button exitBtn = view.findViewById(R.id.exitBtn);
         TextView mirrorStatus = view.findViewById(R.id.mirrorStatus);
-        if (MirrorActivity.getInstance() != null) {
+        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
             mirrorStatus.setText("镜像投屏中");
         } else {
-            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞");
+            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
         }
 
         settingsBtn.setOnClickListener(v -> {
