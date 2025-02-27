@@ -5,6 +5,33 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal">
+        
+        <TextView
+            android:id="@+id/shizukuStatusPrefix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shizuku 权限状态: " />
+
+        <TextView
+            android:id="@+id/shizukuStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/shizukuPermissionBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="授权"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <CheckBox
         android:id="@+id/autoRotateCheckbox"
         android:layout_width="match_parent"

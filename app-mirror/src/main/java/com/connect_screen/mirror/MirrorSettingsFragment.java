@@ -12,10 +12,14 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class MirrorSettingsFragment extends Fragment {
     private SharedPreferences preferences;
@@ -146,6 +150,37 @@ public class MirrorSettingsFragment extends Fragment {
             State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
         });
 
+        
+        // 添加授权按钮
+        Button shizukuPermissionBtn = view.findViewById(R.id.shizukuPermissionBtn);
+        shizukuPermissionBtn.setOnClickListener(v -> {
+            State.startNewJob(new AcquireShizuku());
+        });
+
+        // 更新Shizuku状态
+        TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
+        updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
+
         return view;
+    }
+
+    
+    private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
+        boolean started = ShizukuUtils.hasShizukuStarted();
+        boolean hasPermission = ShizukuUtils.hasPermission();
+        
+        String status;
+        if (!started) {
+            status = "未启动";
+            permissionBtn.setVisibility(View.GONE);
+        } else if (!hasPermission) {
+            status = "已启动未授权";
+            permissionBtn.setVisibility(View.VISIBLE);
+        } else {
+            status = "已授权";
+            permissionBtn.setVisibility(View.GONE);
+        }
+        
+        statusView.setText(status);
     }
 } 
