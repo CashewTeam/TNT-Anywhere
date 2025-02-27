@@ -12,7 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.connect_screen.mirror.job.ExitAll;
-import com.connect_screen.mirror.job.ListenOpenglAndPostFrame;
+import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 
 public class MirrorHomeFragment extends Fragment {
     
@@ -35,8 +35,8 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         exitBtn.setOnClickListener(v -> {
-            if (ListenOpenglAndPostFrame.instance != null) {
-                ListenOpenglAndPostFrame.instance.release();
+            if (AutoRotateAndScaleForDisplaylink.instance != null) {
+                AutoRotateAndScaleForDisplaylink.instance.release();
             }
             ExitAll.execute(requireContext());
         });

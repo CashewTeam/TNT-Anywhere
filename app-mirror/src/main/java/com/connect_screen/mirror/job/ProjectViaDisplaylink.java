@@ -83,7 +83,7 @@ public class ProjectViaDisplaylink implements Job {
         }
         if (projectionMode == ProjectionMode.MIRROR) {
             displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);
-            new ListenOpenglAndPostFrame(virtualDisplayArgs, context);
+            new AutoRotateAndScaleForDisplaylink(virtualDisplayArgs, context);
         } else {
             throw new UnsupportedOperationException();
         }

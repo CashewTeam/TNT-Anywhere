@@ -69,6 +69,7 @@ public class SunshineServer {
     public static native void submitPin(String pin);
 
     
+    // surface created by MediaCodec
     public static void createVirtualDisplay(int width, int height, int frameRate, Surface surface) {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, surface));

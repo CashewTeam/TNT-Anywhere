@@ -25,8 +25,8 @@ import com.connect_screen.mirror.MirrorSettingsFragment;
 
 import java.nio.ByteBuffer;
 
-public class ListenOpenglAndPostFrame {
-    public static ListenOpenglAndPostFrame instance;
+public class AutoRotateAndScaleForDisplaylink {
+    public static AutoRotateAndScaleForDisplaylink instance;
     private final VirtualDisplayArgs virtualDisplayArgs;
     private OrientationChangeCallback orientationChangeCallback;
     private EGLDisplay eglDisplay;
@@ -47,7 +47,7 @@ public class ListenOpenglAndPostFrame {
     private Surface currentSurface;
     private int virtualDisplayId;
 
-    public ListenOpenglAndPostFrame(VirtualDisplayArgs virtualDisplayArgs, Context context) {
+    public AutoRotateAndScaleForDisplaylink(VirtualDisplayArgs virtualDisplayArgs, Context context) {
         if (instance != null) {
             instance.release();
         }
