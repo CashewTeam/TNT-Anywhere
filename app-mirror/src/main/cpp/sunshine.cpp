@@ -119,7 +119,7 @@ namespace sunshine_callbacks {
 
 
 
-    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jobject surface) {
+    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jobject surface) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -130,14 +130,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IILandroid/view/Surface;)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIILandroid/view/Surface;)V");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             jvm->DetachCurrentThread();
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, surface);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, surface);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -195,6 +195,7 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, config.framerate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, config.framerate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
@@ -256,7 +257,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, config.width, config.height, javaSurface);
+        createVirtualDisplay(env, config.width, config.height, config.framerate, javaSurface);
         
         // 启动编码器
         status = AMediaCodec_start(codec);

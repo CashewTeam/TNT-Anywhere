@@ -69,9 +69,9 @@ public class SunshineServer {
     public static native void submitPin(String pin);
 
     
-    public static void createVirtualDisplay(int width, int height, Surface surface) {
+    public static void createVirtualDisplay(int width, int height, int frameRate, Surface surface) {
         new Handler(Looper.getMainLooper()).post(() -> {
-            State.startNewJob(new ProjectViaMoonlight(width, height, surface));
+            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, surface));
         });
     }
 
