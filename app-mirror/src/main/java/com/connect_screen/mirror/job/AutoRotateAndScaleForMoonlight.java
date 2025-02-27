@@ -54,6 +54,7 @@ public class AutoRotateAndScaleForMoonlight {
     private boolean autoRotate;
     private boolean autoScale;
     private OrientationChangeCallback orientationChangeCallback;
+    private boolean isLandscape;
 
     public AutoRotateAndScaleForMoonlight(VirtualDisplayArgs virtualDisplayArgs) {
         this.virtualDisplayArgs = virtualDisplayArgs;
@@ -89,6 +90,12 @@ public class AutoRotateAndScaleForMoonlight {
 
                 boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
                 Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+
+                if (AutoRotateAndScaleForMoonlight.this.isLandscape == isLandscape) {
+                    return;
+                }
+
+                AutoRotateAndScaleForMoonlight.this.isLandscape = isLandscape;
 
                 if (State.mirrorVirtualDisplay != null) {
                     if (isLandscape) {
@@ -224,7 +231,7 @@ public class AutoRotateAndScaleForMoonlight {
                 stopVirtualDisplay();
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);
-                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                isLandscape = metrics.widthPixels > metrics.heightPixels;
                 if (!autoRotate) {
                     isLandscape = true;
                 }

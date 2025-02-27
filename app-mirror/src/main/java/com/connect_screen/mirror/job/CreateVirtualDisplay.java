@@ -105,7 +105,7 @@ public class CreateVirtualDisplay {
             displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi, surface, flags, virtualDisplayArgs.virtualDisplayName);
         }
         DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
-        State.log("创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
+        android.util.Log.i("CreateVirtualDisplay", "创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);
         VirtualDisplay virtualDisplay = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             virtualDisplay = DisplayManagerGlobal.getInstance().createVirtualDisplayWrapper(config, callback, displayId);
