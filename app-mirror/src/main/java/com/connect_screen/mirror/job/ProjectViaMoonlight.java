@@ -29,8 +29,9 @@ public class ProjectViaMoonlight implements Job {
     @Override
     public void start() throws YieldException {
         if (requestMediaProjectionPermission(State.currentActivity.get())) {
-            State.mirrorVirtualDisplay =CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("ScreenCapture",
-                    width, height, frameRate, 160, false), surface);
+            SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("ScreenCapture",
+                    width, height, frameRate, 160, false));
+            SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
         }
     }
 

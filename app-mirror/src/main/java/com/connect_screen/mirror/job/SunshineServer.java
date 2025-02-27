@@ -17,6 +17,8 @@ import com.connect_screen.mirror.State;
 
 // 代码拷贝自 v2025.122.141614
 public class SunshineServer {
+    public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
+
     static {
         System.loadLibrary("sunshine");
     }
@@ -78,8 +80,12 @@ public class SunshineServer {
 
     public static void stopVirtualDisplay() {
         new Handler(Looper.getMainLooper()).post(() -> {
+            State.log("停止 Moonlight 投屏");
+            if (autoRotateAndScaleForMoonlight != null) {
+                autoRotateAndScaleForMoonlight.stop();
+                autoRotateAndScaleForMoonlight = null;
+            }
             if (State.mirrorVirtualDisplay != null) {
-                State.log("停止 Moonlight 投屏");
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
                 ExitAll.execute(State.currentActivity.get());
