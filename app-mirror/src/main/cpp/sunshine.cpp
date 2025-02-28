@@ -195,9 +195,9 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 2); // COLOR_RANGE_LIMITED
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
@@ -206,8 +206,11 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0); // 实时优先级
         // 设置编码配置
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x01); // BASELINE profile
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 8192); // AVCLevel42
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 0);
+        // 设置最大帧率
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_FPS_TO_ENCODER, config.framerate);
 
-        
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
@@ -257,7 +260,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, config.width, config.height, config.framerate, javaSurface);
+        createVirtualDisplay(env, config.width, config.height, 120, javaSurface);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
