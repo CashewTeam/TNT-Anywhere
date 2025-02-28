@@ -1,18 +1,30 @@
 package com.connect_screen.mirror;
 
+
+import static com.connect_screen.mirror.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
+
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 
+
+import com.connect_screen.mirror.job.FetchLogAndShare;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
+
+import rikka.shizuku.Shizuku;
+
 public class AboutFragment extends Fragment {
 
-            
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_about, container, false);
@@ -52,8 +64,34 @@ public class AboutFragment extends Fragment {
             versionText.setText("版本：未知");
         }
 
+        GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (!ShizukuUtils.hasShizukuStarted()) {
+                    State.log("shizuku not started");
+                    return false;
+                }
+                if (!ShizukuUtils.hasPermission()) {
+                    State.log("ask shizuku permission");
+                    Toast.makeText(getContext(), "导出故障日志需要 shizuku 权限", Toast.LENGTH_SHORT).show();
+                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE);
+                    return false;
+                }
+                State.startNewJob(new FetchLogAndShare(getContext()));
+                return true;
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+        });
 
         View header = view.findViewById(R.id.header);
+        header.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            return true;
+        });
 
         return view;
     }

@@ -12,6 +12,7 @@ import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 
@@ -57,14 +58,20 @@ public class ProjectViaMirror implements Job {
         if (State.mirrorVirtualDisplay != null) {
             return true;
         }
+        if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
+            throw new YieldException("等待服务启动");
+        }
+        if (ShizukuUtils.hasPermission()) {
+            Intent serviceIntent = new Intent(context, MediaProjectionService.class);
+            serviceIntent.putExtra("shizuku", true);
+            context.startService(serviceIntent);
+            return true;
+        }
         if (State.getMediaProjection() != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
             return true;
         }
         if (mediaProjectionRequested) {
-            if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
-                throw new YieldException("等待服务启动");
-            }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }

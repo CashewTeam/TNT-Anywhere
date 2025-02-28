@@ -83,8 +83,8 @@ public class MainActivity extends AppCompatActivity implements IMainActivity {
         super.onCreate(savedInstanceState);
         Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
         if (ShizukuUtils.hasPermission() && State.userService == null) {
-            Shizuku.peekUserService(State.createUserServiceArgs(getApplicationContext()), State.userServiceConnection);
-            Shizuku.bindUserService(State.createUserServiceArgs(getApplicationContext()), State.userServiceConnection);
+            Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+            Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
         }
 
         // 移除默认的 ActionBar
@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements IMainActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        State.unbindUserService(getApplicationContext());
+        State.unbindUserService();
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
         State.currentActivity = null;

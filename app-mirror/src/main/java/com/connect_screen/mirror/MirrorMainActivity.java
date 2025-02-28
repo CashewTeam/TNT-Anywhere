@@ -24,6 +24,7 @@ import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
@@ -93,6 +94,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+        if (ShizukuUtils.hasPermission() && State.userService == null) {
+            Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+            Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+        }
 
         // 移除默认的 ActionBar
         if (getSupportActionBar() != null) {
@@ -230,6 +235,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        State.unbindUserService();
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
         State.currentActivity = null;

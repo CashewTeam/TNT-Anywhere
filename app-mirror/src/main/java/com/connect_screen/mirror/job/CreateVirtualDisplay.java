@@ -43,7 +43,9 @@ public class CreateVirtualDisplay {
     public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
         if (ShizukuUtils.hasPermission()) {
             try {
-                return createByShizuku(virtualDisplayArgs, surface, false);
+                VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, false);
+                android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+                return virtualDisplay;
             } catch(RuntimeException e) {
                 android.util.Log.e("CreateVirtualDisplay", "failed to createVirtualDisplay by shizuku", e);
                 try {

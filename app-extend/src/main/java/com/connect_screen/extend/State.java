@@ -60,19 +60,12 @@ public class State {
         }
     };
 
-    public static Shizuku.UserServiceArgs createUserServiceArgs(Context context) {
-        try {
-            return new Shizuku.UserServiceArgs(new ComponentName(context.getPackageName(), UserService.class.getName()))
-                    .daemon(true)
-                    .tag("temp6")
-                    .processNameSuffix("connect-screen")
-                    .debuggable(false)
-                    .version((int) context.getPackageManager()
-                            .getPackageInfo(context.getPackageName(), 0).getLongVersionCode());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+            .daemon(true)
+                .tag("temp6")
+                .processNameSuffix("connect-screen")
+                .debuggable(false)
+                .version(BuildConfig.VERSION_CODE);
 
     public static boolean isJobRunning() {
         return currentJob != null;
@@ -140,13 +133,9 @@ public class State {
         }
     }
 
-    public static void unbindUserService(Context context) {
-        try {
-            if (userService == null) {
-                Shizuku.unbindUserService(State.createUserServiceArgs(context), userServiceConnection, true); // 解绑用户服务
-            }
-        } catch (Exception e) {
-            // ignore
+    public static void unbindUserService() {
+        if (userService == null) {
+            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, true); // 解绑用户服务
         }
     }
 

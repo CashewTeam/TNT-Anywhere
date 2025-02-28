@@ -1,16 +1,23 @@
 package com.connect_screen.mirror;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
+import android.os.IBinder;
 import android.util.Log;
 
 import com.connect_screen.mirror.job.Job;
 import com.connect_screen.mirror.job.YieldException;
+import com.connect_screen.mirror.shizuku.IUserService;
+import com.connect_screen.mirror.shizuku.UserService;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+
+import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
@@ -28,7 +35,33 @@ public class State {
     public static VirtualDisplay mirrorVirtualDisplay;
     public static int mirrorDisplayId = -1;
     public static Activity isInPureBlackActivity = null;
+    public static volatile IUserService userService;
 
+
+    public static final ServiceConnection userServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder binder) {
+            State.log("user service connected");
+            State.userService = IUserService.Stub.asInterface(binder);
+            if (State.currentActivity.get() != null) {
+                State.currentActivity.get().runOnUiThread(() -> {
+                    State.resumeJob();
+                });
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            State.log("user service disconnected");
+        }
+    };
+
+    public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
+            .daemon(true)
+            .tag("temp9")
+            .processNameSuffix("connect-screen")
+            .debuggable(false)
+            .version(BuildConfig.VERSION_CODE);
 
     private static final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
 
@@ -130,5 +163,15 @@ public class State {
             return -1;
         }
         return mirrorVirtualDisplay.getDisplay().getDisplayId();
+    }
+
+    public static void unbindUserService() {
+        try {
+            if (userService == null) {
+                Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, true); // 解绑用户服务
+            }
+        } catch (Exception e) {
+            // ignore
+        }
     }
 }

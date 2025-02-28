@@ -1,4 +1,4 @@
-package com.connect_screen.extend.job;
+package com.connect_screen.mirror.job;
 
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +11,8 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
-import com.connect_screen.extend.State;
+
+import com.connect_screen.mirror.State;
 
 import rikka.shizuku.Shizuku;
 
@@ -60,7 +61,7 @@ public class FetchLogAndShare implements Job {
             // 获取日志文件路径
             File downloadLogFile = new File(android.os.Environment.getExternalStoragePublicDirectory(
                     android.os.Environment.DIRECTORY_DOWNLOADS), "安卓屏连.log");
-            
+
             // 删除已存在的日志文件
             if (downloadLogFile.exists()) {
                 downloadLogFile.delete();
@@ -68,7 +69,7 @@ public class FetchLogAndShare implements Job {
 
             // 获取新的日志
             State.userService.fetchLogs();
-            
+
             // 检查日志文件是否生成
             if (!downloadLogFile.exists()) {
                 Toast.makeText(State.currentActivity.get(), "未能生成日志文件", Toast.LENGTH_SHORT).show();
@@ -78,12 +79,12 @@ public class FetchLogAndShare implements Job {
             // 复制到应用缓存目录
             File cacheDir = State.currentActivity.get().getCacheDir();
             File cacheCopyFile = new File(cacheDir, "安卓屏连.log");
-            
+
             // 确保复制成功
             java.nio.file.Files.copy(
-                downloadLogFile.toPath(),
-                cacheCopyFile.toPath(),
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                    downloadLogFile.toPath(),
+                    cacheCopyFile.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
             );
 
             // 创建分享 Intent
@@ -95,7 +96,7 @@ public class FetchLogAndShare implements Job {
             shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             State.currentActivity.get().startActivity(Intent.createChooser(shareIntent, "分享日志文件"));
-            
+
         } catch (RemoteException | IOException e) {
             Toast.makeText(State.currentActivity.get(), "请检查下载目录下是否导出了 '安卓屏连.log' 这个文件", Toast.LENGTH_LONG).show();
             throw new RuntimeException(e);
