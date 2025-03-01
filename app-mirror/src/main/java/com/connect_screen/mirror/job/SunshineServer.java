@@ -88,7 +88,7 @@ public class SunshineServer {
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
-                ExitAll.execute(State.currentActivity.get());
+                ExitAll.execute(State.currentActivity.get(), true);
             }
         });
     }

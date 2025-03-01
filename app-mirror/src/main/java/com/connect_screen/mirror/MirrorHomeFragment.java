@@ -38,7 +38,7 @@ public class MirrorHomeFragment extends Fragment {
             if (AutoRotateAndScaleForDisplaylink.instance != null) {
                 AutoRotateAndScaleForDisplaylink.instance.release();
             }
-            ExitAll.execute(requireContext());
+            ExitAll.execute(requireContext(), false);
         });
 
         return view;

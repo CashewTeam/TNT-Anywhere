@@ -7,7 +7,7 @@ import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 
 public class ExitAll {
-    public static void execute(Context context) {
+    public static void execute(Context context, boolean restart) {
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
             State.mediaProjectionInUse = null;
@@ -27,6 +27,15 @@ public class ExitAll {
         State.displaylinkState.stopVirtualDisplay();
         State.displaylinkState.destroy();
         State.currentActivity.get().finish();
+
+        // 重启应用
+        if (restart) {
+            Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                context.startActivity(intent);
+            }
+        }
         
         // 退出应用进程
         android.os.Process.killProcess(android.os.Process.myPid());

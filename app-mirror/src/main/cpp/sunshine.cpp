@@ -199,7 +199,6 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 2); // COLOR_RANGE_LIMITED
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
         // 设置低延迟模式
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
@@ -279,9 +278,9 @@ namespace sunshine_callbacks {
         int64_t frameIndex = 0;
         
         while (!shutdown_event->peek()) {
-            // 获取输出缓冲区，使用较短的超时时间
+            // 获取输出缓冲区，使用1秒的超时时间
             AMediaCodecBufferInfo bufferInfo;
-            ssize_t outputBufferIndex = AMediaCodec_dequeueOutputBuffer(codec, &bufferInfo, -1);
+            ssize_t outputBufferIndex = AMediaCodec_dequeueOutputBuffer(codec, &bufferInfo, 1000000); // 1秒 = 1000000微秒
             
             if (outputBufferIndex >= 0) {
                 // 获取到有效的输出缓冲区
@@ -334,6 +333,9 @@ namespace sunshine_callbacks {
                 
                 // 释放输出缓冲区
                 AMediaCodec_releaseOutputBuffer(codec, outputBufferIndex, false);
+            } else if (outputBufferIndex == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+                BOOST_LOG(verbose) << "编码器超时，等待输出缓冲区"sv;
+                continue;
             } else if (outputBufferIndex == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
                 // 输出格式已更改
                 AMediaFormat* format = AMediaCodec_getOutputFormat(codec);
