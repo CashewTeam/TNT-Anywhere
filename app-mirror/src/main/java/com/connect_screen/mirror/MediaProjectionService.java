@@ -55,11 +55,7 @@ public class MediaProjectionService extends Service {
             State.resumeJob();
         } else {
             MediaProjectionService.isStarting = false;
-            if (intent != null && intent.hasExtra("shizuku")) {
-                // start with shizuku
-            } else {
-                State.log("MediaProjectionService 收到错误数据");
-            }
+            State.log("MediaProjectionService 收到错误数据");
             State.resumeJob();
         }
         return START_NOT_STICKY;

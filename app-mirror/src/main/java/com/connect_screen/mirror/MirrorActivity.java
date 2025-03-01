@@ -244,7 +244,7 @@ public class MirrorActivity extends AppCompatActivity {
                     landscapeInputSurface = new Surface(landscapeInputSurfaceTexture);
 
                     // 使用inputSurface创建虚拟显示器
-                    if (State.mirrorVirtualDisplay == null) {
+                     if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
                         stopVirtualDisplay();
                         DisplayMetrics metrics = new DisplayMetrics();
                         display.getRealMetrics(metrics);
@@ -253,14 +253,11 @@ public class MirrorActivity extends AppCompatActivity {
                             isLandscape = true;
                         }
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                        State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs(
-                                "Mirror",
-                                isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
-                                isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(),
-                                120,
-                                160,
-                                false
-                        ), targetSurface);
+                        State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
+                                isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(), isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
+                                DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                                targetSurface, null, renderHandler);
+                        State.setMediaProjection(null);
                     } else if (State.mirrorVirtualDisplay != null) {
                         DisplayMetrics metrics = new DisplayMetrics();
                         display.getRealMetrics(metrics);

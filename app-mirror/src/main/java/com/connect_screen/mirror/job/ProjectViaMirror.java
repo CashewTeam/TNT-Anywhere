@@ -61,12 +61,6 @@ public class ProjectViaMirror implements Job {
         if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
             throw new YieldException("等待服务启动");
         }
-        if (ShizukuUtils.hasPermission()) {
-            Intent serviceIntent = new Intent(context, MediaProjectionService.class);
-            serviceIntent.putExtra("shizuku", true);
-            context.startService(serviceIntent);
-            return true;
-        }
         if (State.getMediaProjection() != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");
             return true;
