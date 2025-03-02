@@ -9,7 +9,6 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 
 import com.connect_screen.mirror.DisplaylinkPref;
-import com.connect_screen.mirror.ProjectionMode;
 import com.connect_screen.mirror.State;
 
 public class MirrorDisplaylinkMonitor {
@@ -81,7 +80,7 @@ public class MirrorDisplaylinkMonitor {
         if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
             DisplaylinkPref.load(context);
             State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
-            State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.MIRROR));
+            State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
         }
     }
     public static void onUsbDeviceAttached(Context context, UsbDevice device) {

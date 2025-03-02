@@ -1,20 +1,30 @@
 package com.connect_screen.mirror.job;
 
+import static android.content.Context.MODE_PRIVATE;
+
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.ImageReader;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.view.Surface;
 
+import com.connect_screen.mirror.MirrorSettingsFragment;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.DisplayMode;
 import com.connect_screen.mirror.DisplaylinkPref;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.ProjectionMode;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.DisplaylinkState;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -32,12 +42,10 @@ public class ProjectViaDisplaylink implements Job {
     private final String deviceName;
     private boolean userServiceRequested = false;
     private final VirtualDisplayArgs virtualDisplayArgs;
-    private final ProjectionMode projectionMode;
 
-    public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs, ProjectionMode projectionMode) {
+    public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
         this.deviceName = device.getDeviceName();
         this.virtualDisplayArgs = virtualDisplayArgs;
-        this.projectionMode = projectionMode;
     }
 
     public void start() throws YieldException {
@@ -52,15 +60,6 @@ public class ProjectViaDisplaylink implements Job {
         if (displaylinkState == null) {
             State.log("USB 设备 " + deviceName + " 状态不存在，跳过任务");
             return;
-        }
-
-        if(projectionMode == ProjectionMode.SINGLE_APP && ShizukuUtils.hasShizukuStarted()) {
-            if (!ShizukuUtils.hasPermission()) {
-                acquireShizuku.start();
-                if (!acquireShizuku.acquired) {
-                    return;
-                }
-            }
         }
 
         if (displaylinkState.displaylinkDevice2 != null && displaylinkState.getVirtualDisplay() != null) {
@@ -78,14 +77,42 @@ public class ProjectViaDisplaylink implements Job {
         if (!initializeNativeDriver(context, displaylinkState)) {
             return;
         }
-        if (!requestMediaProjectionPermission(context, displaylinkState)) {
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        if (ShizukuUtils.hasPermission() && singleAppMode) {
+            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            createVirtualDisplay(context, State.displaylinkState, selectedAppPackage);
+        } else {
+            if (requestMediaProjectionPermission(context, displaylinkState)) {
+                displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);
+                new AutoRotateAndScaleForDisplaylink(virtualDisplayArgs, context);
+            }
+        }
+    }
+
+
+    private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState, String lastPackageName) {
+        int virtualDisplayWidth = virtualDisplayArgs.width;
+        displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.height, 1, 2);
+        displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");
+        displaylinkState.handlerThread.start();
+        displaylinkState.handler = new Handler(displaylinkState.handlerThread.getLooper());
+
+        displaylinkState.imageReader.setOnImageAvailableListener(new ListenImageReaderAndPostFrame(virtualDisplayArgs), displaylinkState.handler);
+        Surface surface = displaylinkState.imageReader.getSurface();
+        VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+        if (virtualDisplay == null) {
+            virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
+            displaylinkState.createdVirtualDisplay(virtualDisplay);
+        } else {
+            State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+            virtualDisplay.setSurface(surface);
             return;
         }
-        if (projectionMode == ProjectionMode.MIRROR) {
-            displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);
-            new AutoRotateAndScaleForDisplaylink(virtualDisplayArgs, context);
-        } else {
-            throw new UnsupportedOperationException();
+        int displayId = virtualDisplay.getDisplay().getDisplayId();
+        if (lastPackageName != null) {
+            ServiceUtils.launchPackage(context, lastPackageName, displayId);
+            InputRouting.bindAllExternalInputToDisplay(displayId);
         }
     }
 

@@ -61,9 +61,6 @@ public class ProjectViaMoonlight implements Job {
                 // 计算每个数据包的帧数 (每个通道的样本数)
                 // packetDuration 是毫秒，所以需要除以1000转换为秒
                 int framesPerPacket = (int) (sampleRate * packetDuration / 1000.0f);
-                // 每帧有2个通道(立体声)，每个通道一个float值
-                float[] buffer = new float[framesPerPacket * 2];
-
                 AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(State.getMediaProjection())
                         .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
                         .addMatchingUsage(AudioAttributes.USAGE_GAME)

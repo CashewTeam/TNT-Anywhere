@@ -3,6 +3,7 @@ package com.connect_screen.mirror.job;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.view.Display;
@@ -11,7 +12,9 @@ import android.view.DisplayHidden;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
+import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
@@ -32,12 +35,20 @@ public class ProjectViaMirror implements Job {
             waitThread.interrupt();
             waitThread = null;
         }
+        Context context = State.currentActivity.get();
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        if (ShizukuUtils.hasPermission() && singleAppMode) {
+            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
+            InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
+            return;
+        }
         DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);
         if (displayHidden.getType() == TYPE_WIFI) {
             return;
         }
         if (requestMediaProjectionPermission(State.currentActivity.get())) {
-            Context context = State.currentActivity.get();
             // 检查是否允许在该显示器上启动Activity
             ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             // 启动 MirrorActivity
