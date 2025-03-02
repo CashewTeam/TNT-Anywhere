@@ -12,6 +12,7 @@ import android.view.Display;
 import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.media.AudioRecord;
 
 import com.connect_screen.mirror.State;
 
@@ -95,4 +96,7 @@ public class SunshineServer {
             }
         });
     }
+
+    // 添加新方法用于启动音频录制
+    public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
 }

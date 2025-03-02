@@ -49,7 +49,37 @@ public class ProjectViaMoonlight implements Job {
         // 创建AudioRecord
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(State.currentActivity.get(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                new AudioRecordingThread(State.currentActivity.get(), State.getMediaProjection(), packetDuration).start();
+                // 配置音频捕获参数
+                int sampleRate = 48000; // 与您的Opus配置匹配
+                int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
+                int audioFormat = AudioFormat.ENCODING_PCM_FLOAT;
+                int bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat) * 2;
+
+                // 计算每个数据包的帧数 (每个通道的样本数)
+                // packetDuration 是毫秒，所以需要除以1000转换为秒
+                int framesPerPacket = (int) (sampleRate * packetDuration / 1000.0f);
+                // 每帧有2个通道(立体声)，每个通道一个float值
+                float[] buffer = new float[framesPerPacket * 2];
+
+                AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(State.getMediaProjection())
+                        .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+                        .addMatchingUsage(AudioAttributes.USAGE_GAME)
+                        .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+                        .build();
+                AudioRecord audioRecord = new AudioRecord.Builder()
+                        .setAudioPlaybackCaptureConfig(config)
+                        .setAudioFormat(new AudioFormat.Builder()
+                                .setEncoding(audioFormat)
+                                .setSampleRate(sampleRate)
+                                .setChannelMask(channelConfig)
+                                .build())
+                        .setBufferSizeInBytes(bufferSize)
+                        .build();
+                audioRecord.startRecording();
+                
+                // 将 AudioRecord 传递给 SunshineServer 进行处理
+                SunshineServer.startAudioRecording(audioRecord, framesPerPacket);
+
             } else {
                 if (audioPermissionRequested) {
                     State.log("因为未授予录音权限，跳过任务");

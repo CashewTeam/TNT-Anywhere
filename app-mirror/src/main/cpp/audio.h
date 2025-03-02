@@ -100,4 +100,7 @@ namespace audio {
    * @examples_end
    */
   bool is_audio_ctx_sink_available(const audio_ctx_t &ctx);
+
+  using sample_queue_t = std::shared_ptr<safe::queue_t<std::vector<float>>>;
+  void encodeThread(sample_queue_t samples, config_t config, void *channel_data);
 }  // namespace audio

@@ -78,8 +78,6 @@ public class AudioRecordingThread extends Thread {
                 }
                 // 将音频数据发送到 SunshineServer
                 if (hasContent) {
-                    android.util.Log.d("AudioRecordingThread", "录制到了音频: " + readSize +
-                            ", 有内容: " + hasContent + ", 最大振幅: " + maxAmplitude);
                     SunshineServer.postAudioSample(buffer, readSize);
                 }
             } else {

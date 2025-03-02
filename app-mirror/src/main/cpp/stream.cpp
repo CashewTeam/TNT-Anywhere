@@ -1803,7 +1803,6 @@ namespace stream {
   }
 
     safe::mail_raw_t::queue_t<video::packet_t> currentSessionVideoQueue;
-    session_t * currentSession;
   void videoThread(session_t *session) {
 //    auto fg = util::fail_guard([&]() {
 //      session::stop(*session);
@@ -1822,20 +1821,19 @@ namespace stream {
     session->video.qos = platf::enable_socket_qos(ref->video_sock.native_handle(), address, session->video.peer.port(), platf::qos_data_type_e::video, session->config.videoQosType != 0);
 
       currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
-      currentSession = session;
     BOOST_LOG(debug) << "Start capturing Video"sv;
-    sunshine_callbacks::captureVideoLoop(session->mail, session->config.monitor, session->config.audio);
+    sunshine_callbacks::captureVideoLoop(session, session->mail, session->config.monitor, session->config.audio);
 //    video::capture(session->mail, session->config.monitor, session);
   }
 
-    void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr)  {
+    void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr, void* channel_data)  {
         if(currentSessionVideoQueue) {
             auto packet = std::make_unique<video::packet_raw_generic>(
                     std::move(frame_data),
                     frame_index,
                     idr
             );
-            packet->channel_data = currentSession;
+            packet->channel_data = channel_data;
             currentSessionVideoQueue->raise(std::move(packet));
         }
     }
@@ -1845,19 +1843,20 @@ namespace stream {
 //      session::stop(*session);
 //    });
 
-//    while_starting_do_nothing(session->state);
-//
-//    auto ref = broadcast.ref();
-//    auto error = recv_ping(session, ref, socket_e::audio, session->audio.ping_payload, session->audio.peer, config::stream.ping_timeout);
-//    if (error < 0) {
-//      return;
-//    }
+    while_starting_do_nothing(session->state);
+
+    auto ref = broadcast.ref();
+    auto error = recv_ping(session, ref, socket_e::audio, session->audio.ping_payload, session->audio.peer, config::stream.ping_timeout);
+    if (error < 0) {
+      return;
+    }
 //
 //    // Enable local prioritization and QoS tagging on audio traffic if requested by the client
 //    auto address = session->audio.peer.address();
 //    session->audio.qos = platf::enable_socket_qos(ref->audio_sock.native_handle(), address, session->audio.peer.port(), platf::qos_data_type_e::audio, session->config.audioQosType != 0);
 //
-//    BOOST_LOG(debug) << "Start capturing Audio"sv;
+    BOOST_LOG(debug) << "Start capturing Audio"sv;
+      sunshine_callbacks::captureAudioLoop(session, session->mail, session->config.audio);
 //    audio::capture(session->mail, session->config.audio, session);
   }
 

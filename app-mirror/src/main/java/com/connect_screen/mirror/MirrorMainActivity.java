@@ -23,8 +23,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
-import com.connect_screen.mirror.job.ProjectViaMirror;
-import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -154,8 +152,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
         Context context = this;
-
-        State.startNewJob(new ProjectViaMoonlight(1920, 1080, 120, 5, null));
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {

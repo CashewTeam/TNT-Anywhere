@@ -39,7 +39,7 @@ namespace stream {
     std::optional<int> gcmap;
   };
 
-  void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr);
+  void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr, void* channel_data);
 
   namespace session {
     enum class state_e : int {

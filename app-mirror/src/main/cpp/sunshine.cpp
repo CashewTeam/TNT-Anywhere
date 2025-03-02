@@ -7,6 +7,7 @@
 #include "sunshine.h"
 #include "stream.h"
 #include "rtsp.h"
+#include "audio.h"
 
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
@@ -20,6 +21,10 @@ extern "C" {
 static std::unique_ptr<logging::deinit_t> deinit;
 static JavaVM* jvm = nullptr;
 static jclass sunshineServerClass = nullptr;
+static audio::sample_queue_t samples = nullptr;
+
+// 声明全局变量来存储音频录制状态
+static std::thread audioRecordingThread;
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass clazz) {
@@ -88,15 +93,85 @@ Java_com_connect_1screen_mirror_job_SunshineServer_postAudioSample(JNIEnv *env, 
         return;
     }
     
-    // 这里是音频处理的实现
-    // 目前是空的，您可以稍后添加具体的音频处理逻辑
-    BOOST_LOG(debug) << "收到音频样本，样本数: "sv << sampleCount;
+    // 将 Java 浮点数组转换为 std::vector<float>
+    std::vector<float> audioSamples(audioBuffer, audioBuffer + sampleCount);
     
-    // TODO: 将音频数据传递给 Sunshine 的音频处理系统
-    // 例如: stream::postAudioSample(audioBuffer, sampleCount);
+    // 将音频数据传递给 Sunshine 的音频处理系统
+    if (samples) {
+        samples->raise(std::move(audioSamples));
+    } else {
+        BOOST_LOG(error) << "音频样本队列未初始化"sv;
+    }
     
     // 释放 Java 数组
     env->ReleaseFloatArrayElements(audioData, audioBuffer, JNI_ABORT);
+}
+
+JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *env, jclass clazz, jobject audioRecord, jint framesPerPacket) {
+    // 创建 AudioRecord 的全局引用，以便在线程中使用
+    jobject globalAudioRecord = env->NewGlobalRef(audioRecord);
+    if (globalAudioRecord == nullptr) {
+        BOOST_LOG(error) << "无法创建 AudioRecord 的全局引用"sv;
+        return;
+    }
+    
+    // 获取 AudioRecord 类和方法 ID
+    jclass audioRecordClass = env->GetObjectClass(globalAudioRecord);
+    if (audioRecordClass == nullptr) {
+        BOOST_LOG(error) << "无法获取 AudioRecord 类"sv;
+        env->DeleteGlobalRef(globalAudioRecord);
+        return;
+    }
+    jmethodID readMethod = env->GetMethodID(audioRecordClass, "read", "([FIII)I");
+
+    if (!readMethod) {
+        BOOST_LOG(error) << "无法获取 AudioRecord 方法"sv;
+        env->DeleteGlobalRef(globalAudioRecord);
+        return;
+    }
+    
+    // 设置活动标志并启动录制线程
+    audioRecordingThread = std::thread([globalAudioRecord, readMethod, framesPerPacket, env]() {
+        JNIEnv *threadEnv;
+        jint result = jvm->AttachCurrentThread(&threadEnv, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法将音频线程附加到 JVM"sv;
+            return;
+        }
+        
+        // 创建缓冲区
+        jfloatArray buffer = threadEnv->NewFloatArray(framesPerPacket * 2); // 立体声，每帧两个通道
+        
+        try {
+            while (true) {
+                // 读取音频数据
+                jint samplesRead = threadEnv->CallIntMethod(globalAudioRecord, readMethod, buffer, 0, framesPerPacket * 2, 0);
+                
+                if (samplesRead > 0) {
+                    // 获取缓冲区数据
+                    jfloat *audioData = threadEnv->GetFloatArrayElements(buffer, nullptr);
+                    if (audioData) {
+                        // 将音频数据转换为 std::vector<float>
+                        std::vector<float> audioSamples(audioData, audioData + samplesRead);
+                        
+                        // 将音频数据传递给 Sunshine 的音频处理系统
+                        if (samples) {
+                            samples->raise(std::move(audioSamples));
+                        }
+                        
+                        // 释放缓冲区
+                        threadEnv->ReleaseFloatArrayElements(buffer, audioData, JNI_ABORT);
+                    }
+                }
+            }
+        } catch (...) {
+            BOOST_LOG(error) << "音频录制过程中发生异常"sv;
+        }
+
+        // 分离线程
+        jvm->DetachCurrentThread();
+    });
 }
 
 }
@@ -201,7 +276,7 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-    void captureVideoLoop(safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
+    void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
         if (result != JNI_OK) {
@@ -339,14 +414,14 @@ namespace sunshine_callbacks {
 
                                 BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << frameData.size();
                                 // 发送完整的关键帧数据
-                                stream::postFrame(std::move(frameData), frameIndex, true);
+                                stream::postFrame(std::move(frameData), frameIndex, true, channel_data);
                             } else {
                                 BOOST_LOG(error) << "没有编解码器配置数据，无法发送完整关键帧"sv;
                             }
                         } else {
                             std::vector<uint8_t> frameData;
                             frameData.insert(frameData.end(), buffer, buffer + bufferSize);
-                            stream::postFrame(std::move(frameData), frameIndex, false);
+                            stream::postFrame(std::move(frameData), frameIndex, false, channel_data);
                         }
                     }
                 }
@@ -384,5 +459,10 @@ namespace sunshine_callbacks {
         
         // 清理 Java Surface 引用
         jvm->DetachCurrentThread();
+    }
+
+    void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {
+        samples = std::make_shared<audio::sample_queue_t::element_type>(30);
+        encodeThread(samples, config, channel_data);
     }
 }
