@@ -79,6 +79,26 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
     // 其他清理工作...
 }
 
+JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_postAudioSample(JNIEnv *env, jclass clazz, jfloatArray audioData, jint sampleCount) {
+    // 获取 Java 浮点数组的元素
+    jfloat *audioBuffer = env->GetFloatArrayElements(audioData, nullptr);
+    if (audioBuffer == nullptr) {
+        BOOST_LOG(error) << "无法获取音频数据缓冲区"sv;
+        return;
+    }
+    
+    // 这里是音频处理的实现
+    // 目前是空的，您可以稍后添加具体的音频处理逻辑
+    BOOST_LOG(debug) << "收到音频样本，样本数: "sv << sampleCount;
+    
+    // TODO: 将音频数据传递给 Sunshine 的音频处理系统
+    // 例如: stream::postAudioSample(audioBuffer, sampleCount);
+    
+    // 释放 Java 数组
+    env->ReleaseFloatArrayElements(audioData, audioBuffer, JNI_ABORT);
+}
+
 }
 
 namespace sunshine_callbacks {

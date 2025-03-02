@@ -13,6 +13,7 @@ import android.media.projection.MediaProjection;
 import androidx.core.app.ActivityCompat;
 
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.job.SunshineServer;
 
 public class AudioRecordingThread extends Thread {
     private float[] buffer;
@@ -55,7 +56,6 @@ public class AudioRecordingThread extends Thread {
         isRecording = true;
 
         while (isRecording) {
-            android.util.Log.d("AudioRecordingThread", "开始录制音频");
             int readSize = audioRecord.read(buffer, 0, buffer.length, AudioRecord.READ_BLOCKING);
             if (readSize > 0) {
                 // 检查录制到的音频帧是否有实际内容
@@ -68,9 +68,12 @@ public class AudioRecordingThread extends Thread {
                     }
                     maxAmplitude = Math.max(maxAmplitude, abs);
                 }
-                android.util.Log.d("AudioRecordingThread", "录制到了音频: " + readSize + 
-                                  ", 有内容: " + hasContent + ", 最大振幅: " + maxAmplitude);
-                // 在这里处理音频数据
+                // 将音频数据发送到 SunshineServer
+                if (hasContent) {
+                    android.util.Log.d("AudioRecordingThread", "录制到了音频: " + readSize +
+                            ", 有内容: " + hasContent + ", 最大振幅: " + maxAmplitude);
+                    SunshineServer.postAudioSample(buffer, readSize);
+                }
             } else {
                 android.util.Log.e("AudioRecordingThread", "录制音频错误: " + readSize);
             }

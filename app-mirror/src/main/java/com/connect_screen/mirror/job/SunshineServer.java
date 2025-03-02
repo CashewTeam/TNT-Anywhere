@@ -69,6 +69,9 @@ public class SunshineServer {
     
     // 添加提交PIN码的native方法
     public static native void submitPin(String pin);
+    
+    // 添加发送音频样本的方法
+    public static native void postAudioSample(float[] audioData, int sampleCount);
 
     
     // surface created by MediaCodec
