@@ -179,6 +179,7 @@ public class TouchpadActivity extends AppCompatActivity {
         Display targetDisplay = displayManager.getDisplay(displayId);
         if (targetDisplay == null) {
             finish();
+            return;
         }
 
         // 计算屏幕边界（以屏幕中心为原点）

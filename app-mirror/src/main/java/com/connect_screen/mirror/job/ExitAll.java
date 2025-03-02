@@ -32,7 +32,7 @@ public class ExitAll {
         if (restart) {
             Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
             if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
             }
         }
