@@ -8,11 +8,13 @@
 #include "stream.h"
 #include "rtsp.h"
 #include "audio.h"
+#include "moonlight-common-c/src/input.h"
 
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
+#include <boost/endian/buffers.hpp>
 
 using namespace std::literals;
 
@@ -220,8 +222,6 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-
-
     void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
@@ -314,7 +314,6 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 8192); // AVCLevel42
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 0);
         AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
-
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
@@ -474,5 +473,54 @@ namespace sunshine_callbacks {
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {
         samples = std::make_shared<audio::sample_queue_t::element_type>(30);
         encodeThread(samples, config, channel_data);
+    }
+
+    float from_netfloat(netfloat f) {
+        return boost::endian::endian_load<float, sizeof(float), boost::endian::order::little>(f);
+    }
+
+    void callJavaOnTouch(SS_TOUCH_PACKET* touchPacket) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jmethodID handleTouchPacketMethod = env->GetStaticMethodID(sunshineServerClass, "handleTouchPacket", 
+                                                                  "(IIIFFFFF)V");
+        if (handleTouchPacketMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 handleTouchPacket 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        // 从 SS_TOUCH_PACKET 结构体中提取字段并传递给 Java 方法
+        env->CallStaticVoidMethod(sunshineServerClass, handleTouchPacketMethod,
+                                 static_cast<int>(touchPacket->eventType),
+                                 static_cast<int>(touchPacket->rotation),
+                                 static_cast<int>(touchPacket->pointerId),
+                                  from_netfloat(touchPacket->x),
+                                  from_netfloat(touchPacket->y),
+                                  from_netfloat(touchPacket->pressureOrDistance),
+                                 from_netfloat(touchPacket->contactAreaMajor),
+                                 from_netfloat(touchPacket->contactAreaMinor));
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
     }
 }

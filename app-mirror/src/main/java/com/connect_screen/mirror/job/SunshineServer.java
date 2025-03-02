@@ -101,4 +101,14 @@ public class SunshineServer {
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
 
+    // 添加处理触摸事件的静态方法
+    public static void handleTouchPacket(int eventType, int rotation, int pointerId, 
+                                        float x, float y, float pressureOrDistance,
+                                        float contactAreaMajor, float contactAreaMinor) {
+        android.util.Log.d("SunshineServer", "触摸事件: 类型=" + eventType + ", 旋转=" + rotation + ", 指针ID=" + pointerId + 
+                  ", x=" + x + ", y=" + y + ", 压力/距离=" + pressureOrDistance + 
+                  ", 接触面积(长)=" + contactAreaMajor + ", 接触面积(短)=" + contactAreaMinor);
+
+    }
+
 }

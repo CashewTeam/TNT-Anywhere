@@ -33,6 +33,8 @@ extern "C" {
   #define WHEEL_DELTA 120
 #endif
 
+#include "sunshine.h"
+
 using namespace std::literals;
 
 namespace input {
@@ -879,49 +881,64 @@ namespace input {
       return;
     }
 
-    // Convert the client normalized coordinates to touchport coordinates
-    auto coords = client_to_touchport(input, {from_clamped_netfloat(packet->x, 0.0f, 1.0f) * 65535.f, from_clamped_netfloat(packet->y, 0.0f, 1.0f) * 65535.f}, {65535.f, 65535.f});
-    if (!coords) {
-      return;
-    }
+      sunshine_callbacks::callJavaOnTouch(packet);
 
-    auto &touch_port = input->touch_port;
-    platf::touch_port_t abs_port {
-      touch_port.offset_x,
-      touch_port.offset_y,
-      touch_port.env_width,
-      touch_port.env_height
-    };
-
-    // Renormalize the coordinates
-    coords->first /= abs_port.width;
-    coords->second /= abs_port.height;
-
-    // Normalize rotation value to 0-359 degree range
-    auto rotation = util::endian::little(packet->rotation);
-    if (rotation != LI_ROT_UNKNOWN) {
-      rotation %= 360;
-    }
-
-    // Normalize the contact area based on the touchport
-    auto contact_area = scale_client_contact_area(
-      {from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f) * 65535.f,
-       from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f) * 65535.f},
-      rotation,
-      {abs_port.width / 65535.f, abs_port.height / 65535.f}
-    );
-
-    platf::touch_input_t touch {
-      packet->eventType,
-      rotation,
-      util::endian::little(packet->pointerId),
-      coords->first,
-      coords->second,
-      from_clamped_netfloat(packet->pressureOrDistance, 0.0f, 1.0f),
-      contact_area.first,
-      contact_area.second,
-    };
-
+//    BOOST_LOG(debug) << "处理触摸事件: 类型=" << (int)packet->eventType << ", 指针ID=" << util::endian::little(packet->pointerId);
+//
+//    // Convert the client normalized coordinates to touchport coordinates
+//    auto coords = client_to_touchport(input, {from_clamped_netfloat(packet->x, 0.0f, 1.0f) * 65535.f, from_clamped_netfloat(packet->y, 0.0f, 1.0f) * 65535.f}, {65535.f, 65535.f});
+//    if (!coords) {
+//      BOOST_LOG(warning) << "无法转换触摸坐标，可能是触摸端口未初始化";
+//      return;
+//    }
+//
+//    BOOST_LOG(debug) << "触摸坐标转换: 原始=("
+//                    << from_clamped_netfloat(packet->x, 0.0f, 1.0f) << ","
+//                    << from_clamped_netfloat(packet->y, 0.0f, 1.0f) << ") -> 转换=("
+//                    << coords->first << "," << coords->second << ")";
+//
+//    auto &touch_port = input->touch_port;
+//    platf::touch_port_t abs_port {
+//      touch_port.offset_x,
+//      touch_port.offset_y,
+//      touch_port.env_width,
+//      touch_port.env_height
+//    };
+//
+//    // Renormalize the coordinates
+//    coords->first /= abs_port.width;
+//    coords->second /= abs_port.height;
+//
+//    // Normalize rotation value to 0-359 degree range
+//    auto rotation = util::endian::little(packet->rotation);
+//    if (rotation != LI_ROT_UNKNOWN) {
+//      rotation %= 360;
+//    }
+//
+//    // Normalize the contact area based on the touchport
+//    auto contact_area = scale_client_contact_area(
+//      {from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f) * 65535.f,
+//       from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f) * 65535.f},
+//      rotation,
+//      {abs_port.width / 65535.f, abs_port.height / 65535.f}
+//    );
+//
+//    BOOST_LOG(debug) << "触摸区域: 主轴=" << contact_area.first << ", 次轴=" << contact_area.second
+//                    << ", 压力=" << from_clamped_netfloat(packet->pressureOrDistance, 0.0f, 1.0f)
+//                    << ", 旋转=" << rotation;
+//
+//    platf::touch_input_t touch {
+//      packet->eventType,
+//      rotation,
+//      util::endian::little(packet->pointerId),
+//      coords->first,
+//      coords->second,
+//      from_clamped_netfloat(packet->pressureOrDistance, 0.0f, 1.0f),
+//      contact_area.first,
+//      contact_area.second,
+//    };
+//
+//    BOOST_LOG(debug) << "准备更新触摸状态: 最终坐标=(" << coords->first << "," << coords->second << ")";
 //    platf::touch_update(input->client_context.get(), abs_port, touch);
   }
 
