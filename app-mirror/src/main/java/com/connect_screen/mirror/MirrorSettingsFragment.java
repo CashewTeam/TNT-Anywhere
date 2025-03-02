@@ -2,6 +2,9 @@ package com.connect_screen.mirror;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +16,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,12 +25,17 @@ import androidx.fragment.app.Fragment;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MirrorSettingsFragment extends Fragment {
     private SharedPreferences preferences;
     public static final String PREF_NAME = "mirror_settings";
     public static final String KEY_AUTO_ROTATE = "auto_rotate";
     public static final String KEY_AUTO_SCALE = "auto_scale";
     public static final String KEY_SINGLE_APP_MODE = "single_app_mode";
+    public static final String KEY_SELECTED_APP_PACKAGE = "selected_app_package";
+    public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -40,6 +49,7 @@ public class MirrorSettingsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_mirror_settings, container, false);
 
         CheckBox singleAppModeCheckbox = view.findViewById(R.id.singleAppModeCheckbox);
+        Button selectAppButton = view.findViewById(R.id.selectAppButton);
         CheckBox autoRotateCheckbox = view.findViewById(R.id.autoRotateCheckbox);
         CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
         EditText widthEditText = view.findViewById(R.id.widthEditText);
@@ -59,11 +69,29 @@ public class MirrorSettingsFragment extends Fragment {
         widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
+        // 设置选择应用按钮的可见性
+        selectAppButton.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
+        
+        // 显示已选择的应用名称（如果有）
+        String selectedAppName = preferences.getString(KEY_SELECTED_APP_NAME, "");
+        if (!selectedAppName.isEmpty() && singleAppMode) {
+            singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
+        } else {
+            singleAppModeCheckbox.setText("单应用投屏");
+        }
+        
         // 监听复选框变化
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
             autoRotateCheckbox.setEnabled(!isChecked);
             autoScaleCheckbox.setEnabled(!isChecked);
+            selectAppButton.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            
+            if (!isChecked) {
+                singleAppModeCheckbox.setText("单应用投屏");
+            } else if (!selectedAppName.isEmpty()) {
+                singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
+            }
         });
         
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -174,6 +202,11 @@ public class MirrorSettingsFragment extends Fragment {
         TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
 
+        // 添加选择应用按钮点击事件
+        selectAppButton.setOnClickListener(v -> {
+            showAppSelectionDialog();
+        });
+
         return view;
     }
 
@@ -195,5 +228,87 @@ public class MirrorSettingsFragment extends Fragment {
         }
         
         statusView.setText(status);
+    }
+
+    private void showAppSelectionDialog() {
+        // 获取所有桌面应用
+        PackageManager pm = requireContext().getPackageManager();
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> launcherApps = pm.queryIntentActivities(intent, 0);
+        
+        // 创建自定义适配器来显示应用图标和名称
+        AppListAdapter adapter = new AppListAdapter(requireContext(), launcherApps, pm);
+        
+        // 创建并显示选择对话框
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("选择应用");
+        builder.setAdapter(adapter, (dialog, which) -> {
+            ResolveInfo selectedApp = launcherApps.get(which);
+            String selectedPackage = selectedApp.activityInfo.packageName;
+            String selectedName = selectedApp.loadLabel(pm).toString();
+            
+            // 保存选择的应用
+            preferences.edit()
+                    .putString(KEY_SELECTED_APP_PACKAGE, selectedPackage)
+                    .putString(KEY_SELECTED_APP_NAME, selectedName)
+                    .apply();
+            
+            // 更新UI显示
+            CheckBox singleAppModeCheckbox = getView().findViewById(R.id.singleAppModeCheckbox);
+            singleAppModeCheckbox.setText("单应用投屏: " + selectedName);
+        });
+        
+        builder.show();
+    }
+
+    // 自定义适配器用于显示应用图标和名称
+    private static class AppListAdapter extends ArrayAdapter<ResolveInfo> {
+        private final PackageManager pm;
+        private final int ICON_SIZE_DP = 36; // 统一图标大小为36dp
+        
+        public AppListAdapter(Context context, List<ResolveInfo> apps, PackageManager pm) {
+            super(context, android.R.layout.simple_list_item_2, android.R.id.text1, apps);
+            this.pm = pm;
+        }
+        
+        @NonNull
+        @Override
+        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+            if (convertView == null) {
+                convertView = LayoutInflater.from(getContext()).inflate(
+                        android.R.layout.simple_list_item_2, parent, false);
+            }
+            
+            ResolveInfo app = getItem(position);
+            if (app != null) {
+                TextView text1 = convertView.findViewById(android.R.id.text1);
+                TextView text2 = convertView.findViewById(android.R.id.text2);
+                
+                text1.setText(app.loadLabel(pm));
+                text2.setText(app.activityInfo.packageName);
+                
+                // 设置应用图标并统一大小
+                try {
+                    // 获取图标
+                    android.graphics.drawable.Drawable icon = app.loadIcon(pm);
+                    
+                    // 计算图标大小（dp转px）
+                    float density = getContext().getResources().getDisplayMetrics().density;
+                    int iconSizePx = Math.round(ICON_SIZE_DP * density);
+                    
+                    // 设置图标大小
+                    icon.setBounds(0, 0, iconSizePx, iconSizePx);
+                    
+                    // 设置图标到TextView
+                    text1.setCompoundDrawables(icon, null, null, null);
+                    text1.setCompoundDrawablePadding(10);
+                } catch (Exception e) {
+                    // 如果加载图标失败，忽略错误
+                }
+            }
+            
+            return convertView;
+        }
     }
 } 
