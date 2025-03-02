@@ -92,9 +92,6 @@ public class ProjectViaMoonlight implements Job {
                 throw new YieldException("等待录音权限授权");
             }
         }
-        if (surface == null) {
-            return;
-        }
         SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         boolean autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);

@@ -65,8 +65,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
     };
 
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -152,6 +150,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
         Context context = this;
+        String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
+        SunshineServer.setSunshineName(sunshineName);
+        State.log("发布 moonlight 服务名："  + sunshineName);
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {

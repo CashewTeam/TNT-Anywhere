@@ -25,7 +25,8 @@ public class SunshineServer {
     }
 
     public static native void start();
-    
+
+    public static native void setSunshineName(String sunshineName);
     public static native void setPkeyPath(String path);
     public static native void setCertPath(String path);
     public static native void setFileStatePath(String path);
@@ -99,4 +100,5 @@ public class SunshineServer {
 
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
+
 }

@@ -48,6 +48,13 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
 }
 
 JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_setSunshineName(JNIEnv *env, jclass clazz, jstring sunshine_name) {
+    const char *str = env->GetStringUTFChars(sunshine_name, nullptr);
+    config::nvhttp.sunshine_name = str;
+    env->ReleaseStringUTFChars(sunshine_name, str);
+}
+
+JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_setPkeyPath(JNIEnv *env, jclass clazz, jstring path) {
     const char *str = env->GetStringUTFChars(path, nullptr);
     config::nvhttp.pkey = str;
