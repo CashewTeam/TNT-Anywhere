@@ -33,6 +33,14 @@
     </LinearLayout>
 
     <CheckBox
+        android:id="@+id/singleAppModeCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="单应用投屏"
+        android:textSize="16sp"
+        android:padding="8dp"/>
+
+    <CheckBox
         android:id="@+id/autoRotateCheckbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

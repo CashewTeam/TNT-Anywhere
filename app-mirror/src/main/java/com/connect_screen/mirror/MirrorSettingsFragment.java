@@ -26,6 +26,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String PREF_NAME = "mirror_settings";
     public static final String KEY_AUTO_ROTATE = "auto_rotate";
     public static final String KEY_AUTO_SCALE = "auto_scale";
+    public static final String KEY_SINGLE_APP_MODE = "single_app_mode";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -38,14 +39,18 @@ public class MirrorSettingsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mirror_settings, container, false);
 
+        CheckBox singleAppModeCheckbox = view.findViewById(R.id.singleAppModeCheckbox);
         CheckBox autoRotateCheckbox = view.findViewById(R.id.autoRotateCheckbox);
         CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
         EditText widthEditText = view.findViewById(R.id.widthEditText);
         EditText heightEditText = view.findViewById(R.id.heightEditText);
         
         // 加载保存的设置
+        boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         boolean autoRotate = preferences.getBoolean(KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(KEY_AUTO_SCALE, true);
+        
+        singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
 
@@ -55,13 +60,21 @@ public class MirrorSettingsFragment extends Fragment {
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
         // 监听复选框变化
+        singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
+            autoRotateCheckbox.setEnabled(!isChecked);
+            autoScaleCheckbox.setEnabled(!isChecked);
+        });
+        
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_ROTATE, isChecked).apply();
         });
+        autoRotateCheckbox.setEnabled(!singleAppMode);
 
         autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_SCALE, isChecked).apply();
         });
+        autoScaleCheckbox.setEnabled(!singleAppMode);
 
         // 监听分辨率输入变化
         widthEditText.setOnFocusChangeListener((v, hasFocus) -> {
