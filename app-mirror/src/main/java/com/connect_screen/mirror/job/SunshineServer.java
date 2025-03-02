@@ -6,15 +6,22 @@ import android.os.Handler;
 import android.os.Looper;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.os.SystemClock;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.text.method.Touch;
 import android.view.Display;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.media.AudioRecord;
 
 import com.connect_screen.mirror.State;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 // 代码拷贝自 v2025.122.141614
 public class SunshineServer {
@@ -101,14 +108,94 @@ public class SunshineServer {
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
 
+    private static class TouchPacket {
+        public int action;
+        public int pointerId;
+        public float x;
+        public float y;
+    }
+
+    private static List<TouchPacket> bufferedPackets = new ArrayList<>();
+
     // 添加处理触摸事件的静态方法
     public static void handleTouchPacket(int eventType, int rotation, int pointerId, 
                                         float x, float y, float pressureOrDistance,
                                         float contactAreaMajor, float contactAreaMinor) {
-        android.util.Log.d("SunshineServer", "触摸事件: 类型=" + eventType + ", 旋转=" + rotation + ", 指针ID=" + pointerId + 
-                  ", x=" + x + ", y=" + y + ", 压力/距离=" + pressureOrDistance + 
-                  ", 接触面积(长)=" + contactAreaMajor + ", 接触面积(短)=" + contactAreaMinor);
+        int motionEventAction;
+        // 将 Sunshine/Moonlight 的触摸事件类型转换为 Android 的 MotionEvent 类型
+        switch (eventType) {
+            case 0x00: // LI_TOUCH_EVENT_HOVER
+                motionEventAction = MotionEvent.ACTION_HOVER_MOVE;
+                break;
+            case 0x01: // LI_TOUCH_EVENT_DOWN
+                motionEventAction = MotionEvent.ACTION_DOWN;
+                break;
+            case 0x02: // LI_TOUCH_EVENT_UP
+                motionEventAction = MotionEvent.ACTION_UP;
+                break;
+            case 0x03: // LI_TOUCH_EVENT_MOVE
+                motionEventAction = MotionEvent.ACTION_MOVE;
+                break;
+            case 0x04: // LI_TOUCH_EVENT_CANCEL
+                motionEventAction = MotionEvent.ACTION_CANCEL;
+                break;
+            case 0x05: // LI_TOUCH_EVENT_BUTTON_ONLY
+                motionEventAction = MotionEvent.ACTION_BUTTON_PRESS; // 或 ACTION_BUTTON_RELEASE，可能需要额外信息区分
+                break;
+            case 0x06: // LI_TOUCH_EVENT_HOVER_LEAVE
+                motionEventAction = MotionEvent.ACTION_HOVER_EXIT;
+                break;
+            case 0x07: // LI_TOUCH_EVENT_CANCEL_ALL
+                motionEventAction = MotionEvent.ACTION_CANCEL;
+                break;
+            default:
+                android.util.Log.e("SunshineServer", "未知的触摸事件类型: " + eventType);
+                return;
+        }
+        TouchPacket packet = new TouchPacket();
+        packet.action = motionEventAction;
+        packet.pointerId = pointerId;
+        packet.x = x;
+        packet.y = y;
+        if (motionEventAction != MotionEvent.ACTION_MOVE) {
+            if (!bufferedPackets.isEmpty()) {
+                triggerTouch(bufferedPackets);
+                bufferedPackets.clear();
+            }
+            triggerTouch(Arrays.asList(packet));
+            return;
+        }
+        if (bufferedPackets.isEmpty()) {
+            bufferedPackets.add(packet);
+            return;
+        }
+        if (bufferedPackets.get(0).action != motionEventAction) {
+            triggerTouch(bufferedPackets);
+            bufferedPackets.clear();
+            bufferedPackets.add(packet);
+            return;
+        }
+        boolean found = false;
+        for(TouchPacket bufferedPacket : bufferedPackets) {
+            if (bufferedPacket.pointerId == pointerId) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            triggerTouch(bufferedPackets);
+            bufferedPackets.clear();
+            bufferedPackets.add(packet);
+            return;
+        }
+        bufferedPackets.add(packet);
 
+        // 这里可以添加实际处理触摸事件的代码
+        // 例如：创建 MotionEvent 并分发到当前活动窗口
+    }
+
+    private static void triggerTouch(List<TouchPacket> bufferedPackets) {
+        android.util.Log.d("SunshineServer", "触摸事件: 类型=" + bufferedPackets.get(0).action + ", count=" + bufferedPackets.size());
     }
 
 }
