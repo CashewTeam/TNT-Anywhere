@@ -1,7 +1,9 @@
 package com.connect_screen.mirror.job;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
@@ -30,11 +32,14 @@ public class ExitAll {
 
         // 重启应用
         if (restart) {
-            Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
-            }
+            PackageManager packageManager = context.getPackageManager();
+            Intent intent = packageManager.getLaunchIntentForPackage(context.getPackageName());
+            ComponentName componentName = intent.getComponent();
+            Intent mainIntent = Intent.makeRestartActivityTask(componentName);
+            // Required for API 34 and later
+            // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
+            mainIntent.setPackage(context.getPackageName());
+            context.startActivity(mainIntent);
         }
         
         // 退出应用进程
