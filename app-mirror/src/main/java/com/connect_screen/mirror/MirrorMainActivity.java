@@ -23,6 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
+import com.connect_screen.mirror.job.ProjectViaMirror;
+import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -43,6 +45,7 @@ import rikka.shizuku.Shizuku;
 public class MirrorMainActivity extends AppCompatActivity implements IMainActivity {
     public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
+    public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
 
     private BreadcrumbManager breadcrumbManager;
     private RecyclerView logRecyclerView;
@@ -65,7 +68,18 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     };
 
 
-    private void onRequestPermissionsResult(int requestCode, int grantResult) {
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+            State.resumeJob();
+        } else {
+            State.log("未知权限请求代码: " + requestCode);
+        }
+    }
+
+    private void onRequestShizukuPermissionsResult(int requestCode, int grantResult) {
         if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
             State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
             State.resumeJob();
@@ -75,7 +89,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private final Shizuku.OnRequestPermissionResultListener REQUEST_PERMISSION_RESULT_LISTENER =
-        this::onRequestPermissionsResult;
+        this::onRequestShizukuPermissionsResult;
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -140,6 +154,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
         Context context = this;
+
+        State.startNewJob(new ProjectViaMoonlight(1920, 1080, 120, null));
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
