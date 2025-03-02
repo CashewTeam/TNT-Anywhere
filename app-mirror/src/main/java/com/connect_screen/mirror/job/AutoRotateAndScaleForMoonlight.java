@@ -237,13 +237,16 @@ public class AutoRotateAndScaleForMoonlight {
                 }
                 android.util.Log.i("AutoRotateAndScaleForMoonlight", "isLandscape: " + isLandscape);
                 Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs(virtualDisplayArgs.virtualDisplayName,
+                State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay(
+                        virtualDisplayArgs.virtualDisplayName,
                         isLandscape ? virtualDisplayArgs.width : virtualDisplayArgs.height,
                         isLandscape ? virtualDisplayArgs.height : virtualDisplayArgs.width,
-                        virtualDisplayArgs.refreshRate,
                         virtualDisplayArgs.dpi,
-                        virtualDisplayArgs.rotatesWithContent),
-                        targetSurface);
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                        targetSurface,
+                        null,
+                        null);
+                State.setMediaProjection(null);
                 State.breadcrumbManager.refreshCurrentFragment();
             } else if (State.mirrorVirtualDisplay != null) {
                 DisplayMetrics metrics = new DisplayMetrics();

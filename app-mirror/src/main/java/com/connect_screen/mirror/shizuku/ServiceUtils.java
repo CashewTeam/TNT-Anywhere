@@ -24,6 +24,7 @@ import android.view.IWindowManager;
 import android.widget.Toast;
 
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
 
 import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.ShizukuBinderWrapper;
@@ -90,7 +91,7 @@ public class ServiceUtils {
         if (activityManager == null) {
             initWithShizuku();
         }
-        
+
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                 return activityManager.startActivityAsUserWithFeature(
@@ -105,9 +106,93 @@ public class ServiceUtils {
                         null, options.toBundle()
                 );
             }
-        } catch (Exception e) {            
+        } catch (Exception e) {
             State.log("failed to start activity: " + e.getMessage());
             return -1;
+        }
+    }
+
+    public static void launchPackage(Context context, String packageName, int targetDisplayId) {
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        Display display = displayManager.getDisplay(targetDisplayId);
+        if (display == null) {
+            return;
+        }
+        _launchPackage(context, packageName, targetDisplayId);
+        if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            _launchPackage(context, packageName, targetDisplayId);
+        }
+        if (targetDisplayId != Display.DEFAULT_DISPLAY) {
+            State.lastSingleAppDisplay = targetDisplayId;
+            State.breadcrumbManager.refreshCurrentFragment();
+        }
+    }
+    public static void _launchPackage(Context context, String packageName, int targetDisplayId) {
+        if (ShizukuUtils.hasPermission()) {
+            launchAppWithShizuku(packageName, context, targetDisplayId);
+            return;
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                launchAppNormally(packageName, context, targetDisplayId);
+            } else {
+                if (State.getDisplaylinkVirtualDisplayId() == targetDisplayId || State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                    launchAppWithShizuku(packageName, context, targetDisplayId);
+                } else {
+                    launchAppNormally(packageName, context, targetDisplayId);
+                }
+            }
+        } catch (Exception e) {
+            if (ShizukuUtils.hasPermission()) {
+                launchAppWithShizuku(packageName, context, targetDisplayId);
+            } else {
+                Toast.makeText(context, "启动应用失败，该屏幕需要 shizuku 授权", Toast.LENGTH_SHORT).show();
+                State.log("启动应用失败，该屏幕需要 shizuku 授权: " + e);
+            }
+        }
+    }
+
+    private static void launchAppNormally(String packageName, Context context, int targetDisplayId) {
+        PackageManager packageManager = context.getPackageManager();
+        Intent launchIntent = packageManager.getLaunchIntentForPackage(packageName);
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(targetDisplayId);
+            context.startActivity(launchIntent, options.toBundle());
+            State.startNewJob(new BindAllExternalInputToDisplay(targetDisplayId));
+        }
+    }
+
+    private static void launchAppWithShizuku(String packageName, Context context, int targetDisplayId) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            PackageManager packageManager = context.getPackageManager();
+            Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(packageName);
+            if (launchIntentForPackage == null) {
+                State.log("使用 Shizuku 启动应用失败，应用未找到: " + packageName);
+                return;
+            }
+            ComponentName componentName = launchIntentForPackage.getComponent();
+            intent.setComponent(componentName);
+            intent.setPackage(packageName);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchDisplayId(targetDisplayId);
+            ActivityOptionsHidden optionsHidden = Refine.unsafeCast(options);
+            optionsHidden.setLaunchWindowingMode(WINDOWING_MODE_FULLSCREEN);
+            int result = ServiceUtils.startActivity(intent, options);
+            if (result < 0) {
+                Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();
+                State.log("使用 Shizuku 启动应用失败，返回值: " + result);
+            } else {
+                State.log("使用 Shizuku 启动应用成功: " + packageName);
+            }
+            State.startNewJob(new BindAllExternalInputToDisplay(targetDisplayId));
+        } catch (Exception e) {
+            Toast.makeText(context, "使用 Shizuku 启动应用失败", Toast.LENGTH_SHORT).show();
+            State.log("使用 Shizuku 启动应用失败: " + e.getMessage());
         }
     }
 
@@ -115,15 +200,15 @@ public class ServiceUtils {
         if (activityManager == null) {
             throw new IllegalStateException("ServiceUtils 未初始化，请先调用 initWithShizuku()");
         }
-        
+
         try {
             PendingIntentHidden pendingIntentHidden = Refine.unsafeCast(pendingIntent);
             ActivityOptionsHidden optionsHidden = Refine.unsafeCast(options);
             optionsHidden.setCallerDisplayId(displayId);
 
             return activityManager.sendIntentSender(
-                pendingIntentHidden.getTarget(), pendingIntentHidden.getWhitelistToken(), 0, null,
-                null, null, null, optionsHidden.toBundle()
+                    pendingIntentHidden.getTarget(), pendingIntentHidden.getWhitelistToken(), 0, null,
+                    null, null, null, optionsHidden.toBundle()
             );
         } catch (Exception e) {
             State.log("failed to send pending intent: " + e.getMessage());

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.display.DisplayManager;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioPlaybackCaptureConfiguration;
@@ -22,6 +23,8 @@ import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 
 public class ProjectViaMoonlight implements Job {
@@ -95,18 +98,25 @@ public class ProjectViaMoonlight implements Job {
         SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         boolean autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
-        if (autoRotate || autoScale) {
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        if (ShizukuUtils.hasPermission() && singleAppMode) {
+            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
+                    width, height, frameRate, 160, autoRotate), surface);
+            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+        } else if (autoRotate || autoScale) {
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, 160, false));
             SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
         } else {
-            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
-                            width,
-                            height,
-                            frameRate,
-                            160,
-                            false),
-                    surface);
+            State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Moonlight",
+                    width,
+                    height,
+                    160,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                    surface, null, null);
+            State.setMediaProjection(null);
         }
     }
 

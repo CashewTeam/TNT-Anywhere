@@ -42,21 +42,9 @@ public class CreateVirtualDisplay {
 
     public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
         if (ShizukuUtils.hasPermission()) {
-            try {
-                VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, false);
-                android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
-                return virtualDisplay;
-            } catch(RuntimeException e) {
-                android.util.Log.e("CreateVirtualDisplay", "failed to createVirtualDisplay by shizuku", e);
-                try {
-                    return createByShizuku(virtualDisplayArgs, surface, true);
-                } catch(RuntimeException e2) {
-                    if (State.getMediaProjection() != null) {
-                        return createByMediaProjection(virtualDisplayArgs, surface);
-                    }
-                    throw e2;
-                }
-            }
+            VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true);
+            android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+            return virtualDisplay;
         } else {
             return createByMediaProjection(virtualDisplayArgs, surface);
         }
