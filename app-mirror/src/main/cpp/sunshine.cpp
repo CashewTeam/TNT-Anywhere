@@ -139,7 +139,7 @@ namespace sunshine_callbacks {
 
 
 
-    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jobject surface) {
+    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -150,14 +150,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIILandroid/view/Surface;)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;)V");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             jvm->DetachCurrentThread();
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, surface);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -201,7 +201,7 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-    void captureVideoLoop(safe::mail_t mail, const video::config_t& config) {
+    void captureVideoLoop(safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
         if (result != JNI_OK) {
@@ -279,7 +279,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, config.width, config.height, 120, javaSurface);
+        createVirtualDisplay(env, config.width, config.height, 120, audioConfig.packetDuration, javaSurface);
         
         // 启动编码器
         status = AMediaCodec_start(codec);

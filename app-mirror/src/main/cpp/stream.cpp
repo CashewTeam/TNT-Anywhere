@@ -1824,7 +1824,7 @@ namespace stream {
       currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
       currentSession = session;
     BOOST_LOG(debug) << "Start capturing Video"sv;
-    sunshine_callbacks::captureVideoLoop(session->mail, session->config.monitor);
+    sunshine_callbacks::captureVideoLoop(session->mail, session->config.monitor, session->config.audio);
 //    video::capture(session->mail, session->config.monitor, session);
   }
 

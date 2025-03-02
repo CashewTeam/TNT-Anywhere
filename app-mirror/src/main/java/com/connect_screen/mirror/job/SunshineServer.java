@@ -75,9 +75,9 @@ public class SunshineServer {
 
     
     // surface created by MediaCodec
-    public static void createVirtualDisplay(int width, int height, int frameRate, Surface surface) {
+    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface) {
         new Handler(Looper.getMainLooper()).post(() -> {
-            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, surface));
+            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
     }
 

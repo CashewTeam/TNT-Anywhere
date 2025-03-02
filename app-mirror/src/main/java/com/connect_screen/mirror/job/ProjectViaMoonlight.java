@@ -28,14 +28,16 @@ public class ProjectViaMoonlight implements Job {
     private final int width;
     private final int height;
     private final int frameRate;
+    private final int packetDuration;
     private final Surface surface;
     private boolean mediaProjectionRequested;
     private boolean audioPermissionRequested;
 
-    public ProjectViaMoonlight(int width, int height, int frameRate, Surface surface) {
+    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface) {
         this.width = width;
         this.height = height;
         this.frameRate = frameRate;
+        this.packetDuration = packetDuration;
         this.surface = surface;
     }
 
@@ -47,7 +49,7 @@ public class ProjectViaMoonlight implements Job {
         // 创建AudioRecord
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(State.currentActivity.get(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                new AudioRecordingThread(State.currentActivity.get(), State.getMediaProjection()).start();
+                new AudioRecordingThread(State.currentActivity.get(), State.getMediaProjection(), packetDuration).start();
             } else {
                 if (audioPermissionRequested) {
                     State.log("因为未授予录音权限，跳过任务");

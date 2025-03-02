@@ -155,7 +155,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplaylinkMonitor.init(this);
         Context context = this;
 
-        State.startNewJob(new ProjectViaMoonlight(1920, 1080, 120, null));
+        State.startNewJob(new ProjectViaMoonlight(1920, 1080, 120, 5, null));
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {

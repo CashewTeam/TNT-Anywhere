@@ -19,18 +19,26 @@ public class AudioRecordingThread extends Thread {
     private float[] buffer;
     private AudioRecord audioRecord;
     private boolean isRecording;
+    private int sampleRate;
+    private int framesPerPacket;
 
-    public AudioRecordingThread(Context context, MediaProjection mediaProjection) {
+    public AudioRecordingThread(Context context, MediaProjection mediaProjection, int packetDuration) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             com.connect_screen.mirror.State.log("缺少录音权限");
             return;
         }
         // 配置音频捕获参数
-        int sampleRate = 48000; // 与您的Opus配置匹配
+        sampleRate = 48000; // 与您的Opus配置匹配
         int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
         int audioFormat = AudioFormat.ENCODING_PCM_FLOAT;
         int bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat) * 2;
-        buffer = new float[bufferSize / 4];  // float 是 4 字节，所以除以 4
+        
+        // 计算每个数据包的帧数 (每个通道的样本数)
+        // packetDuration 是毫秒，所以需要除以1000转换为秒
+        framesPerPacket = (int)(sampleRate * packetDuration / 1000.0f);
+        // 每帧有2个通道(立体声)，每个通道一个float值
+        buffer = new float[framesPerPacket * 2];
+        
         AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
                 .addMatchingUsage(AudioAttributes.USAGE_GAME)

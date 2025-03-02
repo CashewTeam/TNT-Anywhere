@@ -3,5 +3,5 @@
 
 namespace sunshine_callbacks {
     void callJavaOnPinRequested();
-    void captureVideoLoop(safe::mail_t mail, const video::config_t& config);
+    void captureVideoLoop(safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig);
 }
