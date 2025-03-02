@@ -15,7 +15,7 @@ import androidx.core.app.ActivityCompat;
 import com.connect_screen.mirror.State;
 
 public class AudioRecordingThread extends Thread {
-    private short[] buffer;
+    private float[] buffer;
     private AudioRecord audioRecord;
     private boolean isRecording;
 
@@ -27,9 +27,9 @@ public class AudioRecordingThread extends Thread {
         // 配置音频捕获参数
         int sampleRate = 48000; // 与您的Opus配置匹配
         int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
-        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        int audioFormat = AudioFormat.ENCODING_PCM_FLOAT;
         int bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat) * 2;
-        buffer = new short[bufferSize / 2];  // short 是 2 字节，所以除以 2
+        buffer = new float[bufferSize / 4];  // float 是 4 字节，所以除以 4
         AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
                 .addMatchingUsage(AudioAttributes.USAGE_GAME)
@@ -62,7 +62,7 @@ public class AudioRecordingThread extends Thread {
                 boolean hasContent = false;
                 float maxAmplitude = 0;
                 for (int i = 0; i < readSize; i++) {
-                    float abs = Math.abs(buffer[i]) / 32768.0f;  // 将short值(-32768到32767)归一化到[-1,1]范围
+                    float abs = Math.abs(buffer[i]);  // 浮点值已经在[-1,1]范围内，不需要归一化
                     if (abs > 0.01f) {  // 设置一个阈值来判断是否有有效音频
                         hasContent = true;
                     }

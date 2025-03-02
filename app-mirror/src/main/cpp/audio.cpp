@@ -6,7 +6,7 @@
 #include <thread>
 
 // lib includes
-//#include <opus/opus_multistream.h>
+#include <opus/opus_multistream.h>
 
 // local includes
 #include "audio.h"
@@ -19,15 +19,15 @@
 
 namespace audio {
     using namespace std::literals;
-//    using opus_t = util::safe_ptr<OpusMSEncoder, opus_multistream_encoder_destroy>;
-//    using sample_queue_t = std::shared_ptr<safe::queue_t<std::vector<float>>>;
-//
-//    static int start_audio_control(audio_ctx_t &ctx);
-//    static void stop_audio_control(audio_ctx_t &);
-//    static void apply_surround_params(opus_stream_config_t &stream, const stream_params_t &params);
-//
-//    int map_stream(int channels, bool quality);
-//
+    using opus_t = util::safe_ptr<OpusMSEncoder, opus_multistream_encoder_destroy>;
+    using sample_queue_t = std::shared_ptr<safe::queue_t<std::vector<float>>>;
+
+    static int start_audio_control(audio_ctx_t &ctx);
+    static void stop_audio_control(audio_ctx_t &);
+    static void apply_surround_params(opus_stream_config_t &stream, const stream_params_t &params);
+
+    int map_stream(int channels, bool quality);
+
     constexpr auto SAMPLE_RATE = 48000;
 
     // NOTE: If you adjust the bitrates listed here, make sure to update the
@@ -83,50 +83,50 @@ namespace audio {
             },
     };
 
-//    void encodeThread(sample_queue_t samples, config_t config, void *channel_data) {
-//        auto packets = mail::man->queue<packet_t>(mail::audio_packets);
-//        auto stream = stream_configs[map_stream(config.channels, config.flags[config_t::HIGH_QUALITY])];
-//        if (config.flags[config_t::CUSTOM_SURROUND_PARAMS]) {
-//            apply_surround_params(stream, config.customStreamParams);
-//        }
-//
-//        // Encoding takes place on this thread
-//        platf::adjust_thread_priority(platf::thread_priority_e::high);
-//
-//        opus_t opus {opus_multistream_encoder_create(
-//                stream.sampleRate,
-//                stream.channelCount,
-//                stream.streams,
-//                stream.coupledStreams,
-//                stream.mapping,
-//                OPUS_APPLICATION_RESTRICTED_LOWDELAY,
-//                nullptr
-//        )};
-//
-//        opus_multistream_encoder_ctl(opus.get(), OPUS_SET_BITRATE(stream.bitrate));
-//        opus_multistream_encoder_ctl(opus.get(), OPUS_SET_VBR(0));
-//
-//        BOOST_LOG(info) << "Opus initialized: "sv << stream.sampleRate / 1000 << " kHz, "sv
-//                        << stream.channelCount << " channels, "sv
-//                        << stream.bitrate / 1000 << " kbps (total), LOWDELAY"sv;
-//
-//        auto frame_size = config.packetDuration * stream.sampleRate / 1000;
-//        while (auto sample = samples->pop()) {
-//            buffer_t packet {1400};
-//
-//            int bytes = opus_multistream_encode_float(opus.get(), sample->data(), frame_size, std::begin(packet), packet.size());
-//            if (bytes < 0) {
-//                BOOST_LOG(error) << "Couldn't encode audio: "sv << opus_strerror(bytes);
-//                packets->stop();
-//
-//                return;
-//            }
-//
-//            packet.fake_resize(bytes);
-//            packets->raise(channel_data, std::move(packet));
-//        }
-//    }
-//
+    void encodeThread(sample_queue_t samples, config_t config, void *channel_data) {
+        auto packets = mail::man->queue<packet_t>(mail::audio_packets);
+        auto stream = stream_configs[map_stream(config.channels, config.flags[config_t::HIGH_QUALITY])];
+        if (config.flags[config_t::CUSTOM_SURROUND_PARAMS]) {
+            apply_surround_params(stream, config.customStreamParams);
+        }
+
+        // Encoding takes place on this thread
+        platf::adjust_thread_priority(platf::thread_priority_e::high);
+
+        opus_t opus {opus_multistream_encoder_create(
+                stream.sampleRate,
+                stream.channelCount,
+                stream.streams,
+                stream.coupledStreams,
+                stream.mapping,
+                OPUS_APPLICATION_RESTRICTED_LOWDELAY,
+                nullptr
+        )};
+
+        opus_multistream_encoder_ctl(opus.get(), OPUS_SET_BITRATE(stream.bitrate));
+        opus_multistream_encoder_ctl(opus.get(), OPUS_SET_VBR(0));
+
+        BOOST_LOG(info) << "Opus initialized: "sv << stream.sampleRate / 1000 << " kHz, "sv
+                        << stream.channelCount << " channels, "sv
+                        << stream.bitrate / 1000 << " kbps (total), LOWDELAY"sv;
+
+        auto frame_size = config.packetDuration * stream.sampleRate / 1000;
+        while (auto sample = samples->pop()) {
+            buffer_t packet {1400};
+
+            int bytes = opus_multistream_encode_float(opus.get(), sample->data(), frame_size, std::begin(packet), packet.size());
+            if (bytes < 0) {
+                BOOST_LOG(error) << "Couldn't encode audio: "sv << opus_strerror(bytes);
+                packets->stop();
+
+                return;
+            }
+
+            packet.fake_resize(bytes);
+            packets->raise(channel_data, std::move(packet));
+        }
+    }
+
 //    void capture(safe::mail_t mail, config_t config, void *channel_data) {
 //        auto shutdown_event = mail->event<bool>(mail::shutdown);
 //        auto stream = stream_configs[map_stream(config.channels, config.flags[config_t::HIGH_QUALITY])];
@@ -239,38 +239,38 @@ namespace audio {
 //            samples->raise(std::move(sample_buffer));
 //        }
 //    }
-//
+
 //    audio_ctx_ref_t get_audio_ctx_ref() {
 //        static auto control_shared {safe::make_shared<audio_ctx_t>(start_audio_control, stop_audio_control)};
 //        return control_shared.ref();
 //    }
-//
-//    bool is_audio_ctx_sink_available(const audio_ctx_t &ctx) {
-//        if (!ctx.control) {
-//            return false;
-//        }
-//
-//        const std::string &sink = ctx.sink.host.empty() ? config::audio.sink : ctx.sink.host;
-//        if (sink.empty()) {
-//            return false;
-//        }
-//
-//        return ctx.control->is_sink_available(sink);
-//    }
-//
-//    int map_stream(int channels, bool quality) {
-//        int shift = quality ? 1 : 0;
-//        switch (channels) {
-//            case 2:
-//                return STEREO + shift;
-//            case 6:
-//                return SURROUND51 + shift;
-//            case 8:
-//                return SURROUND71 + shift;
-//        }
-//        return STEREO;
-//    }
-//
+
+    bool is_audio_ctx_sink_available(const audio_ctx_t &ctx) {
+        if (!ctx.control) {
+            return false;
+        }
+
+        const std::string &sink = ctx.sink.host.empty() ? config::audio.sink : ctx.sink.host;
+        if (sink.empty()) {
+            return false;
+        }
+
+        return ctx.control->is_sink_available(sink);
+    }
+
+    int map_stream(int channels, bool quality) {
+        int shift = quality ? 1 : 0;
+        switch (channels) {
+            case 2:
+                return STEREO + shift;
+            case 6:
+                return SURROUND51 + shift;
+            case 8:
+                return SURROUND71 + shift;
+        }
+        return STEREO;
+    }
+
 //    int start_audio_control(audio_ctx_t &ctx) {
 //        auto fg = util::fail_guard([]() {
 //            BOOST_LOG(warning) << "There will be no audio"sv;
@@ -311,11 +311,11 @@ namespace audio {
 //            ctx.control->set_sink(sink);
 //        }
 //    }
-//
-//    void apply_surround_params(opus_stream_config_t &stream, const stream_params_t &params) {
-//        stream.channelCount = params.channelCount;
-//        stream.streams = params.streams;
-//        stream.coupledStreams = params.coupledStreams;
-//        stream.mapping = params.mapping;
-//    }
+
+    void apply_surround_params(opus_stream_config_t &stream, const stream_params_t &params) {
+        stream.channelCount = params.channelCount;
+        stream.streams = params.streams;
+        stream.coupledStreams = params.coupledStreams;
+        stream.mapping = params.mapping;
+    }
 }  // namespace audio

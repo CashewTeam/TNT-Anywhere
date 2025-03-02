@@ -33,6 +33,7 @@ target_include_directories(sunshine PRIVATE
         dependencies/ffmpeg
         dependencies/nanors/deps/obl
         dependencies/nanors
+        dependencies/libopus/include
         dependencies
         ${Boost_INCLUDE_DIRS})
 
