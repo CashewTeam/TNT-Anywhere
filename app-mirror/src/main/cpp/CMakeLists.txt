@@ -6,6 +6,7 @@ include(dependencies/Boost_Sunshine.cmake)
 add_subdirectory(dependencies/moonlight-common-c/enet)
 add_subdirectory(dependencies/openssl-cmake)
 add_subdirectory(dependencies/Simple-Web-Server)
+add_subdirectory(dependencies/libopus)
 
 add_library(
         sunshine
@@ -41,6 +42,7 @@ target_link_libraries(
         mediandk
         log
         enet
+        ${OPUS_LIBRARY}
         ssl
         crypto
         simple-web-server

@@ -244,7 +244,6 @@ public class AutoRotateAndScaleForMoonlight {
                         virtualDisplayArgs.dpi,
                         virtualDisplayArgs.rotatesWithContent),
                         targetSurface);
-                State.setMediaProjection(null);
                 State.breadcrumbManager.refreshCurrentFragment();
             } else if (State.mirrorVirtualDisplay != null) {
                 DisplayMetrics metrics = new DisplayMetrics();

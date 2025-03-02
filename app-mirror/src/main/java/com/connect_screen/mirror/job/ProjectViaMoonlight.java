@@ -5,6 +5,7 @@ import static com.connect_screen.mirror.MirrorMainActivity.REQUEST_RECORD_AUDIO_
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
@@ -19,6 +20,7 @@ import androidx.core.app.ActivityCompat;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
+import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
 
 
@@ -58,9 +60,25 @@ public class ProjectViaMoonlight implements Job {
                 throw new YieldException("等待录音权限授权");
             }
         }
-        // SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("ScreenCapture",
-        //         width, height, frameRate, 160, false));
-        // SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
+        if (surface == null) {
+            return;
+        }
+        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        boolean autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
+        boolean autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
+        if (autoRotate || autoScale) {
+            SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
+                    width, height, frameRate, 160, false));
+            SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
+        } else {
+            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
+                            width,
+                            height,
+                            frameRate,
+                            160,
+                            false),
+                    surface);
+        }
     }
 
     private boolean requestMediaProjectionPermission(Context context) throws YieldException {
