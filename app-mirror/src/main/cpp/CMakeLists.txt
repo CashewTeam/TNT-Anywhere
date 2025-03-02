@@ -26,6 +26,7 @@ add_library(
         audio.cpp
         nvhttp.cpp
         file_handler.cpp
+        input.cpp
 )
 
 target_include_directories(sunshine PRIVATE

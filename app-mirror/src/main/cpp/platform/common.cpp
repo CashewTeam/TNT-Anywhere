@@ -24,7 +24,14 @@ namespace platf {
         // TODO
         return {};
     }
-    
+    struct client_input_raw_t: public client_input_t {
+    };
+    std::unique_ptr<client_input_t> allocate_client_input_context(input_t &input) {
+        return std::make_unique<client_input_raw_t>();
+    }
+    void freeInput(void *p) {
+    }
+
   platform_caps::caps_t get_capabilities() {
     platform_caps::caps_t caps = 0;
     // TODO: if has_uinput

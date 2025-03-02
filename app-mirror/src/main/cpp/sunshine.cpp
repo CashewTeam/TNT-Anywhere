@@ -41,6 +41,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
     deinit = logging::init(1, "/dev/null");
     BOOST_LOG(info) << "start sunshine server"sv;
     mail::man = std::make_shared<safe::mail_raw_t>();
+    task_pool.start(1);
     
     std::thread httpThread {nvhttp::start};
     rtsp_stream::rtpThread();
