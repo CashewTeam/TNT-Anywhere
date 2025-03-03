@@ -130,7 +130,6 @@ public class SunshineServer {
         public float y = 0;
     }
 
-    private static List<MovePacket> bufferedPackets = new ArrayList<>();
     private static List<PointerStatus> pointers = new ArrayList<>();
 
     // 添加处理触摸事件的静态方法
@@ -162,7 +161,7 @@ public class SunshineServer {
     }
 
     private static PointerStatus getPointerStatus(int pointerId) {
-        while (pointerId > pointers.size()) {
+        while (pointerId >= pointers.size()) {
             pointers.add(new PointerStatus());
         }
         return pointers.get(pointerId);
@@ -173,15 +172,7 @@ public class SunshineServer {
         pointerStatus.isDown = true;
         pointerStatus.x = screenWidth * x;
         pointerStatus.y = screenHeight * y;
-        
-        // 计算当前活跃的触摸点数量
-        int activePointerCount = 0;
-        for (PointerStatus status : pointers) {
-            if (status != null && status.isDown) {
-                activePointerCount++;
-            }
-        }
-        
+
         int action = pointerId == 0 ? android.view.MotionEvent.ACTION_DOWN : 
                                     android.view.MotionEvent.ACTION_POINTER_DOWN | (pointerId << 8);
         // 构造 MotionEvent
@@ -189,20 +180,27 @@ public class SunshineServer {
         long eventTime = SystemClock.uptimeMillis();
         
         // 创建包含所有活跃触摸点的属性数组
-        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerId + 1];
-        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerId + 1];
+        int pointerCount = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            if (pointers.get(i).isDown) pointerCount++;
+        }
         
-        for (int i = 0; i < pointerId + 1; i++) {
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+        
+        int index = 0;
+        for (int i = 0; i < pointers.size(); i++) {
             PointerStatus status = pointers.get(i);
-            if (status != null && status.isDown) {
-                properties[i] = new MotionEvent.PointerProperties();
-                properties[i].id = i;
-                properties[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
+            if (status.isDown) {
+                properties[index] = new MotionEvent.PointerProperties();
+                properties[index].id = i;  // 保持id为原始的pointerId
+                properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
                 
-                coords[i] = new MotionEvent.PointerCoords();
-                coords[i].x = status.x;
-                coords[i].y = status.y;
-                coords[i].pressure = 1.0f;
+                coords[index] = new MotionEvent.PointerCoords();
+                coords[index].x = status.x;
+                coords[index].y = status.y;
+                coords[index].pressure = 1.0f;
+                index++;
             }
         }
         
@@ -211,7 +209,7 @@ public class SunshineServer {
             downTime,
             eventTime,
             action,
-            activePointerCount, // 更新为实际的触摸点数量
+            pointerCount, // 使用实际的触摸点数量
             properties,
             coords,
             0, // metaState
@@ -231,16 +229,188 @@ public class SunshineServer {
     }
 
     private static void handleTouchEventUp(int pointerId, float x, float y, boolean cancelled) {
+        // 更新指针状态
+        if (pointerId >= pointers.size() || !pointers.get(pointerId).isDown) {
+            return;
+        }
+        
+        PointerStatus status = pointers.get(pointerId);
+        status.isDown = false;
+        
+        // 确定动作类型
+        int action = cancelled ? android.view.MotionEvent.ACTION_CANCEL :
+                    (pointerId == 0 ? android.view.MotionEvent.ACTION_UP :
+                    android.view.MotionEvent.ACTION_POINTER_UP | (pointerId << 8));
+
+        // 构造 MotionEvent
+        long downTime = SystemClock.uptimeMillis();
+        long eventTime = SystemClock.uptimeMillis();
+
+        // 计算活跃的触摸点数量
+        int pointerCount = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            if (pointers.get(i).isDown || i == pointerId) pointerCount++;
+        }
+
+        // 创建包含所有活跃触摸点的属性数组
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+
+        int index = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            PointerStatus ps = pointers.get(i);
+            if (ps.isDown || i == pointerId) {
+                properties[index] = new MotionEvent.PointerProperties();
+                properties[index].id = i;  // 保持id为原始的pointerId
+                properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
+
+                coords[index] = new MotionEvent.PointerCoords();
+                coords[index].x = ps.x;
+                coords[index].y = ps.y;
+                coords[index].pressure = i == pointerId ? 0.0f : 1.0f;
+                index++;
+            }
+        }
+
+        // 构造并注入 MotionEvent
+        MotionEvent event = MotionEvent.obtain(
+            downTime,
+            eventTime,
+            action,
+            pointerCount, // 使用实际的触摸点数量
+            properties,
+            coords,
+            0, // metaState
+            0, // buttonState
+            1.0f, // xPrecision
+            1.0f, // yPrecision
+            0, // deviceId
+            0, // edgeFlags
+            InputDevice.SOURCE_TOUCHSCREEN,
+            0 // flags
+        );
+
+        if (State.mirrorVirtualDisplay != null) {
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            inputManager.injectInputEvent(event, 0);
+        }
     }
 
     private static void handleTouchEventMove(int pointerId, float x, float y) {
+        // 添加移动事件处理逻辑
+        if (pointerId >= pointers.size() || !pointers.get(pointerId).isDown) {
+            return;
+        }
+        
+        // 更新指针位置
+        PointerStatus status = pointers.get(pointerId);
+        status.x = screenWidth * x;
+        status.y = screenHeight * y;
+        
+        triggerTouchEventMove();
     }
 
     private static void handleTouchEventCancelAll() {
-
+        // 取消所有触摸事件
+        long downTime = SystemClock.uptimeMillis();
+        long eventTime = SystemClock.uptimeMillis();
+        
+        // 计算活跃的触摸点数量
+        int pointerCount = 0;
+        for (PointerStatus status : pointers) {
+            if (status.isDown) pointerCount++;
+        }
+        
+        if (pointerCount == 0) return;
+        
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+        
+        int index = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            PointerStatus status = pointers.get(i);
+            if (status.isDown) {
+                properties[index] = new MotionEvent.PointerProperties();
+                properties[index].id = i;
+                properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
+                
+                coords[index] = new MotionEvent.PointerCoords();
+                coords[index].x = status.x;
+                coords[index].y = status.y;
+                coords[index].pressure = 1.0f;
+                index++;
+                
+                // 重置状态
+                status.isDown = false;
+            }
+        }
+        
+        MotionEvent event = MotionEvent.obtain(
+            downTime,
+            eventTime,
+            android.view.MotionEvent.ACTION_CANCEL,
+            pointerCount,
+            properties,
+            coords,
+            0, 0, 1.0f, 1.0f, 0, 0,
+            InputDevice.SOURCE_TOUCHSCREEN,
+            0
+        );
+        
+        if (State.mirrorVirtualDisplay != null) {
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            inputManager.injectInputEvent(event, 0);
+        }
     }
 
-    private static void triggerTouchEventMove(List<MovePacket> bufferedPackets) {
+    private static void triggerTouchEventMove() {
+        long downTime = SystemClock.uptimeMillis();
+        long eventTime = SystemClock.uptimeMillis();
+        
+        // 计算活跃的触摸点数量
+        int pointerCount = 0;
+        for (PointerStatus status : pointers) {
+            if (status.isDown) pointerCount++;
+        }
+        
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+        
+        int index = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            PointerStatus status = pointers.get(i);
+            if (status.isDown) {
+                properties[index] = new MotionEvent.PointerProperties();
+                properties[index].id = i;
+                properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
+                
+                coords[index] = new MotionEvent.PointerCoords();
+                coords[index].x = status.x;
+                coords[index].y = status.y;
+                coords[index].pressure = 1.0f;
+                index++;
+            }
+        }
+        
+        MotionEvent event = MotionEvent.obtain(
+            downTime,
+            eventTime,
+            android.view.MotionEvent.ACTION_MOVE,
+            pointerCount,
+            properties,
+            coords,
+            0, 0, 1.0f, 1.0f, 0, 0,
+            InputDevice.SOURCE_TOUCHSCREEN,
+            0
+        );
+        
+        if (State.mirrorVirtualDisplay != null) {
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            inputManager.injectInputEvent(event, 0);
+        }
     }
 
 }
