@@ -84,7 +84,6 @@ public class MirrorSettingsFragment extends Fragment {
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
             autoRotateCheckbox.setEnabled(!isChecked);
-            autoScaleCheckbox.setEnabled(!isChecked);
             selectAppButton.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
@@ -97,7 +96,6 @@ public class MirrorSettingsFragment extends Fragment {
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_ROTATE, isChecked).apply();
         });
-        autoRotateCheckbox.setEnabled(!singleAppMode);
 
         autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_SCALE, isChecked).apply();

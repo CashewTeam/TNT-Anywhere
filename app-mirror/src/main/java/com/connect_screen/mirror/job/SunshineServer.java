@@ -146,16 +146,16 @@ public class SunshineServer {
         float adjustedY = y * screenHeight;
         switch (displayRotation) {
             case Surface.ROTATION_90:
-                adjustedX = (1 - y) * screenWidth;
-                adjustedY = x * screenHeight;
+                adjustedX = y * screenHeight;
+                adjustedY = (1 - x) * screenWidth;
                 break;
             case Surface.ROTATION_180:
                 adjustedX = (1 - x) * screenWidth;
                 adjustedY = (1 - y) * screenHeight;
                 break;
             case Surface.ROTATION_270:
-                adjustedX = y * screenWidth;
-                adjustedY = (1 - x) * screenHeight;
+                adjustedX = (1 - y) * screenHeight;
+                adjustedY = x * screenWidth;
                 break;
         }
         pointerId = pointerId % 10;
