@@ -1,7 +1,6 @@
 package com.connect_screen.mirror.job;
 
-import android.app.Activity;
-import android.media.projection.MediaProjection;
+import android.hardware.input.IInputManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.app.AlertDialog;
@@ -9,23 +8,29 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.text.InputFilter;
 import android.text.InputType;
-import android.text.method.Touch;
-import android.view.Display;
+import android.view.InputDevice;
 import android.view.MotionEvent;
+import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.media.AudioRecord;
 
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import dev.rikka.tools.refine.Refine;
 
 // 代码拷贝自 v2025.122.141614
 public class SunshineServer {
     public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
+    private static IInputManager inputManager;
+    private static int screenWidth;
+    private static int screenHeight;
 
     static {
         System.loadLibrary("sunshine");
@@ -85,6 +90,11 @@ public class SunshineServer {
     
     // surface created by MediaCodec
     public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface) {
+        if (ShizukuUtils.hasPermission()) {
+            inputManager = ServiceUtils.getInputManager();
+            screenWidth = width;
+            screenHeight = height;
+        }
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
@@ -108,94 +118,129 @@ public class SunshineServer {
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
 
-    private static class TouchPacket {
-        public int action;
+    private static class MovePacket {
         public int pointerId;
         public float x;
         public float y;
     }
 
-    private static List<TouchPacket> bufferedPackets = new ArrayList<>();
+    private static class PointerStatus {
+        public boolean isDown = false;
+        public float x = 0;
+        public float y = 0;
+    }
+
+    private static List<MovePacket> bufferedPackets = new ArrayList<>();
+    private static List<PointerStatus> pointers = new ArrayList<>();
 
     // 添加处理触摸事件的静态方法
     public static void handleTouchPacket(int eventType, int rotation, int pointerId, 
                                         float x, float y, float pressureOrDistance,
                                         float contactAreaMajor, float contactAreaMinor) {
-        int motionEventAction;
-        // 将 Sunshine/Moonlight 的触摸事件类型转换为 Android 的 MotionEvent 类型
+        if (inputManager == null) {
+            return;
+        }
         switch (eventType) {
-            case 0x00: // LI_TOUCH_EVENT_HOVER
-                motionEventAction = MotionEvent.ACTION_HOVER_MOVE;
-                break;
             case 0x01: // LI_TOUCH_EVENT_DOWN
-                motionEventAction = MotionEvent.ACTION_DOWN;
+                handleTouchEventDown(pointerId, x, y);
                 break;
             case 0x02: // LI_TOUCH_EVENT_UP
-                motionEventAction = MotionEvent.ACTION_UP;
+                handleTouchEventUp(pointerId, x, y, false);
                 break;
             case 0x03: // LI_TOUCH_EVENT_MOVE
-                motionEventAction = MotionEvent.ACTION_MOVE;
+                handleTouchEventMove(pointerId, x, y);
                 break;
             case 0x04: // LI_TOUCH_EVENT_CANCEL
-                motionEventAction = MotionEvent.ACTION_CANCEL;
-                break;
-            case 0x05: // LI_TOUCH_EVENT_BUTTON_ONLY
-                motionEventAction = MotionEvent.ACTION_BUTTON_PRESS; // 或 ACTION_BUTTON_RELEASE，可能需要额外信息区分
-                break;
-            case 0x06: // LI_TOUCH_EVENT_HOVER_LEAVE
-                motionEventAction = MotionEvent.ACTION_HOVER_EXIT;
+                handleTouchEventUp(pointerId, x, y, true);
                 break;
             case 0x07: // LI_TOUCH_EVENT_CANCEL_ALL
-                motionEventAction = MotionEvent.ACTION_CANCEL;
+                handleTouchEventCancelAll();
                 break;
             default:
                 android.util.Log.e("SunshineServer", "未知的触摸事件类型: " + eventType);
-                return;
         }
-        TouchPacket packet = new TouchPacket();
-        packet.action = motionEventAction;
-        packet.pointerId = pointerId;
-        packet.x = x;
-        packet.y = y;
-        if (motionEventAction != MotionEvent.ACTION_MOVE) {
-            if (!bufferedPackets.isEmpty()) {
-                triggerTouch(bufferedPackets);
-                bufferedPackets.clear();
-            }
-            triggerTouch(Arrays.asList(packet));
-            return;
-        }
-        if (bufferedPackets.isEmpty()) {
-            bufferedPackets.add(packet);
-            return;
-        }
-        if (bufferedPackets.get(0).action != motionEventAction) {
-            triggerTouch(bufferedPackets);
-            bufferedPackets.clear();
-            bufferedPackets.add(packet);
-            return;
-        }
-        boolean found = false;
-        for(TouchPacket bufferedPacket : bufferedPackets) {
-            if (bufferedPacket.pointerId == pointerId) {
-                found = true;
-                break;
-            }
-        }
-        if (found) {
-            triggerTouch(bufferedPackets);
-            bufferedPackets.clear();
-            bufferedPackets.add(packet);
-            return;
-        }
-        bufferedPackets.add(packet);
-
-        // 这里可以添加实际处理触摸事件的代码
-        // 例如：创建 MotionEvent 并分发到当前活动窗口
     }
 
-    private static void triggerTouch(List<TouchPacket> bufferedPackets) {
-        android.util.Log.d("SunshineServer", "触摸事件: 类型=" + bufferedPackets.get(0).action + ", count=" + bufferedPackets.size());
+    private static PointerStatus getPointerStatus(int pointerId) {
+        while (pointerId > pointers.size()) {
+            pointers.add(new PointerStatus());
+        }
+        return pointers.get(pointerId);
+    }
+
+    private static void handleTouchEventDown(int pointerId, float x, float y) {
+        PointerStatus pointerStatus = getPointerStatus(pointerId);
+        pointerStatus.isDown = true;
+        pointerStatus.x = screenWidth * x;
+        pointerStatus.y = screenHeight * y;
+        
+        // 计算当前活跃的触摸点数量
+        int activePointerCount = 0;
+        for (PointerStatus status : pointers) {
+            if (status != null && status.isDown) {
+                activePointerCount++;
+            }
+        }
+        
+        int action = pointerId == 0 ? android.view.MotionEvent.ACTION_DOWN : 
+                                    android.view.MotionEvent.ACTION_POINTER_DOWN | (pointerId << 8);
+        // 构造 MotionEvent
+        long downTime = SystemClock.uptimeMillis();
+        long eventTime = SystemClock.uptimeMillis();
+        
+        // 创建包含所有活跃触摸点的属性数组
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerId + 1];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerId + 1];
+        
+        for (int i = 0; i < pointerId + 1; i++) {
+            PointerStatus status = pointers.get(i);
+            if (status != null && status.isDown) {
+                properties[i] = new MotionEvent.PointerProperties();
+                properties[i].id = i;
+                properties[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
+                
+                coords[i] = new MotionEvent.PointerCoords();
+                coords[i].x = status.x;
+                coords[i].y = status.y;
+                coords[i].pressure = 1.0f;
+            }
+        }
+        
+        // 构造 MotionEvent
+        MotionEvent event = MotionEvent.obtain(
+            downTime,
+            eventTime,
+            action,
+            activePointerCount, // 更新为实际的触摸点数量
+            properties,
+            coords,
+            0, // metaState
+            0, // buttonState
+            1.0f, // xPrecision
+            1.0f, // yPrecision
+            0, // deviceId
+            0, // edgeFlags
+            InputDevice.SOURCE_TOUCHSCREEN,
+            0 // flags
+        );
+        if (State.mirrorVirtualDisplay != null) {
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            inputManager.injectInputEvent(event, 0);
+        }
+    }
+
+    private static void handleTouchEventUp(int pointerId, float x, float y, boolean cancelled) {
+    }
+
+    private static void handleTouchEventMove(int pointerId, float x, float y) {
+    }
+
+    private static void handleTouchEventCancelAll() {
+
+    }
+
+    private static void triggerTouchEventMove(List<MovePacket> bufferedPackets) {
     }
 
 }
