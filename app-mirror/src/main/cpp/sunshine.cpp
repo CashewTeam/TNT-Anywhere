@@ -299,20 +299,19 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, config.framerate);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, 120);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_FPS_TO_ENCODER, config.framerate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
         // 设置低延迟模式
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0); // 实时优先级
         // 设置编码配置
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x01); // BASELINE profile
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 8192); // AVCLevel42
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 0);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
         AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
 
         // 创建编码器
@@ -363,7 +362,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface);
+        createVirtualDisplay(env, config.width, config.height, 120, audioConfig.packetDuration, javaSurface);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
