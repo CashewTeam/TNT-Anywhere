@@ -14,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.app.AlertDialog;
@@ -36,6 +37,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_SINGLE_APP_MODE = "single_app_mode";
     public static final String KEY_SELECTED_APP_PACKAGE = "selected_app_package";
     public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
+    public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,23 +56,28 @@ public class MirrorSettingsFragment extends Fragment {
         CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
         EditText widthEditText = view.findViewById(R.id.widthEditText);
         EditText heightEditText = view.findViewById(R.id.heightEditText);
+        EditText dpiEditText = view.findViewById(R.id.dpiEditText);
+        LinearLayout dpiLayout = view.findViewById(R.id.dpiLayout);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         boolean autoRotate = preferences.getBoolean(KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(KEY_AUTO_SCALE, true);
+        int singleAppDpi = preferences.getInt(KEY_SINGLE_APP_DPI, 160);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
+        dpiEditText.setText(String.valueOf(singleAppDpi));
 
         // 设置分辨率初始值
         DisplaylinkPref.load(requireContext());
         widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
-        // 设置选择应用按钮的可见性
+        // 设置选择应用按钮和DPI设置的可见性
         selectAppButton.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
+        dpiLayout.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
         
         // 显示已选择的应用名称（如果有）
         String selectedAppName = preferences.getString(KEY_SELECTED_APP_NAME, "");
@@ -85,6 +92,7 @@ public class MirrorSettingsFragment extends Fragment {
             preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
             autoRotateCheckbox.setEnabled(!isChecked);
             selectAppButton.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            dpiLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
                 singleAppModeCheckbox.setText("单应用投屏");
@@ -203,6 +211,23 @@ public class MirrorSettingsFragment extends Fragment {
         // 添加选择应用按钮点击事件
         selectAppButton.setOnClickListener(v -> {
             showAppSelectionDialog();
+        });
+
+        // 监听DPI输入变化
+        dpiEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                try {
+                    int dpi = Integer.parseInt(dpiEditText.getText().toString());
+                    // 限制DPI的合理范围，例如60-600
+                    if (dpi < 60) dpi = 60;
+                    if (dpi > 600) dpi = 600;
+                    dpiEditText.setText(String.valueOf(dpi)); // 更新显示值
+                    preferences.edit().putInt(KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
+                } catch (NumberFormatException e) {
+                    // 如果输入无效，恢复为默认值或上次保存的值
+                    dpiEditText.setText(String.valueOf(preferences.getInt(KEY_SINGLE_APP_DPI, 160)));
+                }
+            }
         });
 
         return view;

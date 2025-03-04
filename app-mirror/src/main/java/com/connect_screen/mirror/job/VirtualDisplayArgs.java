@@ -7,7 +7,7 @@ public class VirtualDisplayArgs implements Parcelable {
     public final int width;
     public final int height;
     public final int refreshRate;
-    public final int dpi;
+    public int dpi;
     public final boolean rotatesWithContent;
     public final String virtualDisplayName;
 

@@ -92,6 +92,9 @@ public class ProjectViaDisplaylink implements Job {
 
 
     private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState, String lastPackageName) {
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+        virtualDisplayArgs.dpi = singleAppDpi;
         int virtualDisplayWidth = virtualDisplayArgs.width;
         displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.height, 1, 2);
         displaylinkState.handlerThread = new HandlerThread("ImageAvailableListenerThread");

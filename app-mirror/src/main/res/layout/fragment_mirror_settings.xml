@@ -61,6 +61,38 @@
             android:layout_marginTop="8dp"
             android:layout_marginStart="16dp"
             android:visibility="gone"/>
+
+        <LinearLayout
+            android:id="@+id/dpiLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="16dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DPI设置: "
+                android:textSize="16sp"/>
+                
+            <EditText
+                android:id="@+id/dpiEditText"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:hint="160"
+                android:text="160"/>
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="(默认160)"
+                android:textSize="14sp"/>
+        </LinearLayout>
     </LinearLayout>
 
     <CheckBox

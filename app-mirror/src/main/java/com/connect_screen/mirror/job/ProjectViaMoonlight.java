@@ -97,8 +97,9 @@ public class ProjectViaMoonlight implements Job {
         boolean autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
         if (ShizukuUtils.hasPermission() && singleAppMode) {
+            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
             State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
-                    width, height, frameRate, 160, autoRotate), surface);
+                    width, height, frameRate, singleAppDpi, autoRotate), surface);
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());

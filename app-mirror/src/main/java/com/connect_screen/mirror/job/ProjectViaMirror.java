@@ -8,6 +8,7 @@ import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.view.Display;
 import android.view.DisplayHidden;
+import android.view.IWindowManager;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorActivity;
@@ -38,7 +39,12 @@ public class ProjectViaMirror implements Job {
         Context context = State.currentActivity.get();
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
-        if (ShizukuUtils.hasPermission() && singleAppMode) {
+        if (singleAppMode) {
+            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+            if (ShizukuUtils.hasPermission()) {
+                IWindowManager wm = ServiceUtils.getWindowManager();
+                wm.setForcedDisplayDensityForUser(mirrorDisplay.getDisplayId(), singleAppDpi, 0);
+            }
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
             InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
