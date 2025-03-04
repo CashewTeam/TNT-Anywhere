@@ -22,8 +22,10 @@ import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import dev.rikka.tools.refine.Refine;
 
@@ -181,6 +183,10 @@ public class SunshineServer {
     }
 
     private static void handleTouchEventDown(int pointerId, float x, float y) {
+        if (!bufferedMove.isEmpty()) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+        }
         if (!pointers.containsKey(pointerId)) {
             PointerStatus pointerStatus = new PointerStatus();
             pointerStatus.x = x;
@@ -242,6 +248,10 @@ public class SunshineServer {
         if(status == null) {
             return;
         }
+        if (!bufferedMove.isEmpty()) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+        }
         status.x = x;
         status.y = y;
 
@@ -299,17 +309,24 @@ public class SunshineServer {
         }
     }
 
+    private static Set<Integer> bufferedMove = new HashSet<>();
+
     private static void handleTouchEventMove(int pointerId, float x, float y) {
         PointerStatus status = pointers.get(pointerId);
         if (status == null) {
             return;
         }
+
+        if (bufferedMove.contains(pointerId)) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+        } else {
+            bufferedMove.add(pointerId);
+        }
         
         // 更新指针位置
         status.x = x;
         status.y = y;
-        
-        triggerTouchEventMove();
     }
 
     private static void handleTouchEventCancelAll() {
@@ -357,6 +374,10 @@ public class SunshineServer {
     }
 
     private static void triggerTouchEventMove() {
+        if (!bufferedMove.isEmpty()) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+        }
         long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
         
