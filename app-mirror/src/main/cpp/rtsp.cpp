@@ -759,17 +759,17 @@ namespace rtsp_stream {
     ss << "a=x-ss-general.encryptionSupported:" << encryption_flags_supported << std::endl;
     ss << "a=x-ss-general.encryptionRequested:" << encryption_flags_requested << std::endl;
 
-//    if (video::last_encoder_probe_supported_ref_frames_invalidation) {
-//      ss << "a=x-nv-video[0].refPicInvalidation:1"sv << std::endl;
-//    }
+    if (video::last_encoder_probe_supported_ref_frames_invalidation) {
+      ss << "a=x-nv-video[0].refPicInvalidation:1"sv << std::endl;
+    }
 
-//    if (video::active_hevc_mode != 1) {
-//      ss << "sprop-parameter-sets=AAAAAU"sv << std::endl;
-//    }
-//
-//    if (video::active_av1_mode != 1) {
-//      ss << "a=rtpmap:98 AV1/90000"sv << std::endl;
-//    }
+    if (video::active_hevc_mode != 1) {
+      ss << "sprop-parameter-sets=AAAAAU"sv << std::endl;
+    }
+
+    if (video::active_av1_mode != 1) {
+      ss << "a=rtpmap:98 AV1/90000"sv << std::endl;
+    }
 
     if (!session.surround_params.empty()) {
       // If we have our own surround parameters, advertise them twice first
@@ -1038,19 +1038,19 @@ namespace rtsp_stream {
       config.monitor.bitrate = configuredBitrateKbps;
     }
 
-//    if (config.monitor.videoFormat == 1 && video::active_hevc_mode == 1) {
-//      BOOST_LOG(warning) << "HEVC is disabled, yet the client requested HEVC"sv;
-//
-//      respond(sock, session, &option, 400, "BAD REQUEST", req->sequenceNumber, {});
-//      return;
-//    }
+    if (config.monitor.videoFormat == 1 && video::active_hevc_mode == 1) {
+      BOOST_LOG(warning) << "HEVC is disabled, yet the client requested HEVC"sv;
 
-//    if (config.monitor.videoFormat == 2 && video::active_av1_mode == 1) {
-//      BOOST_LOG(warning) << "AV1 is disabled, yet the client requested AV1"sv;
-//
-//      respond(sock, session, &option, 400, "BAD REQUEST", req->sequenceNumber, {});
-//      return;
-//    }
+      respond(sock, session, &option, 400, "BAD REQUEST", req->sequenceNumber, {});
+      return;
+    }
+
+    if (config.monitor.videoFormat == 2 && video::active_av1_mode == 1) {
+      BOOST_LOG(warning) << "AV1 is disabled, yet the client requested AV1"sv;
+
+      respond(sock, session, &option, 400, "BAD REQUEST", req->sequenceNumber, {});
+      return;
+    }
 
     // Check that any required encryption is enabled
     auto encryption_mode = net::encryption_mode_for_address(sock.remote_endpoint().address());

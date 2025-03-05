@@ -702,7 +702,7 @@ namespace nvhttp {
         tree.put("root.uniqueid", http::unique_id);
         tree.put("root.HttpsPort", net::map_port(PORT_HTTPS));
         tree.put("root.ExternalPort", net::map_port(PORT_HTTP));
-//        tree.put("root.MaxLumaPixelsHEVC", video::active_hevc_mode > 1 ? "1869449984" : "0");
+        tree.put("root.MaxLumaPixelsHEVC", video::active_hevc_mode > 1 ? "1869449984" : "0");
 
         // Only include the MAC address for requests sent from paired clients over HTTPS.
         // For HTTP requests, use a placeholder MAC address that Moonlight knows to ignore.
@@ -728,33 +728,33 @@ namespace nvhttp {
         }
 
         uint32_t codec_mode_flags = SCM_H264;
-//        if (video::last_encoder_probe_supported_yuv444_for_codec[0]) {
-//            codec_mode_flags |= SCM_H264_HIGH8_444;
-//        }
-//        if (video::active_hevc_mode >= 2) {
-//            codec_mode_flags |= SCM_HEVC;
-//            if (video::last_encoder_probe_supported_yuv444_for_codec[1]) {
-//                codec_mode_flags |= SCM_HEVC_REXT8_444;
-//            }
-//        }
-//        if (video::active_hevc_mode >= 3) {
-//            codec_mode_flags |= SCM_HEVC_MAIN10;
-//            if (video::last_encoder_probe_supported_yuv444_for_codec[1]) {
-//                codec_mode_flags |= SCM_HEVC_REXT10_444;
-//            }
-//        }
-//        if (video::active_av1_mode >= 2) {
-//            codec_mode_flags |= SCM_AV1_MAIN8;
-//            if (video::last_encoder_probe_supported_yuv444_for_codec[2]) {
-//                codec_mode_flags |= SCM_AV1_HIGH8_444;
-//            }
-//        }
-//        if (video::active_av1_mode >= 3) {
-//            codec_mode_flags |= SCM_AV1_MAIN10;
-//            if (video::last_encoder_probe_supported_yuv444_for_codec[2]) {
-//                codec_mode_flags |= SCM_AV1_HIGH10_444;
-//            }
-//        }
+        if (video::last_encoder_probe_supported_yuv444_for_codec[0]) {
+            codec_mode_flags |= SCM_H264_HIGH8_444;
+        }
+        if (video::active_hevc_mode >= 2) {
+            codec_mode_flags |= SCM_HEVC;
+            if (video::last_encoder_probe_supported_yuv444_for_codec[1]) {
+                codec_mode_flags |= SCM_HEVC_REXT8_444;
+            }
+        }
+        if (video::active_hevc_mode >= 3) {
+            codec_mode_flags |= SCM_HEVC_MAIN10;
+            if (video::last_encoder_probe_supported_yuv444_for_codec[1]) {
+                codec_mode_flags |= SCM_HEVC_REXT10_444;
+            }
+        }
+        if (video::active_av1_mode >= 2) {
+            codec_mode_flags |= SCM_AV1_MAIN8;
+            if (video::last_encoder_probe_supported_yuv444_for_codec[2]) {
+                codec_mode_flags |= SCM_AV1_HIGH8_444;
+            }
+        }
+        if (video::active_av1_mode >= 3) {
+            codec_mode_flags |= SCM_AV1_MAIN10;
+            if (video::last_encoder_probe_supported_yuv444_for_codec[2]) {
+                codec_mode_flags |= SCM_AV1_HIGH10_444;
+            }
+        }
         tree.put("root.ServerCodecModeSupport", codec_mode_flags);
 
 //        auto current_appid = proc::proc.running();
