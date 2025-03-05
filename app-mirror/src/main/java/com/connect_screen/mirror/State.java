@@ -23,6 +23,7 @@ public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<Activity> currentActivity;
     public static BreadcrumbManager breadcrumbManager;
+    public static FloatingButtonService floatingButtonService;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
