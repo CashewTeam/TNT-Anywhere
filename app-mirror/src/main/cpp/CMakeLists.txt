@@ -27,6 +27,7 @@ add_library(
         nvhttp.cpp
         file_handler.cpp
         input.cpp
+        video.cpp
 )
 
 target_include_directories(sunshine PRIVATE
