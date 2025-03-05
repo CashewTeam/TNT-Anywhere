@@ -57,7 +57,7 @@
             android:id="@+id/selectAppButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="选择被投屏应用"
+            android:text="选择被投屏应用（例如 ATV 启动器）"
             android:layout_marginTop="8dp"
             android:layout_marginStart="16dp"
             android:visibility="gone"/>
@@ -115,7 +115,7 @@
         android:id="@+id/floatingBackButtonCheckbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="悬浮返回键（附带强制横屏效果）"
+        android:text="悬浮返回键（附带强制横屏效果，单击返回上一级，长按返回被投屏应用）"
         android:textSize="16sp"
         android:padding="8dp"/>
 
