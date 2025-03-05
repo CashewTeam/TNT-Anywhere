@@ -238,6 +238,9 @@ public class MirrorSettingsFragment extends Fragment {
         floatingBackButtonCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_FLOATING_BACK_BUTTON, isChecked).apply();
         });
+        if (!ShizukuUtils.hasPermission()) {
+            floatingBackButtonCheckbox.setEnabled(false);
+        }
 
         return view;
     }

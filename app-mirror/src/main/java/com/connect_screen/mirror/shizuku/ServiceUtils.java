@@ -23,6 +23,8 @@ import android.view.Display;
 import android.view.IWindowManager;
 import android.widget.Toast;
 
+import com.connect_screen.mirror.FloatingButtonService;
+import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
 
@@ -122,6 +124,14 @@ public class ServiceUtils {
         if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             _launchPackage(context, packageName, targetDisplayId);
         }
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
+        boolean floatingBackButton = preferences.getBoolean(MirrorSettingsFragment.KEY_FLOATING_BACK_BUTTON, false);
+        State.log("启动悬浮返回按钮: " + floatingBackButton);
+        if (floatingBackButton) {
+            Intent serviceIntent = new Intent(context, FloatingButtonService.class);
+            serviceIntent.putExtra("display_id", targetDisplayId);
+            context.startService(serviceIntent);
+        }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;
             State.breadcrumbManager.refreshCurrentFragment();
@@ -170,12 +180,7 @@ public class ServiceUtils {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             PackageManager packageManager = context.getPackageManager();
-            Intent launchIntentForPackage = packageManager.getLaunchIntentForPackage(packageName);
-            if (launchIntentForPackage == null) {
-                State.log("使用 Shizuku 启动应用失败，应用未找到: " + packageName);
-                return;
-            }
-            ComponentName componentName = launchIntentForPackage.getComponent();
+            ComponentName componentName = packageManager.getLaunchIntentForPackage(packageName).getComponent();
             intent.setComponent(componentName);
             intent.setPackage(packageName);
             ActivityOptions options = ActivityOptions.makeBasic();
