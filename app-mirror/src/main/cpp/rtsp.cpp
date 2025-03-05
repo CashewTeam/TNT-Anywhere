@@ -1056,7 +1056,8 @@ namespace rtsp_stream {
     auto encryption_mode = net::encryption_mode_for_address(sock.remote_endpoint().address());
     if (encryption_mode == config::ENCRYPTION_MODE_MANDATORY &&
         (config.encryptionFlagsEnabled & (SS_ENC_VIDEO | SS_ENC_AUDIO)) != (SS_ENC_VIDEO | SS_ENC_AUDIO)) {
-      BOOST_LOG(error) << "Rejecting client that cannot comply with mandatory encryption requirement"sv;
+      BOOST_LOG(error) << "Rejecting client that cannot comply with manda"
+                          "tory encryption requirement"sv;
 
       respond(sock, session, &option, 403, "Forbidden", req->sequenceNumber, {});
       return;

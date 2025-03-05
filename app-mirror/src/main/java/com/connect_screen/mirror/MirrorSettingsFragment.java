@@ -38,6 +38,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_SELECTED_APP_PACKAGE = "selected_app_package";
     public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
     public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
+    public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,17 +59,20 @@ public class MirrorSettingsFragment extends Fragment {
         EditText heightEditText = view.findViewById(R.id.heightEditText);
         EditText dpiEditText = view.findViewById(R.id.dpiEditText);
         LinearLayout dpiLayout = view.findViewById(R.id.dpiLayout);
+        CheckBox floatingBackButtonCheckbox = view.findViewById(R.id.floatingBackButtonCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         boolean autoRotate = preferences.getBoolean(KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(KEY_AUTO_SCALE, true);
         int singleAppDpi = preferences.getInt(KEY_SINGLE_APP_DPI, 160);
+        boolean floatingBackButton = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
         dpiEditText.setText(String.valueOf(singleAppDpi));
+        floatingBackButtonCheckbox.setChecked(floatingBackButton);
 
         // 设置分辨率初始值
         DisplaylinkPref.load(requireContext());
@@ -228,6 +232,11 @@ public class MirrorSettingsFragment extends Fragment {
                     dpiEditText.setText(String.valueOf(preferences.getInt(KEY_SINGLE_APP_DPI, 160)));
                 }
             }
+        });
+
+        // 添加悬浮返回键复选框监听器
+        floatingBackButtonCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_FLOATING_BACK_BUTTON, isChecked).apply();
         });
 
         return view;

@@ -111,6 +111,14 @@
         android:textSize="16sp"
         android:padding="8dp"/>
 
+    <CheckBox
+        android:id="@+id/floatingBackButtonCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="悬浮返回键（附带强制横屏效果）"
+        android:textSize="16sp"
+        android:padding="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
