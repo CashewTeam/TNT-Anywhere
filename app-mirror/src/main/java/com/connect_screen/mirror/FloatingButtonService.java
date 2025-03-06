@@ -34,10 +34,9 @@ public class FloatingButtonService extends Service {
     private Runnable fadeOutRunnable;
     private android.os.Handler handler;
     private boolean isReady = true;
-    private static final long LONG_PRESS_TIMEOUT = 500; // 长按判定时间：500毫秒
     private static final float MOVE_THRESHOLD = 20; // 移动阈值：20像素
-    private Runnable longPressRunnable;
-    private boolean isLongPress = false;
+    private static final long DOUBLE_TAP_TIMEOUT = 300; // 双击间隔：300毫秒
+    private long lastTapTime = 0;
     private boolean autoHide;
 
     @Override
@@ -133,13 +132,6 @@ public class FloatingButtonService extends Service {
             return;
         }
 
-        // 创建长按检测的Runnable
-        longPressRunnable = () -> {
-            isLongPress = true;
-            State.log("返回被投的单引用");
-            TouchpadActivity.launchLastPackage(FloatingButtonService.this, displayId);
-        };
-
         // 修改触摸事件处理
         floatingView.setOnTouchListener((v, event) -> {
             resetButtonVisibility();
@@ -150,18 +142,11 @@ public class FloatingButtonService extends Service {
                     initialY = params.y;
                     initialTouchX = event.getRawX();
                     initialTouchY = event.getRawY();
-                    isLongPress = false;
-                    handler.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT);
                     return true;
 
                 case MotionEvent.ACTION_MOVE:
                     float moveX = Math.abs(event.getRawX() - initialTouchX);
                     float moveY = Math.abs(event.getRawY() - initialTouchY);
-                    
-                    // 如果移动距离超过阈值，取消长按检测
-                    if (moveX > MOVE_THRESHOLD || moveY > MOVE_THRESHOLD) {
-                        handler.removeCallbacks(longPressRunnable);
-                    }
                     
                     params.x = (int) (initialX + (event.getRawX() - initialTouchX));
                     params.y = (int) (initialY + (event.getRawY() - initialTouchY));
@@ -169,16 +154,25 @@ public class FloatingButtonService extends Service {
                     return true;
 
                 case MotionEvent.ACTION_UP:
-                    handler.removeCallbacks(longPressRunnable);
                     float totalMoveX = Math.abs(event.getRawX() - initialTouchX);
                     float totalMoveY = Math.abs(event.getRawY() - initialTouchY);
                     
-                    // 只有当移动距离小于阈值时才触发点击事件
+                    // 检测双击
                     if (!isReady) {
                         resetButtonVisibility();
-                    } else if (!isLongPress && totalMoveX < MOVE_THRESHOLD && totalMoveY < MOVE_THRESHOLD) {
-                        State.log("触发返回上一级");
-                        TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
+                    } else if (totalMoveX < MOVE_THRESHOLD && totalMoveY < MOVE_THRESHOLD) {
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastTapTime < DOUBLE_TAP_TIMEOUT) {
+                            // 双击操作
+                            State.log("返回被投的单引用");
+                            TouchpadActivity.launchLastPackage(FloatingButtonService.this, displayId);
+                            lastTapTime = 0; // 重置最后点击时间
+                        } else {
+                            // 单击操作
+                            State.log("触发返回上一级");
+                            TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
+                            lastTapTime = currentTime;
+                        }
                     }
                     return true;
             }
@@ -229,7 +223,6 @@ public class FloatingButtonService extends Service {
     @Override
     public void onDestroy() {
         if (handler != null) {
-            handler.removeCallbacks(longPressRunnable);
             handler.removeCallbacks(fadeOutRunnable);
         }
         super.onDestroy();

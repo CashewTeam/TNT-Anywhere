@@ -115,7 +115,7 @@
         android:id="@+id/floatingBackButtonCheckbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="自动隐藏悬浮返回键（单击返回上一级，长按返回被投屏应用）"
+        android:text="自动隐藏悬浮返回键（单击返回上一级，双击返回被投屏应用）"
         android:textSize="16sp"
         android:padding="8dp"/>
 
