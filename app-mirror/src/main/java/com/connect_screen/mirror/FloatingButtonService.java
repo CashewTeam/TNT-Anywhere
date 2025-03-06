@@ -1,15 +1,15 @@
 package com.connect_screen.mirror;
 
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_FLOATING_BACK_BUTTON;
+import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
-import android.net.Uri;
-import android.os.Handler;
 import android.os.IBinder;
-import android.provider.Settings;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -19,9 +19,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
-import com.connect_screen.mirror.job.StartFloatingButton;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class FloatingButtonService extends Service {
     private WindowManager windowManager;
@@ -36,58 +34,11 @@ public class FloatingButtonService extends Service {
     private Runnable fadeOutRunnable;
     private android.os.Handler handler;
     private boolean isReady = true;
-
-    public static boolean startFloating(Context context, int displayId, boolean dryRun) {
-        // 检查悬浮窗权限
-        if (!Settings.canDrawOverlays(context)) {
-            if (dryRun) {
-                return false;
-            }
-            // 请求悬浮窗权限
-            Intent intent = new Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + context.getPackageName())
-            );
-            context.startActivity(intent);
-            return false;
-        }
-
-        if (ShizukuUtils.hasShizukuStarted()) {
-            if (!dryRun) {
-                State.startNewJob(new StartFloatingButton(displayId, context));
-            }
-            return true;
-        }
-
-        // 检查无障碍服务权限并尝试启动服务
-        if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(context)) {
-            if (!dryRun) {
-                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                context.startActivity(intent);
-            }
-            return false;
-        }
-
-        if (dryRun) {
-            return true;
-        }
-        // 启动无障碍服务
-        Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
-        context.startService(serviceIntent);
-
-        // 延迟1秒后启动触控板
-        new Handler().postDelayed(() -> {
-            if (TouchpadAccessibilityService.getInstance() == null) {
-                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                context.startActivity(intent);
-            } else {
-                Intent serviceIntent2 = new Intent(context, FloatingButtonService.class);
-                serviceIntent2.putExtra("display_id", displayId);
-                context.startService(serviceIntent2);
-            }
-        }, 1000);
-        return true;
-    }
+    private static final long LONG_PRESS_TIMEOUT = 500; // 长按判定时间：500毫秒
+    private static final float MOVE_THRESHOLD = 20; // 移动阈值：20像素
+    private Runnable longPressRunnable;
+    private boolean isLongPress = false;
+    private boolean autoHide;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -103,6 +54,8 @@ public class FloatingButtonService extends Service {
                 if (floatingView != null) {
                     this.onDestroy();
                 }
+                SharedPreferences preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+                autoHide = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
                 createFloatingButton();
             }
         }
@@ -180,9 +133,15 @@ public class FloatingButtonService extends Service {
             return;
         }
 
-        // 添加触摸事件处理
+        // 创建长按检测的Runnable
+        longPressRunnable = () -> {
+            isLongPress = true;
+            State.log("返回被投的单引用");
+            TouchpadActivity.launchLastPackage(FloatingButtonService.this, displayId);
+        };
+
+        // 修改触摸事件处理
         floatingView.setOnTouchListener((v, event) -> {
-            // 触摸时重置透明度
             resetButtonVisibility();
 
             switch (event.getAction()) {
@@ -191,29 +150,35 @@ public class FloatingButtonService extends Service {
                     initialY = params.y;
                     initialTouchX = event.getRawX();
                     initialTouchY = event.getRawY();
+                    isLongPress = false;
+                    handler.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT);
                     return true;
 
                 case MotionEvent.ACTION_MOVE:
+                    float moveX = Math.abs(event.getRawX() - initialTouchX);
+                    float moveY = Math.abs(event.getRawY() - initialTouchY);
+                    
+                    // 如果移动距离超过阈值，取消长按检测
+                    if (moveX > MOVE_THRESHOLD || moveY > MOVE_THRESHOLD) {
+                        handler.removeCallbacks(longPressRunnable);
+                    }
+                    
                     params.x = (int) (initialX + (event.getRawX() - initialTouchX));
                     params.y = (int) (initialY + (event.getRawY() - initialTouchY));
                     windowManager.updateViewLayout(floatingView, params);
                     return true;
 
                 case MotionEvent.ACTION_UP:
-                    if (Math.abs(event.getRawX() - initialTouchX) < 10
-                            && Math.abs(event.getRawY() - initialTouchY) < 10) {
-                        // 单击事件
-                        if (!isReady) {
-                            resetButtonVisibility();
-                        } else {
-                            TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
-                        }
-                    } else {
-                        // 保存新的位置
-                        SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
-                        editor.putInt(KEY_X, params.x);
-                        editor.putInt(KEY_Y, params.y);
-                        editor.apply();
+                    handler.removeCallbacks(longPressRunnable);
+                    float totalMoveX = Math.abs(event.getRawX() - initialTouchX);
+                    float totalMoveY = Math.abs(event.getRawY() - initialTouchY);
+                    
+                    // 只有当移动距离小于阈值时才触发点击事件
+                    if (!isReady) {
+                        resetButtonVisibility();
+                    } else if (!isLongPress && totalMoveX < MOVE_THRESHOLD && totalMoveY < MOVE_THRESHOLD) {
+                        State.log("触发返回上一级");
+                        TouchpadActivity.performBackGesture(ServiceUtils.getInputManager(), displayId);
                     }
                     return true;
             }
@@ -221,7 +186,9 @@ public class FloatingButtonService extends Service {
         });
 
         // 初始启动淡出计时器
-        startFadeOutTimer();
+        if (autoHide) {
+            startFadeOutTimer();
+        }
     }
 
     private void startFadeOutTimer() {
@@ -243,23 +210,26 @@ public class FloatingButtonService extends Service {
     }
 
     private void resetButtonVisibility() {
-        handler.removeCallbacks(fadeOutRunnable);
-        floatingView.animate()
-                .alpha(1.0f)
-                .setDuration(200)
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        isReady = true;
-                    }
-                })
-                .start();
-        startFadeOutTimer();
+        if (autoHide) {
+            handler.removeCallbacks(fadeOutRunnable);
+            floatingView.animate()
+                    .alpha(1.0f)
+                    .setDuration(200)
+                    .withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            isReady = true;
+                        }
+                    })
+                    .start();
+            startFadeOutTimer();
+        }
     }
 
     @Override
     public void onDestroy() {
         if (handler != null) {
+            handler.removeCallbacks(longPressRunnable);
             handler.removeCallbacks(fadeOutRunnable);
         }
         super.onDestroy();

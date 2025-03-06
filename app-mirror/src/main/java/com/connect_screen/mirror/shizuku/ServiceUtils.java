@@ -124,10 +124,7 @@ public class ServiceUtils {
         if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             _launchPackage(context, packageName, targetDisplayId);
         }
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        boolean floatingBackButton = preferences.getBoolean(MirrorSettingsFragment.KEY_FLOATING_BACK_BUTTON, false);
-        State.log("启动悬浮返回按钮: " + floatingBackButton);
-        if (floatingBackButton) {
+        if (ShizukuUtils.hasPermission()) {
             Intent serviceIntent = new Intent(context, FloatingButtonService.class);
             serviceIntent.putExtra("display_id", targetDisplayId);
             context.startService(serviceIntent);

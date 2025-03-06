@@ -357,8 +357,8 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     public static void launchLastPackage(Context context, int displayId) {
-        SharedPreferences appPreferences = context.getSharedPreferences("app_preferences", MODE_PRIVATE);
-        String lastPackageName = appPreferences.getString("LAST_PACKAGE_NAME", null);
+        SharedPreferences appPreferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, MODE_PRIVATE);
+        String lastPackageName = appPreferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, null);
         if (lastPackageName == null) {
             return;
         }
