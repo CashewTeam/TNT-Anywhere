@@ -53,6 +53,7 @@ public class MirrorSettingsFragment extends Fragment {
 
         CheckBox singleAppModeCheckbox = view.findViewById(R.id.singleAppModeCheckbox);
         Button selectAppButton = view.findViewById(R.id.selectAppButton);
+        View singleAppContainer = view.findViewById(R.id.singleAppContainer);
         CheckBox autoRotateCheckbox = view.findViewById(R.id.autoRotateCheckbox);
         CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
         EditText widthEditText = view.findViewById(R.id.widthEditText);
@@ -79,9 +80,6 @@ public class MirrorSettingsFragment extends Fragment {
         widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
-        // 设置选择应用按钮和DPI设置的可见性
-        selectAppButton.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
-        dpiLayout.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
         
         // 显示已选择的应用名称（如果有）
         String selectedAppName = preferences.getString(KEY_SELECTED_APP_NAME, "");
@@ -95,8 +93,7 @@ public class MirrorSettingsFragment extends Fragment {
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
             autoRotateCheckbox.setEnabled(!isChecked);
-            selectAppButton.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            dpiLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
                 singleAppModeCheckbox.setText("单应用投屏");
@@ -241,6 +238,9 @@ public class MirrorSettingsFragment extends Fragment {
         if (!ShizukuUtils.hasPermission()) {
             floatingBackButtonCheckbox.setEnabled(false);
         }
+
+        // 设置单应用模式容器的可见性
+        singleAppContainer.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
 
         return view;
     }

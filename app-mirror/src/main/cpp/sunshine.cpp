@@ -309,8 +309,8 @@ namespace sunshine_callbacks {
         // 设置低延迟模式
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
         // 设置编码配置
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x01); // BASELINE profile
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 8192); // AVCLevel42
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x200); // Level 4.2
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
         AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
 

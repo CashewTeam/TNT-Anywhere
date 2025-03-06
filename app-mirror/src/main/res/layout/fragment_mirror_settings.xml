@@ -32,26 +32,21 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <LinearLayout
+    <CheckBox
+        android:id="@+id/singleAppModeCheckbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_weight="1"
+        android:text="单应用投屏"
+        android:textSize="16sp"
+        android:padding="8dp"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <CheckBox
-                android:id="@+id/singleAppModeCheckbox"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="单应用投屏"
-                android:textSize="16sp"
-                android:padding="8dp"/>
-        </LinearLayout>
+    <LinearLayout
+        android:id="@+id/singleAppContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <Button
             android:id="@+id/selectAppButton"
@@ -59,8 +54,15 @@
             android:layout_height="wrap_content"
             android:text="选择被投屏应用（例如 ATV 启动器）"
             android:layout_marginTop="8dp"
-            android:layout_marginStart="16dp"
-            android:visibility="gone"/>
+            android:layout_marginStart="16dp"/>
+
+        <CheckBox
+            android:id="@+id/floatingBackButtonCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="自动隐藏悬浮返回键（单击返回上一级，双击返回被投屏应用）"
+            android:textSize="16sp"
+            android:padding="8dp"/>
 
         <LinearLayout
             android:id="@+id/dpiLayout"
@@ -69,8 +71,7 @@
             android:orientation="horizontal"
             android:layout_marginTop="8dp"
             android:layout_marginStart="16dp"
-            android:gravity="center_vertical"
-            android:visibility="gone">
+            android:gravity="center_vertical">
             
             <TextView
                 android:layout_width="wrap_content"
@@ -108,14 +109,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="自动缩放去黑边"
-        android:textSize="16sp"
-        android:padding="8dp"/>
-
-    <CheckBox
-        android:id="@+id/floatingBackButtonCheckbox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="自动隐藏悬浮返回键（单击返回上一级，双击返回被投屏应用）"
         android:textSize="16sp"
         android:padding="8dp"/>
 
