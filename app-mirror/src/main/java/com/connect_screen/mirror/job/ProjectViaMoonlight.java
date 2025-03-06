@@ -23,6 +23,7 @@ import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -144,6 +145,9 @@ public class ProjectViaMoonlight implements Job {
                 captureIntent = mediaProjectionManager.createScreenCaptureIntent();
             }
             State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            if (TouchpadAccessibilityService.getInstance() != null) {
+                TouchpadAccessibilityService.getInstance().grantPermissionByClick();
+            }
             throw new YieldException("等待用户投屏授权");
         } else {
             throw new RuntimeException("无法获取 MediaProjectionManager 服务");

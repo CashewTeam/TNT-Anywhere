@@ -23,6 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
+import com.connect_screen.mirror.job.ProjectViaMirror;
+import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 

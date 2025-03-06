@@ -8,6 +8,7 @@ import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.view.accessibility.AccessibilityNodeInfo;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import com.connect_screen.mirror.shizuku.PermissionManager;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
-    
+
     // 检查无障碍服务是否启用
     public static boolean isAccessibilityServiceEnabled(Context context) {
         String serviceName = context.getPackageName() + "/.TouchpadAccessibilityService";
@@ -33,7 +34,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     }
 
     public static void startServiceByShizuku(Context context) {
-        if(TouchpadAccessibilityService.getInstance() != null) {
+        if (TouchpadAccessibilityService.getInstance() != null) {
             return;
         }
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
@@ -67,14 +68,14 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         instance = this;
         State.log("TouchpadAccessibilityService 已连接");
     }
-    
+
     @Override
     public boolean onUnbind(Intent intent) {
         instance = null;
         State.log("TouchpadAccessibilityService 已断开");
         return super.onUnbind(intent);
     }
-    
+
     public static TouchpadAccessibilityService getInstance() {
         return instance;
     }
@@ -101,14 +102,14 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     // 修改 findFocusableNode 方法，返回所有可获取焦点的节点列表
     private List<AccessibilityNodeInfo> findFocusableNodes(AccessibilityNodeInfo root, List<AccessibilityNodeInfo> results) {
         if (root == null) return results;
-        
+
         if (root.isFocusable()) {
             results.add(root);
             if (results.size() >= 3) {
                 return results;
             }
         }
-        
+
         for (int i = 0; i < root.getChildCount(); i++) {
             AccessibilityNodeInfo child = root.getChild(i);
             if (child != null) {
@@ -118,7 +119,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 }
             }
         }
-        
+
         return results;
     }
 
@@ -132,12 +133,12 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             targetDisplayWindows = windows.get(displayId);
         }
         android.util.Log.d("AccessibilityService", "获取到窗口列表: " + (targetDisplayWindows != null ? targetDisplayWindows.size() : 0) + "个窗口");
-        
+
         if (targetDisplayWindows != null && !targetDisplayWindows.isEmpty()) {
             // 找到目标显示器上最上层的窗口
             AccessibilityWindowInfo topWindow = null;
             int topLayer = -1;
-            
+
             for (AccessibilityWindowInfo window : targetDisplayWindows) {
                 if (window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) {
                     continue;
@@ -158,7 +159,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 return false;
             }
             android.util.Log.d("AccessibilityService", "找到最上层窗口，层级: " + topLayer);
-            
+
             // 获取并聚焦窗口的根节点
             AccessibilityNodeInfo rootNode = topWindow.getRoot();
             android.util.Log.d("AccessibilityService", "获取根节点: " + (rootNode != null ? "成功" : "失败"));
@@ -187,7 +188,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                                     // add to blacklist
                                 }
                             }
-                        } catch(Throwable e) {
+                        } catch (Throwable e) {
                             try {
                                 boolean focusResult = node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS);
                                 if (focusResult) {
@@ -204,7 +205,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                         for (AccessibilityNodeInfo node : focusableNodes) {
                             node.recycle();
                         }
-                    } catch(Throwable e) {
+                    } catch (Throwable e) {
                         // ignore
                     }
 
@@ -216,7 +217,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 } finally {
                     try {
                         rootNode.recycle();
-                    } catch(Throwable e) {
+                    } catch (Throwable e) {
                         // ignore
                     }
                     android.util.Log.d("AccessibilityService", "回收根节点");
@@ -233,6 +234,53 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             // 执行返回操作
             boolean backResult = performGlobalAction(GLOBAL_ACTION_BACK);
             android.util.Log.d("AccessibilityService", "执行返回操作: " + (backResult ? "成功" : "失败"));
+        }
+    }
+
+    public void grantPermissionByClick() {
+        new Thread(() -> {
+            for (int i = 0; i < 5; i++) {
+                // 使用 Handler 在主线程执行
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    tryGrantPermissionByClick();
+                });
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }).start();
+    }
+
+    private void tryGrantPermissionByClick() {
+        android.util.Log.d("AccessibilityService", "无障碍尝试确认");
+        List<AccessibilityWindowInfo> windows = getWindows();
+        if (windows != null && !windows.isEmpty()) {
+            for (AccessibilityWindowInfo window : windows) {
+                android.util.Log.d("AccessibilityService", "正在检查窗口类型: " + window.getType());
+                AccessibilityNodeInfo root = window.getRoot();
+                if (root != null) {
+                    try {
+                        // 查找包含特定文本的可点击节点
+                        String[] targetTexts = {"立即开始", "允许", "确定", "开始", "确认"};
+                        for (String text : targetTexts) {
+                            List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText(text);
+                            for (AccessibilityNodeInfo node : nodes) {
+                                if (node.isClickable()) {
+                                    boolean clicked = node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                    State.log("尝试点击按钮 '" + text + "': " + (clicked ? "成功" : "失败"));
+                                    node.recycle();
+                                    if (clicked) return;
+                                }
+                                node.recycle();
+                            }
+                        }
+                    } finally {
+                        root.recycle();
+                    }
+                }
+            }
         }
     }
 }
