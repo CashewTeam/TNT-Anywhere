@@ -153,6 +153,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         State.log("发布 moonlight 服务名："  + sunshineName);
+        if (shouldEnableH265()) {
+            SunshineServer.enableH265();
+        }
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
@@ -180,6 +183,29 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 android.util.Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
             }
         }).start();
+    }
+    
+    private boolean shouldEnableH265() {
+        try {
+            // 检查设备是否支持 H.265/HEVC 编码
+            android.media.MediaCodecList codecList = new android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS);
+            for (android.media.MediaCodecInfo codecInfo : codecList.getCodecInfos()) {
+                if (codecInfo.isEncoder()) {
+                    String[] types = codecInfo.getSupportedTypes();
+                    for (String type : types) {
+                        if (type.equalsIgnoreCase("video/hevc")) {
+                            State.log("设备支持 H.265/HEVC 编码");
+                            return true;
+                        }
+                    }
+                }
+            }
+            State.log("设备不支持 H.265/HEVC 编码");
+            return false;
+        } catch (Exception e) {
+            State.log("检查 H.265 编码支持时出错: " + e.getMessage());
+            return false;
+        }
     }
 
     public static void writeCertAndKey(Context context) {

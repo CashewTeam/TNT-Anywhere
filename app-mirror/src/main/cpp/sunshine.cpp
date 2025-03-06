@@ -184,6 +184,11 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
     });
 }
 
+JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
+    video::active_hevc_mode = 0;
+}
+
 }
 
 namespace sunshine_callbacks {

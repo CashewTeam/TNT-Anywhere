@@ -20,10 +20,8 @@ import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -122,11 +120,7 @@ public class SunshineServer {
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
 
-    private static class MovePacket {
-        public int pointerId;
-        public float x;
-        public float y;
-    }
+    public static native void enableH265();
 
     private static class PointerStatus {
         public float x = 0;
