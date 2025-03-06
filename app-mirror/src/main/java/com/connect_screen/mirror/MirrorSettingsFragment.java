@@ -207,7 +207,9 @@ public class MirrorSettingsFragment extends Fragment {
 
         // 更新Shizuku状态
         TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
+        TextView accessibilityStatus = view.findViewById(R.id.accessibilityStatus);
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
+        updateAccessibilityStatus(accessibilityStatus);
 
         // 添加选择应用按钮点击事件
         selectAppButton.setOnClickListener(v -> {
@@ -263,6 +265,11 @@ public class MirrorSettingsFragment extends Fragment {
         }
         
         statusView.setText(status);
+    }
+
+    private void updateAccessibilityStatus(TextView statusView) {
+        boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(requireContext());
+        statusView.setText(isEnabled ? "已授权" : "未授权");
     }
 
     private void showAppSelectionDialog() {
