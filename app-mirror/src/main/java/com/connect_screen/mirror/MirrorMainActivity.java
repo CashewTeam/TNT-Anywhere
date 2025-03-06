@@ -111,9 +111,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
                 Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
             }
-            if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
-                TouchpadAccessibilityService.startServiceByShizuku(this);
-            }
+            TouchpadAccessibilityService.startServiceByShizuku(this);
+        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+            this.startService(serviceIntent);
         }
 
         // 移除默认的 ActionBar
@@ -201,7 +202,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                     String[] types = codecInfo.getSupportedTypes();
                     for (String type : types) {
                         if (type.equalsIgnoreCase("video/hevc")) {
-                            State.log("设备支持 H.265/HEVC 编码");
                             return true;
                         }
                     }
