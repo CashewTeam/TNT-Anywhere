@@ -134,23 +134,8 @@ public class ProjectViaMoonlight implements Job {
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
-        MediaProjectionService.isStarting = true;
         mediaProjectionRequested = true;
-        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        if (mediaProjectionManager != null) {
-            Intent captureIntent = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay());
-            } else {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-            }
-            State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-            if (TouchpadAccessibilityService.getInstance() != null) {
-                TouchpadAccessibilityService.getInstance().grantPermissionByClick();
-            }
-            throw new YieldException("等待用户投屏授权");
-        } else {
-            throw new RuntimeException("无法获取 MediaProjectionManager 服务");
-        }
+        State.currentActivity.get().startMediaProjectionService();
+        throw new YieldException("等待用户投屏授权");
     }
 }

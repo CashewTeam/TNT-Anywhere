@@ -10,6 +10,7 @@ import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -26,6 +27,7 @@ import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.ProjectViaMirror;
 import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.job.YieldException;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -343,4 +345,23 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             logRecyclerView.scrollToPosition(logAdapter.getItemCount() - 1);
         }
     }
-} 
+
+    public void startMediaProjectionService() {
+        MediaProjectionService.isStarting = true;
+        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) this.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (mediaProjectionManager != null) {
+            Intent captureIntent = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                captureIntent = mediaProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay());
+            } else {
+                captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+            }
+            State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+            if (TouchpadAccessibilityService.getInstance() != null) {
+                TouchpadAccessibilityService.getInstance().grantPermissionByClick();
+            }
+        } else {
+            throw new RuntimeException("无法获取 MediaProjectionManager 服务");
+        }
+    }
+}

@@ -47,7 +47,9 @@ public class ProjectViaMirror implements Job {
             }
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
-            InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
+            if (ShizukuUtils.hasPermission()) {
+                InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
+            }
             return;
         }
         DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);
@@ -86,21 +88,9 @@ public class ProjectViaMirror implements Job {
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }
-        MediaProjectionService.isStarting = true;
         mediaProjectionRequested = true;
-        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) context.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        if (mediaProjectionManager != null) {
-            Intent captureIntent = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay());
-            } else {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-            }
-            State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-            throw new YieldException("等待用户投屏授权");
-        } else {
-            throw new RuntimeException("无法获取 MediaProjectionManager 服务");
-        }
+        State.currentActivity.get().startMediaProjectionService();
+        throw new YieldException("等待用户投屏授权");
     }
 
 }
