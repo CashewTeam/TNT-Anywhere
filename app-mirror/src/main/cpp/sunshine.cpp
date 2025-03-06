@@ -300,7 +300,7 @@ namespace sunshine_callbacks {
         BOOST_LOG(info) << "客户端请求视频：frame rate: "sv << config.framerate << ", format: "sv << config.videoFormat;
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
-        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc"); // H264
+        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, config.videoFormat == 1 ? "video/hevc" : "video/avc"); // H265 or H264
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
@@ -311,18 +311,31 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
-        // 设置低延迟模式
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
-        // 设置编码配置
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x200); // Level 4.2
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
-        AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
-
+        if (config.videoFormat == 1) {  // HEVC
+            if (config.chromaSamplingType == 1) {  // YUV 4:4:4
+                BOOST_LOG(error) << "不支持 YUV 4:4:4 色度采样"sv;
+                // not supported
+            }                 
+            if (config.dynamicRange) {  // 10 bit
+                BOOST_LOG(error) << "不支持 10 位动态范围"sv;
+                // not supported
+            }
+            // 8 bit
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 1); // HEVCProfileMain
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x100); // Level 5.1
+        } else {
+            // 设置编码配置
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x200); // Level 4.2
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
+            AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
+        }
+ 
         // 创建编码器
-        AMediaCodec *codec = AMediaCodec_createEncoderByType("video/avc");
+        AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
         if (!codec) {
-            BOOST_LOG(error) << "无法创建 AVC 编码器"sv;
+            BOOST_LOG(error) << "无法创建编码器"sv;
             AMediaFormat_delete(format);
             return;
         }
