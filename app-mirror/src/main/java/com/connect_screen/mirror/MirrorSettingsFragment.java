@@ -270,6 +270,20 @@ public class MirrorSettingsFragment extends Fragment {
     private void updateAccessibilityStatus(TextView statusView) {
         boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(requireContext());
         statusView.setText(isEnabled ? "已授权" : "未授权");
+        
+        // 获取或创建授权按钮
+        View parent = (View) statusView.getParent();
+        Button accessibilityPermissionBtn = parent.findViewById(R.id.accessibilityPermissionBtn);
+        
+        // 根据授权状态显示或隐藏按钮
+        if (accessibilityPermissionBtn != null) {
+            accessibilityPermissionBtn.setVisibility(isEnabled ? View.GONE : View.VISIBLE);
+            accessibilityPermissionBtn.setOnClickListener(v -> {
+                // 跳转到系统无障碍设置页面
+                Intent intent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                startActivity(intent);
+            });
+        }
     }
 
     private void showAppSelectionDialog() {

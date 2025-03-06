@@ -20,7 +20,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     
     // 检查无障碍服务是否启用
     public static boolean isAccessibilityServiceEnabled(Context context) {
-        String serviceName = context.getPackageName() + "/" + TouchpadAccessibilityService.class.getCanonicalName();
+        String serviceName = context.getPackageName() + "/.TouchpadAccessibilityService";
         String enabledServices = Settings.Secure.getString(
                 context.getContentResolver(),
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
@@ -42,7 +42,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
 
             // 准备新的服务字符串
-            String newService = "com.connect_screen.extend/.TouchpadAccessibilityService";
+            String newService = BuildConfig.APPLICATION_ID + "/.TouchpadAccessibilityService";
             String finalServices;
 
             // 如果已有配置，则追加新服务；否则直接使用新服务

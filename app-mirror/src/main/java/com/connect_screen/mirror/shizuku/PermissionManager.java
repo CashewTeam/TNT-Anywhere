@@ -7,6 +7,7 @@ import android.os.UserHandleHidden;
 import android.permission.IPermissionManager;
 
 
+import com.connect_screen.mirror.BuildConfig;
 import com.connect_screen.mirror.State;
 
 import dev.rikka.tools.refine.Refine;
@@ -23,7 +24,7 @@ public class PermissionManager {
     private static boolean _grant(String permissionName) {
         UserHandle userHandle = Process.myUserHandle();
         UserHandleHidden userHandleHidden = Refine.unsafeCast(userHandle);
-        String packageName = "com.connect_screen.extend";
+        String packageName = BuildConfig.APPLICATION_ID;
         IPermissionManager permissionManager = ServiceUtils.getPermissionManager();
         if (permissionManager == null) {
             IPackageManager packageManager = ServiceUtils.getPackageManager();

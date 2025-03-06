@@ -104,9 +104,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-        if (ShizukuUtils.hasPermission() && State.userService == null) {
-            Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-            Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+        if (ShizukuUtils.hasPermission()) {
+            if (State.userService == null) {
+                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+            }
+            if (!TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+                TouchpadAccessibilityService.startServiceByShizuku(this);
+            }
         }
 
         // 移除默认的 ActionBar

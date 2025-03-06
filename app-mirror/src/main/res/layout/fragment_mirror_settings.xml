@@ -52,6 +52,14 @@
                 android:id="@+id/accessibilityStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/accessibilityPermissionBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="授权"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
