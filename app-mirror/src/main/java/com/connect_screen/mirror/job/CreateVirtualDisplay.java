@@ -39,14 +39,25 @@ public class CreateVirtualDisplay {
     private static final int VIRTUAL_DISPLAY_FLAG_TOUCH_FEEDBACK_DISABLED = 1 << 13;
     private static final int VIRTUAL_DISPLAY_FLAG_OWN_FOCUS = 1 << 14;
     private static final int VIRTUAL_DISPLAY_FLAG_DEVICE_DISPLAY_GROUP = 1 << 15;
+    public static boolean isCreating = false;
 
     public static VirtualDisplay createVirtualDisplay(VirtualDisplayArgs virtualDisplayArgs, Surface surface) {
-        if (ShizukuUtils.hasPermission()) {
-            VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true);
-            android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
-            return virtualDisplay;
-        } else {
-            return createByMediaProjection(virtualDisplayArgs, surface);
+        isCreating = true;
+        try {
+            if (ShizukuUtils.hasPermission()) {
+                try {
+                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true);
+                    android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+                    return virtualDisplay;
+                } catch(Exception e) {
+                    android.util.Log.e("CreateVirtualDisplay", "failed to create virtual display by shizuku", e);
+                    return createByMediaProjection(virtualDisplayArgs, surface);
+                }
+            } else {
+                return createByMediaProjection(virtualDisplayArgs, surface);
+            }
+        } finally {
+            isCreating = false;
         }
     }
 

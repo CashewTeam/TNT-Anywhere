@@ -442,8 +442,8 @@ namespace config {
     video_t video {
             28,  // qp
 
-            0,  // hevc_mode
-            0,  // av1_mode
+            1,  // hevc_mode
+            1,  // av1_mode
 
             2,  // min_threads
             {

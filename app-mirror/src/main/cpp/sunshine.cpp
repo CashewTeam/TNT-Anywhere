@@ -292,7 +292,7 @@ namespace sunshine_callbacks {
             return;
         }
         safe::mail_raw_t::event_t<bool> shutdown_event = mail->event<bool>(mail::shutdown);
-        BOOST_LOG(info) << "framte rate: "sv << config.framerate;
+        BOOST_LOG(info) << "客户端请求视频：frame rate: "sv << config.framerate << ", format: "sv << config.videoFormat;
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
         AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc"); // H264
