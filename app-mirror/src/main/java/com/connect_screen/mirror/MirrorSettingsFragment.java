@@ -5,7 +5,9 @@ import android.content.SharedPreferences;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -208,8 +210,10 @@ public class MirrorSettingsFragment extends Fragment {
         // 更新Shizuku状态
         TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
         TextView accessibilityStatus = view.findViewById(R.id.accessibilityStatus);
+        TextView overlayStatus = view.findViewById(R.id.overlayStatus);
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
         updateAccessibilityStatus(accessibilityStatus);
+        updateOverlayStatus(overlayStatus);
 
         // 添加选择应用按钮点击事件
         selectAppButton.setOnClickListener(v -> {
@@ -281,6 +285,26 @@ public class MirrorSettingsFragment extends Fragment {
             accessibilityPermissionBtn.setOnClickListener(v -> {
                 // 跳转到系统无障碍设置页面
                 Intent intent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                startActivity(intent);
+            });
+        }
+    }
+
+    private void updateOverlayStatus(TextView statusView) {
+        boolean hasPermission = Settings.canDrawOverlays(requireContext());
+        statusView.setText(hasPermission ? "已授权" : "未授权");
+        
+        // 获取或创建授权按钮
+        View parent = (View) statusView.getParent();
+        Button overlayPermissionBtn = parent.findViewById(R.id.overlayPermissionBtn);
+        
+        // 根据授权状态显示或隐藏按钮
+        if (overlayPermissionBtn != null) {
+            overlayPermissionBtn.setVisibility(hasPermission ? View.GONE : View.VISIBLE);
+            overlayPermissionBtn.setOnClickListener(v -> {
+                // 跳转到悬浮窗权限设置页面
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + requireContext().getPackageName()));
                 startActivity(intent);
             });
         }
