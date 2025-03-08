@@ -15,7 +15,9 @@ import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.media.AudioRecord;
+import android.media.AudioManager;
 
+import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -33,6 +35,7 @@ public class SunshineServer {
     private static IInputManager inputManager;
     private static int screenWidth;
     private static int screenHeight;
+    private static int originalVolume;
 
     static {
         System.loadLibrary("sunshine");
@@ -100,11 +103,22 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
+        if (State.currentActivity.get() != null) {
+            AudioManager audioManager = (AudioManager) State.currentActivity.get().getSystemService(Context.AUDIO_SERVICE);
+            originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+        }
     }
 
     public static void stopVirtualDisplay() {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.log("停止 Moonlight 投屏");
+            if (MediaProjectionService.instance != null) {
+                State.log("恢复音量: " + originalVolume);
+                AudioManager audioManager = (AudioManager) MediaProjectionService.instance.getSystemService(Context.AUDIO_SERVICE);
+                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
+            }
             if (autoRotateAndScaleForMoonlight != null) {
                 autoRotateAndScaleForMoonlight.stop();
                 autoRotateAndScaleForMoonlight = null;
@@ -112,7 +126,7 @@ public class SunshineServer {
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
-                ExitAll.execute(State.currentActivity.get(), true);
+                ExitAll.execute(MediaProjectionService.instance, true);
             }
         });
     }

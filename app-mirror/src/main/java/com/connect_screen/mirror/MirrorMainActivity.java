@@ -16,6 +16,7 @@ import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -37,8 +38,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
+import java.util.List;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -49,6 +56,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
+    public static final String TAG = "MirrorMainActivity";
 
     private BreadcrumbManager breadcrumbManager;
     private RecyclerView logRecyclerView;
@@ -163,7 +171,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         Context context = this;
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
+        String addr = getWifiIpAddress(context);
+        if (addr == null) {
+            State.log("无法获取WiFi IP地址");
+            return;
+        }
         State.log("发布 moonlight 服务名："  + sunshineName);
+        State.log("发布 moonlight ip："  + addr);
         probeH265();
 
         // 将网络初始化操作移到后台线程
@@ -172,12 +186,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 SunshineServer.setFileStatePath(context.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(context);
                 new Thread(() -> { SunshineServer.start(); }).start();
-                InetAddress addr = getWifiIpAddress(context);
-                if (addr == null) {
-                    android.util.Log.e("MirrorHomeFragment", "无法获取WiFi IP地址");
-                    return;
-                }
-                android.util.Log.i("MirrorHomeFragment", "获取到WiFi IP地址: " + addr.getHostAddress());
+                
                 jmdns = JmDNS.create(addr);
                 ServiceInfo serviceInfo = ServiceInfo.create(
                         "_nvstream._tcp.local.",
@@ -253,16 +262,57 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 SunshineServer.setPkeyPath(context.getFilesDir().getAbsolutePath() + "/cakey.pem");
             }
 
-            android.util.Log.i("MirrorMainActivity", "证书和密钥文件写入成功: " + context.getFilesDir().getAbsolutePath());
+            android.util.Log.i(TAG, "证书和密钥文件写入成功: " + context.getFilesDir().getAbsolutePath());
         } catch (IOException e) {
-            android.util.Log.e("MirrorMainActivity", "写入证书文件失败", e);
+            android.util.Log.e("TAG", "写入证书文件失败", e);
         }
     }
 
-    public static InetAddress getWifiIpAddress(Context context) throws UnknownHostException {
+    private static boolean isWifiApEnabled(WifiManager mWifiManager) {
+        boolean apState = false;
+        try {
+            // @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE)
+            apState = (boolean) mWifiManager.getClass().getMethod("isWifiApEnabled").invoke(mWifiManager);
+            Log.i(TAG, "isWifiApEnabled :" + apState + "");
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            Log.e(TAG, "failed to get  isWifiApEnabled", e );
+        }
+        return apState;
+    }
+
+    private static String getApIP() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()){
+                NetworkInterface ni = networkInterfaces.nextElement();
+                Log.d(TAG, "network interface: " + ni.getName());
+                if(ni.isUp() && !ni.isPointToPoint() && !ni.isLoopback() && ("ap0".equals(ni.getName()) || "softap0".equals(ni.getName()) || "wlan2".equals(ni.getName()))){
+                    List<InterfaceAddress> interfaceAddresses = ni.getInterfaceAddresses();
+                    for (InterfaceAddress interfaceAddress : interfaceAddresses) {
+                        if(interfaceAddress.getAddress() != null){
+                            Log.d(TAG,"address:"+interfaceAddress.getAddress().toString());
+                            if(interfaceAddress.getAddress().toString().contains("/192.168")){
+                                String softApIP = interfaceAddress.getAddress().toString().substring(1);
+                                Log.d(TAG,"getApIP:"+softApIP);
+                                return softApIP;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    public static String getWifiIpAddress(Context context) {
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiManager == null || !wifiManager.isWifiEnabled()) {
             return null;
+        }
+        if (isWifiApEnabled(wifiManager)) {
+            return getApIP();
         }
 
         int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
@@ -273,7 +323,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         bytes[2] = (byte) ((ipAddress >> 16) & 0xFF);
         bytes[3] = (byte) ((ipAddress >> 24) & 0xFF);
 
-        return InetAddress.getByAddress(bytes);
+        try {
+            return InetAddress.getByAddress(bytes).getHostAddress();
+        } catch (UnknownHostException e) {
+            return null;
+        }
     }
 
     @Override

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 
+import com.connect_screen.mirror.BuildConfig;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 
@@ -15,25 +16,10 @@ public class ExitAll {
             State.mediaProjectionInUse = null;
         }
         State.setMediaProjection(null);
-        // 停止 MediaProjectionService
-        context.stopService(new Intent(context, MediaProjectionService.class));
-
-        if (State.bridgeVirtualDisplay != null) {
-            State.bridgeVirtualDisplay.release();
-            State.bridgeVirtualDisplay = null;
-        }
-        if (State.mirrorVirtualDisplay != null) {
-            State.mirrorVirtualDisplay.release();
-            State.mirrorVirtualDisplay = null;
-        }
-        State.displaylinkState.stopVirtualDisplay();
-        State.displaylinkState.destroy();
-        State.currentActivity.get().finish();
-
         // 重启应用
         if (restart) {
             PackageManager packageManager = context.getPackageManager();
-            Intent intent = packageManager.getLaunchIntentForPackage(context.getPackageName());
+            Intent intent = packageManager.getLaunchIntentForPackage(BuildConfig.APPLICATION_ID);
             ComponentName componentName = intent.getComponent();
             Intent mainIntent = Intent.makeRestartActivityTask(componentName);
             // Required for API 34 and later
