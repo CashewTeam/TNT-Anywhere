@@ -82,10 +82,15 @@ public class CreateVirtualDisplay {
         }
         SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
-        boolean singleApp = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         if (!autoScreenOff) {
             return;
         }
+        doPowerOffScreen(context);
+    }
+
+    public static void doPowerOffScreen(Context context) {
+        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleApp = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         if (State.userService != null) {
             try {
                 State.userService.startListenVolumeKey();
@@ -97,6 +102,8 @@ public class CreateVirtualDisplay {
             Intent intent = new Intent(context, PureBlackActivity.class);
             ActivityOptions options = ActivityOptions.makeBasic();
             context.startActivity(intent, options.toBundle());
+        } else {
+            State.log("镜像投屏时需要 shizuku 权限才能熄屏");
         }
     }
 

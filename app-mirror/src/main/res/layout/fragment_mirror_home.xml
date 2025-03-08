@@ -17,7 +17,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
+            android:visibility="gone"
             android:text="设置" />
+
+            
+        <Button
+            android:id="@+id/screenOffBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:visibility="gone"
+            android:text="熄屏" />
 
         <Space
             android:layout_width="0dp"

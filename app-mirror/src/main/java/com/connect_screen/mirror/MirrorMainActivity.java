@@ -7,8 +7,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.ImageReader;
 import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionConfig;
@@ -24,12 +26,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.ProjectViaMirror;
 import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.job.VirtualDisplayArgs;
 import com.connect_screen.mirror.job.YieldException;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -116,6 +121,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 设置 State.currentActivity 为当前的 MainActivity 实例
+        State.currentActivity = new WeakReference<>(this);
         Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
         if (ShizukuUtils.hasPermission()) {
             if (State.userService == null) {
@@ -123,6 +130,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
             }
             TouchpadAccessibilityService.startServiceByShizuku(this);
+//            ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
+//            VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), imageReader.getSurface());
+//            ServiceUtils.launchPackage(this, "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
         } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
             Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
             this.startService(serviceIntent);
@@ -138,9 +148,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         breadcrumbManager = new BreadcrumbManager(this, getSupportFragmentManager(), findViewById(R.id.breadcrumb));
         State.breadcrumbManager = breadcrumbManager;
         breadcrumbManager.pushBreadcrumb("首页", () -> new MirrorHomeFragment());
-
-        // 设置 State.currentActivity 为当前的 MainActivity 实例
-        State.currentActivity = new WeakReference<>(this);
 
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
