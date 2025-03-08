@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
@@ -163,9 +164,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         State.log("发布 moonlight 服务名："  + sunshineName);
-        if (shouldEnableH265()) {
-            SunshineServer.enableH265();
-        }
+        probeH265();
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
@@ -195,19 +194,22 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }).start();
     }
     
-    private boolean shouldEnableH265() {
+    private boolean probeH265() {
         try {
             // 检查设备是否支持 H.265/HEVC 编码
             android.media.MediaCodecList codecList = new android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS);
             for (android.media.MediaCodecInfo codecInfo : codecList.getCodecInfos()) {
-                if (codecInfo.isEncoder()) {
-                    String[] types = codecInfo.getSupportedTypes();
-                    for (String type : types) {
-                        if (type.equalsIgnoreCase("video/hevc")) {
-                            return true;
-                        }
-                    }
+                if (!codecInfo.isHardwareAccelerated()) {
+                    continue;
                 }
+                if (!codecInfo.isEncoder()) {
+                    continue;
+                }
+                if (!isSupported(codecInfo, "video/hevc")) {
+                    continue;
+                }
+                SunshineServer.enableH265();
+                return true;
             }
             State.log("设备不支持 H.265/HEVC 编码");
             return false;
@@ -215,6 +217,16 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             State.log("检查 H.265 编码支持时出错: " + e.getMessage());
             return false;
         }
+    }
+
+    private boolean isSupported(MediaCodecInfo codecInfo, String mime) {
+        String[] types = codecInfo.getSupportedTypes();
+        for (String type : types) {
+            if (type.equalsIgnoreCase(mime)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void writeCertAndKey(Context context) {

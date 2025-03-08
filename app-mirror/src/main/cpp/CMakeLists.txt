@@ -28,6 +28,7 @@ add_library(
         file_handler.cpp
         input.cpp
         video.cpp
+        video_colorspace.cpp
 )
 
 target_include_directories(sunshine PRIVATE

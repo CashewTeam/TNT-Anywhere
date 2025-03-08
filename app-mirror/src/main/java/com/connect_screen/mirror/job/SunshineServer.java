@@ -413,4 +413,24 @@ public class SunshineServer {
 
     }
 
+    // 添加显示编码器错误的方法
+    public static void showEncoderError(String errorMessage) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Context context = State.currentActivity.get();
+            if (context == null) {
+                return;
+            }
+            
+            new AlertDialog.Builder(context)
+                .setTitle("无法配置编码器")
+                .setMessage(errorMessage)
+                .setPositiveButton("确定", (dialog, which) -> {
+                    // 关闭对话框后停止虚拟显示
+                    stopVirtualDisplay();
+                })
+                .setCancelable(false)
+                .show();
+        });
+    }
+
 }

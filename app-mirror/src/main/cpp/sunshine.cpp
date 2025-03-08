@@ -9,6 +9,7 @@
 #include "rtsp.h"
 #include "audio.h"
 #include "moonlight-common-c/src/input.h"
+#include "video_colorspace.h"
 
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
@@ -186,7 +187,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
-    video::active_hevc_mode = 0;
+    video::active_hevc_mode = 2;
 }
 
 }
@@ -289,6 +290,38 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
+    void showEncoderError(const char* errorMessage) {
+        if (jvm == nullptr || sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "JVM 或 SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jmethodID showErrorMethod = env->GetStaticMethodID(sunshineServerClass, "showEncoderError", "(Ljava/lang/String;)V");
+        if (showErrorMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 showEncoderError 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        jstring jErrorMessage = env->NewStringUTF(errorMessage);
+        env->CallStaticVoidMethod(sunshineServerClass, showErrorMethod, jErrorMessage);
+        env->DeleteLocalRef(jErrorMessage);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
+    }
+
     void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
@@ -297,10 +330,29 @@ namespace sunshine_callbacks {
             return;
         }
         safe::mail_raw_t::event_t<bool> shutdown_event = mail->event<bool>(mail::shutdown);
-        BOOST_LOG(info) << "客户端请求视频：frame rate: "sv << config.framerate << ", format: "sv << config.videoFormat;
+        
+        // 添加更详细的客户端配置日志
+        BOOST_LOG(info) << "客户端请求视频配置:"sv;
+        BOOST_LOG(info) << "  - 分辨率: "sv << config.width << "x"sv << config.height;
+        BOOST_LOG(info) << "  - 帧率: "sv << config.framerate;
+        BOOST_LOG(info) << "  - 视频格式: "sv << (config.videoFormat == 1 ? "HEVC" : "H.264");
+        BOOST_LOG(info) << "  - 色度采样: "sv << (config.chromaSamplingType == 1 ? "YUV 4:4:4" : "YUV 4:2:0");
+        BOOST_LOG(info) << "  - 动态范围: "sv << (config.dynamicRange ? "HDR" : "SDR");
+        BOOST_LOG(info) << "  - 编码器色彩空间模式: 0x"sv << std::hex << config.encoderCscMode << std::dec;
+        
+        // 获取并记录详细的色彩空间信息
+        bool isHdr = false;
+        video::sunshine_colorspace_t colorspace = colorspace_from_client_config(config, isHdr);
+        BOOST_LOG(info) << "色彩空间配置:"sv;
+        BOOST_LOG(info) << "  - 色彩空间: "sv << static_cast<int>(colorspace.colorspace);
+        BOOST_LOG(info) << "  - 位深度: "sv << colorspace.bit_depth;
+        BOOST_LOG(info) << "  - 色彩范围: "sv << (colorspace.full_range ? "Full" : "Limited");
+        
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
-        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, config.videoFormat == 1 ? "video/hevc" : "video/avc"); // H265 or H264
+        AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, config.videoFormat == 1 ? "video/hevc" : "video/avc");
+        
+        // 基本配置保持不变
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
@@ -312,26 +364,48 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BITRATE_MODE, 1); // VBR 模式 (1 = VBR)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
-        if (config.videoFormat == 1) {  // HEVC
-            if (config.chromaSamplingType == 1) {  // YUV 4:4:4
-                BOOST_LOG(error) << "不支持 YUV 4:4:4 色度采样"sv;
-                // not supported
-            }                 
-            if (config.dynamicRange) {  // 10 bit
-                BOOST_LOG(error) << "不支持 10 位动态范围"sv;
-                // not supported
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
+        AMediaFormat_setInt32(format, "max-bframes", 0);
+
+        // 设置编码配置
+        if (config.videoFormat == 1) {
+            if (colorspace.bit_depth == 10) {
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 2); // HEVCProfileMain10
+            } else {
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 1); // HEVCProfileMain
             }
-            // 8 bit
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 1); // HEVCProfileMain
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x100); // Level 5.1
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 65536); // HEVCMainTierLevel51
         } else {
-            // 设置编码配置
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x200); // Level 4.2
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
         }
- 
+
+        // 设置色彩空间
+        switch (colorspace.colorspace) {
+            case video::colorspace_e::rec601:
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 1); // COLOR_STANDARD_BT601_NTSC
+                break;
+            case video::colorspace_e::rec709:
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 2); // COLOR_STANDARD_BT709
+                break;
+            case video::colorspace_e::bt2020:
+            case video::colorspace_e::bt2020sdr:
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 6); // COLOR_STANDARD_BT2020
+                break;
+        }
+
+        // 设置色彩范围
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 
+            colorspace.full_range ? 1 : 2); // 1=FULL, 2=LIMITED
+
+        // 设置位深度
+        if (isHdr) {
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 3); // COLOR_TRANSFER_SDR_VIDEO
+        } else {
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 6); // COLOR_TRANSFER_ST2084
+        }
+
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
         if (!codec) {
@@ -343,7 +417,9 @@ namespace sunshine_callbacks {
         // 配置编码器
         media_status_t status = AMediaCodec_configure(codec, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
         if (status != AMEDIA_OK) {
-            BOOST_LOG(error) << "无法配置编码器，错误码: "sv << status;
+            std::string errorMsg = "无法配置编码器，错误码: " + std::to_string(status);
+            BOOST_LOG(error) << errorMsg;
+            showEncoderError(errorMsg.c_str());
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
             return;

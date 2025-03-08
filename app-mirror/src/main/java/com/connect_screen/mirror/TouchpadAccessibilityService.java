@@ -263,7 +263,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 if (root != null) {
                     try {
                         // 查找包含特定文本的可点击节点
-                        String[] targetTexts = {"立即开始", "允许", "确定", "开始", "确认"};
+                        String[] targetTexts = {"立即开始", "允许", "确定", "开始", "确认", "共享屏幕"};
                         for (String text : targetTexts) {
                             List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText(text);
                             for (AccessibilityNodeInfo node : nodes) {
