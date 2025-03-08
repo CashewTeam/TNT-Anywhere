@@ -15,6 +15,7 @@ import java.util.List;
 import android.view.KeyEvent;
 
 import com.connect_screen.mirror.shizuku.PermissionManager;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
@@ -237,12 +238,20 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }
     }
 
-    public void grantPermissionByClick() {
+    public static void grantPermissionByClick(Context context) {
+        if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(context)) {
+            Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
+            context.startService(serviceIntent);
+        } else if (ShizukuUtils.hasPermission()) {
+            TouchpadAccessibilityService.startServiceByShizuku(context);
+        }
         new Thread(() -> {
             for (int i = 0; i < 5; i++) {
                 // 使用 Handler 在主线程执行
                 new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                    tryGrantPermissionByClick();
+                    if (TouchpadAccessibilityService.instance != null) {
+                        TouchpadAccessibilityService.instance.tryGrantPermissionByClick();
+                    }
                 });
                 try {
                     Thread.sleep(1000);
