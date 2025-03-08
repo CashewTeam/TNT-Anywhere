@@ -360,7 +360,7 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_FPS_TO_ENCODER, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 10); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
@@ -383,10 +383,10 @@ namespace sunshine_callbacks {
         // 设置色彩空间
         switch (colorspace.colorspace) {
             case video::colorspace_e::rec601:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 1); // COLOR_STANDARD_BT601_NTSC
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 4); // COLOR_STANDARD_BT601_NTSC
                 break;
             case video::colorspace_e::rec709:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 2); // COLOR_STANDARD_BT709
+                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 1); // COLOR_STANDARD_BT709
                 break;
             case video::colorspace_e::bt2020:
             case video::colorspace_e::bt2020sdr:
