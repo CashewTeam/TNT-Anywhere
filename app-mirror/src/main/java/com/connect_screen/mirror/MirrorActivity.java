@@ -7,12 +7,14 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.opengl.EGLConfig;
 import android.opengl.EGLSurface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -132,14 +134,34 @@ public class MirrorActivity extends AppCompatActivity {
        window.setNavigationBarColor(Color.TRANSPARENT);
 
         surfaceView = new SurfaceView(this);
-        
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            int targetDisplayId = this.getDisplay().getDisplayId();
+            displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
+                @Override
+                public void onDisplayAdded(int i) {
+
+                }
+
+                @Override
+                public void onDisplayRemoved(int i) {
+                    if (i == targetDisplayId) {
+                        MirrorActivity.this.finish();
+                    }
+                }
+
+                @Override
+                public void onDisplayChanged(int i) {
+
+                }
+            }, null);
+        }
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {
-            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
             orientationChangeCallback = new OrientationChangeCallback();
             displayManager.registerDisplayListener(orientationChangeCallback, renderHandler);
         }
-        
+
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
@@ -158,8 +180,8 @@ public class MirrorActivity extends AppCompatActivity {
                 }
 
                 // 记录屏幕尺寸信息到日志
-                android.util.Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
-                android.util.Log.d("MirrorActivity", "外接显示器尺寸: " + surfaceView.getWidth() + " x " + surfaceView.getHeight());
+                Log.d("MirrorActivity", "主屏幕实际尺寸: " + defaultDisplayWidth + " x " + defaultDisplayHeight);
+                Log.d("MirrorActivity", "外接显示器尺寸: " + surfaceView.getWidth() + " x " + surfaceView.getHeight());
 
                 // 创建专用的渲染线程
                 renderThread = new HandlerThread("MirrorActivityRenderThread");
@@ -189,7 +211,7 @@ public class MirrorActivity extends AppCompatActivity {
                             EGL14.EGL_NONE
                     };
 
-                    android.opengl.EGLConfig[] configs = new android.opengl.EGLConfig[1];
+                    EGLConfig[] configs = new EGLConfig[1];
                     int[] numConfigs = new int[1];
                     EGL14.eglChooseConfig(eglDisplay, configAttribs, 0, configs, 0, 1, numConfigs, 0);
                     eglConfig = configs[0];
@@ -258,6 +280,7 @@ public class MirrorActivity extends AppCompatActivity {
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                                 targetSurface, null, renderHandler);
                         State.setMediaProjection(null);
+                        CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
                         DisplayMetrics metrics = new DisplayMetrics();
                         display.getRealMetrics(metrics);
@@ -346,6 +369,7 @@ public class MirrorActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        CreateVirtualDisplay.powerOnScreen();
         instance = null;
         if (orientationChangeCallback != null) {
             DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);

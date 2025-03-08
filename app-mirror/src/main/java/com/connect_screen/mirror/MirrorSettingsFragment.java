@@ -41,6 +41,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
     public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
     public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
+    public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,6 +64,7 @@ public class MirrorSettingsFragment extends Fragment {
         EditText dpiEditText = view.findViewById(R.id.dpiEditText);
         LinearLayout dpiLayout = view.findViewById(R.id.dpiLayout);
         CheckBox floatingBackButtonCheckbox = view.findViewById(R.id.floatingBackButtonCheckbox);
+        CheckBox autoScreenOffCheckbox = view.findViewById(R.id.autoScreenOffCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -70,12 +72,14 @@ public class MirrorSettingsFragment extends Fragment {
         boolean autoScale = preferences.getBoolean(KEY_AUTO_SCALE, true);
         int singleAppDpi = preferences.getInt(KEY_SINGLE_APP_DPI, 160);
         boolean floatingBackButton = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
+        boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
         dpiEditText.setText(String.valueOf(singleAppDpi));
         floatingBackButtonCheckbox.setChecked(floatingBackButton);
+        autoScreenOffCheckbox.setChecked(autoScreenOff);
 
         // 设置分辨率初始值
         DisplaylinkPref.load(requireContext());
@@ -247,6 +251,11 @@ public class MirrorSettingsFragment extends Fragment {
 
         // 设置单应用模式容器的可见性
         singleAppContainer.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
+
+        // 添加自动熄屏复选框监听器
+        autoScreenOffCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_AUTO_SCREEN_OFF, isChecked).apply();
+        });
 
         return view;
     }

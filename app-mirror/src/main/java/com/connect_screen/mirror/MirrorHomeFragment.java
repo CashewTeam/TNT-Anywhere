@@ -25,7 +25,7 @@ public class MirrorHomeFragment extends Fragment {
         Button exitBtn = view.findViewById(R.id.exitBtn);
         TextView mirrorStatus = view.findViewById(R.id.mirrorStatus);
         if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
-            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并任务列表中锁定当前任务防止被杀");
+            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
         } else {
             mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
         }

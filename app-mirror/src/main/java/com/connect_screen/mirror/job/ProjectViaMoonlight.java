@@ -108,6 +108,7 @@ public class ProjectViaMoonlight implements Job {
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, 160, false));
             SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
+            CreateVirtualDisplay.powerOffScreen();
         } else {
             State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Moonlight",
                     width,
@@ -116,6 +117,7 @@ public class ProjectViaMoonlight implements Job {
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
             State.setMediaProjection(null);
+            CreateVirtualDisplay.powerOffScreen();
         }
     }
 

@@ -1,5 +1,10 @@
 package com.connect_screen.mirror.job;
 
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_SCREEN_OFF;
+import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
 import android.hardware.display.IDisplayManager;
@@ -9,6 +14,7 @@ import android.hardware.display.VirtualDisplayConfig;
 import android.media.projection.IMediaProjection;
 import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
+import android.os.RemoteException;
 import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.Surface;
@@ -16,9 +22,11 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 
+import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.SurfaceControl;
 
 import java.lang.reflect.Constructor;
 
@@ -48,9 +56,11 @@ public class CreateVirtualDisplay {
                 try {
                     VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true);
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
+                    powerOffScreen();
                     return virtualDisplay;
                 } catch(Exception e) {
                     android.util.Log.e("CreateVirtualDisplay", "failed to create virtual display by shizuku", e);
+                    powerOffScreen();
                     return createByMediaProjection(virtualDisplayArgs, surface);
                 }
             } else {
@@ -58,6 +68,26 @@ public class CreateVirtualDisplay {
             }
         } finally {
             isCreating = false;
+        }
+    }
+
+    public static void powerOffScreen() {
+        MirrorMainActivity context = State.currentActivity.get();
+        if (context == null) {
+            return;
+        }
+        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
+        if (!autoScreenOff) {
+            return;
+        }
+        if (State.userService != null) {
+            try {
+                State.userService.startListenVolumeKey();
+                State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+            } catch (RemoteException e2) {
+                State.log("powerOffScreen failed: " + e2.getMessage());
+            }
         }
     }
 
@@ -160,6 +190,21 @@ public class CreateVirtualDisplay {
             }
         }
         return flags;
+    }
+
+    public static void powerOnScreen() {
+        if (State.isInPureBlackActivity != null) {
+            State.isInPureBlackActivity.finish();
+        } else {
+            if (State.userService != null) {
+                try {
+                    State.userService.stopListenVolumeKey();
+                    State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+                } catch (RemoteException e) {
+                    State.log("powerUpScreen failed: " + e.getMessage());
+                }
+            }
+        }
     }
 
     public static class VirtualDisplayCallback extends IVirtualDisplayCallback.Stub {

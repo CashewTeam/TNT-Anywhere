@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.hardware.display.DisplayManager;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.view.Display;
@@ -50,6 +51,28 @@ public class ProjectViaMirror implements Job {
             if (ShizukuUtils.hasPermission()) {
                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
             }
+            CreateVirtualDisplay.powerOffScreen();
+            int targetDisplayId = mirrorDisplay.getDisplayId();
+            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
+                @Override
+                public void onDisplayAdded(int i) {
+
+                }
+
+                @Override
+                public void onDisplayRemoved(int i) {
+                    if (i == targetDisplayId) {
+                        CreateVirtualDisplay.powerOnScreen();
+                        ExitAll.execute(null, false);
+                    }
+                }
+
+                @Override
+                public void onDisplayChanged(int i) {
+
+                }
+            }, null);
             return;
         }
         DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);

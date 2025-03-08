@@ -75,6 +75,14 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <receiver 
+            android:name=".PureBlackActivity$ExitReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.connect_screen.mirror.EXIT_PURE_BLACK" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"

@@ -168,6 +168,14 @@
         android:textSize="16sp"
         android:padding="8dp"/>
 
+    <CheckBox
+        android:id="@+id/autoScreenOffCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自动熄屏"
+        android:textSize="16sp"
+        android:padding="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
