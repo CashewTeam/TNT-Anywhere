@@ -98,7 +98,7 @@ public class MirrorSettingsFragment extends Fragment {
         // 监听复选框变化
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
-            autoRotateCheckbox.setEnabled(!isChecked);
+            autoScaleCheckbox.setEnabled(!isChecked);
             singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
