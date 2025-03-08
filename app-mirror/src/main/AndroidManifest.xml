@@ -52,6 +52,12 @@
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".PureBlackActivity"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
         
         <service
             android:name=".MediaProjectionService"

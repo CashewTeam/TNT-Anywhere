@@ -1,9 +1,12 @@
 package com.connect_screen.mirror.job;
 
 import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_SCREEN_OFF;
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_SINGLE_APP_MODE;
 import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
 
+import android.app.ActivityOptions;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
@@ -23,6 +26,7 @@ import androidx.annotation.NonNull;
 
 
 import com.connect_screen.mirror.MirrorMainActivity;
+import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -78,6 +82,7 @@ public class CreateVirtualDisplay {
         }
         SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
+        boolean singleApp = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
         if (!autoScreenOff) {
             return;
         }
@@ -88,6 +93,10 @@ public class CreateVirtualDisplay {
             } catch (RemoteException e2) {
                 State.log("powerOffScreen failed: " + e2.getMessage());
             }
+        } else if (singleApp) {
+            Intent intent = new Intent(context, PureBlackActivity.class);
+            ActivityOptions options = ActivityOptions.makeBasic();
+            context.startActivity(intent, options.toBundle());
         }
     }
 
