@@ -1,8 +1,12 @@
 package com.connect_screen.mirror;
 
+import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
+import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.widget.ImageView;
@@ -16,7 +20,7 @@ import android.graphics.Matrix;
 import android.view.WindowManager;
 import android.view.View;
 import android.graphics.Canvas;
-import android.widget.RelativeLayout;
+import android.widget.LinearLayout;
 import android.view.MotionEvent;
 import android.hardware.input.IInputManager;
 import android.app.ActivityTaskManager;
@@ -33,14 +37,12 @@ public class TouchscreenActivity extends AppCompatActivity {
     private Surface surface;
     private int displayId;
     private DirectDrawView drawView;
-    private Bitmap currentBitmap;
     private Bitmap bufferBitmap;
     private final Handler handler = new Handler(Looper.getMainLooper());
     
     // 添加计数器和时间记录变量
     private int updateCounter = 0;
     private long startTime = 0;
-    private Display display;
     private boolean finished;
 
     @Override
@@ -48,39 +50,37 @@ public class TouchscreenActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         
         // 锁定屏幕方向为竖屏
-        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         
-        // 使用代码创建布局而不是加载XML
-        RelativeLayout rootLayout = new RelativeLayout(this);
-        rootLayout.setLayoutParams(new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.MATCH_PARENT));
+        // 使用 FrameLayout 替代 LinearLayout
+        android.widget.FrameLayout rootLayout = new android.widget.FrameLayout(this);
+        rootLayout.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
         
         // 创建DirectDrawView
         drawView = new DirectDrawView(this);
-        RelativeLayout.LayoutParams drawViewParams = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.MATCH_PARENT);
+        android.widget.FrameLayout.LayoutParams drawViewParams = new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
         drawView.setId(View.generateViewId());
-        rootLayout.addView(drawView, drawViewParams);
         
+        // 将绘图视图添加到根布局
+        rootLayout.addView(drawView, drawViewParams);
+
         // 创建退出文本
         TextView exitText = new TextView(this);
         exitText.setId(View.generateViewId());
-        RelativeLayout.LayoutParams exitTextParams = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT);
-        exitTextParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-        exitTextParams.setMargins(0, 0, 0, 16);
-        exitText.setGravity(android.view.Gravity.CENTER);
-        exitText.setPadding(8, 8, 8, 8);
-        exitText.setText("长按退出");
+        android.widget.FrameLayout.LayoutParams exitTextParams = new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+        exitTextParams.gravity = Gravity.CENTER | android.view.Gravity.END;
+        exitText.setPadding(16, 16, 16, 16);
+        exitText.setText("长\n按\n退\n出");
+        exitText.setBackgroundColor(0x80888888);  // 半透明灰色背景
+        exitText.setTextColor(0xFFFFFFFF);  // 白色文字
         rootLayout.addView(exitText, exitTextParams);
-        
-        // 更新drawView的布局参数，使其位于exitText上方
-        drawViewParams.addRule(RelativeLayout.ABOVE, exitText.getId());
-        drawView.setLayoutParams(drawViewParams);
-        
+
         // 设置内容视图为代码创建的布局
         setContentView(rootLayout);
 
@@ -88,16 +88,34 @@ public class TouchscreenActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
+        
+        // 隐藏底部导航栏手势提示和顶部状态栏
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            // Android 11 及以上使用 WindowInsetsController
+            getWindow().setDecorFitsSystemWindows(false);
+            android.view.WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                // 同时隐藏导航栏和状态栏
+                controller.hide(android.view.WindowInsets.Type.navigationBars() | 
+                                android.view.WindowInsets.Type.statusBars());
+                controller.setSystemBarsBehavior(
+                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            // Android 10 及以下使用 SystemUiVisibility
+            // 注意：现有代码已经包含了隐藏状态栏的标志 (SYSTEM_UI_FLAG_FULLSCREEN)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
 
         if (getIntent().hasExtra("display")) {
             displayId = getIntent().getIntExtra("display", -1);
             // 获取Display对象
-            WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                display = getDisplay();
-            } else {
-                display = wm.getDefaultDisplay();
-            }
             drawView.setDisplayId(displayId);
         }
 
@@ -117,24 +135,16 @@ public class TouchscreenActivity extends AppCompatActivity {
 
     public void updateImage(Bitmap bitmap) {
         if (bitmap != null) {
-            // 回收旧的位图以避免内存泄漏
-            if (currentBitmap != null && !currentBitmap.isRecycled()) {
-                currentBitmap.recycle();
-            }
-            
-            currentBitmap = bitmap;
-            
-            // 触发重绘而不是设置 ImageView
-            drawView.setBitmap(currentBitmap);
+            drawView.setBitmap(bitmap);
             drawView.invalidate();
-            
+
             // 更新计数器并记录时间
             if (updateCounter == 0) {
                 startTime = System.currentTimeMillis();
             }
-            
+
             updateCounter++;
-            
+
             if (updateCounter >= 60) {
                 long endTime = System.currentTimeMillis();
                 long duration = endTime - startTime;
@@ -143,7 +153,7 @@ public class TouchscreenActivity extends AppCompatActivity {
             }
         }
     }
-    
+
     public void captureFromSurface() {
         if (surface == null || !surface.isValid()) {
             Log.e("TouchscreenActivity", "Surface 无效或为空");
@@ -153,33 +163,32 @@ public class TouchscreenActivity extends AppCompatActivity {
         if (finished) {
             return;
         }
-        
-        // 获取 Surface 的尺寸
-        Rect surfaceRect = new Rect(0, 0, 1920, 1080); // 假设尺寸，实际应该动态获取
-        
+
         // 初始化或复用 bufferBitmap
         if (bufferBitmap == null || bufferBitmap.isRecycled()) {
+            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+            Display display = displayManager.getDisplay(displayId);
             bufferBitmap = Bitmap.createBitmap(
-                    surfaceRect.width(),
-                    surfaceRect.height(),
+                    Math.max(display.getWidth(), display.getHeight()),
+                    Math.min(display.getWidth(), display.getHeight()),
                     Bitmap.Config.ARGB_8888
             );
         }
-        
+
         // 使用 PixelCopy API 从 Surface 复制到位图
         PixelCopy.request(
                 surface,
-                surfaceRect,
+                new Rect(0, 0, bufferBitmap.getWidth(), bufferBitmap.getHeight()),
                 bufferBitmap,
                 copyResult -> {
                     if (copyResult == PixelCopy.SUCCESS) {
                         // 交换bitmap
-                        Bitmap temp = currentBitmap;
+                        Bitmap temp = drawView.bitmap;
                         updateImage(bufferBitmap);
                         bufferBitmap = temp;
-                        
+
                         // 安排下一次捕获
-                        captureFromSurface();
+                        handler.postDelayed(this::captureFromSurface, 30);
                     } else {
                         if (copyResult == 3) {
                             handler.postDelayed(this::captureFromSurface, 1000);
@@ -198,224 +207,66 @@ public class TouchscreenActivity extends AppCompatActivity {
         // 移除所有回调
         finished = true;
         // 清理两个 bitmap
-        if (currentBitmap != null && !currentBitmap.isRecycled()) {
-            currentBitmap.recycle();
-            currentBitmap = null;
+        if (drawView.bitmap != null && !drawView.bitmap.isRecycled()) {
+            drawView.bitmap.recycle();
+            drawView.bitmap = null;
         }
         if (bufferBitmap != null && !bufferBitmap.isRecycled()) {
             bufferBitmap.recycle();
             bufferBitmap = null;
         }
     }
-    
+
     // 添加直接绘制 Bitmap 的自定义 View
     public static class DirectDrawView extends View {
         private Bitmap bitmap;
-        private IInputManager inputManager;
         private int displayId;
-        private float initialTouchX, initialTouchY;
         private static final String TAG = "DirectDrawView";
-        private static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
-        
-        // 添加标志和缓存变量
-        private boolean isLandscapeInput = false;
-        private float cachedScale = 1.0f;
-        private float cachedDx = 0f;
-        private float cachedDy = 0f;
-        private int cachedBitmapWidth = 0;
-        private int cachedBitmapHeight = 0;
-        
+
         public DirectDrawView(android.content.Context context) {
             super(context);
             setBackgroundColor(android.graphics.Color.BLACK);
-            setupTouchListener();
-            inputManager = ServiceUtils.getInputManager();
         }
-        
+
         public void setDisplayId(int displayId) {
             this.displayId = displayId;
         }
-        
-        private void setupTouchListener() {
-            setOnTouchListener((v, event) -> {
-                if (inputManager == null || displayId <= 0) {
-                    return false;
-                }
-                
-                // 计算触摸事件在目标显示器上的坐标
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    initialTouchX = event.getX();
-                    initialTouchY = event.getY();
-                }
-                
-                // 创建带偏移量的事件
-                MotionEvent offsetEvent = obtainMotionEventWithOffset(event);
-                if (offsetEvent != null) {
 
-                    try {
-                        // 使用反射设置显示ID
-                        MotionEventHidden eventHidden = Refine.unsafeCast(offsetEvent);
-                        eventHidden.setDisplayId(displayId);
-                        
-                        // 注入事件
-                        inputManager.injectInputEvent(offsetEvent, INJECT_INPUT_EVENT_MODE_ASYNC);
-                        Log.d(TAG, String.format(
-                            "注入事件 [显示ID=%d]: 坐标=(%.2f, %.2f), 动作=%d", 
-                            displayId, offsetEvent.getX(), offsetEvent.getY(), offsetEvent.getAction()));
-                    } catch (Exception e) {
-                        Log.e(TAG, "注入事件失败: " + e.getMessage());
-                    } finally {
-                        offsetEvent.recycle();
-                    }
-                }
-                
-                return true;
-            });
-        }
-        
         public void setBitmap(Bitmap bitmap) {
             this.bitmap = bitmap;
-            // 当设置新的bitmap时，更新缓存的信息
-            if (bitmap != null && !bitmap.isRecycled()) {
-                updateTransformationCache();
-            }
         }
-        
-        // 添加新方法来更新变换缓存
-        private void updateTransformationCache() {
-            if (bitmap == null || bitmap.isRecycled() || getWidth() == 0 || getHeight() == 0) {
-                return;
-            }
-            
-            // 获取视图和位图的尺寸
-            int viewWidth = getWidth();
-            int viewHeight = getHeight();
-            cachedBitmapWidth = bitmap.getWidth();
-            cachedBitmapHeight = bitmap.getHeight();
-            
-            // 判断是否需要旋转（横屏输入）
-            isLandscapeInput = cachedBitmapWidth > cachedBitmapHeight;
-            
-            // 计算缩放比例
-            if (isLandscapeInput) {
-                // 横屏输入
-                cachedScale = Math.min((float) viewHeight / cachedBitmapWidth, (float) viewWidth / cachedBitmapHeight);
-                // 计算居中偏移
-                cachedDx = (viewWidth - cachedBitmapHeight * cachedScale) / 2;
-                cachedDy = (viewHeight - cachedBitmapWidth * cachedScale) / 2;
-            } else {
-                // 竖屏输入
-                cachedScale = Math.min((float) viewWidth / cachedBitmapWidth, (float) viewHeight / cachedBitmapHeight);
-                // 计算居中偏移
-                cachedDx = (viewWidth - cachedBitmapWidth * cachedScale) / 2;
-                cachedDy = (viewHeight - cachedBitmapHeight * cachedScale) / 2;
-            }
-        }
-        
-        @Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            super.onSizeChanged(w, h, oldw, oldh);
-            // 当视图大小改变时更新缓存
-            updateTransformationCache();
-        }
-        
-        private MotionEvent obtainMotionEventWithOffset(MotionEvent source) {
-            // 不再检查bitmap是否为null或已回收
-            // 如果缓存未初始化，则初始化
-            if (cachedBitmapWidth == 0 || cachedBitmapHeight == 0) {
-                if (bitmap == null || bitmap.isRecycled()) {
-                    return null;
-                }
-                updateTransformationCache();
-            }
-            
-            int pointerCount = source.getPointerCount();
-            
-            // 准备所有触点的属性和坐标数组
-            MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
-            MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
-            
-            // 复制每个触点的信息
-            for (int i = 0; i < pointerCount; i++) {
-                // 复制触点属性
-                properties[i] = new MotionEvent.PointerProperties();
-                source.getPointerProperties(i, properties[i]);
-                
-                // 复制并修改触点坐标
-                coords[i] = new MotionEvent.PointerCoords();
-                source.getPointerCoords(i, coords[i]);
-                
-                // 将视图坐标转换为位图坐标
-                float touchX = coords[i].x;
-                float touchY = coords[i].y;
-                
-                // 首先减去偏移量，将坐标转换到位图的相对位置
-                touchX = (touchX - cachedDx) / cachedScale;
-                touchY = (touchY - cachedDy) / cachedScale;
-                
-                if (isLandscapeInput) {
-                    // 修正横屏模式下的坐标转换
-                    // 使用逆时针旋转90度：(x,y) -> (bitmapHeight-y, x)
-                    float tempX = cachedBitmapHeight - touchY;
-                    float tempY = touchX;
-                    touchX = tempX;
-                    touchY = tempY;
-                }
-                
-                // 设置转换后的坐标
-                coords[i].x = touchX;
-                coords[i].y = touchY;
-                
-                Log.d(TAG, String.format("触摸坐标转换: 原始=(%.2f, %.2f), 转换后=(%.2f, %.2f)", 
-                    source.getX(i), source.getY(i), touchX, touchY));
-            }
-            
-            // 创建新的MotionEvent
-            int DEFAULT_DEVICE_ID = 0;
-            return MotionEvent.obtain(
-                source.getDownTime(),
-                source.getEventTime(),
-                source.getAction(),
-                pointerCount,
-                properties,
-                coords,
-                source.getMetaState(),
-                source.getButtonState(),
-                source.getXPrecision(),
-                source.getYPrecision(),
-                DEFAULT_DEVICE_ID,
-                source.getEdgeFlags(),
-                source.getSource(),
-                source.getFlags()
-            );
-        }
-        
+
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+
             if (bitmap != null && !bitmap.isRecycled()) {
-                // 更新变换缓存
-                updateTransformationCache();
-                
-                // 创建矩阵进行变换
-                Matrix matrix = new Matrix();
-                
-                if (isLandscapeInput) {
-                    // 横屏输入 - 旋转方向需与坐标转换匹配
-                    // 顺时针旋转90度
-                    matrix.postRotate(-90);
-                    
-                    // 移动到正确位置
-                    matrix.postTranslate(0, cachedBitmapWidth * cachedScale);
+                // 获取View和bitmap的尺寸
+                int viewWidth = getWidth();
+                int viewHeight = getHeight();
+                int bitmapWidth = bitmap.getWidth();
+                int bitmapHeight = bitmap.getHeight();
+
+                // 计算缩放比例，以适应View的大小
+                float scale;
+                float dx = 0, dy = 0;
+
+                if (bitmapWidth * viewHeight > viewWidth * bitmapHeight) {
+                    // 如果bitmap比View更宽，按宽度缩放
+                    scale = (float) viewWidth / bitmapWidth;
+                    dy = (viewHeight - bitmapHeight * scale) * 0.5f;
+                } else {
+                    // 如果bitmap比View更高，按高度缩放
+                    scale = (float) viewHeight / bitmapHeight;
+                    dx = (viewWidth - bitmapWidth * scale) * 0.5f;
                 }
-                
-                // 应用缩放
-                matrix.postScale(cachedScale, cachedScale);
-                
-                // 应用偏移量使图像居中
-                matrix.postTranslate(cachedDx, cachedDy);
-                
-                // 使用矩阵绘制位图
+
+                // 设置矩阵来缩放和居中bitmap
+                Matrix matrix = new Matrix();
+                matrix.setScale(scale, scale);
+                matrix.postTranslate(dx, dy);
+
+                // 使用矩阵绘制bitmap
                 canvas.drawBitmap(bitmap, matrix, null);
             }
         }
