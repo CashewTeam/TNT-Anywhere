@@ -400,10 +400,21 @@ namespace sunshine_callbacks {
 
         // 设置位深度
         if (isHdr) {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 3); // COLOR_TRANSFER_SDR_VIDEO
-        } else {
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 6); // COLOR_TRANSFER_ST2084
+        } else {
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 3); // COLOR_TRANSFER_SDR_VIDEO
         }
+
+        // 打印最终的媒体格式颜色配置
+        int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
+        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, &colorStandard);
+        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, &colorRange);
+        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, &colorTransfer);
+        
+        BOOST_LOG(info) << "最终媒体格式颜色配置:"sv;
+        BOOST_LOG(info) << "  - COLOR_STANDARD: "sv << colorStandard;
+        BOOST_LOG(info) << "  - COLOR_RANGE: "sv << colorRange << (colorRange == 1 ? " (FULL)" : " (LIMITED)");
+        BOOST_LOG(info) << "  - COLOR_TRANSFER: "sv << colorTransfer;
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
