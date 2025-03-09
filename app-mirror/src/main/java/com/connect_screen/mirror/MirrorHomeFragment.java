@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.display.VirtualDisplay;
+import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -65,6 +66,19 @@ public class MirrorHomeFragment extends Fragment {
             Surface surface = imageReader.getSurface();
             VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), surface);
             ServiceUtils.launchPackage(requireContext(), "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
+            // 启动线程读取ImageReader
+            new Thread(() -> {
+                while (true) {
+                    try {
+                        Image image = imageReader.acquireLatestImage();
+                        if (image != null) {
+                            image.close();
+                        }
+                    } catch (Exception e) {
+                        break;
+                    }
+                }
+            }).start();
             Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
             intent.putExtra("surface", surface);
             startActivity(intent);
