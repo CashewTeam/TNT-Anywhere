@@ -84,7 +84,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && State.lastSingleAppDisplay > 0) {
-            TouchpadActivity.launchLastPackage(getApplicationContext(), State.lastSingleAppDisplay);
+            TouchpadActivity.launchSingleApp(getApplicationContext(), State.lastSingleAppDisplay);
             return true;
         }
         return false;

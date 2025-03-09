@@ -165,7 +165,7 @@ public class FloatingButtonService extends Service {
                         if (currentTime - lastTapTime < DOUBLE_TAP_TIMEOUT) {
                             // 双击操作
                             State.log("返回被投的单引用");
-                            TouchpadActivity.launchLastPackage(FloatingButtonService.this, displayId);
+                            TouchpadActivity.launchSingleApp(FloatingButtonService.this, displayId);
                             lastTapTime = 0; // 重置最后点击时间
                         } else {
                             // 单击操作

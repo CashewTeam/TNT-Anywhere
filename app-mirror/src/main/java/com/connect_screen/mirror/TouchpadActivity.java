@@ -1,7 +1,6 @@
 package com.connect_screen.mirror;
 
 import android.accessibilityservice.GestureDescription;
-import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
 import android.content.Context;
 import android.content.Intent;
@@ -212,7 +211,7 @@ public class TouchpadActivity extends AppCompatActivity {
         // 添加Home按钮的点击监听器
         ImageButton homeButton = findViewById(R.id.homeButton);
         homeButton.setOnClickListener(v -> {
-            launchLastPackage(this, displayId);
+            launchSingleApp(this, displayId);
         });
 
         setupModeSpinner();
@@ -356,7 +355,7 @@ public class TouchpadActivity extends AppCompatActivity {
         });
     }
 
-    public static void launchLastPackage(Context context, int displayId) {
+    public static void launchSingleApp(Context context, int displayId) {
         SharedPreferences appPreferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, MODE_PRIVATE);
         String lastPackageName = appPreferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, null);
         if (lastPackageName == null) {

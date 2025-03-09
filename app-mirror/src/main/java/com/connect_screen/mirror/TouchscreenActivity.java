@@ -158,6 +158,25 @@ public class TouchscreenActivity extends AppCompatActivity {
             injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now, KeyEvent.ACTION_DOWN);
             injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now + 10, KeyEvent.ACTION_UP);
         });
+        
+        // 添加双击检测
+        backText.setOnTouchListener(new View.OnTouchListener() {
+            private static final int DOUBLE_CLICK_TIME = 300; // 双击时间间隔（毫秒）
+            private long lastClickTime = 0;
+            
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    long clickTime = System.currentTimeMillis();
+                    if (clickTime - lastClickTime < DOUBLE_CLICK_TIME) {
+                        TouchpadActivity.launchSingleApp(TouchscreenActivity.this, displayId);
+                        return true;
+                    }
+                    lastClickTime = clickTime;
+                }
+                return false; // 返回false以允许onClick事件继续传递
+            }
+        });
 
         captureFromSurface();
     }
