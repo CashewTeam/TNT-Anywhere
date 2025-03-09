@@ -393,6 +393,22 @@ public class TouchscreenActivity extends AppCompatActivity {
                         // 不需要额外旋转
                         break;
                 }
+                
+                // 限制坐标在有效范围内
+                // 根据旋转情况确定宽度和高度的限制
+                int maxWidth, maxHeight;
+                if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
+                    maxWidth = bitmapHeight;
+                    maxHeight = bitmapWidth;
+                } else {
+                    maxWidth = bitmapWidth;
+                    maxHeight = bitmapHeight;
+                }
+                
+                // 限制X坐标在0到最大宽度之间
+                points[i * 2] = Math.max(0, Math.min(points[i * 2], maxWidth - 1));
+                // 限制Y坐标在0到最大高度之间
+                points[i * 2 + 1] = Math.max(0, Math.min(points[i * 2 + 1], maxHeight - 1));
             }
             
             Log.d("TouchscreenActivity", "映射后的点: [" + points[0] + ", " + points[1] + "], 旋转角度: " + rotation);
