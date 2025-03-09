@@ -354,10 +354,10 @@ public class TouchscreenActivity extends AppCompatActivity {
                 touchY = (touchY - cachedDy) / cachedScale;
                 
                 if (isLandscapeInput) {
-                    // 对于横屏输入，需要旋转坐标
-                    // 旋转90度：(x,y) -> (y, width-x)
-                    float tempX = touchY;
-                    float tempY = cachedBitmapWidth - touchX;
+                    // 修正横屏模式下的坐标转换
+                    // 使用逆时针旋转90度：(x,y) -> (bitmapHeight-y, x)
+                    float tempX = cachedBitmapHeight - touchY;
+                    float tempY = touchX;
                     touchX = tempX;
                     touchY = tempY;
                 }
@@ -401,12 +401,12 @@ public class TouchscreenActivity extends AppCompatActivity {
                 Matrix matrix = new Matrix();
                 
                 if (isLandscapeInput) {
-                    // 横屏输入
-                    // 旋转90度
-                    matrix.postRotate(90);
+                    // 横屏输入 - 旋转方向需与坐标转换匹配
+                    // 顺时针旋转90度
+                    matrix.postRotate(-90);
                     
                     // 移动到正确位置
-                    matrix.postTranslate(cachedBitmapHeight * cachedScale, 0);
+                    matrix.postTranslate(0, cachedBitmapWidth * cachedScale);
                 }
                 
                 // 应用缩放

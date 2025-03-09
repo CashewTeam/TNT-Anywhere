@@ -62,27 +62,27 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         touchScreenBtn.setOnClickListener(v -> {
-            ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
-            Surface surface = imageReader.getSurface();
-            VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), surface);
-            State.mirrorVirtualDisplay = virtualDisplay;
-            ServiceUtils.launchPackage(requireContext(), "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
-            // 启动线程读取ImageReader
-            new Thread(() -> {
-                while (true) {
-                    try {
-                        Image image = imageReader.acquireLatestImage();
-                        if (image != null) {
-                            image.close();
-                        }
-                    } catch (Exception e) {
-                        break;
-                    }
-                }
-            }).start();
+//            ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
+//            Surface surface = imageReader.getSurface();
+//            VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), surface);
+//            State.mirrorVirtualDisplay = virtualDisplay;
+//            ServiceUtils.launchPackage(requireContext(), "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
+//            // 启动线程读取ImageReader
+//            new Thread(() -> {
+//                while (true) {
+//                    try {
+//                        Image image = imageReader.acquireLatestImage();
+//                        if (image != null) {
+//                            image.close();
+//                        }
+//                    } catch (Exception e) {
+//                        break;
+//                    }
+//                }
+//            }).start();
             Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
-            intent.putExtra("surface", surface);
-            intent.putExtra("display", virtualDisplay.getDisplay().getDisplayId());
+            intent.putExtra("surface", State.mirrorVirtualDisplay.getSurface());
+            intent.putExtra("display", State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             startActivity(intent);
         });
 
