@@ -69,8 +69,9 @@ public class TouchscreenActivity extends AppCompatActivity {
                 android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
         exitTextParams.gravity = Gravity.CENTER | android.view.Gravity.END;
+        exitTextParams.setMargins(16, 16, 16, 16);
         exitText.setPadding(16, 16, 16, 16);
-        exitText.setText("长\n按\n退\n出");
+        exitText.setText("退\n出");
         exitText.setBackgroundColor(0x80888888);  // 半透明灰色背景
         exitText.setTextColor(0xFFFFFFFF);  // 白色文字
         rootLayout.addView(exitText, exitTextParams);
@@ -119,9 +120,8 @@ public class TouchscreenActivity extends AppCompatActivity {
         }
 
         // 添加长按退出功能
-        exitText.setOnLongClickListener(v -> {
+        exitText.setOnClickListener(v -> {
             finish();
-            return true;
         });
 
         captureFromSurface();
@@ -270,8 +270,46 @@ public class TouchscreenActivity extends AppCompatActivity {
             }
             
             Log.d("TouchscreenActivity", "映射前的点: [" + points[0] + ", " + points[1] + "]");
+            
+            // 应用逆矩阵转换坐标
             inverseMatrix.mapPoints(points);
-            Log.d("TouchscreenActivity", "映射后的点: [" + points[0] + ", " + points[1] + "]");
+            
+            // 获取目标显示屏的旋转角度
+            int rotation = getDisplayRotation();
+            
+            // 获取bitmap的宽高
+            int bitmapWidth = bitmap.getWidth();
+            int bitmapHeight = bitmap.getHeight();
+            
+            // 根据旋转角度调整坐标
+            for (int i = 0; i < pointerCount; i++) {
+                float x = points[i * 2];
+                float y = points[i * 2 + 1];
+                
+                switch (rotation) {
+                    case Surface.ROTATION_90:
+                        // 顺时针旋转90度
+                        points[i * 2] = y;
+                        points[i * 2 + 1] = bitmapWidth - x;
+                        break;
+                    case Surface.ROTATION_180:
+                        // 顺时针旋转180度
+                        points[i * 2] = bitmapWidth - x;
+                        points[i * 2 + 1] = bitmapHeight - y;
+                        break;
+                    case Surface.ROTATION_270:
+                        // 顺时针旋转270度
+                        points[i * 2] = bitmapHeight - y;
+                        points[i * 2 + 1] = x;
+                        break;
+                    case Surface.ROTATION_0:
+                    default:
+                        // 不需要额外旋转
+                        break;
+                }
+            }
+            
+            Log.d("TouchscreenActivity", "映射后的点: [" + points[0] + ", " + points[1] + "], 旋转角度: " + rotation);
             
             // 使用转换后的坐标创建新的MotionEvent
             MotionEvent.PointerCoords[] pointerCoords = new MotionEvent.PointerCoords[pointerCount];
