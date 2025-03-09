@@ -26,6 +26,7 @@ import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 import com.connect_screen.mirror.job.VirtualDisplayArgs;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class MirrorHomeFragment extends Fragment {
     
@@ -44,13 +45,12 @@ public class MirrorHomeFragment extends Fragment {
         if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
             mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
             screenOffBtn.setVisibility(View.VISIBLE);
-            if (singleAppMode) {
+            if (singleAppMode && ShizukuUtils.hasPermission()) {
                 touchScreenBtn.setVisibility(View.VISIBLE);
             }
         } else {
             mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
             settingsBtn.setVisibility(View.VISIBLE);
-            touchScreenBtn.setVisibility(View.VISIBLE);
         }
 
         settingsBtn.setOnClickListener(v -> {
@@ -62,27 +62,16 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         touchScreenBtn.setOnClickListener(v -> {
-//            ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
-//            Surface surface = imageReader.getSurface();
-//            VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), surface);
-//            State.mirrorVirtualDisplay = virtualDisplay;
-//            ServiceUtils.launchPackage(requireContext(), "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
-//            // 启动线程读取ImageReader
-//            new Thread(() -> {
-//                while (true) {
-//                    try {
-//                        Image image = imageReader.acquireLatestImage();
-//                        if (image != null) {
-//                            image.close();
-//                        }
-//                    } catch (Exception e) {
-//                        break;
-//                    }
-//                }
-//            }).start();
+            VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+            if (virtualDisplay == null) {
+                virtualDisplay = State.mirrorVirtualDisplay;
+            }
+            if (virtualDisplay == null) {
+                return;
+            }
             Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
-            intent.putExtra("surface", State.mirrorVirtualDisplay.getSurface());
-            intent.putExtra("display", State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            intent.putExtra("surface", virtualDisplay.getSurface());
+            intent.putExtra("display", virtualDisplay.getDisplay().getDisplayId());
             startActivity(intent);
         });
 
