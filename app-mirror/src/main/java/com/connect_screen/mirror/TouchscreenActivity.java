@@ -3,6 +3,7 @@ package com.connect_screen.mirror;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.Display;
+import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -16,8 +17,17 @@ import android.view.WindowManager;
 import android.view.View;
 import android.graphics.Canvas;
 import android.widget.RelativeLayout;
+import android.view.MotionEvent;
+import android.hardware.input.IInputManager;
+import android.app.ActivityTaskManager;
+import java.lang.reflect.Field;
+import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+
+import dev.rikka.tools.refine.Refine;
 
 public class TouchscreenActivity extends AppCompatActivity {
     private Surface surface;
@@ -88,6 +98,7 @@ public class TouchscreenActivity extends AppCompatActivity {
             } else {
                 display = wm.getDefaultDisplay();
             }
+            drawView.setDisplayId(displayId);
         }
 
         if (getIntent().hasExtra("surface")) {
@@ -200,15 +211,110 @@ public class TouchscreenActivity extends AppCompatActivity {
     // 添加直接绘制 Bitmap 的自定义 View
     public static class DirectDrawView extends View {
         private Bitmap bitmap;
+        private IInputManager inputManager;
+        private int displayId;
+        private float initialTouchX, initialTouchY;
+        private static final String TAG = "DirectDrawView";
+        private static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
         
         public DirectDrawView(android.content.Context context) {
             super(context);
+            setBackgroundColor(android.graphics.Color.BLACK);
+            setupTouchListener();
+            inputManager = ServiceUtils.getInputManager();
         }
         
-        public DirectDrawView(android.content.Context context, android.util.AttributeSet attrs) {
-            super(context, attrs);
+        public void setDisplayId(int displayId) {
+            this.displayId = displayId;
         }
         
+        private void setupTouchListener() {
+            setOnTouchListener((v, event) -> {
+                if (inputManager == null || displayId <= 0) {
+                    return false;
+                }
+                
+                // 计算触摸事件在目标显示器上的坐标
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    initialTouchX = event.getX();
+                    initialTouchY = event.getY();
+                }
+                
+                // 创建带偏移量的事件
+                MotionEvent offsetEvent = obtainMotionEventWithOffset(event);
+                if (offsetEvent != null) {
+
+                    try {
+                        // 使用反射设置显示ID
+                        Object eventHidden = Refine.unsafeCast(offsetEvent);
+                        ((MotionEventHidden)eventHidden).setDisplayId(displayId);
+                        
+                        // 注入事件
+                        inputManager.injectInputEvent(offsetEvent, INJECT_INPUT_EVENT_MODE_ASYNC);
+                        Log.d(TAG, String.format(
+                            "注入事件 [显示ID=%d]: 坐标=(%.2f, %.2f), 动作=%d", 
+                            displayId, offsetEvent.getX(), offsetEvent.getY(), offsetEvent.getAction()));
+                    } catch (Exception e) {
+                        Log.e(TAG, "注入事件失败: " + e.getMessage());
+                    } finally {
+                        offsetEvent.recycle();
+                    }
+                }
+                
+                return true;
+            });
+        }
+        
+        private MotionEvent obtainMotionEventWithOffset(MotionEvent source) {
+            if (bitmap == null || bitmap.isRecycled()) {
+                return null;
+            }
+            
+            int pointerCount = source.getPointerCount();
+            
+            // 准备所有触点的属性和坐标数组
+            MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
+            MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+            
+            // 计算缩放比例
+            float scaleX = (float) bitmap.getWidth() / getWidth();
+            float scaleY = (float) bitmap.getHeight() / getHeight();
+            
+            // 复制每个触点的信息
+            for (int i = 0; i < pointerCount; i++) {
+                // 复制触点属性
+                properties[i] = new MotionEvent.PointerProperties();
+                source.getPointerProperties(i, properties[i]);
+                
+                // 复制并修改触点坐标
+                coords[i] = new MotionEvent.PointerCoords();
+                source.getPointerCoords(i, coords[i]);
+                
+                // 根据位图和视图的比例计算实际坐标
+                coords[i].x = coords[i].x * scaleX;
+                coords[i].y = coords[i].y * scaleY;
+            }
+            
+            // 创建新的MotionEvent
+            int DEFAULT_DEVICE_ID = 0;
+            return MotionEvent.obtain(
+                source.getDownTime(),
+                source.getEventTime(),
+                source.getAction(),
+                pointerCount,
+                properties,
+                coords,
+                source.getMetaState(),
+                source.getButtonState(),
+                source.getXPrecision(),
+                source.getYPrecision(),
+                DEFAULT_DEVICE_ID,
+                source.getEdgeFlags(),
+                source.getSource(),
+                source.getFlags()
+            );
+        }
+
         public void setBitmap(Bitmap bitmap) {
             this.bitmap = bitmap;
         }

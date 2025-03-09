@@ -81,6 +81,7 @@ public class MirrorHomeFragment extends Fragment {
             }).start();
             Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
             intent.putExtra("surface", surface);
+            intent.putExtra("display", virtualDisplay.getDisplay().getDisplayId());
             startActivity(intent);
         });
 
