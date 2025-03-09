@@ -179,6 +179,19 @@ public class TouchscreenActivity extends AppCompatActivity {
         });
 
         captureFromSurface();
+
+        // 添加对系统返回手势的处理
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    () -> {
+                        // 发送返回键事件到被镜像的显示器
+                        long now = SystemClock.uptimeMillis();
+                        injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now, KeyEvent.ACTION_DOWN);
+                        injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now + 10, KeyEvent.ACTION_UP);
+                    }
+            );
+        }
     }
 
     public void updateImage(Bitmap bitmap) {
@@ -273,6 +286,14 @@ public class TouchscreenActivity extends AppCompatActivity {
         KeyEventHidden eventHidden = Refine.unsafeCast(event);
         eventHidden.setDisplayId(displayId);
         inputManager.injectInputEvent(event, 0);
+    }
+
+    @Override
+    public void onBackPressed() {
+        // 覆盖返回按钮行为，发送返回键事件到被镜像的显示器
+        long now = SystemClock.uptimeMillis();
+        injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now, KeyEvent.ACTION_DOWN);
+        injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now + 10, KeyEvent.ACTION_UP);
     }
 
     // 添加直接绘制 Bitmap 的自定义 View
