@@ -269,8 +269,9 @@ public class TouchscreenActivity extends AppCompatActivity {
                 points[i * 2 + 1] = event.getY(i);
             }
             
-            // 使用逆矩阵将视图坐标转换为目标显示器坐标
+            Log.d("TouchscreenActivity", "映射前的点: [" + points[0] + ", " + points[1] + "]");
             inverseMatrix.mapPoints(points);
+            Log.d("TouchscreenActivity", "映射后的点: [" + points[0] + ", " + points[1] + "]");
             
             // 使用转换后的坐标创建新的MotionEvent
             MotionEvent.PointerCoords[] pointerCoords = new MotionEvent.PointerCoords[pointerCount];
