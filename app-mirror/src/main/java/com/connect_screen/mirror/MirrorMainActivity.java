@@ -130,9 +130,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
             }
             TouchpadAccessibilityService.startServiceByShizuku(this);
-//            ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
-//            VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), imageReader.getSurface());
-//            ServiceUtils.launchPackage(this, "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
         } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
             Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
             this.startService(serviceIntent);
