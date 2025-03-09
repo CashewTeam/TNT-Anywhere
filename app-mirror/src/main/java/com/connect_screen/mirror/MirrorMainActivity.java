@@ -317,7 +317,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             return null;
         }
         if (isWifiApEnabled(wifiManager)) {
-            return getApIP();
+            String apIp = getApIP();
+            if (apIp != null) {
+                return apIp;
+            }
         }
 
         int ipAddress = wifiManager.getConnectionInfo().getIpAddress();

@@ -322,6 +322,7 @@ public class TouchscreenActivity extends AppCompatActivity {
         }
 
         private void injectMotionEvent(MotionEvent motionEvent) {
+            TouchpadActivity.setFocus(inputManager, displayId);
             MotionEventHidden motionEventHidden = Refine.unsafeCast(motionEvent);
             motionEventHidden.setDisplayId(displayId);
             inputManager.injectInputEvent(motionEvent, 0);
