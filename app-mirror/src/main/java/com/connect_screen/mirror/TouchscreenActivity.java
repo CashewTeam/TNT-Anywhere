@@ -4,12 +4,13 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.IInputManager;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.MotionEventHidden;
 import android.view.Surface;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,15 +18,8 @@ import android.view.PixelCopy;
 import android.graphics.Rect;
 import android.util.Log;
 import android.graphics.Matrix;
-import android.view.WindowManager;
 import android.view.View;
 import android.graphics.Canvas;
-import android.widget.LinearLayout;
-import android.view.MotionEvent;
-import android.hardware.input.IInputManager;
-import android.app.ActivityTaskManager;
-import java.lang.reflect.Field;
-import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -219,13 +213,19 @@ public class TouchscreenActivity extends AppCompatActivity {
 
     // 添加直接绘制 Bitmap 的自定义 View
     public static class DirectDrawView extends View {
+        private final IInputManager inputManager;
         private Bitmap bitmap;
         private int displayId;
         private static final String TAG = "DirectDrawView";
+        // 保存上次使用的矩阵
+        private Matrix transformMatrix = new Matrix();
+        // 用于逆变换的矩阵
+        private Matrix inverseMatrix = new Matrix();
 
         public DirectDrawView(android.content.Context context) {
             super(context);
             setBackgroundColor(android.graphics.Color.BLACK);
+            inputManager = ServiceUtils.getInputManager();
         }
 
         public void setDisplayId(int displayId) {
@@ -234,6 +234,86 @@ public class TouchscreenActivity extends AppCompatActivity {
 
         public void setBitmap(Bitmap bitmap) {
             this.bitmap = bitmap;
+        }
+
+        private void injectMotionEvent(MotionEvent motionEvent) {
+            MotionEventHidden motionEventHidden = Refine.unsafeCast(motionEvent);
+            motionEventHidden.setDisplayId(displayId);
+            inputManager.injectInputEvent(motionEvent, 0);
+        }
+
+        private int getDisplayRotation() {
+            DisplayManager displayManager = (DisplayManager) getContext().getSystemService(Context.DISPLAY_SERVICE);
+            Display display = displayManager.getDisplay(displayId);
+            return display.getRotation();
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (bitmap == null || bitmap.isRecycled()) {
+                return false;
+            }
+
+            // 创建一个新的事件用于注入
+            MotionEvent transformedEvent = MotionEvent.obtain(event);
+            
+            // 获取触摸点数量
+            int pointerCount = event.getPointerCount();
+            
+            // 创建用于转换坐标的数组
+            float[] points = new float[pointerCount * 2];
+            
+            // 提取所有触摸点的坐标
+            for (int i = 0; i < pointerCount; i++) {
+                points[i * 2] = event.getX(i);
+                points[i * 2 + 1] = event.getY(i);
+            }
+            
+            // 使用逆矩阵将视图坐标转换为目标显示器坐标
+            inverseMatrix.mapPoints(points);
+            
+            // 使用转换后的坐标创建新的MotionEvent
+            MotionEvent.PointerCoords[] pointerCoords = new MotionEvent.PointerCoords[pointerCount];
+            MotionEvent.PointerProperties[] pointerProperties = new MotionEvent.PointerProperties[pointerCount];
+            
+            for (int i = 0; i < pointerCount; i++) {
+                pointerCoords[i] = new MotionEvent.PointerCoords();
+                pointerCoords[i].x = points[i * 2];
+                pointerCoords[i].y = points[i * 2 + 1];
+                pointerCoords[i].pressure = event.getPressure(i);
+                pointerCoords[i].size = event.getSize(i);
+                
+                pointerProperties[i] = new MotionEvent.PointerProperties();
+                pointerProperties[i].id = event.getPointerId(i);
+                pointerProperties[i].toolType = event.getToolType(i);
+            }
+            
+            // 创建新的MotionEvent
+            MotionEvent newEvent = MotionEvent.obtain(
+                    event.getDownTime(),
+                    event.getEventTime(),
+                    event.getAction(),
+                    pointerCount,
+                    pointerProperties,
+                    pointerCoords,
+                    event.getMetaState(),
+                    event.getButtonState(),
+                    event.getXPrecision(),
+                    event.getYPrecision(),
+                    event.getDeviceId(),
+                    event.getEdgeFlags(),
+                    event.getSource(),
+                    event.getFlags()
+            );
+            
+            // 注入转换后的事件
+            injectMotionEvent(newEvent);
+            
+            // 回收事件对象
+            newEvent.recycle();
+            transformedEvent.recycle();
+            
+            return true;
         }
 
         @Override
@@ -262,12 +342,15 @@ public class TouchscreenActivity extends AppCompatActivity {
                 }
 
                 // 设置矩阵来缩放和居中bitmap
-                Matrix matrix = new Matrix();
-                matrix.setScale(scale, scale);
-                matrix.postTranslate(dx, dy);
+                transformMatrix.reset();
+                transformMatrix.setScale(scale, scale);
+                transformMatrix.postTranslate(dx, dy);
+                
+                // 计算逆矩阵用于坐标转换
+                transformMatrix.invert(inverseMatrix);
 
                 // 使用矩阵绘制bitmap
-                canvas.drawBitmap(bitmap, matrix, null);
+                canvas.drawBitmap(bitmap, transformMatrix, null);
             }
         }
     }
