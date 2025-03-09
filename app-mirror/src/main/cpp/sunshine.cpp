@@ -329,8 +329,8 @@ namespace sunshine_callbacks {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
-        safe::mail_raw_t::event_t<bool> shutdown_event = mail->event<bool>(mail::shutdown);
-        
+        auto shutdown_event = mail->event<bool>(mail::shutdown);
+        auto idr_events = mail->event<bool>(mail::idr);
         // 添加更详细的客户端配置日志
         BOOST_LOG(info) << "客户端请求视频配置:"sv;
         BOOST_LOG(info) << "  - 分辨率: "sv << config.width << "x"sv << config.height;
@@ -360,7 +360,7 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_FPS_TO_ENCODER, config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 1); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 2); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
@@ -485,6 +485,25 @@ namespace sunshine_callbacks {
         int64_t frameIndex = 0;
         
         while (!shutdown_event->peek()) {
+            bool requested_idr_frame = false;
+            if (idr_events->peek()) {
+                requested_idr_frame = true;
+                idr_events->pop();
+            }
+
+            if (requested_idr_frame) {
+                // 使用 Bundle 参数请求同步帧（IDR帧）
+                AMediaFormat* params = AMediaFormat_new();
+                AMediaFormat_setInt32(params, "request-sync", 0);
+                media_status_t status = AMediaCodec_setParameters(codec, params);
+                if (status != AMEDIA_OK) {
+                    BOOST_LOG(warning) << "请求 IDR 帧失败，错误码: "sv << status;
+                } else {
+                    BOOST_LOG(info) << "已请求 IDR 帧"sv;
+                }
+                AMediaFormat_delete(params);
+            }
+            
             // 获取输出缓冲区，使用1秒的超时时间
             AMediaCodecBufferInfo bufferInfo;
             ssize_t outputBufferIndex = AMediaCodec_dequeueOutputBuffer(codec, &bufferInfo, 1000000); // 1秒 = 1000000微秒
