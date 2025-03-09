@@ -65,6 +65,7 @@ public class MirrorHomeFragment extends Fragment {
             ImageReader imageReader = ImageReader.newInstance(1920, 1080, 1, 2);
             Surface surface = imageReader.getSurface();
             VirtualDisplay virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("test", 1920, 1080, 60, 160, true), surface);
+            State.mirrorVirtualDisplay = virtualDisplay;
             ServiceUtils.launchPackage(requireContext(), "com.microsoft.launcher", virtualDisplay.getDisplay().getDisplayId());
             // 启动线程读取ImageReader
             new Thread(() -> {

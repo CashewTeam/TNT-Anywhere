@@ -217,6 +217,14 @@ public class TouchscreenActivity extends AppCompatActivity {
         private static final String TAG = "DirectDrawView";
         private static final int INJECT_INPUT_EVENT_MODE_ASYNC = 0;
         
+        // 添加标志和缓存变量
+        private boolean isLandscapeInput = false;
+        private float cachedScale = 1.0f;
+        private float cachedDx = 0f;
+        private float cachedDy = 0f;
+        private int cachedBitmapWidth = 0;
+        private int cachedBitmapHeight = 0;
+        
         public DirectDrawView(android.content.Context context) {
             super(context);
             setBackgroundColor(android.graphics.Color.BLACK);
@@ -246,8 +254,8 @@ public class TouchscreenActivity extends AppCompatActivity {
 
                     try {
                         // 使用反射设置显示ID
-                        Object eventHidden = Refine.unsafeCast(offsetEvent);
-                        ((MotionEventHidden)eventHidden).setDisplayId(displayId);
+                        MotionEventHidden eventHidden = Refine.unsafeCast(offsetEvent);
+                        eventHidden.setDisplayId(displayId);
                         
                         // 注入事件
                         inputManager.injectInputEvent(offsetEvent, INJECT_INPUT_EVENT_MODE_ASYNC);
@@ -265,9 +273,60 @@ public class TouchscreenActivity extends AppCompatActivity {
             });
         }
         
+        public void setBitmap(Bitmap bitmap) {
+            this.bitmap = bitmap;
+            // 当设置新的bitmap时，更新缓存的信息
+            if (bitmap != null && !bitmap.isRecycled()) {
+                updateTransformationCache();
+            }
+        }
+        
+        // 添加新方法来更新变换缓存
+        private void updateTransformationCache() {
+            if (bitmap == null || bitmap.isRecycled() || getWidth() == 0 || getHeight() == 0) {
+                return;
+            }
+            
+            // 获取视图和位图的尺寸
+            int viewWidth = getWidth();
+            int viewHeight = getHeight();
+            cachedBitmapWidth = bitmap.getWidth();
+            cachedBitmapHeight = bitmap.getHeight();
+            
+            // 判断是否需要旋转（横屏输入）
+            isLandscapeInput = cachedBitmapWidth > cachedBitmapHeight;
+            
+            // 计算缩放比例
+            if (isLandscapeInput) {
+                // 横屏输入
+                cachedScale = Math.min((float) viewHeight / cachedBitmapWidth, (float) viewWidth / cachedBitmapHeight);
+                // 计算居中偏移
+                cachedDx = (viewWidth - cachedBitmapHeight * cachedScale) / 2;
+                cachedDy = (viewHeight - cachedBitmapWidth * cachedScale) / 2;
+            } else {
+                // 竖屏输入
+                cachedScale = Math.min((float) viewWidth / cachedBitmapWidth, (float) viewHeight / cachedBitmapHeight);
+                // 计算居中偏移
+                cachedDx = (viewWidth - cachedBitmapWidth * cachedScale) / 2;
+                cachedDy = (viewHeight - cachedBitmapHeight * cachedScale) / 2;
+            }
+        }
+        
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            // 当视图大小改变时更新缓存
+            updateTransformationCache();
+        }
+        
         private MotionEvent obtainMotionEventWithOffset(MotionEvent source) {
-            if (bitmap == null || bitmap.isRecycled()) {
-                return null;
+            // 不再检查bitmap是否为null或已回收
+            // 如果缓存未初始化，则初始化
+            if (cachedBitmapWidth == 0 || cachedBitmapHeight == 0) {
+                if (bitmap == null || bitmap.isRecycled()) {
+                    return null;
+                }
+                updateTransformationCache();
             }
             
             int pointerCount = source.getPointerCount();
@@ -275,10 +334,6 @@ public class TouchscreenActivity extends AppCompatActivity {
             // 准备所有触点的属性和坐标数组
             MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointerCount];
             MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
-            
-            // 计算缩放比例
-            float scaleX = (float) bitmap.getWidth() / getWidth();
-            float scaleY = (float) bitmap.getHeight() / getHeight();
             
             // 复制每个触点的信息
             for (int i = 0; i < pointerCount; i++) {
@@ -290,9 +345,29 @@ public class TouchscreenActivity extends AppCompatActivity {
                 coords[i] = new MotionEvent.PointerCoords();
                 source.getPointerCoords(i, coords[i]);
                 
-                // 根据位图和视图的比例计算实际坐标
-                coords[i].x = coords[i].x * scaleX;
-                coords[i].y = coords[i].y * scaleY;
+                // 将视图坐标转换为位图坐标
+                float touchX = coords[i].x;
+                float touchY = coords[i].y;
+                
+                // 首先减去偏移量，将坐标转换到位图的相对位置
+                touchX = (touchX - cachedDx) / cachedScale;
+                touchY = (touchY - cachedDy) / cachedScale;
+                
+                if (isLandscapeInput) {
+                    // 对于横屏输入，需要旋转坐标
+                    // 旋转90度：(x,y) -> (y, width-x)
+                    float tempX = touchY;
+                    float tempY = cachedBitmapWidth - touchX;
+                    touchX = tempX;
+                    touchY = tempY;
+                }
+                
+                // 设置转换后的坐标
+                coords[i].x = touchX;
+                coords[i].y = touchY;
+                
+                Log.d(TAG, String.format("触摸坐标转换: 原始=(%.2f, %.2f), 转换后=(%.2f, %.2f)", 
+                    source.getX(i), source.getY(i), touchX, touchY));
             }
             
             // 创建新的MotionEvent
@@ -314,54 +389,31 @@ public class TouchscreenActivity extends AppCompatActivity {
                 source.getFlags()
             );
         }
-
-        public void setBitmap(Bitmap bitmap) {
-            this.bitmap = bitmap;
-        }
         
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             if (bitmap != null && !bitmap.isRecycled()) {
-                // 获取视图和位图的尺寸
-                int viewWidth = getWidth();
-                int viewHeight = getHeight();
-                int bitmapWidth = bitmap.getWidth();
-                int bitmapHeight = bitmap.getHeight();
+                // 更新变换缓存
+                updateTransformationCache();
                 
                 // 创建矩阵进行变换
                 Matrix matrix = new Matrix();
                 
-                // 计算缩放比例以适应视图
-                float scale;
-                if (bitmapWidth > bitmapHeight) {
+                if (isLandscapeInput) {
                     // 横屏输入
-                    scale = Math.min((float) viewHeight / bitmapWidth, (float) viewWidth / bitmapHeight);
-                    
                     // 旋转90度
                     matrix.postRotate(90);
                     
                     // 移动到正确位置
-                    matrix.postTranslate(bitmapHeight * scale, 0);
-                } else {
-                    // 竖屏输入
-                    scale = Math.min((float) viewWidth / bitmapWidth, (float) viewHeight / bitmapHeight);
+                    matrix.postTranslate(cachedBitmapHeight * cachedScale, 0);
                 }
                 
                 // 应用缩放
-                matrix.postScale(scale, scale);
+                matrix.postScale(cachedScale, cachedScale);
                 
-                // 居中显示
-                float dx = (viewWidth - bitmapWidth * scale) / 2;
-                float dy = (viewHeight - bitmapHeight * scale) / 2;
-                if (bitmapWidth > bitmapHeight) {
-                    // 横屏输入已经旋转，需要调整偏移量
-                    dy = (viewHeight - bitmapWidth * scale) / 2;
-                } else {
-                    dx = (viewWidth - bitmapWidth * scale) / 2;
-                    dy = (viewHeight - bitmapHeight * scale) / 2;
-                }
-                matrix.postTranslate(dx, dy);
+                // 应用偏移量使图像居中
+                matrix.postTranslate(cachedDx, cachedDy);
                 
                 // 使用矩阵绘制位图
                 canvas.drawBitmap(bitmap, matrix, null);

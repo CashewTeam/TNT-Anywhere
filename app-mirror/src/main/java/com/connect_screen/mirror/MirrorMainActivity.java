@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -191,7 +192,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 writeCertAndKey(context);
                 new Thread(() -> { SunshineServer.start(); }).start();
                 
-                jmdns = JmDNS.create(addr);
+                jmdns = JmDNS.create(Inet4Address.getByName(addr));
                 ServiceInfo serviceInfo = ServiceInfo.create(
                         "_nvstream._tcp.local.",
                         "ConnectScreen",
