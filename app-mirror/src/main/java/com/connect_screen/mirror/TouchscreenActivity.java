@@ -8,6 +8,7 @@ import android.hardware.input.IInputManager;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.KeyEventHidden;
 import android.view.MotionEvent;
 import android.view.MotionEventHidden;
 import android.view.Surface;
@@ -20,6 +21,8 @@ import android.util.Log;
 import android.graphics.Matrix;
 import android.view.View;
 import android.graphics.Canvas;
+import android.os.SystemClock;
+import android.view.KeyEvent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -65,16 +68,40 @@ public class TouchscreenActivity extends AppCompatActivity {
         // 创建退出文本
         TextView exitText = new TextView(this);
         exitText.setId(View.generateViewId());
-        android.widget.FrameLayout.LayoutParams exitTextParams = new android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
-        exitTextParams.gravity = Gravity.CENTER | android.view.Gravity.END;
-        exitTextParams.setMargins(16, 16, 16, 16);
         exitText.setPadding(16, 16, 16, 16);
         exitText.setText("退\n出");
         exitText.setBackgroundColor(0x80888888);  // 半透明灰色背景
         exitText.setTextColor(0xFFFFFFFF);  // 白色文字
-        rootLayout.addView(exitText, exitTextParams);
+        
+        // 创建返回文本
+        TextView backText = new TextView(this);
+        backText.setId(View.generateViewId());
+        backText.setPadding(16, 16, 16, 16);
+        backText.setText("返\n回");
+        backText.setBackgroundColor(0x80888888);  // 半透明灰色背景
+        backText.setTextColor(0xFFFFFFFF);  // 白色文字
+        
+        // 设置返回按钮的布局参数，添加底部边距
+        android.widget.LinearLayout.LayoutParams backParams = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        backParams.setMargins(0, 0, 0, 16); // 添加16dp的底部边距
+        
+        // 创建一个垂直线性布局来容纳两个按钮
+        android.widget.LinearLayout buttonLayout = new android.widget.LinearLayout(this);
+        buttonLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        android.widget.FrameLayout.LayoutParams buttonLayoutParams = new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+        buttonLayoutParams.gravity = Gravity.CENTER | android.view.Gravity.END;
+        buttonLayoutParams.setMargins(0, 16, 16, 0);
+        
+        // 将两个按钮添加到线性布局中，为返回按钮应用边距
+        buttonLayout.addView(backText, backParams);
+        buttonLayout.addView(exitText);
+        
+        // 将按钮布局添加到根布局
+        rootLayout.addView(buttonLayout, buttonLayoutParams);
 
         // 设置内容视图为代码创建的布局
         setContentView(rootLayout);
@@ -122,6 +149,14 @@ public class TouchscreenActivity extends AppCompatActivity {
         // 添加长按退出功能
         exitText.setOnClickListener(v -> {
             finish();
+        });
+        
+        // 添加返回按钮功能
+        backText.setOnClickListener(v -> {
+            // 发送返回键事件
+            long now = SystemClock.uptimeMillis();
+            injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now, KeyEvent.ACTION_DOWN);
+            injectKeyEvent(KeyEvent.KEYCODE_BACK, now, now + 10, KeyEvent.ACTION_UP);
         });
 
         captureFromSurface();
@@ -209,6 +244,16 @@ public class TouchscreenActivity extends AppCompatActivity {
             bufferBitmap.recycle();
             bufferBitmap = null;
         }
+    }
+
+    // 添加注入按键事件的方法
+    private void injectKeyEvent(int keyCode, long downTime, long eventTime, int action) {
+        IInputManager inputManager = ServiceUtils.getInputManager();
+        TouchpadActivity.setFocus(inputManager, displayId);
+        KeyEvent event = new KeyEvent(downTime, eventTime, action, keyCode, 0);
+        KeyEventHidden eventHidden = Refine.unsafeCast(event);
+        eventHidden.setDisplayId(displayId);
+        inputManager.injectInputEvent(event, 0);
     }
 
     // 添加直接绘制 Bitmap 的自定义 View
