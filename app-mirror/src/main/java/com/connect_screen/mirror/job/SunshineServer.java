@@ -114,6 +114,7 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.log("停止 Moonlight 投屏");
             CreateVirtualDisplay.powerOnScreen();
+            InputRouting.moveImeToDefault();
             if (MediaProjectionService.instance != null) {
                 State.log("恢复音量: " + originalVolume);
                 AudioManager audioManager = (AudioManager) MediaProjectionService.instance.getSystemService(Context.AUDIO_SERVICE);

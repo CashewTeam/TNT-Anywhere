@@ -53,6 +53,7 @@ public class ProjectViaMirror implements Job {
             }
             CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();
+            InputRouting.moveImeToExternal(mirrorDisplay.getDisplayId());
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
                 @Override
@@ -64,6 +65,7 @@ public class ProjectViaMirror implements Job {
                 public void onDisplayRemoved(int i) {
                     if (i == targetDisplayId) {
                         CreateVirtualDisplay.powerOnScreen();
+                        InputRouting.moveImeToDefault();
                         ExitAll.execute(null, false);
                     }
                 }

@@ -14,6 +14,8 @@ import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.AudioRecord;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.view.Display;
+import android.view.IWindowManager;
 import android.view.Surface;
 
 
@@ -104,6 +106,7 @@ public class ProjectViaMoonlight implements Job {
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
         } else if (autoRotate || autoScale) {
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, 160, false));

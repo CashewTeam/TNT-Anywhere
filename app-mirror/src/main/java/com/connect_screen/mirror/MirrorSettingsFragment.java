@@ -43,6 +43,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
     public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
     public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
+    public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,6 +68,7 @@ public class MirrorSettingsFragment extends Fragment {
         CheckBox floatingBackButtonCheckbox = view.findViewById(R.id.floatingBackButtonCheckbox);
         CheckBox autoScreenOffCheckbox = view.findViewById(R.id.autoScreenOffCheckbox);
         CheckBox autoBindInputCheckbox = view.findViewById(R.id.autoBindInputCheckbox);
+        CheckBox autoMoveImeCheckbox = view.findViewById(R.id.autoMoveImeCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -76,6 +78,7 @@ public class MirrorSettingsFragment extends Fragment {
         boolean floatingBackButton = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
         boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
         boolean autoBindInput = preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
+        boolean autoMoveIme = preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -84,6 +87,7 @@ public class MirrorSettingsFragment extends Fragment {
         floatingBackButtonCheckbox.setChecked(floatingBackButton);
         autoScreenOffCheckbox.setChecked(autoScreenOff);
         autoBindInputCheckbox.setChecked(autoBindInput);
+        autoMoveImeCheckbox.setChecked(autoMoveIme);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -269,10 +273,19 @@ public class MirrorSettingsFragment extends Fragment {
             preferences.edit().putBoolean(KEY_AUTO_BIND_INPUT, isChecked).apply();
         });
         
-        // 如果没有 Shizuku 权限或者不是 Android 15，禁用该选项
-        boolean isAndroid15 = android.os.Build.VERSION.SDK_INT >= 35; // Android 15 是 API 35
-        if (!ShizukuUtils.hasPermission() || !isAndroid15) {
+        // 如果没有 Shizuku 权限
+        if (!ShizukuUtils.hasPermission()) {
             autoBindInputCheckbox.setEnabled(false);
+        }
+
+        // 添加自动移动输入法复选框监听器
+        autoMoveImeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_AUTO_MOVE_IME, isChecked).apply();
+        });
+        
+        // 如果没有 Shizuku 权限，禁用该选项
+        if (!ShizukuUtils.hasPermission()) {
+            autoMoveImeCheckbox.setEnabled(false);
         }
 
         return view;

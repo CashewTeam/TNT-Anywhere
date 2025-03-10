@@ -98,6 +98,7 @@ public class MirrorDisplaylinkMonitor {
             State.displaylinkState.device = null;
             State.breadcrumbManager.refreshCurrentFragment();
             CreateVirtualDisplay.powerOnScreen();
+            InputRouting.moveImeToDefault();
         }
     }
 

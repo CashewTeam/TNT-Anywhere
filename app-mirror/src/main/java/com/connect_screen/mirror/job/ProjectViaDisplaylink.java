@@ -107,6 +107,7 @@ public class ProjectViaDisplaylink implements Job {
         if (virtualDisplay == null) {
             virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
             displaylinkState.createdVirtualDisplay(virtualDisplay);
+            InputRouting.moveImeToExternal(virtualDisplay.getDisplay().getDisplayId());
         } else {
             State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
             virtualDisplay.setSurface(surface);

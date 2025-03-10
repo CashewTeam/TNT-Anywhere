@@ -2,6 +2,7 @@ package com.connect_screen.mirror.job;
 
 
 import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_BIND_INPUT;
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_MOVE_IME;
 import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
 
 import android.content.Context;
@@ -10,8 +11,10 @@ import android.hardware.input.IInputManager;
 import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.os.RemoteException;
+import android.view.Display;
 import android.view.DisplayAddress;
 import android.view.DisplayInfo;
+import android.view.IWindowManager;
 import android.view.InputDevice;
 import android.widget.Toast;
 
@@ -115,5 +118,37 @@ public class InputRouting {
             // ignore
         }
         return true;
+    }
+
+    public static void moveImeToExternal(int displayId) {
+        if(!shouldMoveIme()) {
+            return;
+        }
+        IWindowManager windowManager = ServiceUtils.getWindowManager();
+        windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
+        try {
+            windowManager.setDisplayImePolicy(displayId, 0);
+        } catch (Throwable e) {
+            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
+            State.log("在此屏幕显示输入法，设置失败" + e);
+        }
+    }
+
+    private static boolean shouldMoveIme() {
+        try {
+            SharedPreferences preferences = State.currentActivity.get().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            return preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
+        } catch(Exception e) {
+            // ignore
+        }
+        return true;
+    }
+
+    public static void moveImeToDefault() {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        IWindowManager windowManager = ServiceUtils.getWindowManager();
+        windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
     }
 }
