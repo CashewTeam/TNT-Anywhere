@@ -183,10 +183,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         String addr = getWifiIpAddress(context);
         if (addr == null) {
             State.log("无法获取WiFi IP地址");
-            return;
+        } else {
+            State.log("发布 moonlight 服务名："  + sunshineName);
+            State.log("发布 moonlight ip："  + addr);
         }
-        State.log("发布 moonlight 服务名："  + sunshineName);
-        State.log("发布 moonlight ip："  + addr);
         probeH265();
 
         // 将网络初始化操作移到后台线程
@@ -195,17 +195,19 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 SunshineServer.setFileStatePath(context.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(context);
                 new Thread(() -> { SunshineServer.start(); }).start();
-                
-                jmdns = JmDNS.create(Inet4Address.getByName(addr));
-                ServiceInfo serviceInfo = ServiceInfo.create(
-                        "_nvstream._tcp.local.",
-                        "ConnectScreen",
-                        47989,
-                        "ConnectScreen"
-                );
 
-                jmdns.registerService(serviceInfo);
-                android.util.Log.i("MirrorHomeFragment", "JmDNS服务注册成功");
+                if(addr != null) {
+                    jmdns = JmDNS.create(Inet4Address.getByName(addr));
+                    ServiceInfo serviceInfo = ServiceInfo.create(
+                            "_nvstream._tcp.local.",
+                            "ConnectScreen",
+                            47989,
+                            "ConnectScreen"
+                    );
+
+                    jmdns.registerService(serviceInfo);
+                    android.util.Log.i("MirrorHomeFragment", "JmDNS服务注册成功");
+                }
             } catch (Exception e) {
                 android.util.Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
             }
