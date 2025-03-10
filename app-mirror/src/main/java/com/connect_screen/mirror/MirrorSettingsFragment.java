@@ -26,6 +26,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
     public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
     public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
+    public static final String KEY_DISABLE_USB_AUDIO = "disable_usb_audio";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -69,6 +71,7 @@ public class MirrorSettingsFragment extends Fragment {
         CheckBox autoScreenOffCheckbox = view.findViewById(R.id.autoScreenOffCheckbox);
         CheckBox autoBindInputCheckbox = view.findViewById(R.id.autoBindInputCheckbox);
         CheckBox autoMoveImeCheckbox = view.findViewById(R.id.autoMoveImeCheckbox);
+        CheckBox disableUsbAudioCheckbox = view.findViewById(R.id.disableUsbAudioCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -79,6 +82,7 @@ public class MirrorSettingsFragment extends Fragment {
         boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
         boolean autoBindInput = preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
         boolean autoMoveIme = preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
+        boolean disableUsbAudio = preferences.getBoolean(KEY_DISABLE_USB_AUDIO, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -88,6 +92,7 @@ public class MirrorSettingsFragment extends Fragment {
         autoScreenOffCheckbox.setChecked(autoScreenOff);
         autoBindInputCheckbox.setChecked(autoBindInput);
         autoMoveImeCheckbox.setChecked(autoMoveIme);
+        disableUsbAudioCheckbox.setChecked(disableUsbAudio);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -286,6 +291,29 @@ public class MirrorSettingsFragment extends Fragment {
         // 如果没有 Shizuku 权限，禁用该选项
         if (!ShizukuUtils.hasPermission()) {
             autoMoveImeCheckbox.setEnabled(false);
+        }
+
+        // 添加停用USB音频复选框监听器
+        disableUsbAudioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_DISABLE_USB_AUDIO, isChecked).apply();
+            
+            // 如果有Shizuku权限，则更新系统设置
+            if (ShizukuUtils.hasPermission()) {
+                if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+                    try {
+                        Settings.Secure.putInt(requireContext().getContentResolver(),
+                                "usb_audio_automatic_routing_disabled", isChecked ? 1 : 0);
+                    } catch (SecurityException e) {
+                        State.log("failed to set usb_audio_automatic_routing_disabled: " + e);
+                    }
+                }
+            }
+        });
+        
+        // 如果没有Shizuku权限，禁用该选项
+        if (!ShizukuUtils.hasPermission()) {
+            disableUsbAudioCheckbox.setEnabled(false);
+            disableUsbAudioCheckbox.setText("停用外接屏幕的声音输出（需要Shizuku权限）");
         }
 
         return view;

@@ -2,9 +2,20 @@ package com.connect_screen.mirror.job;
 
 import android.content.Context;
 import android.hardware.display.DisplayManager;
+import android.media.AudioAttributes;
+import android.media.AudioDeviceAttributes;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.media.IAudioService;
+import android.os.Build;
 import android.view.Display;
 
+import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
+
+import java.util.List;
 
 public class MirrorDisplayMonitor {
     private static boolean registered = false;
@@ -58,5 +69,50 @@ public class MirrorDisplayMonitor {
             return;
         }
         State.startNewJob(new ProjectViaMirror(display));
+        handleDisableUsbAudio(context);
+    }
+    
+    private static void handleDisableUsbAudio(Context context) {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        boolean isDisabled = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(MirrorSettingsFragment.KEY_DISABLE_USB_AUDIO, false);
+        if (!isDisabled) {
+            return;
+        }
+        IAudioService audioManager = ServiceUtils.getAudioManager();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            List<AudioDeviceAttributes> devices = audioManager.getDevicesForAttributes(new AudioAttributes.Builder().build());
+            for (AudioDeviceAttributes device : devices) {
+                if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
+                    try {
+                        audioManager.setWiredDeviceConnectionState(device, 0, "com.android.shell");
+                        State.log("禁用音频输出设备：" + device);
+                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备失败: " + e);
+                    }
+                }
+            }
+        } else {
+            AudioManager audioManager2 = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            for (AudioDeviceInfo device : audioManager2.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
+                    try {
+                        audioManager.setWiredDeviceConnectionState(device.getType(), 0, device.getAddress(), "", "com.android.shell");
+                        State.log("禁用音频输出设备：" + device.getType() + ", " + device.getProductName());
+                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备失败: " + e);
+                    }
+                } else if (device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
+                    try {
+                        audioManager.setWiredDeviceConnectionState(device.getType(), 1, device.getAddress(), "", "com.android.shell");
+                        State.log("启用音频输出设备：" + device.getType() + ", " + device.getProductName());
+                    } catch(Throwable e) {
+                        State.log("启用音频输出设备失败: " + e);
+                    }
+                }
+            }
+        }
     }
 }
