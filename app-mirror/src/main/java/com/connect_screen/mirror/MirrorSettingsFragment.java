@@ -80,6 +80,9 @@ public class MirrorSettingsFragment extends Fragment {
         dpiEditText.setText(String.valueOf(singleAppDpi));
         floatingBackButtonCheckbox.setChecked(floatingBackButton);
         autoScreenOffCheckbox.setChecked(autoScreenOff);
+        if (ShizukuUtils.hasPermission()) {
+            autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
+        }
 
         // 设置分辨率初始值
         DisplaylinkPref.load(requireContext());
