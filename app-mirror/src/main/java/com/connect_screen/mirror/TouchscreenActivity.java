@@ -366,32 +366,10 @@ public class TouchscreenActivity extends AppCompatActivity {
             int bitmapWidth = bitmap.getWidth();
             int bitmapHeight = bitmap.getHeight();
             
-            // 定义超出范围的阈值（像素）
-            final float OUT_OF_BOUNDS_THRESHOLD = 10.0f;
-            boolean hasPointOutOfBounds = false;
-            
             // 根据旋转角度调整坐标
             for (int i = 0; i < pointerCount; i++) {
                 float x = points[i * 2];
                 float y = points[i * 2 + 1];
-                
-                // 根据旋转情况确定宽度和高度的限制
-                int maxWidth, maxHeight;
-                if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
-                    maxWidth = bitmapHeight;
-                    maxHeight = bitmapWidth;
-                } else {
-                    maxWidth = bitmapWidth;
-                    maxHeight = bitmapHeight;
-                }
-                
-                // 检查点是否超出范围超过阈值
-                if (x < -OUT_OF_BOUNDS_THRESHOLD || x > maxWidth + OUT_OF_BOUNDS_THRESHOLD || 
-                    y < -OUT_OF_BOUNDS_THRESHOLD || y > maxHeight + OUT_OF_BOUNDS_THRESHOLD) {
-                    hasPointOutOfBounds = true;
-                    Log.d("TouchscreenActivity", "点 [" + x + ", " + y + "] 超出范围，丢弃触摸事件");
-                    break;
-                }
                 
                 switch (rotation) {
                     case Surface.ROTATION_90:
@@ -417,6 +395,7 @@ public class TouchscreenActivity extends AppCompatActivity {
                 
                 // 限制坐标在有效范围内
                 // 根据旋转情况确定宽度和高度的限制
+                int maxWidth, maxHeight;
                 if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
                     maxWidth = bitmapHeight;
                     maxHeight = bitmapWidth;
@@ -425,16 +404,17 @@ public class TouchscreenActivity extends AppCompatActivity {
                     maxHeight = bitmapHeight;
                 }
                 
+                // 检查是否超出边界太多（超出50%），如果是则忽略此次触摸事件
+                if (points[i * 2] < -maxWidth * 0.5 || points[i * 2] > maxWidth * 1.5 ||
+                    points[i * 2 + 1] < -maxHeight * 0.5 || points[i * 2 + 1] > maxHeight * 1.5) {
+                    Log.d("TouchscreenActivity", "触摸点超出边界太多，忽略此次事件");
+                    return true;
+                }
+                
                 // 限制X坐标在0到最大宽度之间
                 points[i * 2] = Math.max(0, Math.min(points[i * 2], maxWidth - 1));
                 // 限制Y坐标在0到最大高度之间
                 points[i * 2 + 1] = Math.max(0, Math.min(points[i * 2 + 1], maxHeight - 1));
-            }
-            
-            // 如果有点超出范围，丢弃整个触摸事件
-            if (hasPointOutOfBounds) {
-                transformedEvent.recycle();
-                return true;
             }
             
             Log.d("TouchscreenActivity", "映射后的点: [" + points[0] + ", " + points[1] + "], 旋转角度: " + rotation);

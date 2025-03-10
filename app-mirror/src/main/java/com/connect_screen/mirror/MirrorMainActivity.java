@@ -158,6 +158,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         String action = intent.getAction();
         State.log("MainActivity created with action: " + action);
 
+        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
+            return;
+        }
+
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
             UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
