@@ -28,6 +28,7 @@ import androidx.annotation.NonNull;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.connect_screen.mirror.shizuku.SurfaceControl;
@@ -104,6 +105,21 @@ public class CreateVirtualDisplay {
             context.startActivity(intent, options.toBundle());
         } else {
             State.log("镜像投屏时需要 shizuku 权限才能熄屏");
+        }
+        int targetDisplayId = -1;
+        if (singleApp) {
+            if (State.displaylinkState.getVirtualDisplay() != null) {
+                targetDisplayId = State.displaylinkState.getVirtualDisplay().getDisplay().getDisplayId();
+            } else if (State.mirrorVirtualDisplay != null) {
+                targetDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
+            }
+        }
+        if (targetDisplayId != -1) {
+            if (ShizukuUtils.hasPermission()) {
+                TouchpadActivity.setFocus(ServiceUtils.getInputManager(), targetDisplayId);
+            } else {
+                TouchpadActivity.setFocus(null, targetDisplayId);
+            }
         }
     }
 
