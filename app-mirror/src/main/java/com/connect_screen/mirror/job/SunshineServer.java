@@ -94,7 +94,7 @@ public class SunshineServer {
 
     
     // surface created by MediaCodec
-    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface) {
+    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMute) {
         if (ShizukuUtils.hasPermission()) {
             inputManager = ServiceUtils.getInputManager();
             screenWidth = width;
@@ -103,7 +103,7 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
-        if (State.currentActivity.get() != null) {
+        if (shouldMute && State.currentActivity.get() != null) {
             AudioManager audioManager = (AudioManager) State.currentActivity.get().getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
@@ -115,7 +115,7 @@ public class SunshineServer {
             State.log("停止 Moonlight 投屏");
             CreateVirtualDisplay.powerOnScreen();
             InputRouting.moveImeToDefault();
-            if (MediaProjectionService.instance != null) {
+            if (originalVolume != 0 && MediaProjectionService.instance != null) {
                 State.log("恢复音量: " + originalVolume);
                 AudioManager audioManager = (AudioManager) MediaProjectionService.instance.getSystemService(Context.AUDIO_SERVICE);
                 audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);

@@ -228,7 +228,7 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface) {
+    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface, jboolean shouldMute) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -239,14 +239,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;Z)V");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             jvm->DetachCurrentThread();
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface, shouldMute);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -464,9 +464,17 @@ namespace sunshine_callbacks {
             AMediaFormat_delete(format);
             return;
         }
+
+        bool shouldMute = true;
+        if (audioConfig.flags[audio::config_t::HOST_AUDIO]) {
+            BOOST_LOG(info) << "音频配置: 声音将在主机端(Sunshine服务器)播放"sv;
+            shouldMute = false;
+        } else {
+            BOOST_LOG(info) << "音频配置: 声音将在客户端(Moonlight)播放"sv;
+        }
         
-        // 调用 createVirtualDisplay 方法
-        createVirtualDisplay(env, config.width, config.height, 120, audioConfig.packetDuration, javaSurface);
+        // 调用 createVirtualDisplay 方法，传递 shouldMute 参数
+        createVirtualDisplay(env, config.width, config.height, 120, audioConfig.packetDuration, javaSurface, shouldMute);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
