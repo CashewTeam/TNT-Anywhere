@@ -40,7 +40,7 @@ public class TouchscreenActivity extends AppCompatActivity {
     // 添加计数器和时间记录变量
     private int updateCounter = 0;
     private long startTime = 0;
-    private boolean finished;
+    private boolean finished = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +68,7 @@ public class TouchscreenActivity extends AppCompatActivity {
         // 创建退出文本
         TextView exitText = new TextView(this);
         exitText.setId(View.generateViewId());
-        exitText.setPadding(16, 16, 16, 16);
+        exitText.setPadding(32, 32, 32, 32);
         exitText.setText("退\n出");
         exitText.setBackgroundColor(0x80888888);  // 半透明灰色背景
         exitText.setTextColor(0xFFFFFFFF);  // 白色文字
@@ -76,7 +76,7 @@ public class TouchscreenActivity extends AppCompatActivity {
         // 创建返回文本
         TextView backText = new TextView(this);
         backText.setId(View.generateViewId());
-        backText.setPadding(16, 16, 16, 16);
+        backText.setPadding(32, 32, 32, 32);
         backText.setText("返\n回");
         backText.setBackgroundColor(0x80888888);  // 半透明灰色背景
         backText.setTextColor(0xFFFFFFFF);  // 白色文字
@@ -148,7 +148,7 @@ public class TouchscreenActivity extends AppCompatActivity {
 
         // 添加长按退出功能
         exitText.setOnClickListener(v -> {
-            finish();
+            finished = true;
         });
         
         // 添加返回按钮功能
@@ -222,6 +222,7 @@ public class TouchscreenActivity extends AppCompatActivity {
         }
 
         if (finished) {
+            finish();
             return;
         }
 
@@ -265,8 +266,6 @@ public class TouchscreenActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 移除所有回调
-        finished = true;
         // 清理两个 bitmap
         if (drawView.bitmap != null && !drawView.bitmap.isRecycled()) {
             drawView.bitmap.recycle();

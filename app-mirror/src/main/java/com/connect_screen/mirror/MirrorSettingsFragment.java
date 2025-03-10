@@ -42,6 +42,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
     public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
     public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
+    public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -65,6 +66,7 @@ public class MirrorSettingsFragment extends Fragment {
         LinearLayout dpiLayout = view.findViewById(R.id.dpiLayout);
         CheckBox floatingBackButtonCheckbox = view.findViewById(R.id.floatingBackButtonCheckbox);
         CheckBox autoScreenOffCheckbox = view.findViewById(R.id.autoScreenOffCheckbox);
+        CheckBox autoBindInputCheckbox = view.findViewById(R.id.autoBindInputCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -73,6 +75,7 @@ public class MirrorSettingsFragment extends Fragment {
         int singleAppDpi = preferences.getInt(KEY_SINGLE_APP_DPI, 160);
         boolean floatingBackButton = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
         boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
+        boolean autoBindInput = preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -80,6 +83,7 @@ public class MirrorSettingsFragment extends Fragment {
         dpiEditText.setText(String.valueOf(singleAppDpi));
         floatingBackButtonCheckbox.setChecked(floatingBackButton);
         autoScreenOffCheckbox.setChecked(autoScreenOff);
+        autoBindInputCheckbox.setChecked(autoBindInput);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -259,6 +263,17 @@ public class MirrorSettingsFragment extends Fragment {
         autoScreenOffCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(KEY_AUTO_SCREEN_OFF, isChecked).apply();
         });
+
+        // 添加自动绑定输入复选框监听器
+        autoBindInputCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_AUTO_BIND_INPUT, isChecked).apply();
+        });
+        
+        // 如果没有 Shizuku 权限或者不是 Android 15，禁用该选项
+        boolean isAndroid15 = android.os.Build.VERSION.SDK_INT >= 35; // Android 15 是 API 35
+        if (!ShizukuUtils.hasPermission() || !isAndroid15) {
+            autoBindInputCheckbox.setEnabled(false);
+        }
 
         return view;
     }

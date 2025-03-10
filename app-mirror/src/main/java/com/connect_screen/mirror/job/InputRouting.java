@@ -1,6 +1,11 @@
 package com.connect_screen.mirror.job;
 
 
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_BIND_INPUT;
+import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.input.IInputManager;
 import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
@@ -90,6 +95,9 @@ public class InputRouting {
     }
 
     public static void bindAllExternalInputToDisplay(int displayId) {
+        if (!shouldBind()) {
+            return;
+        }
         DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
         IInputManager inputManager = ServiceUtils.getInputManager();
         Map<String, String> inputDeviceDescriptorToPortMap = InputRouting.getInputDeviceDescriptorToPortMap();
@@ -97,5 +105,15 @@ public class InputRouting {
             InputDevice inputDevice = inputManager.getInputDevice(deviceId);
             InputRouting.bindInputToDisplay(displayInfo, inputDevice, inputManager, inputDeviceDescriptorToPortMap);
         }
+    }
+
+    private static boolean shouldBind() {
+        try {
+            SharedPreferences preferences = State.currentActivity.get().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            return preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
+        } catch(Exception e) {
+            // ignore
+        }
+        return true;
     }
 }

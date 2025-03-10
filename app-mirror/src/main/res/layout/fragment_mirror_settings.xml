@@ -120,6 +120,14 @@
             android:textSize="16sp"
             android:padding="8dp"/>
 
+        <CheckBox
+            android:id="@+id/autoBindInputCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="自动移动鼠标等到外接显示器（鼠标仅对 shizuku 授权后的安卓15有效，推荐鼠标用户使用镜像模式去黑边。蓝牙手柄和键盘跟随系统焦点，通过熄屏按钮转移焦点）"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
         <LinearLayout
             android:id="@+id/dpiLayout"
             android:layout_width="match_parent"
