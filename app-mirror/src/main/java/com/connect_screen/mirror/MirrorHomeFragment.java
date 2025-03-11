@@ -42,7 +42,7 @@ public class MirrorHomeFragment extends Fragment {
         Button touchScreenBtn = view.findViewById(R.id.touchScreenBtn);
         Button exitBtn = view.findViewById(R.id.exitBtn);
         TextView mirrorStatus = view.findViewById(R.id.mirrorStatus);
-        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
+        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
             mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
             screenOffBtn.setVisibility(View.VISIBLE);
             if (singleAppMode && ShizukuUtils.hasPermission()) {
