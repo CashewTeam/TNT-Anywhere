@@ -26,11 +26,9 @@ public class State {
     public static BreadcrumbManager breadcrumbManager;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
-    public static DisplaylinkState displaylinkState = new DisplaylinkState();
     private static MediaProjection mediaProjection;
     public static MediaProjection mediaProjectionInUse;
     public static int lastSingleAppDisplay;
-    public static String displaylinkDeviceName;
     public static volatile IUserService userService;
     public static VirtualDisplay bridgeVirtualDisplay;
     public static int bridgeDisplayId = -1;
@@ -150,13 +148,6 @@ public class State {
             mediaProjection = newMediaProjection;
             mediaProjectionInUse = newMediaProjection;
         }
-    }
-
-    public static int getDisplaylinkVirtualDisplayId() {
-        if (displaylinkState.getVirtualDisplay() == null) {
-            return -1;
-        }
-        return displaylinkState.getVirtualDisplay().getDisplay().getDisplayId();
     }
 
     public static int getBridgeVirtualDisplayId() {

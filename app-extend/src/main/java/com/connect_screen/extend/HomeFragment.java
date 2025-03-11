@@ -46,7 +46,6 @@ public class HomeFragment extends Fragment {
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
 
         Button displayDeviceBtn = view.findViewById(R.id.displayDeviceBtn);
-        Button displaylinkBtn = view.findViewById(R.id.displaylinkBtn);
         Button simulateScreenOffBtn = view.findViewById(R.id.simulateScreenOffBtn);
         Button touchpadBtn = view.findViewById(R.id.touchpadBtn);
         Button inputDeviceBtn = view.findViewById(R.id.inputDeviceBtn);
@@ -60,10 +59,6 @@ public class HomeFragment extends Fragment {
 
         displayDeviceBtn.setOnClickListener(v -> {
             State.breadcrumbManager.pushBreadcrumb("屏幕", () -> new DisplayListFragment());
-        });
-
-        displaylinkBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("Displaylink", () -> new DisplaylinkFragment());
         });
 
         boolean useRealScreenOff = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -114,7 +109,6 @@ public class HomeFragment extends Fragment {
             .setTitle("还没有投屏应用")
             .setMessage(
                     "• USB3.0手机：连接屏幕后进入屏幕列表选择屏幕开始投屏单个应用\n\n" +
-                    "• USB2.0手机：点击Displaylink按钮，选择单应用投屏模式\n\n" +
                     "• 无线方式：使用安卓自带的无线投屏，然后进入屏幕列表找到无线屏幕，进行单应用投屏")
             .setPositiveButton("知道了", null)
             .show();

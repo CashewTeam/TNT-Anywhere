@@ -24,8 +24,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.connect_screen.extend.job.AcquireShizuku;
 import com.connect_screen.extend.job.DisplayMonitor;
 import com.connect_screen.extend.job.InputDeviceMonitor;
-import com.connect_screen.extend.job.ProjectViaDisplaylink;
-import com.connect_screen.extend.job.DisplaylinkMonitor;
 import com.connect_screen.extend.job.VirtualDisplayArgs;
 import com.connect_screen.extend.shizuku.ShizukuUtils;
 
@@ -112,19 +110,6 @@ public class MainActivity extends AppCompatActivity implements IMainActivity {
         String action = intent.getAction();
         State.log("MainActivity created with action: " + action);
 
-        // 查是否是 USB 设备连接的 Intent
-        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            DisplaylinkMonitor.onUsbDeviceAttached(device);
-            // 处理 USB 设备连接的逻辑
-            if (State.displaylinkDeviceName.equals(device.getDeviceName())) {
-                State.log("USB 设备已连接: " + device.getDeviceName());
-                DisplaylinkPref.load(this);
-                State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
-                State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs, ProjectionMode.SINGLE_APP));
-            }
-        }
-
         // 注册 USB 权限广播接收器
         IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
         registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
@@ -134,7 +119,6 @@ public class MainActivity extends AppCompatActivity implements IMainActivity {
         DisplayMonitor.init(displayManager);
         InputManager inputManager = (InputManager)getSystemService(Context.INPUT_SERVICE);
         InputDeviceMonitor.init(inputManager);
-        DisplaylinkMonitor.init(this);
     }
 
 

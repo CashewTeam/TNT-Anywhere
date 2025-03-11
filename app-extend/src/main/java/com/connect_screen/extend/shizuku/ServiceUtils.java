@@ -145,7 +145,7 @@ public class ServiceUtils {
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 launchAppNormally(packageName, context, targetDisplayId);
             } else {
-                if (State.getDisplaylinkVirtualDisplayId() == targetDisplayId || State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                if (State.getBridgeVirtualDisplayId() == targetDisplayId) {
                     launchAppWithShizuku(packageName, context, targetDisplayId);
                 } else {
                     launchAppNormally(packageName, context, targetDisplayId);
@@ -294,7 +294,7 @@ public class ServiceUtils {
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 launchActivityNormally(context, activityClass, targetDisplayId);
             } else {
-                if (State.getDisplaylinkVirtualDisplayId() == targetDisplayId || State.getBridgeVirtualDisplayId() == targetDisplayId) {
+                if (State.getBridgeVirtualDisplayId() == targetDisplayId) {
                     launchActivityWithShizuku(context, activityClass, targetDisplayId);
                 } else {
                     launchActivityNormally(context, activityClass, targetDisplayId);

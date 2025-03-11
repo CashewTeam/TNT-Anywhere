@@ -168,14 +168,6 @@
                 android:layout_marginStart="8dp"
                 android:visibility="gone"/>
         </LinearLayout>
-
-        <Button
-            android:id="@+id/goto_displaylink_button" 
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            android:text="由 Displaylink 创建"/>
             
         <Button
             android:id="@+id/set_ime_policy_button"

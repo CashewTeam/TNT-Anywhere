@@ -38,8 +38,6 @@ public class ExitAll {
             State.mirrorVirtualDisplay.release();
             State.mirrorVirtualDisplay = null;
         }
-        State.displaylinkState.stopVirtualDisplay();
-        State.displaylinkState.destroy();
         State.currentActivity.get().finish();
         
         // 退出应用进程

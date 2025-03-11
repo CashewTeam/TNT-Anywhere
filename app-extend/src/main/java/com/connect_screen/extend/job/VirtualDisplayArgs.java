@@ -12,7 +12,7 @@ public class VirtualDisplayArgs implements Parcelable {
     public final String virtualDisplayName;
 
     public VirtualDisplayArgs() {
-        this("DisplayLink", 1920, 1080, 60, 160, false);
+        this("VirtualDisplay", 1920, 1080, 60, 160, false);
     }
     public VirtualDisplayArgs(String virtualDisplayName, int width, int height, int refreshRate, int dpi, boolean rotatesWithContent) {
         this.virtualDisplayName = virtualDisplayName;

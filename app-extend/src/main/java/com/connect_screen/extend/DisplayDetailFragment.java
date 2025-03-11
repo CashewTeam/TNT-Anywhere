@@ -42,7 +42,6 @@ public class DisplayDetailFragment extends Fragment {
     private Display display;
     private Button supportedModesToggle;
     private TextView supportedModesText;
-    private Button gotoDisplaylinkButton;
     private Button setImePolicyButton;
     private CheckBox autoOpenLastAppCheckbox;
     private Button floatingButtonToggle;
@@ -196,30 +195,6 @@ public class DisplayDetailFragment extends Fragment {
 
         updateShizukuStatus();
 
-        // 添加 Displaylink 按钮相关逻辑
-        gotoDisplaylinkButton = view.findViewById(R.id.goto_displaylink_button);
-        if(displayId == State.getDisplaylinkVirtualDisplayId()) {
-            if (!ShizukuUtils.hasPermission()) {
-                launchButton.setVisibility(View.GONE);
-            }
-            gotoDisplaylinkButton.setVisibility(View.VISIBLE);
-            gotoDisplaylinkButton.setOnClickListener(v -> {
-                State.breadcrumbManager.pushBreadcrumb("Displaylink", () ->
-                        DisplaylinkFragment.newInstance()
-                );
-            });
-        } else {
-            if (displayId != Display.DEFAULT_DISPLAY) {
-                autoOpenLastAppCheckbox.setVisibility(View.VISIBLE);
-                SharedPreferences appPreferences = getActivity().getSharedPreferences("app_preferences", MODE_PRIVATE);
-                autoOpenLastAppCheckbox.setChecked(appPreferences.getBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), false));
-                autoOpenLastAppCheckbox.setOnClickListener(v -> {
-                    boolean isChecked = autoOpenLastAppCheckbox.isChecked();
-                    appPreferences.edit().putBoolean("AUTO_OPEN_LAST_APP_" + display.getName(), isChecked).apply();
-                });
-            }
-        }
-
         // 添加桥接按钮
         Button bridgeButton = view.findViewById(R.id.bridge_button);
 
@@ -231,14 +206,6 @@ public class DisplayDetailFragment extends Fragment {
                 if (BridgeActivity.getInstance() != null) {
                     BridgeActivity.getInstance().finish();
                 }
-            });
-        } else if (displayId == State.getDisplaylinkVirtualDisplayId()) {
-            bridgeButton.setVisibility(View.VISIBLE);
-            bridgeButton.setText("退出 Displaylink 投屏");
-            bridgeButton.setOnClickListener(v -> {
-                State.displaylinkState.stopVirtualDisplay();
-                State.displaylinkState.destroy();
-                State.breadcrumbManager.popBreadcrumb();
             });
         } else if(displayId != Display.DEFAULT_DISPLAY && ShizukuUtils.hasShizukuStarted()) {
             bridgeButton.setVisibility(View.VISIBLE);

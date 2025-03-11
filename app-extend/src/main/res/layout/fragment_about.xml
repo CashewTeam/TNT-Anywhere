@@ -9,7 +9,7 @@
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="软件使用方法请查看短视频平台介绍或访问 connect-screen.com 。屏连入口是扩展投屏模式，屏易连入口是镜像投屏模式。"
+        android:text="软件使用方法请查看短视频平台介绍或访问 connect-screen.com 。'屏连启动器'只是应用的启动器，功能是把应用启动在已经连接了的屏幕上，用于开发者诊断问题。普通用户应该使用'屏易连'去连接屏幕。"
         android:textSize="16sp"
         android:textColor="@color/black"
         android:layout_marginBottom="16dp"/>
@@ -86,16 +86,5 @@
         android:layout_marginTop="8dp"
         android:clickable="true"
         android:autoLink="web"/>
-
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="16dp"/>
-
-    <TextView
-        android:id="@+id/aboutContent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="16sp"/>
 
 </LinearLayout> 
