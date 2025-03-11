@@ -40,20 +40,11 @@ public class ProjectViaMirror implements Job {
         Context context = State.currentActivity.get();
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
-        if (singleAppMode) {
-            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
-            if (ShizukuUtils.hasPermission()) {
-                IWindowManager wm = ServiceUtils.getWindowManager();
-                wm.setForcedDisplayDensityForUser(mirrorDisplay.getDisplayId(), singleAppDpi, 0);
-            }
+        if (singleAppMode && !ShizukuUtils.hasPermission()) {
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
-            if (ShizukuUtils.hasPermission()) {
-                InputRouting.bindAllExternalInputToDisplay(mirrorDisplay.getDisplayId());
-            }
             CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();
-            InputRouting.moveImeToExternal(mirrorDisplay.getDisplayId());
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
                 @Override
@@ -65,7 +56,6 @@ public class ProjectViaMirror implements Job {
                 public void onDisplayRemoved(int i) {
                     if (i == targetDisplayId) {
                         CreateVirtualDisplay.powerOnScreen();
-                        InputRouting.moveImeToDefault();
                         ExitAll.execute(null, false);
                     }
                 }

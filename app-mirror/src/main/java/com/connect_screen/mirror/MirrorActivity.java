@@ -16,6 +16,7 @@ import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.IWindowManager;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -29,9 +30,13 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
+import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.ExternalTextureRenderer;
+import com.connect_screen.mirror.job.InputRouting;
 import com.connect_screen.mirror.job.LandscapeAutoScaler;
 import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class MirrorActivity extends AppCompatActivity {
     
@@ -57,6 +62,7 @@ public class MirrorActivity extends AppCompatActivity {
     private boolean autoRotate;
     private boolean autoScale;
     private OrientationChangeCallback orientationChangeCallback;
+    private boolean singleAppMode;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -110,6 +116,14 @@ public class MirrorActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
         autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
+        singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        if (!ShizukuUtils.hasPermission()) {
+            singleAppMode = false;
+        }
+        if (singleAppMode) {
+            autoRotate = false;
+            autoScale = false;
+        }
 
        if (getSupportActionBar() != null) {
            getSupportActionBar().hide();
@@ -275,11 +289,51 @@ public class MirrorActivity extends AppCompatActivity {
                             isLandscape = true;
                         }
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                        State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
-                                isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(), isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
-                                DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                                targetSurface, null, renderHandler);
-                        State.setMediaProjection(null);
+                        if (singleAppMode) {
+                            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(
+                                    new VirtualDisplayArgs(), targetSurface
+                            );
+                            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+                            int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
+                            if (ShizukuUtils.hasPermission()) {
+                                IWindowManager wm = ServiceUtils.getWindowManager();
+                                wm.setForcedDisplayDensityForUser(mirrorDisplayId, singleAppDpi, 0);
+                            }
+                            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+                            ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
+                            if (ShizukuUtils.hasPermission()) {
+                                InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
+                            }
+                            CreateVirtualDisplay.powerOffScreen();
+                            InputRouting.moveImeToExternal(mirrorDisplayId);
+                            DisplayManager displayManager2 = (DisplayManager) MirrorActivity.this.getSystemService(Context.DISPLAY_SERVICE);
+                            displayManager2.registerDisplayListener(new DisplayManager.DisplayListener() {
+                                @Override
+                                public void onDisplayAdded(int i) {
+
+                                }
+
+                                @Override
+                                public void onDisplayRemoved(int i) {
+                                    if (i == mirrorDisplayId) {
+                                        CreateVirtualDisplay.powerOnScreen();
+                                        InputRouting.moveImeToDefault();
+                                        ExitAll.execute(null, false);
+                                    }
+                                }
+
+                                @Override
+                                public void onDisplayChanged(int i) {
+
+                                }
+                            }, null);
+                        } else {
+                            State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
+                                    isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(), isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
+                                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                                    targetSurface, null, renderHandler);
+                            State.setMediaProjection(null);
+                        }
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
                         DisplayMetrics metrics = new DisplayMetrics();
