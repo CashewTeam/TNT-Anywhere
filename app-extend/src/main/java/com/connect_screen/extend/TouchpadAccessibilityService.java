@@ -14,7 +14,6 @@ import java.util.List;
 import android.view.KeyEvent;
 
 import com.connect_screen.extend.shizuku.PermissionManager;
-import com.termux.x11.MainActivity;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;
@@ -82,10 +81,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        if (State.isInPureBlackActivity != null && MainActivity.mInputHandler != null) {
-            MainActivity.mInputHandler.sendKeyEvent(event);
-            return true;
-        } else if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && State.lastSingleAppDisplay > 0) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && State.lastSingleAppDisplay > 0) {
             TouchpadActivity.launchLastPackage(getApplicationContext(), State.lastSingleAppDisplay);
             return true;
         }

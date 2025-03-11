@@ -26,7 +26,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.connect_screen.extend.shizuku.ServiceUtils;
 import com.connect_screen.extend.shizuku.ShizukuUtils;
 import com.connect_screen.extend.shizuku.SurfaceControl;
-import com.termux.x11.MainActivity;
 
 import dev.rikka.tools.refine.Refine;
 
@@ -101,15 +100,6 @@ public class PureBlackActivity extends AppCompatActivity {
             view.requestFocusFromTouch();
             view.requestPointerCapture();
             return false;
-        });
-        
-        view.setOnCapturedPointerListener((v, event) -> {
-            if (MainActivity.mInputHandler != null) {
-                MainActivity.lorieView.forceHasPointerCapture = true;
-                MainActivity.mInputHandler.handleTouchEvent(MainActivity.lorieView, MainActivity.lorieView, event);
-                MainActivity.lorieView.forceHasPointerCapture = false;
-            }
-            return true;
         });
         
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);

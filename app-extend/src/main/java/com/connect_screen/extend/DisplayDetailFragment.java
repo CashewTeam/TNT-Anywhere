@@ -136,10 +136,6 @@ public class DisplayDetailFragment extends Fragment {
 
         shizukuStatusText = view.findViewById(R.id.shizuku_status);
 
-        Button x11Button = view.findViewById(R.id.start_x11_button);
-        x11Button.setOnClickListener(v -> {
-            LaunchX11Receiver.launchX11AtDisplay(getContext(), display);
-        });
         launchButton = view.findViewById(R.id.start_launcher_button);
         if (displayId == 0) {
             launchButton.setVisibility(View.GONE);

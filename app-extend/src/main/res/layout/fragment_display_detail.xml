@@ -133,13 +133,6 @@
         </LinearLayout>
 
         <Button
-            android:id="@+id/start_x11_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="投屏 Termux X11"/>
-
-        <Button
             android:id="@+id/touchpad_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
