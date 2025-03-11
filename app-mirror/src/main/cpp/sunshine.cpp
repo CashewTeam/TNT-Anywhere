@@ -322,6 +322,7 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
+#if __ANDROID_API__ >= 28
     void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
@@ -599,6 +600,11 @@ namespace sunshine_callbacks {
         // 清理 Java Surface 引用
         jvm->DetachCurrentThread();
     }
+#else
+    void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
+        showEncoderError("安卓 >= 9 才支持 Moonlight 无线投屏");
+    }
+#endif
 
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {
         samples = std::make_shared<audio::sample_queue_t::element_type>(30);
