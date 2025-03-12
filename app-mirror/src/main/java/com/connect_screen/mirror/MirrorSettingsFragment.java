@@ -46,6 +46,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
     public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
     public static final String KEY_DISABLE_USB_AUDIO = "disable_usb_audio";
+    public static final String KEY_USE_TOUCHSCREEN = "use_touchscreen";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -72,6 +73,7 @@ public class MirrorSettingsFragment extends Fragment {
         CheckBox autoBindInputCheckbox = view.findViewById(R.id.autoBindInputCheckbox);
         CheckBox autoMoveImeCheckbox = view.findViewById(R.id.autoMoveImeCheckbox);
         CheckBox disableUsbAudioCheckbox = view.findViewById(R.id.disableUsbAudioCheckbox);
+        CheckBox useTouchscreenCheckbox = view.findViewById(R.id.useTouchscreenCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -83,6 +85,7 @@ public class MirrorSettingsFragment extends Fragment {
         boolean autoBindInput = preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
         boolean autoMoveIme = preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
         boolean disableUsbAudio = preferences.getBoolean(KEY_DISABLE_USB_AUDIO, false);
+        boolean useTouchscreen = preferences.getBoolean(KEY_USE_TOUCHSCREEN, true);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -93,6 +96,7 @@ public class MirrorSettingsFragment extends Fragment {
         autoBindInputCheckbox.setChecked(autoBindInput);
         autoMoveImeCheckbox.setChecked(autoMoveIme);
         disableUsbAudioCheckbox.setChecked(disableUsbAudio);
+        useTouchscreenCheckbox.setChecked(useTouchscreen);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -314,6 +318,16 @@ public class MirrorSettingsFragment extends Fragment {
         if (!ShizukuUtils.hasPermission()) {
             disableUsbAudioCheckbox.setEnabled(false);
             disableUsbAudioCheckbox.setText("停用外接屏幕的声音输出（需要Shizuku权限）");
+        }
+
+        // 添加触摸屏控制复选框监听器
+        useTouchscreenCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_USE_TOUCHSCREEN, isChecked).apply();
+        });
+        
+        // 如果没有 Shizuku 权限，禁用该选项
+        if (!ShizukuUtils.hasPermission()) {
+            useTouchscreenCheckbox.setEnabled(false);
         }
 
         return view;

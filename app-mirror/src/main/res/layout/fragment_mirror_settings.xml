@@ -136,6 +136,14 @@
             android:textSize="16sp"
             android:padding="8dp"/>
 
+        <CheckBox
+            android:id="@+id/useTouchscreenCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="启用主屏触摸控制扩展屏"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
         <LinearLayout
             android:id="@+id/dpiLayout"
             android:layout_width="match_parent"

@@ -1,6 +1,7 @@
 package com.connect_screen.mirror;
 
 import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_SINGLE_APP_MODE;
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_USE_TOUCHSCREEN;
 import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
 
 import android.content.Context;
@@ -38,6 +39,7 @@ public class MirrorHomeFragment extends Fragment {
 
         SharedPreferences preferences = requireContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
+        boolean useTouchscreen = preferences.getBoolean(KEY_USE_TOUCHSCREEN, true);
         Button settingsBtn = view.findViewById(R.id.settingsBtn);
         Button screenOffBtn = view.findViewById(R.id.screenOffBtn);
         Button touchScreenBtn = view.findViewById(R.id.touchScreenBtn);
@@ -47,7 +49,7 @@ public class MirrorHomeFragment extends Fragment {
             mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
             screenOffBtn.setVisibility(View.VISIBLE);
             if (singleAppMode) {
-                if (ShizukuUtils.hasPermission()) {
+                if (ShizukuUtils.hasPermission() && useTouchscreen) {
                     touchScreenBtn.setVisibility(View.VISIBLE);
                 } else {
                     touchScreenBtn.setVisibility(View.VISIBLE);
@@ -68,7 +70,7 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         touchScreenBtn.setOnClickListener(v -> {
-            if (ShizukuUtils.hasPermission()) {
+            if (ShizukuUtils.hasPermission() && useTouchscreen) {
                 VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
                 if (virtualDisplay == null) {
                     virtualDisplay = State.mirrorVirtualDisplay;

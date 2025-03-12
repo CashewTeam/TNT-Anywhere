@@ -246,11 +246,14 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             TouchpadAccessibilityService.startServiceByShizuku(context);
         }
         new Thread(() -> {
-            for (int i = 0; i < 5; i++) {
+            java.util.concurrent.atomic.AtomicBoolean granted = new java.util.concurrent.atomic.AtomicBoolean(false);
+            for (int i = 0; i < 5 && !granted.get(); i++) {
                 // 使用 Handler 在主线程执行
                 new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                     if (TouchpadAccessibilityService.instance != null) {
-                        TouchpadAccessibilityService.instance.tryGrantPermissionByClick();
+                        if (TouchpadAccessibilityService.instance.tryGrantPermissionByClick()) {
+                            granted.set(true);
+                        }
                     }
                 });
                 try {
@@ -262,7 +265,7 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }).start();
     }
 
-    private void tryGrantPermissionByClick() {
+    private boolean tryGrantPermissionByClick() {
         android.util.Log.d("AccessibilityService", "无障碍尝试确认");
         List<AccessibilityWindowInfo> windows = getWindows();
         if (windows != null && !windows.isEmpty()) {
@@ -280,7 +283,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                                     boolean clicked = node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                                     State.log("尝试点击按钮 '" + text + "': " + (clicked ? "成功" : "失败"));
                                     node.recycle();
-                                    if (clicked) return;
+                                    if (clicked) {
+                                        return true;
+                                    }
                                 }
                                 node.recycle();
                             }
@@ -291,5 +296,6 @@ public class TouchpadAccessibilityService extends AccessibilityService {
                 }
             }
         }
+        return false;
     }
 }

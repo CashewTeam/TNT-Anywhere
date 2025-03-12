@@ -40,7 +40,8 @@ public class ProjectViaMirror implements Job {
         Context context = State.currentActivity.get();
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
-        if (singleAppMode && !ShizukuUtils.hasPermission()) {
+        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsFragment.KEY_USE_TOUCHSCREEN, true);
+        if (singleAppMode && (!ShizukuUtils.hasPermission() || !useTouchscreen)) {
             String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
             CreateVirtualDisplay.powerOffScreen();

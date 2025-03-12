@@ -595,9 +595,17 @@ public class TouchpadActivity extends AppCompatActivity {
                 switch (position) {
                     case MODE_NORMAL:
                         isCursorLocked = false;
+                        // 在普通模式下显示光标
+                        if (cursorView != null) {
+                            cursorView.setVisibility(View.VISIBLE);
+                        }
                         break;
                     case MODE_CURSOR_LOCKED:
                         isCursorLocked = true;
+                        // 在锁定光标模式下隐藏光标
+                        if (cursorView != null) {
+                            cursorView.setVisibility(View.GONE);
+                        }
                         break;
                 }
                 updateHelp();
