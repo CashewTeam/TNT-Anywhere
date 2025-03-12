@@ -304,7 +304,6 @@ public class MirrorActivity extends AppCompatActivity {
                             if (ShizukuUtils.hasPermission()) {
                                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
                             }
-                            CreateVirtualDisplay.powerOffScreen();
                             InputRouting.moveImeToExternal(mirrorDisplayId);
                             DisplayManager displayManager2 = (DisplayManager) MirrorActivity.this.getSystemService(Context.DISPLAY_SERVICE);
                             displayManager2.registerDisplayListener(new DisplayManager.DisplayListener() {
@@ -333,6 +332,7 @@ public class MirrorActivity extends AppCompatActivity {
                                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                                     targetSurface, null, renderHandler);
                             State.setMediaProjection(null);
+                            CreateVirtualDisplay.changeAspectRatio(surfaceView.getWidth(), surfaceView.getHeight());
                         }
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
@@ -423,6 +423,7 @@ public class MirrorActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        CreateVirtualDisplay.restoreAspectRatio();
         CreateVirtualDisplay.powerOnScreen();
         instance = null;
         if (orientationChangeCallback != null) {

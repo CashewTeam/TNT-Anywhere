@@ -114,6 +114,7 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.log("停止 Moonlight 投屏");
             CreateVirtualDisplay.powerOnScreen();
+            CreateVirtualDisplay.restoreAspectRatio();
             InputRouting.moveImeToDefault();
             if (originalVolume != 0 && MediaProjectionService.instance != null) {
                 State.log("恢复音量: " + originalVolume);

@@ -1,5 +1,6 @@
 package com.connect_screen.mirror.job;
 
+import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_MATCH_ASPECT_RATIO;
 import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_SCREEN_OFF;
 import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_SINGLE_APP_MODE;
 import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
@@ -8,6 +9,7 @@ import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
 import android.hardware.display.IDisplayManager;
@@ -20,6 +22,7 @@ import android.os.Build;
 import android.os.RemoteException;
 import android.view.Display;
 import android.view.DisplayInfo;
+import android.view.IWindowManager;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -243,6 +246,56 @@ public class CreateVirtualDisplay {
                 }
             }
         }
+    }
+
+    private static boolean shouldChangeAspectRatio() {
+        if (!ShizukuUtils.hasPermission()) {
+            return false;
+        }
+        MirrorMainActivity context = State.currentActivity.get();
+        if (context == null) {
+            return false;
+        }
+        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        boolean autoMatchAspectRatio = preferences.getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
+        if (!autoMatchAspectRatio) {
+            return false;
+        }
+        return true;
+    }
+
+    public static void changeAspectRatio(int width, int height) {
+        if(!shouldChangeAspectRatio()) {
+            return;
+        }
+        IWindowManager wm = ServiceUtils.getWindowManager();
+        Point baseSize = new Point();
+        wm.getInitialDisplaySize(Display.DEFAULT_DISPLAY, baseSize);
+        int internalWidth = Math.min(baseSize.x, baseSize.y);
+        int internalHeight = Math.max(baseSize.x, baseSize.y);
+        float externalWidth = Math.min(width, height);
+        float externalHeight = Math.max(width, height);
+        internalHeight = (int) (internalWidth * (externalHeight / externalWidth));
+        if (internalHeight < 1920) {
+            return;
+        }
+        ServiceUtils.getWindowManager().setForcedDisplaySize(Display.DEFAULT_DISPLAY, internalWidth, internalHeight);
+    }
+
+    public static void restoreAspectRatio() {
+        if(!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        IWindowManager wm = ServiceUtils.getWindowManager();
+        Point baseSize = new Point();
+        wm.getBaseDisplaySize(Display.DEFAULT_DISPLAY, baseSize);
+        Point initialSize = new Point();
+        wm.getInitialDisplaySize(Display.DEFAULT_DISPLAY, initialSize);
+        if (baseSize.y == initialSize.y) {
+            return;
+        }
+        wm.clearForcedDisplaySize(Display.DEFAULT_DISPLAY);
+        wm.setForcedDisplaySize(Display.DEFAULT_DISPLAY, initialSize.x, initialSize.y);
     }
 
     public static class VirtualDisplayCallback extends IVirtualDisplayCallback.Stub {

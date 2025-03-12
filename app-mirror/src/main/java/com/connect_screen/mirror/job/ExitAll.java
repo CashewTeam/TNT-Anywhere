@@ -11,6 +11,7 @@ import com.connect_screen.mirror.State;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
+        CreateVirtualDisplay.restoreAspectRatio();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
             State.mediaProjectionInUse = null;

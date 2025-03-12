@@ -322,7 +322,6 @@ namespace sunshine_callbacks {
         jvm->DetachCurrentThread();
     }
 
-#if __ANDROID_API__ >= 28
     void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
         JNIEnv *env;
         jint result = jvm->AttachCurrentThread(&env, nullptr);
@@ -360,7 +359,7 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_FPS_TO_ENCODER, config.framerate);
+        AMediaFormat_setInt32(format, "max-fps-to-encoder", config.framerate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 2); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
@@ -600,11 +599,6 @@ namespace sunshine_callbacks {
         // 清理 Java Surface 引用
         jvm->DetachCurrentThread();
     }
-#else
-    void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
-        showEncoderError("安卓 >= 9 才支持 Moonlight 无线投屏");
-    }
-#endif
 
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {
         samples = std::make_shared<audio::sample_queue_t::element_type>(30);

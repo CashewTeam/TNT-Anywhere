@@ -367,7 +367,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
         State.currentActivity = null;
-        unregisterReceiver(usbPermissionReceiver);
+        try {
+            unregisterReceiver(usbPermissionReceiver);
+        } catch (Exception e) {
+            // ignore
+        }
     }
     
     @Override

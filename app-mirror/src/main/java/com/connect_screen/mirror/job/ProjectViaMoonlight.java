@@ -108,11 +108,13 @@ public class ProjectViaMoonlight implements Job {
             InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
         } else if (autoRotate || autoScale) {
+            CreateVirtualDisplay.changeAspectRatio(width, height);
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, 160, false));
             SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
             CreateVirtualDisplay.powerOffScreen();
         } else {
+            CreateVirtualDisplay.changeAspectRatio(width, height);
             State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Moonlight",
                     width,
                     height,

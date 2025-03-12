@@ -21,7 +21,7 @@ import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
-    public static WeakReference<MirrorMainActivity> currentActivity;
+    public static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
     public static BreadcrumbManager breadcrumbManager;
     public static FloatingButtonService floatingButtonService;
     private static Job currentJob;

@@ -47,6 +47,7 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
     public static final String KEY_DISABLE_USB_AUDIO = "disable_usb_audio";
     public static final String KEY_USE_TOUCHSCREEN = "use_touchscreen";
+    public static final String KEY_AUTO_MATCH_ASPECT_RATIO = "auto_match_aspect_ratio";
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,6 +75,7 @@ public class MirrorSettingsFragment extends Fragment {
         CheckBox autoMoveImeCheckbox = view.findViewById(R.id.autoMoveImeCheckbox);
         CheckBox disableUsbAudioCheckbox = view.findViewById(R.id.disableUsbAudioCheckbox);
         CheckBox useTouchscreenCheckbox = view.findViewById(R.id.useTouchscreenCheckbox);
+        CheckBox autoMatchAspectRatioCheckbox = view.findViewById(R.id.autoMatchAspectRatioCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -86,6 +88,7 @@ public class MirrorSettingsFragment extends Fragment {
         boolean autoMoveIme = preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
         boolean disableUsbAudio = preferences.getBoolean(KEY_DISABLE_USB_AUDIO, false);
         boolean useTouchscreen = preferences.getBoolean(KEY_USE_TOUCHSCREEN, true);
+        boolean autoMatchAspectRatio = preferences.getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -97,6 +100,7 @@ public class MirrorSettingsFragment extends Fragment {
         autoMoveImeCheckbox.setChecked(autoMoveIme);
         disableUsbAudioCheckbox.setChecked(disableUsbAudio);
         useTouchscreenCheckbox.setChecked(useTouchscreen);
+        autoMatchAspectRatioCheckbox.setChecked(autoMatchAspectRatio);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -328,6 +332,16 @@ public class MirrorSettingsFragment extends Fragment {
         // 如果没有 Shizuku 权限，禁用该选项
         if (!ShizukuUtils.hasPermission()) {
             useTouchscreenCheckbox.setEnabled(false);
+        }
+
+        // 添加自动匹配宽高比复选框监听器
+        autoMatchAspectRatioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, isChecked).apply();
+        });
+        
+        // 如果没有 Shizuku 权限，禁用该选项
+        if (!ShizukuUtils.hasPermission()) {
+            autoMatchAspectRatioCheckbox.setEnabled(false);
         }
 
         return view;

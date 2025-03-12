@@ -208,6 +208,14 @@
         android:textSize="16sp"
         android:padding="8dp"/>
 
+    <CheckBox
+        android:id="@+id/autoMatchAspectRatioCheckbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自动改变主屏宽高比以适配扩展屏"
+        android:textSize="16sp"
+        android:padding="8dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
