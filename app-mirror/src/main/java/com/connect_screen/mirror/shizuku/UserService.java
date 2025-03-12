@@ -91,7 +91,7 @@ public class UserService extends IUserService.Stub  {
         }
     }
 
-    public void setScreenPower(int powerMode) {
+    public boolean setScreenPower(int powerMode) {
         Log.i("UserService", "try to setScreenPower: " + powerMode);
         IDisplayManager displayManager = IDisplayManager.Stub.asInterface(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
         if (Build.VERSION.SDK_INT >= 35) {
@@ -106,6 +106,7 @@ public class UserService extends IUserService.Stub  {
                         Log.i("UserService", "requestDisplayPower by int");
                     } catch(Throwable e2) {
                         Log.e("UserService", "failed to power off screen", e2);
+                        return false;
                     }
                 }
             } else {
@@ -119,18 +120,25 @@ public class UserService extends IUserService.Stub  {
                         Log.i("UserService", "requestDisplayPower by int");
                     } catch(Throwable e2) {
                         Log.e("UserService", "failed to power up screen", e2);
+                        return false;
                     }
                 }
             }
         } else {
-            IBinder d = SurfaceControl.getBuiltInDisplay();
-            if (d == null) {
-                Log.i("UserService", "Could not get built-in display");
-            } else {
-                SurfaceControl.setDisplayPowerMode(d, powerMode);
-                Log.i("UserService", "setDisplayPowerMode success");
+            try {
+                IBinder d = SurfaceControl.getBuiltInDisplay();
+                if (d == null) {
+                    Log.i("UserService", "Could not get built-in display");
+                } else {
+                    SurfaceControl.setDisplayPowerMode(d, powerMode);
+                    Log.i("UserService", "setDisplayPowerMode success");
+                }
+            }catch(Throwable e) {
+                Log.e("UserService", "failed to power up screen", e);
+                return false;
             }
         }
+        return true;
     }
 
     public void startListenVolumeKey() throws RemoteException {

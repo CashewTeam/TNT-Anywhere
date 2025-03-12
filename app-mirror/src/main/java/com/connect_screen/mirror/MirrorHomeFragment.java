@@ -68,11 +68,11 @@ public class MirrorHomeFragment extends Fragment {
         });
 
         touchScreenBtn.setOnClickListener(v -> {
-            VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
-            if (virtualDisplay == null) {
-                virtualDisplay = State.mirrorVirtualDisplay;
-            }
             if (ShizukuUtils.hasPermission()) {
+                VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+                if (virtualDisplay == null) {
+                    virtualDisplay = State.mirrorVirtualDisplay;
+                }
                 if (virtualDisplay == null) {
                     return;
                 }
@@ -82,11 +82,7 @@ public class MirrorHomeFragment extends Fragment {
                 intent.putExtra("display", displayId);
                 startActivity(intent);
             } else {
-                int displayId = State.lastSingleAppDisplay;
-                if (virtualDisplay != null) {
-                    displayId = virtualDisplay.getDisplay().getDisplayId();
-                }
-                TouchpadActivity.startTouchpad(requireContext(), displayId, false);
+                TouchpadActivity.startTouchpad(requireContext(), State.lastSingleAppDisplay, false);
             }
         });
 

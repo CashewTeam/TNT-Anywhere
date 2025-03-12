@@ -1,6 +1,7 @@
 package com.connect_screen.mirror;
 
 import android.accessibilityservice.GestureDescription;
+import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;
 import android.content.Context;
 import android.content.Intent;
@@ -491,9 +492,9 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     private void toggleDarkMode() {
-//        Intent intent = new Intent(this, PureBlackActivity.class);
-//        ActivityOptions options = ActivityOptions.makeBasic();
-//        startActivity(intent, options.toBundle());
+        Intent intent = new Intent(this, PureBlackActivity.class);
+        ActivityOptions options = ActivityOptions.makeBasic();
+        startActivity(intent, options.toBundle());
     }
 
     public static void setFocus(IInputManager inputManager, int displayId) {

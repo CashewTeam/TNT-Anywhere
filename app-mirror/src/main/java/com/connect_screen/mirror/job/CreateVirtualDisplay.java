@@ -95,7 +95,13 @@ public class CreateVirtualDisplay {
         if (State.userService != null) {
             try {
                 State.userService.startListenVolumeKey();
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
+                if (!State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
+                    if (singleApp) {
+                        Intent intent = new Intent(context, PureBlackActivity.class);
+                        ActivityOptions options = ActivityOptions.makeBasic();
+                        context.startActivity(intent, options.toBundle());
+                    }
+                }
             } catch (RemoteException e2) {
                 State.log("powerOffScreen failed: " + e2.getMessage());
             }
