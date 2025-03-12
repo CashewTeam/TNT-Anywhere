@@ -276,7 +276,7 @@ public class CreateVirtualDisplay {
         float externalWidth = Math.min(width, height);
         float externalHeight = Math.max(width, height);
         internalHeight = (int) (internalWidth * (externalHeight / externalWidth));
-        if (internalHeight < 1920) {
+        if (internalHeight < 1600) {
             return;
         }
         ServiceUtils.getWindowManager().setForcedDisplaySize(Display.DEFAULT_DISPLAY, internalWidth, internalHeight);

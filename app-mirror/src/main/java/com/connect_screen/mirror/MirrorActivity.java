@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.hardware.input.IInputManager;
 import android.opengl.EGLConfig;
 import android.opengl.EGLSurface;
 import android.os.Build;
@@ -17,6 +18,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.IWindowManager;
+import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -38,8 +40,10 @@ import com.connect_screen.mirror.job.VirtualDisplayArgs;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import dev.rikka.tools.refine.Refine;
+
 public class MirrorActivity extends AppCompatActivity {
-    
+
     private static MirrorActivity instance;
     private SurfaceView surfaceView;
     private int portraitInputTextureId = -1;
@@ -79,10 +83,12 @@ public class MirrorActivity extends AppCompatActivity {
 
     private class OrientationChangeCallback implements DisplayManager.DisplayListener {
         @Override
-        public void onDisplayAdded(int displayId) {}
+        public void onDisplayAdded(int displayId) {
+        }
 
         @Override
-        public void onDisplayRemoved(int displayId) {}
+        public void onDisplayRemoved(int displayId) {
+        }
 
         @Override
         public void onDisplayChanged(int displayId) {
@@ -125,27 +131,27 @@ public class MirrorActivity extends AppCompatActivity {
             autoScale = false;
         }
 
-       if (getSupportActionBar() != null) {
-           getSupportActionBar().hide();
-       }
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
 
-       getWindow().setFlags(
-               WindowManager.LayoutParams.FLAG_FULLSCREEN,
-               WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-       Window window = getWindow();
-       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-           window.setDecorFitsSystemWindows(false);
-       }
+        Window window = getWindow();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false);
+        }
 
-       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-           WindowManager.LayoutParams layoutParams = window.getAttributes();
-           layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-           window.setAttributes(layoutParams);
-       }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowManager.LayoutParams layoutParams = window.getAttributes();
+            layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+            window.setAttributes(layoutParams);
+        }
 
-       window.setStatusBarColor(Color.TRANSPARENT);
-       window.setNavigationBarColor(Color.TRANSPARENT);
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
 
         surfaceView = new SurfaceView(this);
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
@@ -184,7 +190,7 @@ public class MirrorActivity extends AppCompatActivity {
                 DisplayMetrics displayMetrics = new DisplayMetrics();
                 Display display = displayManager.getDisplay(0);
                 display.getRealMetrics(displayMetrics); // 使用getRealMetrics获取包含系统装饰(如状态栏、导航栏)的真实尺寸
-                int defaultDisplayWidth = displayMetrics.widthPixels;  // 获取实际屏幕宽度
+                int defaultDisplayWidth = displayMetrics.widthPixels; // 获取实际屏幕宽度
                 int defaultDisplayHeight = displayMetrics.heightPixels; // 获取实际屏幕高度
                 if (defaultDisplayHeight < defaultDisplayWidth) {
                     // 如果主屏幕是横屏,交换宽高
@@ -238,7 +244,8 @@ public class MirrorActivity extends AppCompatActivity {
                     eglContext = EGL14.eglCreateContext(eglDisplay, eglConfig, EGL14.EGL_NO_CONTEXT, contextAttribs, 0);
 
                     // 创建 EGL Surface
-                    eglOutputSurface = EGL14.eglCreateWindowSurface(eglDisplay, eglConfig, surfaceView.getHolder().getSurface(), null, 0);
+                    eglOutputSurface = EGL14.eglCreateWindowSurface(eglDisplay, eglConfig,
+                            surfaceView.getHolder().getSurface(), null, 0);
 
                     // 设置当前 EGL 环境
                     EGL14.eglMakeCurrent(eglDisplay, eglOutputSurface, eglOutputSurface, eglContext);
@@ -251,7 +258,8 @@ public class MirrorActivity extends AppCompatActivity {
                     landscapeInputTextureId = textures[1];
 
                     portraitRenderer = new PortraitRenderer(portraitInputTextureId, eglDisplay, eglOutputSurface);
-                    landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface, surfaceView.getWidth(), surfaceView.getHeight(), autoScale);
+                    landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface,
+                            surfaceView.getWidth(), surfaceView.getHeight(), autoScale);
 
                     GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
@@ -267,7 +275,6 @@ public class MirrorActivity extends AppCompatActivity {
                     GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
                     GLES20.glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
-
                     // 创建SurfaceTexture和Surface
                     portraitInputSurfaceTexture = new SurfaceTexture(portraitInputTextureId);
                     portraitInputSurfaceTexture.setDefaultBufferSize(surfaceView.getHeight(), surfaceView.getWidth());
@@ -280,7 +287,7 @@ public class MirrorActivity extends AppCompatActivity {
                     landscapeInputSurface = new Surface(landscapeInputSurfaceTexture);
 
                     // 使用inputSurface创建虚拟显示器
-                     if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
+                    if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
                         stopVirtualDisplay();
                         DisplayMetrics metrics = new DisplayMetrics();
                         display.getRealMetrics(metrics);
@@ -291,21 +298,22 @@ public class MirrorActivity extends AppCompatActivity {
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
                         if (singleAppMode) {
                             State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(
-                                    new VirtualDisplayArgs(), targetSurface
-                            );
+                                    new VirtualDisplayArgs(), targetSurface);
                             int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
                             if (ShizukuUtils.hasPermission()) {
                                 IWindowManager wm = ServiceUtils.getWindowManager();
                                 wm.setForcedDisplayDensityForUser(mirrorDisplayId, singleAppDpi, 0);
                             }
-                            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+                            String selectedAppPackage = preferences
+                                    .getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
                             ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
                             if (ShizukuUtils.hasPermission()) {
                                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
                             }
                             InputRouting.moveImeToExternal(mirrorDisplayId);
-                            DisplayManager displayManager2 = (DisplayManager) MirrorActivity.this.getSystemService(Context.DISPLAY_SERVICE);
+                            DisplayManager displayManager2 = (DisplayManager) MirrorActivity.this
+                                    .getSystemService(Context.DISPLAY_SERVICE);
                             displayManager2.registerDisplayListener(new DisplayManager.DisplayListener() {
                                 @Override
                                 public void onDisplayAdded(int i) {
@@ -328,11 +336,63 @@ public class MirrorActivity extends AppCompatActivity {
                             }, null);
                         } else {
                             State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
-                                    isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(), isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
+                                    isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
+                                    isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
                                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                                     targetSurface, null, renderHandler);
                             State.setMediaProjection(null);
                             CreateVirtualDisplay.changeAspectRatio(surfaceView.getWidth(), surfaceView.getHeight());
+
+                            IInputManager inputManager = ServiceUtils.getInputManager();
+                            // 修改触摸监听器
+                            surfaceView.setOnTouchListener((v, event) -> {
+                                Display targetDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+                                if (targetDisplay == null)
+                                    return true;
+
+                                // 获取原始坐标
+                                float x = event.getX();
+                                float y = event.getY();
+
+                                // 计算相对坐标
+                                float relativeX = x / v.getWidth();
+                                float relativeY = y / v.getHeight();
+
+                                // 获取目标显示器的旋转角度
+                                int rotation = targetDisplay.getRotation();
+                                float targetWidth = targetDisplay.getWidth();
+                                float targetHeight = targetDisplay.getHeight();
+                                Log.d("MirrorActivity", "rotation: " + rotation);
+
+                                // 根据旋转角度调整坐标映射
+                                float mappedX, mappedY;
+                                switch (rotation) {
+                                    case Surface.ROTATION_270:
+                                        mappedX = (1 - relativeX) * targetWidth;
+                                        mappedY = (1 - relativeY) * targetHeight;
+                                        break;
+                                    case Surface.ROTATION_180:
+                                        mappedX = relativeY * targetWidth;
+                                        mappedY = (1 - relativeX) * targetHeight;
+                                        break;
+                                    case Surface.ROTATION_90:
+                                        mappedX = relativeX * targetWidth;
+                                        mappedY = relativeY * targetHeight;
+                                        break;
+                                    default: // Surface.ROTATION_0
+                                        mappedX = (1 - relativeY) * targetWidth;
+                                        mappedY = relativeX * targetHeight;
+                                        break;
+                                }
+                                // 设置整后的坐标
+                                event.setLocation(mappedX, mappedY);
+
+                                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+                                motionEventHidden.setDisplayId(Display.DEFAULT_DISPLAY);
+                                TouchpadActivity.setFocus(inputManager, 0);
+                                inputManager.injectInputEvent(event, 0);
+                                return true;
+                            });
                         }
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
@@ -340,10 +400,9 @@ public class MirrorActivity extends AppCompatActivity {
                         display.getRealMetrics(metrics);
                         boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                        
+
                         State.mirrorVirtualDisplay.setSurface(targetSurface);
                     }
-
 
                 });
                 State.breadcrumbManager.refreshCurrentFragment();
@@ -362,7 +421,7 @@ public class MirrorActivity extends AppCompatActivity {
                         portraitRenderer.release();
                     }
                     if (portraitInputTextureId != -1) {
-                        int[] textures = new int[]{portraitInputTextureId};
+                        int[] textures = new int[] { portraitInputTextureId };
                         GLES20.glDeleteTextures(1, textures, 0);
                         portraitInputTextureId = -1;
                     }
@@ -371,14 +430,15 @@ public class MirrorActivity extends AppCompatActivity {
                         landscapeRenderer.release();
                     }
                     if (landscapeInputTextureId != -1) {
-                        int[] textures = new int[]{landscapeInputTextureId};
+                        int[] textures = new int[] { landscapeInputTextureId };
                         GLES20.glDeleteTextures(1, textures, 0);
                         landscapeInputTextureId = -1;
                     }
 
                     // 原有的清理代码
                     if (eglDisplay != EGL14.EGL_NO_DISPLAY) {
-                        EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);
+                        EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE,
+                                EGL14.EGL_NO_CONTEXT);
                         if (eglOutputSurface != EGL14.EGL_NO_SURFACE) {
                             EGL14.eglDestroySurface(eglDisplay, eglOutputSurface);
                         }
@@ -415,7 +475,7 @@ public class MirrorActivity extends AppCompatActivity {
                 }
             }
         });
-        
+
         setContentView(surfaceView);
         State.log("MirrorActivity 启动，autoRotate=" + autoRotate + ", autoScale=" + autoScale);
     }
@@ -472,7 +532,8 @@ public class MirrorActivity extends AppCompatActivity {
         private int[] fbo = new int[1];
         private int[] tempTexture = new int[1];
 
-        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale) {
+        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width,
+                int height, boolean autoScale) {
             this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
             this.eglDisplay = eglDisplay;
             this.eglOutputSurface = eglOutputSurface;
@@ -481,8 +542,8 @@ public class MirrorActivity extends AppCompatActivity {
             // 创建临时纹理
             GLES20.glGenTextures(1, tempTexture, 0);
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tempTexture[0]);
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0,  // 修改高度为完整高度
-                               GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, width, height, 0, // 修改高度为完整高度
+                    GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
@@ -491,8 +552,8 @@ public class MirrorActivity extends AppCompatActivity {
             // 创建并设置FBO
             GLES20.glGenFramebuffers(1, fbo, 0);
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fbo[0]);
-            GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, 
-                                         GLES20.GL_TEXTURE_2D, tempTexture[0], 0);
+            GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                    GLES20.GL_TEXTURE_2D, tempTexture[0], 0);
 
             // 检查FBO状态
             int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
