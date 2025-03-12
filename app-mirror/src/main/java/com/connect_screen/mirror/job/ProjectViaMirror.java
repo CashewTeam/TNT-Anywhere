@@ -68,11 +68,7 @@ public class ProjectViaMirror implements Job {
             }, null);
             return;
         }
-        DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);
-        if (displayHidden.getType() == TYPE_WIFI) {
-            return;
-        }
-        if (requestMediaProjectionPermission(State.currentActivity.get())) {
+        if (requestMediaProjectionPermission(State.currentActivity.get(), singleAppMode)) {
             // 检查是否允许在该显示器上启动Activity
             ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             // 启动 MirrorActivity
@@ -89,7 +85,14 @@ public class ProjectViaMirror implements Job {
         }
     }
 
-    private boolean requestMediaProjectionPermission(Context context) throws YieldException {
+    private boolean requestMediaProjectionPermission(Context context, boolean singleAppMode) throws YieldException {
+        DisplayHidden displayHidden = Refine.unsafeCast(mirrorDisplay);
+        if (displayHidden.getType() == TYPE_WIFI) {
+            if (ShizukuUtils.hasPermission() && singleAppMode) {
+                return true;
+            }   
+            return false;
+        }
         if (State.mirrorVirtualDisplay != null) {
             return true;
         }
