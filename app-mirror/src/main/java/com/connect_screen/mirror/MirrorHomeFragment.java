@@ -10,6 +10,7 @@ import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
@@ -45,8 +46,13 @@ public class MirrorHomeFragment extends Fragment {
         if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
             mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
             screenOffBtn.setVisibility(View.VISIBLE);
-            if (singleAppMode && ShizukuUtils.hasPermission()) {
-                touchScreenBtn.setVisibility(View.VISIBLE);
+            if (singleAppMode) {
+                if (ShizukuUtils.hasPermission()) {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                } else {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                    touchScreenBtn.setText("触控板");
+                }
             }
         } else {
             mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
@@ -66,13 +72,22 @@ public class MirrorHomeFragment extends Fragment {
             if (virtualDisplay == null) {
                 virtualDisplay = State.mirrorVirtualDisplay;
             }
-            if (virtualDisplay == null) {
-                return;
+            if (ShizukuUtils.hasPermission()) {
+                if (virtualDisplay == null) {
+                    return;
+                }
+                int displayId = virtualDisplay.getDisplay().getDisplayId();
+                Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
+                intent.putExtra("surface", virtualDisplay.getSurface());
+                intent.putExtra("display", displayId);
+                startActivity(intent);
+            } else {
+                int displayId = State.lastSingleAppDisplay;
+                if (virtualDisplay != null) {
+                    displayId = virtualDisplay.getDisplay().getDisplayId();
+                }
+                TouchpadActivity.startTouchpad(requireContext(), displayId, false);
             }
-            Intent intent = new Intent(requireContext(), TouchscreenActivity.class);
-            intent.putExtra("surface", virtualDisplay.getSurface());
-            intent.putExtra("display", virtualDisplay.getDisplay().getDisplayId());
-            startActivity(intent);
         });
 
         exitBtn.setOnClickListener(v -> {

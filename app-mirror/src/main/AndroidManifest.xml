@@ -64,6 +64,13 @@
             android:launchMode="singleTask"
             android:exported="false"
             android:theme="@style/AppTheme" />
+
+        <activity
+            android:name=".TouchpadActivity"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme" />
         
         <service
             android:name=".MediaProjectionService"
