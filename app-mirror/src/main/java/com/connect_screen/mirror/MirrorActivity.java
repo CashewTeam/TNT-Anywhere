@@ -405,7 +405,7 @@ public class MirrorActivity extends AppCompatActivity {
                     }
 
                 });
-                State.breadcrumbManager.goBackHome();
+                State.goBackHome();
             }
 
             @Override

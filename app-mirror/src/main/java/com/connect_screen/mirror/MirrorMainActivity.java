@@ -5,8 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.media.MediaCodecInfo;
@@ -17,6 +19,9 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +29,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
+import com.connect_screen.mirror.job.CreateVirtualDisplay;
+import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
@@ -56,7 +64,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
     public static final String TAG = "MirrorMainActivity";
 
-    private BreadcrumbManager breadcrumbManager;
     private RecyclerView logRecyclerView;
     private LogAdapter logAdapter;
 
@@ -149,16 +156,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         setContentView(R.layout.activity_main);
 
-        breadcrumbManager = new BreadcrumbManager(getSupportFragmentManager());
-        State.breadcrumbManager = breadcrumbManager;
-        BreadcrumbManager.homeFragmentFactory = () -> new MirrorHomeFragment();
-        breadcrumbManager.pushBreadcrumb(BreadcrumbManager.homeFragmentFactory);
-
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
+
+        // 初始化主界面控件
+        initHomeControls();
 
         // 获取启动 Intent 并打印其 Action 到日志
         Intent intent = getIntent();
@@ -186,6 +191,72 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         MirrorDisplaylinkMonitor.init(this);
     }
 
+    // 添加初始化主界面控件的方法
+    private void initHomeControls() {
+        Button settingsBtn = findViewById(R.id.settingsBtn);
+        Button screenOffBtn = findViewById(R.id.screenOffBtn);
+        Button touchScreenBtn = findViewById(R.id.touchScreenBtn);
+        Button exitBtn = findViewById(R.id.exitBtn);
+        TextView mirrorStatus = findViewById(R.id.mirrorStatus);
+        
+        // 获取设置
+        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
+        
+        // 根据状态设置UI
+        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
+            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
+            screenOffBtn.setVisibility(View.VISIBLE);
+            if (singleAppMode) {
+                if (ShizukuUtils.hasPermission() && useTouchscreen) {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                } else {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                    touchScreenBtn.setText("触控板");
+                }
+            }
+        } else {
+            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
+            settingsBtn.setVisibility(View.VISIBLE);
+        }
+
+        // 设置按钮点击事件
+        settingsBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MirrorSettingsActivity.class);
+            startActivity(intent);
+        });
+
+        screenOffBtn.setOnClickListener(v -> {
+            CreateVirtualDisplay.doPowerOffScreen(this);
+        });
+
+        touchScreenBtn.setOnClickListener(v -> {
+            if (ShizukuUtils.hasPermission() && useTouchscreen) {
+                VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
+                if (virtualDisplay == null) {
+                    virtualDisplay = State.mirrorVirtualDisplay;
+                }
+                if (virtualDisplay == null) {
+                    return;
+                }
+                int displayId = virtualDisplay.getDisplay().getDisplayId();
+                Intent intent = new Intent(this, TouchscreenActivity.class);
+                intent.putExtra("surface", virtualDisplay.getSurface());
+                intent.putExtra("display", displayId);
+                startActivity(intent);
+            } else {
+                TouchpadActivity.startTouchpad(this, State.lastSingleAppDisplay, false);
+            }
+        });
+
+        exitBtn.setOnClickListener(v -> {
+            if (AutoRotateAndScaleForDisplaylink.instance != null) {
+                AutoRotateAndScaleForDisplaylink.instance.release();
+            }
+            ExitAll.execute(this, false);
+        });
+    }
 
     @Override
     protected void onResume() {
@@ -200,6 +271,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             MirrorDisplayMonitor.init(displayManager);
             MirrorDisplaylinkMonitor.init(this);
         }
+        
+        // 更新UI状态
+        initHomeControls();
     }
 
     @Override

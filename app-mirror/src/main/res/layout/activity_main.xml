@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- 合并后的 Fragment 容器 -->
+    <!-- 主界面内容 -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -14,10 +14,63 @@
         app:layout_constraintBottom_toTopOf="@id/logRecyclerView"
         android:visibility="visible">
 
-        <FrameLayout
-            android:id="@+id/fragmentContainer"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/settingsBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    android:text="设置" />
+
+                <Button
+                    android:id="@+id/screenOffBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    android:text="熄屏" />
+
+                <Button
+                    android:id="@+id/touchScreenBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    android:text="触摸屏" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/exitBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="退出" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/mirrorStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:layout_gravity="center_horizontal"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </ScrollView>
 
     <!-- 日志列表 -->

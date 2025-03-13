@@ -22,7 +22,6 @@ import rikka.shizuku.Shizuku;
 public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
-    public static BreadcrumbManager breadcrumbManager;
     public static FloatingButtonService floatingButtonService;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
@@ -91,12 +90,12 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        breadcrumbManager.goBackHome();
+        goBackHome();
     }
 
     public static void resumeJob() {
         if (currentJob == null) {
-            breadcrumbManager.goBackHome();
+            goBackHome();
             return;
         }
         try {
@@ -112,7 +111,7 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        breadcrumbManager.goBackHome();
+        goBackHome();
     }
 
     public static void resumeJobLater(long delayMillis) {
@@ -174,5 +173,9 @@ public class State {
         } catch (Exception e) {
             // ignore
         }
+    }
+
+    public static void goBackHome() {
+
     }
 }
