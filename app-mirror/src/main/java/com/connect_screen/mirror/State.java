@@ -2,6 +2,7 @@ package com.connect_screen.mirror;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
@@ -176,6 +177,8 @@ public class State {
     }
 
     public static void goBackHome() {
-
+        if (currentActivity.get() != null) {
+            currentActivity.get().refresh();
+        }
     }
 }

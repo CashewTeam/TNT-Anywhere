@@ -33,6 +33,7 @@ import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 
 public class SunshineService extends Service {
+    public static SunshineService instance;
     private static final String CHANNEL_ID = "SunshineServiceChannel";
     private static final int NOTIFICATION_ID = 1;
     private static final String TAG = "SunshineService";
@@ -40,8 +41,15 @@ public class SunshineService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        instance = null;
     }
 
     @Override

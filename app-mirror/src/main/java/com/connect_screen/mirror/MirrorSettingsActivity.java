@@ -223,6 +223,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         // 添加关于按钮点击事件
         Button aboutButton = findViewById(R.id.aboutButton);
         aboutButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AboutActivity.class);
+            startActivity(intent);
         });
 
         

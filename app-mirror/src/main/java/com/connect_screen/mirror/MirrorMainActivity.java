@@ -70,7 +70,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     // 添加时间戳和延迟常量
     private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
     private long lastCheckTime = 0;
-    private JmDNS jmdns;
 
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
@@ -82,6 +81,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         }
     };
+    private boolean singleAppMode;
+    private boolean useTouchscreen;
+    Button settingsBtn;
+    Button screenOffBtn;
+    Button touchScreenBtn;
+    Button exitBtn;
+    TextView mirrorStatus;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -193,33 +199,15 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
     // 添加初始化主界面控件的方法
     private void initHomeControls() {
-        Button settingsBtn = findViewById(R.id.settingsBtn);
-        Button screenOffBtn = findViewById(R.id.screenOffBtn);
-        Button touchScreenBtn = findViewById(R.id.touchScreenBtn);
-        Button exitBtn = findViewById(R.id.exitBtn);
-        TextView mirrorStatus = findViewById(R.id.mirrorStatus);
+        settingsBtn = findViewById(R.id.settingsBtn);
+        screenOffBtn = findViewById(R.id.screenOffBtn);
+        touchScreenBtn = findViewById(R.id.touchScreenBtn);
+        exitBtn = findViewById(R.id.exitBtn);
+        mirrorStatus = findViewById(R.id.mirrorStatus);
         
         // 获取设置
-        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
-        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
         
-        // 根据状态设置UI
-        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
-            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
-            screenOffBtn.setVisibility(View.VISIBLE);
-            if (singleAppMode) {
-                if (ShizukuUtils.hasPermission() && useTouchscreen) {
-                    touchScreenBtn.setVisibility(View.VISIBLE);
-                } else {
-                    touchScreenBtn.setVisibility(View.VISIBLE);
-                    touchScreenBtn.setText("触控板");
-                }
-            }
-        } else {
-            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
-            settingsBtn.setVisibility(View.VISIBLE);
-        }
+        refresh();
 
         // 设置按钮点击事件
         settingsBtn.setOnClickListener(v -> {
@@ -335,9 +323,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     
     // 更新日志列表的方法
     public void updateLogs() {
-        if (logAdapter != null) {
-            logAdapter.notifyDataSetChanged();
-            logRecyclerView.scrollToPosition(logAdapter.getItemCount() - 1);
+        try {
+            if (logAdapter != null) {
+                logAdapter.notifyDataSetChanged();
+                logRecyclerView.scrollToPosition(logAdapter.getItemCount() - 1);
+            }
+        } catch (Exception e) {
+            // ignore
         }
     }
 
@@ -355,6 +347,29 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             TouchpadAccessibilityService.grantPermissionByClick(State.currentActivity.get());
         } else {
             throw new RuntimeException("无法获取 MediaProjectionManager 服务");
+        }
+    }
+
+    public void refresh() {
+        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
+        // 根据状态设置UI
+        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
+            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
+            settingsBtn.setVisibility(View.GONE);
+            screenOffBtn.setVisibility(View.VISIBLE);
+            if (singleAppMode) {
+                if (ShizukuUtils.hasPermission() && useTouchscreen) {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                } else {
+                    touchScreenBtn.setVisibility(View.VISIBLE);
+                    touchScreenBtn.setText("触控板");
+                }
+            }
+        } else {
+            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
+            settingsBtn.setVisibility(View.VISIBLE);
         }
     }
 }
