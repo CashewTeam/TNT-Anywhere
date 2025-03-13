@@ -29,7 +29,6 @@ import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MirrorSettingsFragment extends Fragment {
@@ -225,7 +224,7 @@ public class MirrorSettingsFragment extends Fragment {
         // 添加关于按钮点击事件
         Button aboutButton = view.findViewById(R.id.aboutButton);
         aboutButton.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("关于", () -> new AboutFragment());
+            State.breadcrumbManager.pushBreadcrumb(() -> new AboutFragment());
         });
 
         

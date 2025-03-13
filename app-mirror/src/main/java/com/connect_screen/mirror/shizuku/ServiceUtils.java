@@ -10,7 +10,6 @@ import android.app.IActivityTaskManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
@@ -24,7 +23,6 @@ import android.view.IWindowManager;
 import android.widget.Toast;
 
 import com.connect_screen.mirror.FloatingButtonService;
-import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
 
@@ -131,7 +129,7 @@ public class ServiceUtils {
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;
-            State.breadcrumbManager.refreshCurrentFragment();
+            State.breadcrumbManager.goBackHome();
         }
     }
     public static void _launchPackage(Context context, String packageName, int targetDisplayId) {
@@ -279,7 +277,7 @@ public class ServiceUtils {
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;
-            State.breadcrumbManager.refreshCurrentFragment();
+            State.breadcrumbManager.goBackHome();
         }
     }
 

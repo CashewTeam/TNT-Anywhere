@@ -4,31 +4,23 @@ import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.opengl.EGLSurface;
-import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 
 import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
-import android.view.Window;
-import android.view.WindowManager;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorSettingsFragment;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.job.ExternalTextureRenderer;
-import com.connect_screen.mirror.job.LandscapeAutoScaler;
 
 public class AutoRotateAndScaleForMoonlight {
 
@@ -247,7 +239,7 @@ public class AutoRotateAndScaleForMoonlight {
                         null,
                         null);
                 State.setMediaProjection(null);
-                State.breadcrumbManager.refreshCurrentFragment();
+                State.breadcrumbManager.goBackHome();
             } else if (State.mirrorVirtualDisplay != null) {
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);
@@ -259,7 +251,7 @@ public class AutoRotateAndScaleForMoonlight {
 
 
         });
-        State.breadcrumbManager.refreshCurrentFragment();
+        State.breadcrumbManager.goBackHome();
 
         State.log("AutoRotateAndScaleForMoonlight 启动，autoRotate=" + autoRotate + ", autoScale=" + autoScale);
     }

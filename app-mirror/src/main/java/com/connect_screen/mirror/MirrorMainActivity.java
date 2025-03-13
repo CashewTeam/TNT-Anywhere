@@ -7,10 +7,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
-import android.media.ImageReader;
 import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionConfig;
@@ -26,15 +24,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
-import com.connect_screen.mirror.job.ProjectViaMirror;
-import com.connect_screen.mirror.job.ProjectViaMoonlight;
 import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
-import com.connect_screen.mirror.job.YieldException;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -143,9 +135,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         setContentView(R.layout.activity_main);
 
-        breadcrumbManager = new BreadcrumbManager(this, getSupportFragmentManager(), findViewById(R.id.breadcrumb));
+        breadcrumbManager = new BreadcrumbManager(getSupportFragmentManager());
         State.breadcrumbManager = breadcrumbManager;
-        breadcrumbManager.pushBreadcrumb("首页", () -> new MirrorHomeFragment());
+        BreadcrumbManager.homeFragmentFactory = () -> new MirrorHomeFragment();
+        breadcrumbManager.pushBreadcrumb(BreadcrumbManager.homeFragmentFactory);
 
         // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
@@ -348,8 +341,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     protected void onResume() {
         super.onResume();
         State.currentActivity = new WeakReference<>(this);
-        State.resumeJob();
-        
+
         // 检查时间间隔
         if (MirrorActivity.getInstance() == null && 
             (System.currentTimeMillis() - lastCheckTime > MONITOR_INIT_DELAY)) {

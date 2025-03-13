@@ -91,12 +91,12 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        breadcrumbManager.refreshCurrentFragment();
+        breadcrumbManager.goBackHome();
     }
 
     public static void resumeJob() {
         if (currentJob == null) {
-            breadcrumbManager.refreshCurrentFragment();
+            breadcrumbManager.goBackHome();
             return;
         }
         try {
@@ -112,7 +112,7 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        breadcrumbManager.refreshCurrentFragment();
+        breadcrumbManager.goBackHome();
     }
 
     public static void resumeJobLater(long delayMillis) {

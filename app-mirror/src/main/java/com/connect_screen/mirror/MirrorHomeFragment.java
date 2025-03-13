@@ -8,12 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.display.VirtualDisplay;
-import android.media.Image;
-import android.media.ImageReader;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.view.LayoutInflater;
-import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -26,8 +22,6 @@ import androidx.fragment.app.Fragment;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class MirrorHomeFragment extends Fragment {
@@ -62,7 +56,7 @@ public class MirrorHomeFragment extends Fragment {
         }
 
         settingsBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb("设置", () -> new MirrorSettingsFragment());
+            State.breadcrumbManager.pushBreadcrumb(() -> new MirrorSettingsFragment());
         });
 
         screenOffBtn.setOnClickListener(v -> {
