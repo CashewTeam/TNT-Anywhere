@@ -1,8 +1,8 @@
 package com.connect_screen.mirror;
 
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_SINGLE_APP_MODE;
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_USE_TOUCHSCREEN;
-import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_SINGLE_APP_MODE;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_USE_TOUCHSCREEN;
+import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.content.Context;
 import android.content.Intent;
@@ -56,7 +56,8 @@ public class MirrorHomeFragment extends Fragment {
         }
 
         settingsBtn.setOnClickListener(v -> {
-            State.breadcrumbManager.pushBreadcrumb(() -> new MirrorSettingsFragment());
+            Intent intent = new Intent(requireContext(), MirrorSettingsActivity.class);
+            startActivity(intent);
         });
 
         screenOffBtn.setOnClickListener(v -> {

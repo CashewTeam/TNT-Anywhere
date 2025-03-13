@@ -14,7 +14,7 @@ import android.view.IWindowManager;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.MirrorSettingsFragment;
+import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -38,11 +38,11 @@ public class ProjectViaMirror implements Job {
             waitThread = null;
         }
         Context context = State.currentActivity.get();
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
-        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsFragment.KEY_USE_TOUCHSCREEN, true);
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
         if (singleAppMode && (!ShizukuUtils.hasPermission() || !useTouchscreen)) {
-            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
             CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();

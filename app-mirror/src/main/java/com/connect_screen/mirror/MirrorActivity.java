@@ -119,10 +119,10 @@ public class MirrorActivity extends AppCompatActivity {
         instance = this;
 
         // 读取设置
-        SharedPreferences preferences = getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
-        autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
-        singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
+        autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
+        singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         if (!ShizukuUtils.hasPermission()) {
             singleAppMode = false;
         }
@@ -299,14 +299,14 @@ public class MirrorActivity extends AppCompatActivity {
                         if (singleAppMode) {
                             State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(
                                     new VirtualDisplayArgs(), targetSurface);
-                            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+                            int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
                             if (ShizukuUtils.hasPermission()) {
                                 IWindowManager wm = ServiceUtils.getWindowManager();
                                 wm.setForcedDisplayDensityForUser(mirrorDisplayId, singleAppDpi, 0);
                             }
                             String selectedAppPackage = preferences
-                                    .getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+                                    .getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
                             ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
                             if (ShizukuUtils.hasPermission()) {
                                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);

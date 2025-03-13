@@ -1,9 +1,9 @@
 package com.connect_screen.mirror.job;
 
 
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_BIND_INPUT;
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_MOVE_IME;
-import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_BIND_INPUT;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_MOVE_IME;
+import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.content.Context;
 import android.content.SharedPreferences;

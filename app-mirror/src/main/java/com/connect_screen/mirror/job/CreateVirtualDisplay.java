@@ -1,9 +1,9 @@
 package com.connect_screen.mirror.job;
 
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_MATCH_ASPECT_RATIO;
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_AUTO_SCREEN_OFF;
-import static com.connect_screen.mirror.MirrorSettingsFragment.KEY_SINGLE_APP_MODE;
-import static com.connect_screen.mirror.MirrorSettingsFragment.PREF_NAME;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_MATCH_ASPECT_RATIO;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_SCREEN_OFF;
+import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_SINGLE_APP_MODE;
+import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.ActivityOptions;
 import android.content.Context;

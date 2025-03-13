@@ -258,11 +258,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
         return false;
     }
-
-    @Override
-    public void onBackPressed() {
-        breadcrumbManager.popBreadcrumb();
-    }
     
     // 更新日志列表的方法
     public void updateLogs() {

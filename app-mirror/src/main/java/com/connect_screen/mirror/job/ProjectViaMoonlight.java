@@ -23,7 +23,7 @@ import androidx.core.app.ActivityCompat;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.MirrorSettingsFragment;
+import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
@@ -95,15 +95,15 @@ public class ProjectViaMoonlight implements Job {
                 throw new YieldException("等待录音权限授权");
             }
         }
-        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        boolean autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
-        boolean autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        boolean autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
+        boolean autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         if (ShizukuUtils.hasPermission() && singleAppMode) {
-            int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+            int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
             State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, singleAppDpi, autoRotate), surface);
-            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());

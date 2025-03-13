@@ -19,7 +19,7 @@ import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
 import com.connect_screen.mirror.MediaProjectionService;
-import com.connect_screen.mirror.MirrorSettingsFragment;
+import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
 
 public class AutoRotateAndScaleForMoonlight {
@@ -107,9 +107,9 @@ public class AutoRotateAndScaleForMoonlight {
         instance = this;
 
         // 读取设置
-        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        autoRotate = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_ROTATE, true);
-        autoScale = preferences.getBoolean(MirrorSettingsFragment.KEY_AUTO_SCALE, true);
+        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
+        autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
 
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {

@@ -23,7 +23,7 @@ import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.PermissionManager;
@@ -31,7 +31,7 @@ import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.List;
 
-public class MirrorSettingsFragment extends Fragment {
+public class MirrorSettingsActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     public static final String PREF_NAME = "mirror_settings";
     public static final String KEY_AUTO_ROTATE = "auto_rotate";
@@ -49,32 +49,32 @@ public class MirrorSettingsFragment extends Fragment {
     public static final String KEY_AUTO_MATCH_ASPECT_RATIO = "auto_match_aspect_ratio";
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        preferences = requireContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_mirror_settings, container, false);
-
-        CheckBox singleAppModeCheckbox = view.findViewById(R.id.singleAppModeCheckbox);
-        Button selectAppButton = view.findViewById(R.id.selectAppButton);
-        View singleAppContainer = view.findViewById(R.id.singleAppContainer);
-        CheckBox autoRotateCheckbox = view.findViewById(R.id.autoRotateCheckbox);
-        CheckBox autoScaleCheckbox = view.findViewById(R.id.autoScaleCheckbox);
-        EditText widthEditText = view.findViewById(R.id.widthEditText);
-        EditText heightEditText = view.findViewById(R.id.heightEditText);
-        EditText dpiEditText = view.findViewById(R.id.dpiEditText);
-        LinearLayout dpiLayout = view.findViewById(R.id.dpiLayout);
-        CheckBox floatingBackButtonCheckbox = view.findViewById(R.id.floatingBackButtonCheckbox);
-        CheckBox autoScreenOffCheckbox = view.findViewById(R.id.autoScreenOffCheckbox);
-        CheckBox autoBindInputCheckbox = view.findViewById(R.id.autoBindInputCheckbox);
-        CheckBox autoMoveImeCheckbox = view.findViewById(R.id.autoMoveImeCheckbox);
-        CheckBox disableUsbAudioCheckbox = view.findViewById(R.id.disableUsbAudioCheckbox);
-        CheckBox useTouchscreenCheckbox = view.findViewById(R.id.useTouchscreenCheckbox);
-        CheckBox autoMatchAspectRatioCheckbox = view.findViewById(R.id.autoMatchAspectRatioCheckbox);
+        setContentView(R.layout.activity_mirror_settings);
+        preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("设置");
+        }
+        
+        // 初始化视图和设置监听器
+        CheckBox singleAppModeCheckbox = findViewById(R.id.singleAppModeCheckbox);
+        Button selectAppButton = findViewById(R.id.selectAppButton);
+        View singleAppContainer = findViewById(R.id.singleAppContainer);
+        CheckBox autoRotateCheckbox = findViewById(R.id.autoRotateCheckbox);
+        CheckBox autoScaleCheckbox = findViewById(R.id.autoScaleCheckbox);
+        EditText widthEditText = findViewById(R.id.widthEditText);
+        EditText heightEditText = findViewById(R.id.heightEditText);
+        EditText dpiEditText = findViewById(R.id.dpiEditText);
+        LinearLayout dpiLayout = findViewById(R.id.dpiLayout);
+        CheckBox floatingBackButtonCheckbox = findViewById(R.id.floatingBackButtonCheckbox);
+        CheckBox autoScreenOffCheckbox = findViewById(R.id.autoScreenOffCheckbox);
+        CheckBox autoBindInputCheckbox = findViewById(R.id.autoBindInputCheckbox);
+        CheckBox autoMoveImeCheckbox = findViewById(R.id.autoMoveImeCheckbox);
+        CheckBox disableUsbAudioCheckbox = findViewById(R.id.disableUsbAudioCheckbox);
+        CheckBox useTouchscreenCheckbox = findViewById(R.id.useTouchscreenCheckbox);
+        CheckBox autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
@@ -105,7 +105,7 @@ public class MirrorSettingsFragment extends Fragment {
         }
 
         // 设置分辨率初始值
-        DisplaylinkPref.load(requireContext());
+        DisplaylinkPref.load(this);
         widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
         heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
 
@@ -144,7 +144,7 @@ public class MirrorSettingsFragment extends Fragment {
         widthEditText.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 try {
-                    Context context = requireContext();
+                    Context context = this;
                     DisplaylinkPref.load(context);
                     int width = Integer.parseInt(widthEditText.getText().toString());
                     DisplaylinkPref.monitorWidth = width;
@@ -158,7 +158,7 @@ public class MirrorSettingsFragment extends Fragment {
         heightEditText.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 try {
-                    Context context = requireContext();
+                    Context context = this;
                     DisplaylinkPref.load(context);
                     int height = Integer.parseInt(heightEditText.getText().toString());
                     DisplaylinkPref.monitorHeight = height;
@@ -170,10 +170,10 @@ public class MirrorSettingsFragment extends Fragment {
         });
 
         // 添加分辨率预设选项
-        Spinner resolutionPresetSpinner = view.findViewById(R.id.resolutionPresetSpinner);
+        Spinner resolutionPresetSpinner = findViewById(R.id.resolutionPresetSpinner);
         String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
         ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
-            getContext(),
+            this,
             android.R.layout.simple_spinner_item,
             resolutionPresets
         );
@@ -203,13 +203,12 @@ public class MirrorSettingsFragment extends Fragment {
                             break;
                     }
                     
-                    Context context = requireContext();
-                    DisplaylinkPref.load(context);
+                    DisplaylinkPref.load(MirrorSettingsActivity.this);
                     int height = Integer.parseInt(heightEditText.getText().toString());
                     int width = Integer.parseInt(widthEditText.getText().toString());
                     DisplaylinkPref.monitorHeight = height;
                     DisplaylinkPref.monitorWidth = width;
-                    DisplaylinkPref.save(context);
+                    DisplaylinkPref.save(MirrorSettingsActivity.this);
                 } catch (NumberFormatException e) {
                     // ignore
                 }
@@ -222,22 +221,22 @@ public class MirrorSettingsFragment extends Fragment {
         });
 
         // 添加关于按钮点击事件
-        Button aboutButton = view.findViewById(R.id.aboutButton);
+        Button aboutButton = findViewById(R.id.aboutButton);
         aboutButton.setOnClickListener(v -> {
             State.breadcrumbManager.pushBreadcrumb(() -> new AboutFragment());
         });
 
         
         // 添加授权按钮
-        Button shizukuPermissionBtn = view.findViewById(R.id.shizukuPermissionBtn);
+        Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
         shizukuPermissionBtn.setOnClickListener(v -> {
             State.startNewJob(new AcquireShizuku());
         });
 
         // 更新Shizuku状态
-        TextView shizukuStatus = view.findViewById(R.id.shizukuStatus);
-        TextView accessibilityStatus = view.findViewById(R.id.accessibilityStatus);
-        TextView overlayStatus = view.findViewById(R.id.overlayStatus);
+        TextView shizukuStatus = findViewById(R.id.shizukuStatus);
+        TextView accessibilityStatus = findViewById(R.id.accessibilityStatus);
+        TextView overlayStatus = findViewById(R.id.overlayStatus);
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
         updateAccessibilityStatus(accessibilityStatus);
         updateOverlayStatus(overlayStatus);
@@ -308,7 +307,7 @@ public class MirrorSettingsFragment extends Fragment {
             if (ShizukuUtils.hasPermission()) {
                 if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
                     try {
-                        Settings.Secure.putInt(requireContext().getContentResolver(),
+                        Settings.Secure.putInt(getContentResolver(),
                                 "usb_audio_automatic_routing_disabled", isChecked ? 1 : 0);
                     } catch (SecurityException e) {
                         State.log("failed to set usb_audio_automatic_routing_disabled: " + e);
@@ -342,11 +341,8 @@ public class MirrorSettingsFragment extends Fragment {
         if (!ShizukuUtils.hasPermission()) {
             autoMatchAspectRatioCheckbox.setEnabled(false);
         }
-
-        return view;
     }
 
-    
     private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
         boolean started = ShizukuUtils.hasShizukuStarted();
         boolean hasPermission = ShizukuUtils.hasPermission();
@@ -367,7 +363,7 @@ public class MirrorSettingsFragment extends Fragment {
     }
 
     private void updateAccessibilityStatus(TextView statusView) {
-        boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(requireContext());
+        boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(this);
         statusView.setText(isEnabled ? "已授权" : "未授权");
         
         // 获取或创建授权按钮
@@ -386,7 +382,7 @@ public class MirrorSettingsFragment extends Fragment {
     }
 
     private void updateOverlayStatus(TextView statusView) {
-        boolean hasPermission = Settings.canDrawOverlays(requireContext());
+        boolean hasPermission = Settings.canDrawOverlays(this);
         statusView.setText(hasPermission ? "已授权" : "未授权");
         
         // 获取或创建授权按钮
@@ -399,7 +395,7 @@ public class MirrorSettingsFragment extends Fragment {
             overlayPermissionBtn.setOnClickListener(v -> {
                 // 跳转到悬浮窗权限设置页面
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + requireContext().getPackageName()));
+                        Uri.parse("package:" + getPackageName()));
                 startActivity(intent);
             });
         }
@@ -407,16 +403,16 @@ public class MirrorSettingsFragment extends Fragment {
 
     private void showAppSelectionDialog() {
         // 获取所有桌面应用
-        PackageManager pm = requireContext().getPackageManager();
+        PackageManager pm = getPackageManager();
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> launcherApps = pm.queryIntentActivities(intent, 0);
         
         // 创建自定义适配器来显示应用图标和名称
-        AppListAdapter adapter = new AppListAdapter(requireContext(), launcherApps, pm);
+        AppListAdapter adapter = new AppListAdapter(this, launcherApps, pm);
         
         // 创建并显示选择对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("选择应用");
         builder.setAdapter(adapter, (dialog, which) -> {
             ResolveInfo selectedApp = launcherApps.get(which);
@@ -430,7 +426,7 @@ public class MirrorSettingsFragment extends Fragment {
                     .apply();
             
             // 更新UI显示
-            CheckBox singleAppModeCheckbox = getView().findViewById(R.id.singleAppModeCheckbox);
+            CheckBox singleAppModeCheckbox = findViewById(R.id.singleAppModeCheckbox);
             singleAppModeCheckbox.setText("单应用投屏: " + selectedName);
         });
         

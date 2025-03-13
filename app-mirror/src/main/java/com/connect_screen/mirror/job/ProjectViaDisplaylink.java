@@ -17,7 +17,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.Surface;
 
-import com.connect_screen.mirror.MirrorSettingsFragment;
+import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
@@ -77,10 +77,10 @@ public class ProjectViaDisplaylink implements Job {
         if (!initializeNativeDriver(context, displaylinkState)) {
             return;
         }
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsFragment.KEY_SINGLE_APP_MODE, false);
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         if (ShizukuUtils.hasPermission() && singleAppMode) {
-            String selectedAppPackage = preferences.getString(MirrorSettingsFragment.KEY_SELECTED_APP_PACKAGE, "");
+            String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
             createVirtualDisplay(context, State.displaylinkState, selectedAppPackage);
         } else {
             if (requestMediaProjectionPermission(context, displaylinkState)) {
@@ -92,8 +92,8 @@ public class ProjectViaDisplaylink implements Job {
 
 
     private void createVirtualDisplay(Context context, DisplaylinkState displaylinkState, String lastPackageName) {
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsFragment.PREF_NAME, Context.MODE_PRIVATE);
-        int singleAppDpi = preferences.getInt(MirrorSettingsFragment.KEY_SINGLE_APP_DPI, 160);
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
         virtualDisplayArgs.dpi = singleAppDpi;
         int virtualDisplayWidth = virtualDisplayArgs.width;
         displaylinkState.imageReader = ImageReader.newInstance(virtualDisplayWidth, virtualDisplayArgs.height, 1, 2);
