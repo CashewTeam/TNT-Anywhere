@@ -20,14 +20,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -57,12 +58,14 @@ public class SunshineService extends Service {
         // 在后台线程中启动 Sunshine 服务器
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
-        String addr = getWifiIpAddress(this);
-        if (addr == null) {
+        Set<String> ipAddresses = getAllWifiIpAddresses(this);
+        if (ipAddresses.isEmpty()) {
             State.log("无法获取WiFi IP地址");
         } else {
             State.log("发布 moonlight 服务名："  + sunshineName);
-            State.log("发布 moonlight ip："  + addr);
+            for (String addr : ipAddresses) {
+                State.log("发布 moonlight ip："  + addr);
+            }
         }
         probeH265();
 
@@ -73,17 +76,23 @@ public class SunshineService extends Service {
                 writeCertAndKey(SunshineService.this);
                 new Thread(() -> { SunshineServer.start(); }).start();
 
-                if(addr != null) {
-                    JmDNS jmdns = JmDNS.create(Inet4Address.getByName(addr));
-                    ServiceInfo serviceInfo = ServiceInfo.create(
-                            "_nvstream._tcp.local.",
-                            "ConnectScreen",
-                            47989,
-                            "ConnectScreen"
-                    );
+                if(!ipAddresses.isEmpty()) {
+                    for (String addr : ipAddresses) {
+                        try {
+                            JmDNS jmdns = JmDNS.create(InetAddress.getByName(addr));
+                            ServiceInfo serviceInfo = ServiceInfo.create(
+                                    "_nvstream._tcp.local.",
+                                    "ConnectScreen",
+                                    47989,
+                                    "ConnectScreen"
+                            );
 
-                    jmdns.registerService(serviceInfo);
-                    Log.i("MirrorHomeFragment", "JmDNS服务注册成功");
+                            jmdns.registerService(serviceInfo);
+                            Log.i("MirrorHomeFragment", "JmDNS服务注册成功，IP: " + addr);
+                        } catch (Exception e) {
+                            Log.e("MirrorHomeFragment", "在IP " + addr + " 上注册JmDNS服务失败", e);
+                        }
+                    }
                 }
             } catch (Exception e) {
                 Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
@@ -190,33 +199,53 @@ public class SunshineService extends Service {
         return null;
     }
 
-    public static String getWifiIpAddress(Context context) {
+    public static Set<String> getAllWifiIpAddresses(Context context) {
+        Set<String> ipAddresses = new HashSet<>();
+        
+        // 获取WiFi IP地址
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if (wifiManager == null || !wifiManager.isWifiEnabled()) {
-            return null;
-        }
-        if (isWifiApEnabled(wifiManager)) {
-            String apIp = getApIP();
-            if (apIp != null) {
-                return apIp;
+        if (wifiManager != null && wifiManager.isWifiEnabled()) {
+            int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+            if (ipAddress != 0) {
+                // Convert little-endian to big-endian if needed
+                byte[] bytes = new byte[4];
+                bytes[0] = (byte) (ipAddress & 0xFF);
+                bytes[1] = (byte) ((ipAddress >> 8) & 0xFF);
+                bytes[2] = (byte) ((ipAddress >> 16) & 0xFF);
+                bytes[3] = (byte) ((ipAddress >> 24) & 0xFF);
+
+                try {
+                    String ip = InetAddress.getByAddress(bytes).getHostAddress();
+                    ipAddresses.add(ip);
+                } catch (UnknownHostException e) {
+                    Log.e(TAG, "获取WiFi IP地址失败", e);
+                }
             }
         }
-
-        int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
-        // Convert little-endian to big-endian if needed
-        byte[] bytes = new byte[4];
-        bytes[0] = (byte) (ipAddress & 0xFF);
-        bytes[1] = (byte) ((ipAddress >> 8) & 0xFF);
-        bytes[2] = (byte) ((ipAddress >> 16) & 0xFF);
-        bytes[3] = (byte) ((ipAddress >> 24) & 0xFF);
-
+        
+        // 获取所有网络接口的IP地址
         try {
-            return InetAddress.getByAddress(bytes).getHostAddress();
-        } catch (UnknownHostException e) {
-            return null;
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface ni = networkInterfaces.nextElement();
+                if (ni.isUp() && !ni.isLoopback()) {
+                    List<InterfaceAddress> interfaceAddresses = ni.getInterfaceAddresses();
+                    for (InterfaceAddress interfaceAddress : interfaceAddresses) {
+                        if (interfaceAddress.getAddress() != null) {
+                            String ip = interfaceAddress.getAddress().getHostAddress();
+                            if (ip != null && ip.startsWith("192.168")) {
+                                ipAddresses.add(ip);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            Log.e(TAG, "获取网络接口IP地址失败", e);
         }
+        
+        return ipAddresses;
     }
-
 
     public static void writeCertAndKey(Context context) {
         try {
