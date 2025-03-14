@@ -419,6 +419,16 @@ namespace sunshine_callbacks {
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
         if (!codec) {
+           // 创建编码器
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1920);
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 1080);
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, 60);
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 60);
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
+            AMediaFormat_setInt32(format, "max-fps-to-encoder", 60);
+            codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
+        }
+        if (!codec) {
             BOOST_LOG(error) << "无法创建编码器"sv;
             AMediaFormat_delete(format);
             return;
