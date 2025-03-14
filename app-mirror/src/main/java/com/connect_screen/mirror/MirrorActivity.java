@@ -67,6 +67,7 @@ public class MirrorActivity extends AppCompatActivity {
     private boolean autoScale;
     private OrientationChangeCallback orientationChangeCallback;
     private boolean singleAppMode;
+    private int singleAppDpi;
 
     public static void stopVirtualDisplay() {
         if (State.mirrorVirtualDisplay == null) {
@@ -122,6 +123,7 @@ public class MirrorActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
         autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
+        singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
         singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         if (!ShizukuUtils.hasPermission()) {
             singleAppMode = false;
@@ -298,13 +300,12 @@ public class MirrorActivity extends AppCompatActivity {
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
                         if (singleAppMode) {
                             State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(
-                                    new VirtualDisplayArgs(), targetSurface);
-                            int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
+                                    new VirtualDisplayArgs(
+                                        "Mirror", isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
+                                            isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(),
+                                            (int) display.getRefreshRate(), singleAppDpi, autoRotate
+                                    ), targetSurface);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
-                            if (ShizukuUtils.hasPermission()) {
-                                IWindowManager wm = ServiceUtils.getWindowManager();
-                                wm.setForcedDisplayDensityForUser(mirrorDisplayId, singleAppDpi, 0);
-                            }
                             String selectedAppPackage = preferences
                                     .getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
                             ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);

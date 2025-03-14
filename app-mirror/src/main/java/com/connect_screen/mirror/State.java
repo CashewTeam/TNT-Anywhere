@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -177,10 +178,11 @@ public class State {
     }
 
     public static void goBackHome() {
-        if (currentActivity.get() != null) {
-            currentActivity.get().runOnUiThread(() -> {
-                currentActivity.get().refresh();
-            });
+        MirrorMainActivity mirrorMainActivity = currentActivity.get();
+        if (mirrorMainActivity != null) {
+            if (mirrorMainActivity.isActivityActive) {
+                mirrorMainActivity.runOnUiThread(mirrorMainActivity::refresh);
+            }
         }
     }
 }

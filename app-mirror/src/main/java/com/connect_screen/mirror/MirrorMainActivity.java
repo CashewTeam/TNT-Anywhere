@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -88,6 +89,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     Button touchScreenBtn;
     Button exitBtn;
     TextView mirrorStatus;
+    public boolean isActivityActive;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -241,8 +243,16 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        isActivityActive = false;
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        isActivityActive = true;
+        refresh();
         State.currentActivity = new WeakReference<>(this);
 
         // 检查时间间隔
@@ -365,6 +375,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             if (singleAppMode) {
                 if (ShizukuUtils.hasPermission() && useTouchscreen) {
                     touchScreenBtn.setVisibility(View.VISIBLE);
+                    touchScreenBtn.setText("触摸屏");
                 } else {
                     touchScreenBtn.setVisibility(View.VISIBLE);
                     touchScreenBtn.setText("触控板");
@@ -373,6 +384,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         } else {
             mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
             settingsBtn.setVisibility(View.VISIBLE);
+            screenOffBtn.setVisibility(View.GONE);
+            touchScreenBtn.setVisibility(View.GONE);
         }
     }
 }

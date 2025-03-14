@@ -250,18 +250,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         // 监听DPI输入变化
         dpiEditText.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
-                try {
-                    int dpi = Integer.parseInt(dpiEditText.getText().toString());
-                    // 限制DPI的合理范围，例如60-600
-                    if (dpi < 60) dpi = 60;
-                    if (dpi > 600) dpi = 600;
-                    dpiEditText.setText(String.valueOf(dpi)); // 更新显示值
-                    preferences.edit().putInt(KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
-                } catch (NumberFormatException e) {
-                    // 如果输入无效，恢复为默认值或上次保存的值
-                    dpiEditText.setText(String.valueOf(preferences.getInt(KEY_SINGLE_APP_DPI, 160)));
-                }
+                saveDpiSetting(dpiEditText);
             }
+        });
+
+        // 添加DPI确认按钮
+        Button dpiConfirmButton = findViewById(R.id.dpiConfirmButton);
+        dpiConfirmButton.setOnClickListener(v -> {
+            saveDpiSetting(dpiEditText);
         });
 
         // 添加悬浮返回键复选框监听器
@@ -481,6 +477,20 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             }
             
             return convertView;
+        }
+    }
+
+    private void saveDpiSetting(EditText dpiEditText) {
+        try {
+            int dpi = Integer.parseInt(dpiEditText.getText().toString());
+            // 限制DPI的合理范围，例如60-600
+            if (dpi < 60) dpi = 60;
+            if (dpi > 600) dpi = 600;
+            dpiEditText.setText(String.valueOf(dpi)); // 更新显示值
+            preferences.edit().putInt(KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
+        } catch (NumberFormatException e) {
+            // 如果输入无效，恢复为默认值或上次保存的值
+            dpiEditText.setText(String.valueOf(preferences.getInt(KEY_SINGLE_APP_DPI, 160)));
         }
     }
 } 
