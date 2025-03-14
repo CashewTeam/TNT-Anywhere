@@ -35,7 +35,7 @@ import javax.jmdns.ServiceInfo;
 public class SunshineService extends Service {
     public static SunshineService instance;
     private static final String CHANNEL_ID = "SunshineServiceChannel";
-    private static final int NOTIFICATION_ID = 1;
+    private static final int NOTIFICATION_ID = 2;
     private static final String TAG = "SunshineService";
 
     @Override

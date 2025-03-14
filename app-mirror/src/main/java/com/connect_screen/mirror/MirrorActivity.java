@@ -403,9 +403,9 @@ public class MirrorActivity extends AppCompatActivity {
 
                         State.mirrorVirtualDisplay.setSurface(targetSurface);
                     }
+                    State.goBackHome();
 
                 });
-                State.goBackHome();
             }
 
             @Override

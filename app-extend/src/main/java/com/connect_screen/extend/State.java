@@ -22,7 +22,7 @@ import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
-    public static WeakReference<Activity> currentActivity;
+    public static WeakReference<Activity> currentActivity = new WeakReference<>(null);
     public static BreadcrumbManager breadcrumbManager;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();

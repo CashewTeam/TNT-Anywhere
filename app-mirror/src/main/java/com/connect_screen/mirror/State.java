@@ -178,7 +178,9 @@ public class State {
 
     public static void goBackHome() {
         if (currentActivity.get() != null) {
-            currentActivity.get().refresh();
+            currentActivity.get().runOnUiThread(() -> {
+                currentActivity.get().refresh();
+            });
         }
     }
 }

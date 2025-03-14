@@ -131,14 +131,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         State.currentActivity = new WeakReference<>(this);
         
         // 检查 SunshineService 是否已经在运行，如果没有运行才启动
-        if (!isServiceRunning(SunshineService.class)) {
-            Intent sunshineServiceIntent = new Intent(this, SunshineService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(sunshineServiceIntent);
-            } else {
-                startService(sunshineServiceIntent);
-            }
-            State.log("启动 SunshineService 服务");
+        if (SunshineService.instance == null) {
+            startMediaProjectionService();
         } else {
             State.log("SunshineService 服务已在运行");
         }
@@ -286,6 +280,15 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
                 lastCheckTime = System.currentTimeMillis(); // 记录时间戳
+                if (SunshineService.instance == null) {
+                    Intent sunshineServiceIntent = new Intent(this, SunshineService.class);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(sunshineServiceIntent);
+                    } else {
+                        startService(sunshineServiceIntent);
+                    }
+                    State.log("启动 SunshineService 服务");
+                }
                 if (MediaProjectionService.instance != null) {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
