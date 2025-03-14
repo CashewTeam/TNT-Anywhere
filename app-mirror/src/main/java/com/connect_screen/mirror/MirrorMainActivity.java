@@ -131,15 +131,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         super.onCreate(savedInstanceState);
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
-        
-        // 检查 SunshineService 是否已经在运行，如果没有运行才启动
-        if (SunshineService.instance == null) {
-            startMediaProjectionService();
-        } else {
-            State.log("SunshineService 服务已在运行");
-        }
-        
-        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
         if (ShizukuUtils.hasPermission()) {
             if (State.userService == null) {
                 Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
@@ -150,6 +141,15 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
             this.startService(serviceIntent);
         }
+        
+        // 检查 SunshineService 是否已经在运行，如果没有运行才启动
+        if (SunshineService.instance == null) {
+            startMediaProjectionService();
+        } else {
+            State.log("SunshineService 服务已在运行");
+        }
+        
+        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
         // 移除默认的 ActionBar
         if (getSupportActionBar() != null) {
@@ -171,10 +171,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         Intent intent = getIntent();
         String action = intent.getAction();
         State.log("MainActivity created with action: " + action);
-
-        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null) {
-            return;
-        }
 
         // 查是否是 USB 设备连接的 Intent
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
