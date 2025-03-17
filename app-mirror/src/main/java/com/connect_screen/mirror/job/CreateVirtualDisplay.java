@@ -19,6 +19,7 @@ import android.hardware.display.VirtualDisplayConfig;
 import android.media.projection.IMediaProjection;
 import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
+import android.os.Handler;
 import android.os.RemoteException;
 import android.view.Display;
 import android.view.DisplayInfo;
@@ -31,6 +32,7 @@ import androidx.annotation.NonNull;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -72,7 +74,10 @@ public class CreateVirtualDisplay {
                     return createByMediaProjection(virtualDisplayArgs, surface);
                 }
             } else {
-                return createByMediaProjection(virtualDisplayArgs, surface);
+                new Handler().post(() -> {
+                   State.log("没有 shizuku 权限，无法单应用投屏");
+                });
+                return null;
             }
         } finally {
             isCreating = false;
