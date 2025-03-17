@@ -5,34 +5,59 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 public class MirrorViewModel extends ViewModel {
-    private final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>();
-    private boolean permissionDenied = false;
-
+    public final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>();
+    
     public MirrorViewModel() {
         // 初始状态
-        uiState.setValue(new MirrorUiState(false, false, false, false));
+        uiState.setValue(new MirrorUiState(
+            "请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏",
+            true,  // settingsBtnVisibility
+            false, // screenOffBtnVisibility
+            false, // touchScreenBtnVisibility
+            ""     // touchScreenBtnText
+        ));
     }
 
     public LiveData<MirrorUiState> getUiState() {
         return uiState;
     }
 
-    public void updateState(boolean screenMirroring, boolean singleAppMode, boolean canUseTouchscreen) {
-        uiState.setValue(new MirrorUiState(screenMirroring, singleAppMode, canUseTouchscreen, permissionDenied));
-    }
-    
-    public void setPermissionDenied(boolean denied) {
-        this.permissionDenied = denied;
-        MirrorUiState currentState = uiState.getValue();
-        if (currentState != null) {
-            uiState.setValue(new MirrorUiState(
-                currentState.isScreenMirroring(),
-                currentState.isSingleAppMode(),
-                currentState.canUseTouchscreen(),
-                denied
-            ));
+    public void updateUiState(boolean isScreenMirroring, boolean isSingleAppMode, 
+                             boolean canUseTouchscreen, boolean isPermissionDenied) {
+        String statusText;
+        boolean showSettings;
+        boolean showScreenOff;
+        boolean showTouchScreen;
+        String touchScreenText = "";
+        
+        if (isPermissionDenied) {
+            statusText = "未获得投屏权限，请手工点击退出按钮";
+            showSettings = true;
+            showScreenOff = false;
+            showTouchScreen = false;
+        } else if (isScreenMirroring) {
+            statusText = "镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀";
+            showSettings = false;
+            showScreenOff = true;
+            showTouchScreen = isSingleAppMode;
+            
+            if (isSingleAppMode) {
+                touchScreenText = canUseTouchscreen ? "触摸屏" : "触控板";
+            }
         } else {
-            uiState.setValue(new MirrorUiState(false, false, false, denied));
+            statusText = "请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏";
+            showSettings = true;
+            showScreenOff = false;
+            showTouchScreen = false;
         }
+        
+        uiState.setValue(new MirrorUiState(
+            statusText,
+            showSettings,
+            showScreenOff,
+            showTouchScreen,
+            touchScreenText
+        ));
     }
+
 } 

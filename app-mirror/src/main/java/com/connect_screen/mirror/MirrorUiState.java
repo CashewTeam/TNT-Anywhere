@@ -1,31 +1,39 @@
 package com.connect_screen.mirror;
 
 public class MirrorUiState {
-    private final boolean screenMirroring;
-    private final boolean singleAppMode;
-    private final boolean canUseTouchscreen;
-    private final boolean permissionDenied;
+    private final String mirrorStatusText;
+    private final boolean settingsBtnVisibility;
+    private final boolean screenOffBtnVisibility;
+    private final boolean touchScreenBtnVisibility;
+    private final String touchScreenBtnText;
 
-    public MirrorUiState(boolean screenMirroring, boolean singleAppMode, boolean canUseTouchscreen, boolean permissionDenied) {
-        this.screenMirroring = screenMirroring;
-        this.singleAppMode = singleAppMode;
-        this.canUseTouchscreen = canUseTouchscreen;
-        this.permissionDenied = permissionDenied;
+    public MirrorUiState(String mirrorStatusText, boolean settingsBtnVisibility, 
+                         boolean screenOffBtnVisibility, boolean touchScreenBtnVisibility, 
+                         String touchScreenBtnText) {
+        this.mirrorStatusText = mirrorStatusText;
+        this.settingsBtnVisibility = settingsBtnVisibility;
+        this.screenOffBtnVisibility = screenOffBtnVisibility;
+        this.touchScreenBtnVisibility = touchScreenBtnVisibility;
+        this.touchScreenBtnText = touchScreenBtnText;
     }
 
-    public boolean isScreenMirroring() {
-        return screenMirroring;
+    public String getMirrorStatusText() {
+        return mirrorStatusText;
     }
 
-    public boolean isSingleAppMode() {
-        return singleAppMode;
+    public boolean isSettingsBtnVisible() {
+        return settingsBtnVisibility;
     }
 
-    public boolean canUseTouchscreen() {
-        return canUseTouchscreen;
+    public boolean isScreenOffBtnVisible() {
+        return screenOffBtnVisibility;
+    }
+
+    public boolean isTouchScreenBtnVisible() {
+        return touchScreenBtnVisibility;
     }
     
-    public boolean isPermissionDenied() {
-        return permissionDenied;
+    public String getTouchScreenBtnText() {
+        return touchScreenBtnText;
     }
 } 

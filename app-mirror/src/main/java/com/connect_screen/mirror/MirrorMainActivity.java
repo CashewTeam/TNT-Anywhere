@@ -324,8 +324,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             } else {
                 MediaProjectionService.isStarting = false;
                 State.log("用户拒绝了投屏权限");
-                // 使用 ViewModel 更新 UI 状态
-                viewModel.setPermissionDenied(true);
+                refresh();
                 State.resumeJob();
             }
         }
@@ -374,32 +373,15 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     // 修改 updateUI 方法
     private void updateUI(MirrorUiState state) {
         // 根据状态设置 UI
-        if (state.isPermissionDenied()) {
-            mirrorStatus.setText("未获得投屏权限，请手工点击退出按钮");
-            mirrorStatus.setVisibility(View.VISIBLE);
-            settingsBtn.setVisibility(View.VISIBLE);
-            screenOffBtn.setVisibility(View.GONE);
-            touchScreenBtn.setVisibility(View.GONE);
-        } else if (state.isScreenMirroring()) {
-            mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
-            settingsBtn.setVisibility(View.GONE);
-            screenOffBtn.setVisibility(View.VISIBLE);
-            if (state.isSingleAppMode()) {
-                if (state.canUseTouchscreen()) {
-                    touchScreenBtn.setVisibility(View.VISIBLE);
-                    touchScreenBtn.setText("触摸屏");
-                } else {
-                    touchScreenBtn.setVisibility(View.VISIBLE);
-                    touchScreenBtn.setText("触控板");
-                }
-            } else {
-                touchScreenBtn.setVisibility(View.GONE);
-            }
-        } else {
-            mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
-            settingsBtn.setVisibility(View.VISIBLE);
-            screenOffBtn.setVisibility(View.GONE);
-            touchScreenBtn.setVisibility(View.GONE);
+        mirrorStatus.setText(state.getMirrorStatusText());
+        mirrorStatus.setVisibility(View.VISIBLE);
+        
+        settingsBtn.setVisibility(state.isSettingsBtnVisible() ? View.VISIBLE : View.GONE);
+        screenOffBtn.setVisibility(state.isScreenOffBtnVisible() ? View.VISIBLE : View.GONE);
+        touchScreenBtn.setVisibility(state.isTouchScreenBtnVisible() ? View.VISIBLE : View.GONE);
+        
+        if (state.isTouchScreenBtnVisible()) {
+            touchScreenBtn.setText(state.getTouchScreenBtnText());
         }
     }
 
@@ -409,15 +391,44 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
         
-        // 更新 ViewModel 中的状态，保持权限拒绝状态不变
+        // 更新 ViewModel 中的状态
         boolean isScreenMirroring = State.mirrorVirtualDisplay != null || 
                                    State.displaylinkState.getVirtualDisplay() != null || 
                                    State.lastSingleAppDisplay != 0;
         
-        viewModel.updateState(
-            isScreenMirroring,
-            singleAppMode,
-            ShizukuUtils.hasPermission() && useTouchscreen
-        );
+        String statusText;
+        boolean showSettings;
+        boolean showScreenOff;
+        boolean showTouchScreen;
+        String touchScreenText = "";
+
+        if (SunshineService.instance == null) {
+            statusText = "未获得投屏权限，请手工点击退出按钮";
+            showSettings = true;
+            showScreenOff = false;
+            showTouchScreen = false;
+        } else if (isScreenMirroring) {
+            statusText = "镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀";
+            showSettings = false;
+            showScreenOff = true;
+            showTouchScreen = singleAppMode;
+
+            if (singleAppMode) {
+                touchScreenText = useTouchscreen ? "触摸屏" : "触控板";
+            }
+        } else {
+            statusText = "请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏";
+            showSettings = true;
+            showScreenOff = false;
+            showTouchScreen = false;
+        }
+
+        viewModel.uiState.setValue(new MirrorUiState(
+                statusText,
+                showSettings,
+                showScreenOff,
+                showTouchScreen,
+                touchScreenText
+        ));
     }
 }
