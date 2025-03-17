@@ -26,6 +26,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -90,6 +91,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     Button exitBtn;
     TextView mirrorStatus;
     public boolean isActivityActive;
+
+    // 在 MirrorMainActivity 类中添加 ViewModel 成员变量
+    private MirrorViewModel viewModel;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -163,6 +167,12 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
+
+        // 初始化 ViewModel
+        viewModel = new ViewModelProvider(this).get(MirrorViewModel.class);
+        
+        // 观察 UI 状态变化
+        viewModel.getUiState().observe(this, this::updateUI);
 
         // 初始化主界面控件
         initHomeControls();
@@ -314,6 +324,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             } else {
                 MediaProjectionService.isStarting = false;
                 State.log("用户拒绝了投屏权限");
+                // 使用 ViewModel 更新 UI 状态
+                viewModel.setPermissionDenied(true);
                 State.resumeJob();
             }
         }
@@ -359,23 +371,29 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
     }
 
-    public void refresh() {
-        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
-        useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
-        // 根据状态设置UI
-        if (State.mirrorVirtualDisplay != null || State.displaylinkState.getVirtualDisplay() != null || State.lastSingleAppDisplay != 0) {
+    // 修改 updateUI 方法
+    private void updateUI(MirrorUiState state) {
+        // 根据状态设置 UI
+        if (state.isPermissionDenied()) {
+            mirrorStatus.setText("未获得投屏权限，请手工点击退出按钮");
+            mirrorStatus.setVisibility(View.VISIBLE);
+            settingsBtn.setVisibility(View.VISIBLE);
+            screenOffBtn.setVisibility(View.GONE);
+            touchScreenBtn.setVisibility(View.GONE);
+        } else if (state.isScreenMirroring()) {
             mirrorStatus.setText("镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀");
             settingsBtn.setVisibility(View.GONE);
             screenOffBtn.setVisibility(View.VISIBLE);
-            if (singleAppMode) {
-                if (ShizukuUtils.hasPermission() && useTouchscreen) {
+            if (state.isSingleAppMode()) {
+                if (state.canUseTouchscreen()) {
                     touchScreenBtn.setVisibility(View.VISIBLE);
                     touchScreenBtn.setText("触摸屏");
                 } else {
                     touchScreenBtn.setVisibility(View.VISIBLE);
                     touchScreenBtn.setText("触控板");
                 }
+            } else {
+                touchScreenBtn.setVisibility(View.GONE);
             }
         } else {
             mirrorStatus.setText("请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏");
@@ -383,5 +401,23 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             screenOffBtn.setVisibility(View.GONE);
             touchScreenBtn.setVisibility(View.GONE);
         }
+    }
+
+    // 修改 refresh 方法
+    public void refresh() {
+        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
+        
+        // 更新 ViewModel 中的状态，保持权限拒绝状态不变
+        boolean isScreenMirroring = State.mirrorVirtualDisplay != null || 
+                                   State.displaylinkState.getVirtualDisplay() != null || 
+                                   State.lastSingleAppDisplay != 0;
+        
+        viewModel.updateState(
+            isScreenMirroring,
+            singleAppMode,
+            ShizukuUtils.hasPermission() && useTouchscreen
+        );
     }
 }

@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.util.Log;
 import android.view.Display;
 import android.view.DisplayHidden;
 import android.view.IWindowManager;
@@ -77,7 +78,7 @@ public class ProjectViaMirror implements Job {
             android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
             options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
             if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
-                State.log("该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
+                Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
                 return;
             }
             context.startActivity(intent, options.toBundle());
