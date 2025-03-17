@@ -55,7 +55,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("设置");
+            getSupportActionBar().setTitle("修改在下次应用启动才生效");
         }
         
         // 初始化视图和设置监听器

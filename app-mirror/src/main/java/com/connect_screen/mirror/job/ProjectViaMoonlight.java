@@ -99,14 +99,18 @@ public class ProjectViaMoonlight implements Job {
         boolean autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
-        if (ShizukuUtils.hasPermission() && singleAppMode) {
-            int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
-            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
-                    width, height, frameRate, singleAppDpi, autoRotate), surface);
-            String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
-            ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-            InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-            InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+        if (singleAppMode) {
+            if (ShizukuUtils.hasPermission()) {
+                int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
+                State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
+                        width, height, frameRate, singleAppDpi, autoRotate), surface);
+                String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
+                ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+                InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+                InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            } else {
+                State.showErrorStatus("moonlight 单应用投屏需要 shizuku 权限");
+            }
         } else if (autoRotate || autoScale) {
             CreateVirtualDisplay.changeAspectRatio(width, height);
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
