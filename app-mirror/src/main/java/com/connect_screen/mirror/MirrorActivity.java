@@ -17,7 +17,6 @@ import android.os.HandlerThread;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
-import android.view.IWindowManager;
 import android.view.MotionEventHidden;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -404,7 +403,7 @@ public class MirrorActivity extends AppCompatActivity {
 
                         State.mirrorVirtualDisplay.setSurface(targetSurface);
                     }
-                    State.goBackHome();
+                    State.refreshMainActivity();
 
                 });
             }

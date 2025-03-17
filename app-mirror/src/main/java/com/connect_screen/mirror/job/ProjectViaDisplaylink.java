@@ -79,9 +79,13 @@ public class ProjectViaDisplaylink implements Job {
         }
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
-        if (ShizukuUtils.hasPermission() && singleAppMode) {
-            String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
-            createVirtualDisplay(context, State.displaylinkState, selectedAppPackage);
+        if (singleAppMode) {
+            if (ShizukuUtils.hasPermission()) {
+                String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
+                createVirtualDisplay(context, State.displaylinkState, selectedAppPackage);
+            } else {
+                State.showErrorStatus("Displaylink 单应用投屏需要 shizuku 权限");
+            }
         } else {
             if (requestMediaProjectionPermission(context, displaylinkState)) {
                 displaylinkState.nativeDriver.setMode(displaylinkState.encoderId, new DisplayMode(virtualDisplayArgs.width, virtualDisplayArgs.height, virtualDisplayArgs.refreshRate), virtualDisplayArgs.width * 4, 1);

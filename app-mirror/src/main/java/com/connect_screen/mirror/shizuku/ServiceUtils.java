@@ -129,7 +129,7 @@ public class ServiceUtils {
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;
-            State.goBackHome();
+            State.refreshMainActivity();
         }
     }
     public static void _launchPackage(Context context, String packageName, int targetDisplayId) {
@@ -277,7 +277,7 @@ public class ServiceUtils {
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;
-            State.goBackHome();
+            State.refreshMainActivity();
         }
     }
 

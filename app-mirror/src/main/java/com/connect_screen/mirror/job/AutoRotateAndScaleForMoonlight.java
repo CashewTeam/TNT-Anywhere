@@ -239,7 +239,7 @@ public class AutoRotateAndScaleForMoonlight {
                         null,
                         null);
                 State.setMediaProjection(null);
-                State.goBackHome();
+                State.refreshMainActivity();
             } else if (State.mirrorVirtualDisplay != null) {
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);
@@ -251,7 +251,7 @@ public class AutoRotateAndScaleForMoonlight {
 
 
         });
-        State.goBackHome();
+        State.refreshMainActivity();
 
         State.log("AutoRotateAndScaleForMoonlight 启动，autoRotate=" + autoRotate + ", autoScale=" + autoScale);
     }

@@ -2,13 +2,13 @@ package com.connect_screen.mirror;
 
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.Intent;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
-import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+
+import androidx.lifecycle.MutableLiveData;
 
 import com.connect_screen.mirror.job.Job;
 import com.connect_screen.mirror.job.YieldException;
@@ -24,6 +24,7 @@ import rikka.shizuku.Shizuku;
 public class State {
     // 弱引用保存当前的 MainActivity 实例
     public static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
+    public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static FloatingButtonService floatingButtonService;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
@@ -33,12 +34,10 @@ public class State {
     public static int lastSingleAppDisplay;
     public static String displaylinkDeviceName;
     public static VirtualDisplay bridgeVirtualDisplay;
-    public static int bridgeDisplayId = -1;
     public static VirtualDisplay mirrorVirtualDisplay;
     public static int mirrorDisplayId = -1;
     public static Activity isInPureBlackActivity = null;
     public static volatile IUserService userService;
-
 
     public static final ServiceConnection userServiceConnection = new ServiceConnection() {
         @Override
@@ -92,12 +91,12 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        goBackHome();
+        refreshMainActivity();
     }
 
     public static void resumeJob() {
         if (currentJob == null) {
-            goBackHome();
+            refreshMainActivity();
             return;
         }
         try {
@@ -113,7 +112,7 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        goBackHome();
+        refreshMainActivity();
     }
 
     public static void resumeJobLater(long delayMillis) {
@@ -177,12 +176,17 @@ public class State {
         }
     }
 
-    public static void goBackHome() {
+    public static void refreshMainActivity() {
         MirrorMainActivity mirrorMainActivity = currentActivity.get();
         if (mirrorMainActivity != null) {
-            if (mirrorMainActivity.isActivityActive) {
-                mirrorMainActivity.runOnUiThread(mirrorMainActivity::refresh);
-            }
+            mirrorMainActivity.runOnUiThread(mirrorMainActivity::refresh);
         }
+    }
+
+    public static void showErrorStatus(String msg) {
+        State.log(msg);
+        MirrorUiState newUiState = new MirrorUiState();
+        newUiState.errorStatusText = msg;
+        State.uiState.setValue(newUiState);
     }
 }
