@@ -83,8 +83,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         }
     };
-    private boolean singleAppMode;
-    private boolean useTouchscreen;
     Button settingsBtn;
     Button screenOffBtn;
     Button touchScreenBtn;
@@ -217,6 +215,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         });
 
         touchScreenBtn.setOnClickListener(v -> {
+            SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+            boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
             if (ShizukuUtils.hasPermission() && useTouchscreen) {
                 VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
                 if (virtualDisplay == null) {
