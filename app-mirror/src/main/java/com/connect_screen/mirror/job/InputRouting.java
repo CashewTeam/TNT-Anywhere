@@ -19,6 +19,7 @@ import android.view.InputDevice;
 import android.widget.Toast;
 
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -99,6 +100,7 @@ public class InputRouting {
 
     public static void bindAllExternalInputToDisplay(int displayId) {
         if (!shouldBind()) {
+            State.log("跳过绑定外设到显示器: " + displayId);
             return;
         }
         DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
@@ -112,7 +114,7 @@ public class InputRouting {
 
     private static boolean shouldBind() {
         try {
-            SharedPreferences preferences = State.currentActivity.get().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            SharedPreferences preferences = SunshineService.instance.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             return preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
         } catch(Exception e) {
             // ignore
@@ -122,15 +124,20 @@ public class InputRouting {
 
     public static void moveImeToExternal(int displayId) {
         if(!shouldMoveIme()) {
+            State.log("跳过移动输入法");
             return;
         }
-        IWindowManager windowManager = ServiceUtils.getWindowManager();
-        windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
         try {
-            windowManager.setDisplayImePolicy(displayId, 0);
-        } catch (Throwable e) {
-            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
-            State.log("在此屏幕显示输入法，设置失败" + e);
+            IWindowManager windowManager = ServiceUtils.getWindowManager();
+            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
+            try {
+                windowManager.setDisplayImePolicy(displayId, 0);
+            } catch (Throwable e) {
+                windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
+                State.log("在此屏幕显示输入法，设置失败" + e);
+            }
+        } catch(Throwable e) {
+            State.log("移动输入法失败: " + e);
         }
     }
 

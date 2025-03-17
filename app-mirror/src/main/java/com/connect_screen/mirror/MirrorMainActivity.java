@@ -370,6 +370,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (state.errorStatusText != null) {
             mirrorStatus.setText(state.errorStatusText);
             settingsBtn.setVisibility(View.VISIBLE);
+            screenOffBtn.setVisibility(View.GONE);
+            touchScreenBtn.setVisibility(View.GONE);
             return;
         }
         // 根据状态设置 UI

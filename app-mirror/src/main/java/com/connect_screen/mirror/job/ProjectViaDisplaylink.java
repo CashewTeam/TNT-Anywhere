@@ -111,17 +111,19 @@ public class ProjectViaDisplaylink implements Job {
         if (virtualDisplay == null) {
             virtualDisplay = CreateVirtualDisplay.createVirtualDisplay(virtualDisplayArgs, surface);
             displaylinkState.createdVirtualDisplay(virtualDisplay);
-            InputRouting.moveImeToExternal(virtualDisplay.getDisplay().getDisplayId());
+            if (lastPackageName != null) {
+                ServiceUtils.launchPackage(context, lastPackageName, virtualDisplay.getDisplay().getDisplayId());
+            }
         } else {
             State.log("复用已经存在的 virtual display: " + virtualDisplay.getDisplay().getDisplayId());
             virtualDisplay.setSurface(surface);
-            return;
         }
         int displayId = virtualDisplay.getDisplay().getDisplayId();
-        if (lastPackageName != null) {
-            ServiceUtils.launchPackage(context, lastPackageName, displayId);
+        InputRouting.moveImeToExternal(displayId);
+        InputRouting.bindAllExternalInputToDisplay(displayId);
+        new Handler().postDelayed(() -> {
             InputRouting.bindAllExternalInputToDisplay(displayId);
-        }
+        }, 5000);
     }
 
     private void copyFirmwares(Context context) {
