@@ -20,6 +20,7 @@ import android.media.projection.IMediaProjection;
 import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.view.Display;
 import android.view.DisplayInfo;
@@ -74,7 +75,7 @@ public class CreateVirtualDisplay {
                     return createByMediaProjection(virtualDisplayArgs, surface);
                 }
             } else {
-                new Handler().post(() -> {
+                new Handler(Looper.getMainLooper()).post(() -> {
                    State.log("没有 shizuku 权限，无法单应用投屏");
                 });
                 return null;

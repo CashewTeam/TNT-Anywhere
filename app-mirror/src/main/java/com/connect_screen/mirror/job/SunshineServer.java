@@ -17,7 +17,6 @@ import android.widget.Toast;
 import android.media.AudioRecord;
 import android.media.AudioManager;
 
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;

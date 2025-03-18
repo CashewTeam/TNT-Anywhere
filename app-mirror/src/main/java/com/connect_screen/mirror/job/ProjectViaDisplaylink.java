@@ -18,12 +18,12 @@ import android.os.HandlerThread;
 import android.view.Surface;
 
 import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.DisplayMode;
 import com.connect_screen.mirror.DisplaylinkPref;
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.DisplaylinkState;
@@ -165,7 +165,7 @@ public class ProjectViaDisplaylink implements Job {
             return false;
         } else {
             usbRequested = true;
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MirrorMainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(SunshineService.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
             usbManager.requestPermission(device, pendingIntent);
             throw new YieldException("等待用户USB授权");
         }
@@ -233,7 +233,7 @@ public class ProjectViaDisplaylink implements Job {
             return false;
         }
         device2UsbRequested = true;
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(MirrorMainActivity.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, new Intent(SunshineService.ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
         usbManager.requestPermission(displaylinkState.displaylinkDevice2, pendingIntent);
         throw new YieldException("等待用户第二个 USB 授权");
     }
@@ -299,9 +299,6 @@ public class ProjectViaDisplaylink implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
-                throw new YieldException("等待服务启动");
-            }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }

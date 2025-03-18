@@ -19,7 +19,6 @@ import android.view.Surface;
 import android.content.SharedPreferences;
 
 import com.connect_screen.mirror.DisplaylinkState;
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.SunshineService;

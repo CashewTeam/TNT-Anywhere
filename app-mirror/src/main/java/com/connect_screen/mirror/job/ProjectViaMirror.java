@@ -12,7 +12,6 @@ import android.view.Display;
 import android.view.DisplayHidden;
 import android.view.IWindowManager;
 
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
@@ -99,9 +98,6 @@ public class ProjectViaMirror implements Job {
         }
         if (State.mirrorVirtualDisplay != null) {
             return true;
-        }
-        if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
-            throw new YieldException("等待服务启动");
         }
         if (State.getMediaProjection() != null) {
             State.log("MediaProjection 已经存在，跳过重复请求");

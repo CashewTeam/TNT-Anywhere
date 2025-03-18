@@ -3,6 +3,7 @@ package com.displaylink.manager;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.connect_screen.mirror.ProjectionMode;
@@ -22,14 +23,14 @@ public class NativeDriverListener {
 
     public void onDisplayConnected(long encoderId) {
         Log.i("displaylink", "onDisplayConnected");
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             State.log("Display已连接, Encoder ID: " + encoderId);
         });
     }
 
     public void onDisplayDisconnected(long encoderId) {
         Log.i("displaylink", "onDisplayDisconnected");
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState == null) {
                 State.log("Display已断开, 但找不到 USB 设备");
@@ -43,7 +44,7 @@ public class NativeDriverListener {
 
     public void onError(int i) {
         Log.i("displaylink", "onError: " + i);
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             State.log("Displaylink 报告故障码：" + i);
         });
     }
@@ -54,10 +55,12 @@ public class NativeDriverListener {
 
     public void onUpdateMonitorInfo(long encoderId, MonitorInfo monitorInfo) {
         Log.i("displaylink", "onUpdateMonitorInfo");
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
             DisplaylinkState displaylinkState = State.displaylinkState;
-            if (displaylinkState != null) {
+            if (displaylinkState == null) {
+                State.log("displaylinkState is null");
+            } else {
                 boolean wasNoMonitor = displaylinkState.monitorInfo == null;
                 displaylinkState.encoderId = encoderId;
                 displaylinkState.monitorInfo = monitorInfo;

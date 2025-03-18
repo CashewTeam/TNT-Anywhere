@@ -21,7 +21,6 @@ import android.view.Surface;
 
 import androidx.core.app.ActivityCompat;
 
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
@@ -148,9 +147,6 @@ public class ProjectViaMoonlight implements Job {
             return true;
         }
         if (mediaProjectionRequested) {
-            if (MediaProjectionService.isStarting && MediaProjectionService.instance == null) {
-                throw new YieldException("等待服务启动");
-            }
             State.log("因为未授予投屏权限，跳过任务");
             return false;
         }

@@ -1,12 +1,19 @@
 package com.connect_screen.mirror;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.display.DisplayManager;
 import android.media.MediaCodecInfo;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.IBinder;
@@ -14,6 +21,8 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import com.connect_screen.mirror.job.MirrorDisplayMonitor;
+import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
 
 import java.io.FileOutputStream;
@@ -34,10 +43,22 @@ import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 
 public class SunshineService extends Service {
+    public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static SunshineService instance;
     private static final String CHANNEL_ID = "SunshineServiceChannel";
     private static final int NOTIFICATION_ID = 2;
     private static final String TAG = "SunshineService";
+
+    private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            android.util.Log.d("SunshineService", "received action: " + intent.getAction());
+            String action = intent.getAction();
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                State.resumeJob();
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -51,10 +72,31 @@ public class SunshineService extends Service {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
+        try {
+            unregisterReceiver(usbPermissionReceiver);
+        } catch (Exception e) {
+            // ignore
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && intent.hasExtra("data")) {
+            MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            Intent data = intent.getParcelableExtra("data");
+            State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
+            State.getMediaProjection().registerCallback(new MediaProjection.Callback() {
+                @Override
+                public void onStop() {
+                    super.onStop();
+                    State.log("MediaProjection onStop 回调");
+                }
+            }, null);
+            State.resumeJob();
+        } else {
+            State.log("SunshineService 收到错误的授权数据");
+            State.resumeJob();
+        }
         // 在后台线程中启动 Sunshine 服务器
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
@@ -98,7 +140,16 @@ public class SunshineService extends Service {
                 Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
             }
         }).start();
-        return START_STICKY;
+
+        // 注册 USB 权限广播接收器
+        IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
+
+        // 监听显示器变化
+        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        MirrorDisplayMonitor.init(displayManager);
+        MirrorDisplaylinkMonitor.init(this);
+        return START_NOT_STICKY;
     }
 
     @Override

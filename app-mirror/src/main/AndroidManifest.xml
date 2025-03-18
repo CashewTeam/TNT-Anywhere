@@ -85,11 +85,6 @@
             android:theme="@style/AppTheme" />
         
         <service
-            android:name=".MediaProjectionService"
-            android:foregroundServiceType="mediaProjection"
-            android:exported="false" />
-
-        <service
             android:name=".FloatingButtonService"
             android:enabled="true"
             android:exported="false" />

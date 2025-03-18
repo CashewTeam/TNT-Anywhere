@@ -139,8 +139,10 @@ public class State {
 
     public static void setMediaProjection(MediaProjection newMediaProjection) {
         if (newMediaProjection == null) {
+            Log.d("State", "MediaProjection used");
             mediaProjection = null;
         } else {
+            Log.d("State", "MediaProjection acquired");
             mediaProjection = newMediaProjection;
             mediaProjectionInUse = newMediaProjection;
         }

@@ -61,7 +61,6 @@ import javax.jmdns.ServiceInfo;
 import rikka.shizuku.Shizuku;
 
 public class MirrorMainActivity extends AppCompatActivity implements IMainActivity {
-    public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
     public static final String TAG = "MirrorMainActivity";
@@ -73,22 +72,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
     private long lastCheckTime = 0;
 
-    private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            android.util.Log.d("MainActivity", "received action: " + intent.getAction());
-            String action = intent.getAction();
-            if (ACTION_USB_PERMISSION.equals(action)) {
-                State.resumeJob();
-            }
-        }
-    };
     Button settingsBtn;
     Button screenOffBtn;
     Button touchScreenBtn;
     Button exitBtn;
     TextView mirrorStatus;
-    public boolean isActivityActive;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -169,27 +157,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         // 初始化主界面控件
         initHomeControls();
-
-        // 获取启动 Intent 并打印其 Action 到日志
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        State.log("MainActivity created with action: " + action);
-
-        // 查是否是 USB 设备连接的 Intent
-        if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            MirrorDisplaylinkMonitor.onUsbDeviceAttached(this, device);
-        }
-
-        // 注册 USB 权限广播接收器
-        IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
-
-        // 监听显示器变化
-        DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-        lastCheckTime = System.currentTimeMillis();
-        MirrorDisplayMonitor.init(displayManager);
-        MirrorDisplaylinkMonitor.init(this);
     }
 
     // 添加初始化主界面控件的方法
@@ -246,27 +213,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onPause() {
         super.onPause();
-        isActivityActive = false;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        isActivityActive = true;
         refresh();
         State.currentActivity = new WeakReference<>(this);
-
-        // 检查时间间隔
-        if (MirrorActivity.getInstance() == null && 
-            (System.currentTimeMillis() - lastCheckTime > MONITOR_INIT_DELAY)) {
-            lastCheckTime = System.currentTimeMillis(); // 记录时间戳
-            DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-            MirrorDisplayMonitor.init(displayManager);
-            MirrorDisplaylinkMonitor.init(this);
-        }
-        
-        // 更新UI状态
-        initHomeControls();
     }
 
     @Override
@@ -276,11 +229,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
         State.currentActivity = null;
-        try {
-            unregisterReceiver(usbPermissionReceiver);
-        } catch (Exception e) {
-            // ignore
-        }
     }
     
     @Override
@@ -293,14 +241,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 lastCheckTime = System.currentTimeMillis(); // 记录时间戳
                 if (SunshineService.instance == null) {
                     Intent sunshineServiceIntent = new Intent(this, SunshineService.class);
+                    sunshineServiceIntent.putExtra("data", data);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         startForegroundService(sunshineServiceIntent);
                     } else {
                         startService(sunshineServiceIntent);
                     }
                     State.log("启动 SunshineService 服务");
-                }
-                if (MediaProjectionService.instance != null) {
+                } else {
                     MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
                     State.getMediaProjection().registerCallback(new MediaProjection.Callback() {
@@ -311,13 +259,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                         }
                     }, null);
                     State.resumeJob();
-                } else {
-                    Intent serviceIntent = new Intent(this, MediaProjectionService.class);
-                    serviceIntent.putExtra("data", data);
-                    startService(serviceIntent);
                 }
             } else {
-                MediaProjectionService.isStarting = false;
                 State.log("用户拒绝了投屏权限");
                 refresh();
                 State.resumeJob();
@@ -349,7 +292,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     public void startMediaProjectionService() {
-        MediaProjectionService.isStarting = true;
         MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) this.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (mediaProjectionManager != null) {
             Intent captureIntent = null;

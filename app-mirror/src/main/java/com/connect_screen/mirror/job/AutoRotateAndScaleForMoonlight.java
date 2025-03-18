@@ -18,7 +18,6 @@ import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
-import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
