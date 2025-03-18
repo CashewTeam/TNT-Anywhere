@@ -541,19 +541,20 @@ namespace input {
     auto width = (float) util::endian::big(packet->width);
     auto height = (float) util::endian::big(packet->height);
 
-    auto tpcoords = client_to_touchport(input, {x, y}, {width, height});
-    if (!tpcoords) {
-      return;
-    }
+    sunshine_callbacks::callJavaOnAbsMouseMove(packet);
 
-    auto &touch_port = input->touch_port;
-    platf::touch_port_t abs_port {
-      touch_port.offset_x,
-      touch_port.offset_y,
-      touch_port.env_width,
-      touch_port.env_height
-    };
-
+//    auto tpcoords = client_to_touchport(input, {x, y}, {width, height});
+//    if (!tpcoords) {
+//      return;
+//    }
+//
+//    auto &touch_port = input->touch_port;
+//    platf::touch_port_t abs_port {
+//      touch_port.offset_x,
+//      touch_port.offset_y,
+//      touch_port.env_width,
+//      touch_port.env_height
+//    };
 //    platf::abs_mouse(platf_input, abs_port, tpcoords->first, tpcoords->second);
   }
 
@@ -593,6 +594,7 @@ namespace input {
           // Already released left button
           return;
         }
+        sunshine_callbacks::callJavaOnMouseButton(BUTTON_LEFT, release);
 //        platf::button_mouse(platf_input, BUTTON_LEFT, release);
 
         mouse_press[BUTTON_LEFT] = false;
@@ -607,6 +609,8 @@ namespace input {
       button == BUTTON_RIGHT && !release &&
       input->mouse_left_button_timeout > DISABLE_LEFT_BUTTON_DELAY
     ) {
+        sunshine_callbacks::callJavaOnMouseButton(BUTTON_RIGHT, false);
+        sunshine_callbacks::callJavaOnMouseButton(BUTTON_RIGHT, true);
 //      platf::button_mouse(platf_input, BUTTON_RIGHT, false);
 //      platf::button_mouse(platf_input, BUTTON_RIGHT, true);
 
@@ -615,6 +619,7 @@ namespace input {
       return;
     }
 
+      sunshine_callbacks::callJavaOnMouseButton(button, release);
 //    platf::button_mouse(platf_input, button, release);
   }
 

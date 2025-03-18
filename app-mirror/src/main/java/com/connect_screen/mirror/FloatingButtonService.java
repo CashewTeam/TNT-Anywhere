@@ -227,7 +227,11 @@ public class FloatingButtonService extends Service {
         }
         super.onDestroy();
         if (floatingView != null && windowManager != null) {
-            windowManager.removeView(floatingView);
+            try {
+                windowManager.removeView(floatingView);
+            } catch(Exception e) {
+                // ignore
+            }
             floatingView = null;
         }
         State.floatingButtonService = null;

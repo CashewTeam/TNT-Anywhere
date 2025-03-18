@@ -663,4 +663,17 @@ namespace sunshine_callbacks {
 
         jvm->DetachCurrentThread();
     }
+
+    void callJavaOnAbsMouseMove(NV_ABS_MOUSE_MOVE_PACKET* packet) {
+        float x = util::endian::big(packet->x);
+        float y = util::endian::big(packet->y);
+        auto width = (float) util::endian::big(packet->width);
+        auto height = (float) util::endian::big(packet->height);
+        BOOST_LOG(info) << "on mouse move "sv << x << ","sv << y << " within "sv << width << "*"sv << height;
+    }
+
+    void callJavaOnMouseButton(std::uint8_t button, bool release) {
+        BOOST_LOG(info) << "on mouse button "sv << static_cast<int>(button) << " release "sv << release;
+    }
+
 }

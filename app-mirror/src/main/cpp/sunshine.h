@@ -7,4 +7,6 @@ namespace sunshine_callbacks {
     void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig);
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config);
     void callJavaOnTouch(SS_TOUCH_PACKET* touchPacket);
+    void callJavaOnAbsMouseMove(NV_ABS_MOUSE_MOVE_PACKET* packet);
+    void callJavaOnMouseButton(std::uint8_t button, bool release);
 }
