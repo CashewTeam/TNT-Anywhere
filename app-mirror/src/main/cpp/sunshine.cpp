@@ -29,6 +29,11 @@ static audio::sample_queue_t samples = nullptr;
 // 声明全局变量来存储音频录制状态
 static std::thread audioRecordingThread;
 
+// 缓存常用的方法ID
+static jmethodID handleTouchPacketMethod = nullptr;
+static jmethodID handleAbsMouseMoveMethod = nullptr;
+static jmethodID handleLeftMouseButtonMethod = nullptr;
+
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass clazz) {
     env->GetJavaVM(&jvm);
@@ -37,6 +42,15 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
     if (localClass != nullptr) {
         sunshineServerClass = (jclass)env->NewGlobalRef(localClass);
         env->DeleteLocalRef(localClass);
+        
+        // 在类引用创建后立即缓存常用方法ID
+        handleTouchPacketMethod = env->GetStaticMethodID(sunshineServerClass, "handleTouchPacket", "(IIIFFFFF)V");
+        handleAbsMouseMoveMethod = env->GetStaticMethodID(sunshineServerClass, "handleAbsMouseMovePacket", "(FFFF)V");
+        handleLeftMouseButtonMethod = env->GetStaticMethodID(sunshineServerClass, "handleLeftMouseButton", "(Z)V");
+        
+        if (!handleTouchPacketMethod || !handleAbsMouseMoveMethod || !handleLeftMouseButtonMethod) {
+            BOOST_LOG(warning) << "无法缓存一个或多个输入处理方法ID"sv;
+        }
     } else {
         BOOST_LOG(error) << "无法在启动时找到 SunshineServer 类"sv;
     }
@@ -91,6 +105,11 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
     if (sunshineServerClass != nullptr) {
         env->DeleteGlobalRef(sunshineServerClass);
         sunshineServerClass = nullptr;
+        
+        // 清除缓存的方法ID
+        handleTouchPacketMethod = nullptr;
+        handleAbsMouseMoveMethod = nullptr;
+        handleLeftMouseButtonMethod = nullptr;
     }
     // 其他清理工作...
 }
@@ -625,8 +644,8 @@ namespace sunshine_callbacks {
             return;
         }
         
-        if (sunshineServerClass == nullptr) {
-            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+        if (sunshineServerClass == nullptr || handleTouchPacketMethod == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用或方法ID为空"sv;
             return;
         }
 
@@ -637,22 +656,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID handleTouchPacketMethod = env->GetStaticMethodID(sunshineServerClass, "handleTouchPacket", 
-                                                                  "(IIIFFFFF)V");
-        if (handleTouchPacketMethod == nullptr) {
-            BOOST_LOG(error) << "找不到 handleTouchPacket 方法"sv;
-            jvm->DetachCurrentThread();
-            return;
-        }
-
-        // 从 SS_TOUCH_PACKET 结构体中提取字段并传递给 Java 方法
+        // 使用缓存的方法ID
         env->CallStaticVoidMethod(sunshineServerClass, handleTouchPacketMethod,
                                  static_cast<int>(touchPacket->eventType),
                                  static_cast<int>(touchPacket->rotation),
                                  static_cast<int>(touchPacket->pointerId),
-                                  from_netfloat(touchPacket->x),
-                                  from_netfloat(touchPacket->y),
-                                  from_netfloat(touchPacket->pressureOrDistance),
+                                 from_netfloat(touchPacket->x),
+                                 from_netfloat(touchPacket->y),
+                                 from_netfloat(touchPacket->pressureOrDistance),
                                  from_netfloat(touchPacket->contactAreaMajor),
                                  from_netfloat(touchPacket->contactAreaMinor));
 
@@ -670,8 +681,8 @@ namespace sunshine_callbacks {
             return;
         }
         
-        if (sunshineServerClass == nullptr) {
-            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+        if (sunshineServerClass == nullptr || handleAbsMouseMoveMethod == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用或方法ID为空"sv;
             return;
         }
 
@@ -682,15 +693,7 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID handleAbsMouseMoveMethod = env->GetStaticMethodID(sunshineServerClass, "handleAbsMouseMovePacket", 
-                                                                  "(FFFF)V");
-        if (handleAbsMouseMoveMethod == nullptr) {
-            BOOST_LOG(error) << "找不到 handleAbsMouseMovePacket 方法"sv;
-            jvm->DetachCurrentThread();
-            return;
-        }
-
-        // 从 NV_ABS_MOUSE_MOVE_PACKET 结构体中提取字段并传递给 Java 方法
+        // 使用缓存的方法ID
         float x = util::endian::big(packet->x);
         float y = util::endian::big(packet->y);
         float width = (float) util::endian::big(packet->width);
@@ -729,16 +732,7 @@ namespace sunshine_callbacks {
         }
 
         // 根据按钮类型调用不同的 Java 方法
-        if (button == BUTTON_LEFT) {
-            jmethodID handleLeftMouseButtonMethod = env->GetStaticMethodID(sunshineServerClass, 
-                                                                         "handleLeftMouseButton", 
-                                                                         "(Z)V");
-            if (handleLeftMouseButtonMethod == nullptr) {
-                BOOST_LOG(error) << "找不到 handleLeftMouseButton 方法"sv;
-                jvm->DetachCurrentThread();
-                return;
-            }
-
+        if (button == BUTTON_LEFT && handleLeftMouseButtonMethod != nullptr) {
             env->CallStaticVoidMethod(sunshineServerClass, handleLeftMouseButtonMethod, release);
         } else {
             // 对于其他按钮类型，可以添加更多的处理逻辑
