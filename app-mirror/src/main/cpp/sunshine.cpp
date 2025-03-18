@@ -665,15 +665,92 @@ namespace sunshine_callbacks {
     }
 
     void callJavaOnAbsMouseMove(NV_ABS_MOUSE_MOVE_PACKET* packet) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jmethodID handleAbsMouseMoveMethod = env->GetStaticMethodID(sunshineServerClass, "handleAbsMouseMovePacket", 
+                                                                  "(FFFF)V");
+        if (handleAbsMouseMoveMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 handleAbsMouseMovePacket 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        // 从 NV_ABS_MOUSE_MOVE_PACKET 结构体中提取字段并传递给 Java 方法
         float x = util::endian::big(packet->x);
         float y = util::endian::big(packet->y);
-        auto width = (float) util::endian::big(packet->width);
-        auto height = (float) util::endian::big(packet->height);
-        BOOST_LOG(info) << "on mouse move "sv << x << ","sv << y << " within "sv << width << "*"sv << height;
+        float width = (float) util::endian::big(packet->width);
+        float height = (float) util::endian::big(packet->height);
+        
+        BOOST_LOG(info) << "调用 Java 处理鼠标移动: "sv << x << ","sv << y << " 在 "sv << width << "*"sv << height << " 范围内";
+
+        env->CallStaticVoidMethod(sunshineServerClass, handleAbsMouseMoveMethod, x, y, width, height);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
     }
 
     void callJavaOnMouseButton(std::uint8_t button, bool release) {
         BOOST_LOG(info) << "on mouse button "sv << static_cast<int>(button) << " release "sv << release;
+        
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        // 根据按钮类型调用不同的 Java 方法
+        if (button == BUTTON_LEFT) {
+            jmethodID handleLeftMouseButtonMethod = env->GetStaticMethodID(sunshineServerClass, 
+                                                                         "handleLeftMouseButton", 
+                                                                         "(Z)V");
+            if (handleLeftMouseButtonMethod == nullptr) {
+                BOOST_LOG(error) << "找不到 handleLeftMouseButton 方法"sv;
+                jvm->DetachCurrentThread();
+                return;
+            }
+
+            env->CallStaticVoidMethod(sunshineServerClass, handleLeftMouseButtonMethod, release);
+        } else {
+            // 对于其他按钮类型，可以添加更多的处理逻辑
+            BOOST_LOG(info) << "未处理的鼠标按钮类型: "sv << static_cast<int>(button);
+        }
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
     }
 
 }

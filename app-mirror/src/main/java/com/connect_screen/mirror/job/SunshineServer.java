@@ -148,6 +148,49 @@ public class SunshineServer {
 
     private static Map<Integer, PointerStatus> pointers = new HashMap<>();
 
+    public static void handleAbsMouseMovePacket(float x, float y, float width, float height) {
+        x = x / width;
+        y = y / height;
+        int displayRotation = State.mirrorVirtualDisplay.getDisplay().getRotation();
+        // 根据屏幕旋转调整坐标
+        float adjustedX = x * screenWidth;
+        float adjustedY = y * screenHeight;
+        switch (displayRotation) {
+            case Surface.ROTATION_90:
+                adjustedX = y * screenHeight;
+                adjustedY = (1 - x) * screenWidth;
+                break;
+            case Surface.ROTATION_180:
+                adjustedX = (1 - x) * screenWidth;
+                adjustedY = (1 - y) * screenHeight;
+                break;
+            case Surface.ROTATION_270:
+                adjustedX = (1 - y) * screenHeight;
+                adjustedY = x * screenWidth;
+                break;
+        }
+        if (pointers.containsKey(0)) {
+            handleTouchEventMove(0, adjustedX, adjustedY);
+        } else {
+            PointerStatus pointerStatus = new PointerStatus();
+            pointerStatus.x = adjustedX;
+            pointerStatus.y = adjustedY;
+            pointers.put(0, pointerStatus);
+        }
+    }
+
+    public static void handleLeftMouseButton(boolean release) {
+        PointerStatus pointerStatus = pointers.get(0);
+        if (pointerStatus == null) {
+            return;
+        }
+        if (release) {
+            handleTouchEventUp(0, pointerStatus.x, pointerStatus.y, false);
+        } else {
+            handleTouchEventDown(0, pointerStatus.x, pointerStatus.y);
+        }
+    }
+
     // 添加处理触摸事件的静态方法
     public static void handleTouchPacket(int eventType, int rotation, int pointerId, 
                                         float x, float y, float pressureOrDistance,
@@ -387,9 +430,8 @@ public class SunshineServer {
     }
 
     private static void triggerTouchEventMove() {
-        if (!bufferedMove.isEmpty()) {
-            bufferedMove.clear();
-            triggerTouchEventMove();
+        if (pointers.isEmpty()) {
+            return;
         }
         long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
