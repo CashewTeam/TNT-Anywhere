@@ -21,6 +21,7 @@ import android.opengl.GLES20;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 
 public class AutoRotateAndScaleForMoonlight {
 
@@ -74,8 +75,9 @@ public class AutoRotateAndScaleForMoonlight {
 
         @Override
         public void onDisplayChanged(int displayId) {
-            if (displayId == Display.DEFAULT_DISPLAY) {
-                DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+            Context context = State.getContext();
+            if (displayId == Display.DEFAULT_DISPLAY && context != null) {
+                DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
                 Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);
@@ -106,20 +108,24 @@ public class AutoRotateAndScaleForMoonlight {
     public void start(Surface outputSurface) {
         instance = this;
 
+        Context context = State.getContext();
+        if (context == null) {
+            return;
+        }
         // 读取设置
-        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
         autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
 
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {
-            DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             orientationChangeCallback = new OrientationChangeCallback();
             displayManager.registerDisplayListener(orientationChangeCallback, renderHandler);
         }
 
         // 获取手机主屏的完整显示信息
-        DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         DisplayMetrics displayMetrics = new DisplayMetrics();
         Display display = displayManager.getDisplay(0);
         display.getRealMetrics(displayMetrics); // 使用getRealMetrics获取包含系统装饰(如状态栏、导航栏)的真实尺寸
@@ -324,8 +330,9 @@ public class AutoRotateAndScaleForMoonlight {
     public void stop() {
         surfaceDestroyed();
         instance = null;
-        if (orientationChangeCallback != null) {
-            DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+        Context context = State.getContext();
+        if (orientationChangeCallback != null && context != null) {
+            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.unregisterDisplayListener(orientationChangeCallback);
         }
     }

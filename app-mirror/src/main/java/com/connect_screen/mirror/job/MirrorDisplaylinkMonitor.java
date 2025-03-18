@@ -10,6 +10,7 @@ import android.hardware.usb.UsbManager;
 
 import com.connect_screen.mirror.DisplaylinkPref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 
 public class MirrorDisplaylinkMonitor {
 
@@ -61,9 +62,8 @@ public class MirrorDisplaylinkMonitor {
             return;
         }
         if (State.displaylinkDeviceName != null) {
-            Activity mainActivity = State.currentActivity.get();
-            if (mainActivity != null) {
-                UsbManager usbManager = (UsbManager) mainActivity.getSystemService(Context.USB_SERVICE);
+            if (context != null) {
+                UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
                 if (usbManager.getDeviceList().get(State.displaylinkDeviceName) == null) {
                     State.displaylinkState.destroy();
                     State.displaylinkDeviceName = null;

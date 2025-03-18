@@ -25,6 +25,7 @@ import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -49,12 +50,16 @@ public class ProjectViaMoonlight implements Job {
 
     @Override
     public void start() throws YieldException {
-        if (!requestMediaProjectionPermission(State.currentActivity.get())) {
+        if (!requestMediaProjectionPermission()) {
+            return;
+        }
+        Context context = State.getContext();
+        if (context == null) {
             return;
         }
         // 创建AudioRecord
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(State.currentActivity.get(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                 // 配置音频捕获参数
                 int sampleRate = 48000; // 与您的Opus配置匹配
                 int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
@@ -89,13 +94,17 @@ public class ProjectViaMoonlight implements Job {
                     return;
                 }
                 audioPermissionRequested = true;
-                ActivityCompat.requestPermissions(State.currentActivity.get(),
+                MirrorMainActivity activity = State.currentActivity.get();
+                if (activity == null) {
+                    return;
+                }
+                ActivityCompat.requestPermissions(activity,
                         new String[]{Manifest.permission.RECORD_AUDIO}, 
                         REQUEST_RECORD_AUDIO_PERMISSION);
                 throw new YieldException("等待录音权限授权");
             }
         }
-        SharedPreferences preferences = MediaProjectionService.instance.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
+        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         boolean autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
         boolean autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
@@ -105,7 +114,7 @@ public class ProjectViaMoonlight implements Job {
                 State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
                         width, height, frameRate, singleAppDpi, autoRotate), surface);
                 String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
-                ServiceUtils.launchPackage(MediaProjectionService.instance, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+                ServiceUtils.launchPackage(context, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             } else {
@@ -130,7 +139,7 @@ public class ProjectViaMoonlight implements Job {
         }
     }
 
-    private boolean requestMediaProjectionPermission(Context context) throws YieldException {
+    private boolean requestMediaProjectionPermission() throws YieldException {
         if (State.mirrorVirtualDisplay != null) {
             return true;
         }
@@ -146,7 +155,11 @@ public class ProjectViaMoonlight implements Job {
             return false;
         }
         mediaProjectionRequested = true;
-        State.currentActivity.get().startMediaProjectionService();
+        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        if (mirrorMainActivity == null) {
+            return false;
+        }
+        mirrorMainActivity.startMediaProjectionService();
         throw new YieldException("等待用户投屏授权");
     }
 }

@@ -2,6 +2,7 @@ package com.connect_screen.mirror;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
@@ -188,5 +189,15 @@ public class State {
         MirrorUiState newUiState = new MirrorUiState();
         newUiState.errorStatusText = msg;
         State.uiState.setValue(newUiState);
+    }
+
+    public static Context getContext() {
+        if (currentActivity.get() != null) {
+            return currentActivity.get();
+        }
+        if (SunshineService.instance != null) {
+            return SunshineService.instance;
+        }
+        return null;
     }
 }

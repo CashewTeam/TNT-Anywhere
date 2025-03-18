@@ -22,6 +22,7 @@ import com.connect_screen.mirror.DisplaylinkState;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.connect_screen.mirror.SunshineService;
 
 import java.nio.ByteBuffer;
 
@@ -74,8 +75,9 @@ public class AutoRotateAndScaleForDisplaylink {
 
     public void release() {
         instance = null;
-        if (orientationChangeCallback != null && MediaProjectionService.instance != null) {
-            DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+        Context context = State.getContext();
+        if (orientationChangeCallback != null && context != null) {
+            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.unregisterDisplayListener(orientationChangeCallback);
         }
         
@@ -159,10 +161,11 @@ public class AutoRotateAndScaleForDisplaylink {
     }
 
     private void updateSurface() {
-        if (MediaProjectionService.instance == null) {
+        Context context = State.getContext();
+        if (context == null) {
             return;
         }
-        DisplayManager displayManager = (DisplayManager) MediaProjectionService.instance.getSystemService(Context.DISPLAY_SERVICE);
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         DisplayMetrics metrics = new DisplayMetrics();
         Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
         defaultDisplay.getRealMetrics(metrics);

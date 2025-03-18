@@ -358,8 +358,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             } else {
                 captureIntent = mediaProjectionManager.createScreenCaptureIntent();
             }
-            State.currentActivity.get().startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-            TouchpadAccessibilityService.grantPermissionByClick(State.currentActivity.get());
+            MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+            if (mirrorMainActivity != null) {
+                mirrorMainActivity.startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
+                TouchpadAccessibilityService.grantPermissionByClick(mirrorMainActivity);
+            }
         } else {
             throw new RuntimeException("无法获取 MediaProjectionManager 服务");
         }

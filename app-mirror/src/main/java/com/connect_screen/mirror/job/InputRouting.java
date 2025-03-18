@@ -79,8 +79,9 @@ public class InputRouting {
                         State.log("成功更新输入设备路由: " + inputDevice.getName() + ", " + inputPort + " => " + displayPort);
                     } catch(Throwable e3) {
                         State.log("改用 input port 仍然未能更新输入设备路由: " + inputDevice.getName() + ", " + e3.getMessage());
-                        if (ShizukuUtils.hasPermission() && State.currentActivity.get() != null) {
-                            Toast.makeText(State.currentActivity.get(), "由于操作系统版本的限制，需要点击'模拟熄屏'按钮才可以使用触摸屏", Toast.LENGTH_SHORT).show();
+                        Context context = State.getContext();
+                        if (ShizukuUtils.hasPermission() && context != null) {
+                            Toast.makeText(context, "由于操作系统版本的限制，需要点击'模拟熄屏'按钮才可以使用触摸屏", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -113,8 +114,12 @@ public class InputRouting {
     }
 
     private static boolean shouldBind() {
+        Context context = State.getContext();
+        if (context == null) {
+            return false;
+        }
         try {
-            SharedPreferences preferences = SunshineService.instance.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             return preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
         } catch(Exception e) {
             // ignore
@@ -142,8 +147,12 @@ public class InputRouting {
     }
 
     private static boolean shouldMoveIme() {
+        Context context = State.getContext();
+        if (context == null) {
+            return false;
+        }
         try {
-            SharedPreferences preferences = State.currentActivity.get().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
             return preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
         } catch(Exception e) {
             // ignore

@@ -64,7 +64,7 @@ public class MirrorDisplayMonitor {
         if (CreateVirtualDisplay.isCreating) {
             return;
         }
-        Context context = State.currentActivity.get();
+        Context context = State.getContext();
         if (context == null) {
             return;
         }

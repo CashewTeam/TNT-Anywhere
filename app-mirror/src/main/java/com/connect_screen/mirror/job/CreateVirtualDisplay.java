@@ -85,7 +85,7 @@ public class CreateVirtualDisplay {
     }
 
     public static void powerOffScreen() {
-        MirrorMainActivity context = State.currentActivity.get();
+        Context context = State.getContext();
         if (context == null) {
             return;
         }
@@ -257,7 +257,7 @@ public class CreateVirtualDisplay {
         if (!ShizukuUtils.hasPermission()) {
             return false;
         }
-        MirrorMainActivity context = State.currentActivity.get();
+        Context context = State.getContext();
         if (context == null) {
             return false;
         }

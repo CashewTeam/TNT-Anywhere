@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import com.connect_screen.mirror.BuildConfig;
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
@@ -29,6 +30,9 @@ public class ExitAll {
             context.startActivity(mainIntent);
         }
         
+        context.stopService(new Intent(context, MediaProjectionService.class));
+        context.stopService(new Intent(context, SunshineService.class));
+
         // 退出应用进程
         android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);

@@ -19,6 +19,7 @@ import android.media.AudioManager;
 
 import com.connect_screen.mirror.MediaProjectionService;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -52,7 +53,7 @@ public class SunshineServer {
     public static void onPinRequested() {
         // 使用 Handler 将回调切换到主线程
         new Handler(Looper.getMainLooper()).post(() -> {
-            Context context = State.currentActivity.get();
+            Context context = State.getContext();
             if (context == null) {
                 return;
             }
@@ -103,8 +104,9 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
-        if (shouldMute && State.currentActivity.get() != null) {
-            AudioManager audioManager = (AudioManager) State.currentActivity.get().getSystemService(Context.AUDIO_SERVICE);
+        Context context = State.getContext();
+        if (shouldMute && context != null) {
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
         }
@@ -116,9 +118,10 @@ public class SunshineServer {
             CreateVirtualDisplay.powerOnScreen();
             CreateVirtualDisplay.restoreAspectRatio();
             InputRouting.moveImeToDefault();
-            if (originalVolume != 0 && MediaProjectionService.instance != null) {
+            Context context = State.getContext();
+            if (originalVolume != 0 && context != null) {
                 State.log("恢复音量: " + originalVolume);
-                AudioManager audioManager = (AudioManager) MediaProjectionService.instance.getSystemService(Context.AUDIO_SERVICE);
+                AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                 audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
             }
@@ -129,7 +132,7 @@ public class SunshineServer {
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
-                ExitAll.execute(MediaProjectionService.instance, true);
+                ExitAll.execute(State.getContext(), true);
             }
         });
     }
@@ -433,7 +436,7 @@ public class SunshineServer {
     // 添加显示编码器错误的方法
     public static void showEncoderError(String errorMessage) {
         new Handler(Looper.getMainLooper()).post(() -> {
-            Context context = State.currentActivity.get();
+            Context context = State.getContext();
             if (context == null) {
                 return;
             }

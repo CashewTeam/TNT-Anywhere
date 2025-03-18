@@ -38,7 +38,10 @@ public class ProjectViaMirror implements Job {
             waitThread.interrupt();
             waitThread = null;
         }
-        Context context = State.currentActivity.get();
+        Context context = State.getContext();
+        if (context == null) {
+            return;
+        }
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
         boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
@@ -109,7 +112,11 @@ public class ProjectViaMirror implements Job {
             return false;
         }
         mediaProjectionRequested = true;
-        State.currentActivity.get().startMediaProjectionService();
+        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        if (mirrorMainActivity == null) {
+            return false;
+        }
+        mirrorMainActivity.startMediaProjectionService();
         throw new YieldException("等待用户投屏授权");
     }
 

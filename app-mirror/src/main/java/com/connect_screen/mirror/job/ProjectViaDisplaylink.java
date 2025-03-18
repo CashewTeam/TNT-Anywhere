@@ -40,7 +40,6 @@ public class ProjectViaDisplaylink implements Job {
     private boolean device2UsbRequested = false;
     private boolean mediaProjectionRequested = false;
     private final String deviceName;
-    private boolean userServiceRequested = false;
     private final VirtualDisplayArgs virtualDisplayArgs;
 
     public ProjectViaDisplaylink(UsbDevice device, VirtualDisplayArgs virtualDisplayArgs) {
@@ -49,7 +48,7 @@ public class ProjectViaDisplaylink implements Job {
     }
 
     public void start() throws YieldException {
-        Context context = State.currentActivity.get();
+        Context context = State.getContext();
         if (context == null) {
             State.log("Activity 不存在，跳过任务");
             return;
@@ -308,7 +307,11 @@ public class ProjectViaDisplaylink implements Job {
         }
         displaylinkState.stopVirtualDisplay();
         mediaProjectionRequested = true;
-        State.currentActivity.get().startMediaProjectionService();
+        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        if (mirrorMainActivity == null) {
+            return false;
+        }
+        mirrorMainActivity.startMediaProjectionService();
         throw new YieldException("等待用户投屏授权");
     }
 }

@@ -1,6 +1,8 @@
 package com.displaylink.manager;
 
 import android.app.Activity;
+import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import com.connect_screen.mirror.ProjectionMode;
@@ -20,14 +22,14 @@ public class NativeDriverListener {
 
     public void onDisplayConnected(long encoderId) {
         Log.i("displaylink", "onDisplayConnected");
-        State.currentActivity.get().runOnUiThread(() -> {
+        new Handler().post(() -> {
             State.log("Display已连接, Encoder ID: " + encoderId);
         });
     }
 
     public void onDisplayDisconnected(long encoderId) {
         Log.i("displaylink", "onDisplayDisconnected");
-        State.currentActivity.get().runOnUiThread(() -> {
+        new Handler().post(() -> {
             DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState == null) {
                 State.log("Display已断开, 但找不到 USB 设备");
@@ -41,7 +43,7 @@ public class NativeDriverListener {
 
     public void onError(int i) {
         Log.i("displaylink", "onError: " + i);
-        State.currentActivity.get().runOnUiThread(() -> {
+        new Handler().post(() -> {
             State.log("Displaylink 报告故障码：" + i);
         });
     }
@@ -52,18 +54,15 @@ public class NativeDriverListener {
 
     public void onUpdateMonitorInfo(long encoderId, MonitorInfo monitorInfo) {
         Log.i("displaylink", "onUpdateMonitorInfo");
-        Activity context = State.currentActivity.get();
-        if (context == null) {
-            return;
-        }
-        context.runOnUiThread(() -> {
+        new Handler().post(() -> {
             State.log("onUpdateMonitorInfo: " + monitorInfo.toString());
             DisplaylinkState displaylinkState = State.displaylinkState;
             if (displaylinkState != null) {
                 boolean wasNoMonitor = displaylinkState.monitorInfo == null;
                 displaylinkState.encoderId = encoderId;
                 displaylinkState.monitorInfo = monitorInfo;
-                if (!State.isJobRunning() && wasNoMonitor) {
+                Context context = State.getContext();
+                if (!State.isJobRunning() && wasNoMonitor && context != null) {
                     DisplaylinkPref.load(context);
                     State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
                     State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs));
