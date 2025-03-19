@@ -1,12 +1,14 @@
 package com.connect_screen.mirror.job;
 
 import android.app.ActivityManager;
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.display.DisplayManager;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
+import android.os.Build;
 import android.util.Log;
 import android.view.Display;
 import android.view.DisplayHidden;
@@ -75,13 +77,15 @@ public class ProjectViaMirror implements Job {
             // 检查是否允许在该显示器上启动Activity
             ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
             // 启动 MirrorActivity
-            android.content.Intent intent = new android.content.Intent(context, MirrorActivity.class);
-            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+            Intent intent = new Intent(context, MirrorActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ActivityOptions options = ActivityOptions.makeBasic();
             options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
-            if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
-                Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
-                return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
+                    Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
+                    return;
+                }
             }
             context.startActivity(intent, options.toBundle());
             State.mirrorDisplayId = mirrorDisplay.getDisplayId();

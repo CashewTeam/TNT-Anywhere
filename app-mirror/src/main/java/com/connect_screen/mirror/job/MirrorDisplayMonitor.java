@@ -61,6 +61,15 @@ public class MirrorDisplayMonitor {
         if (display.getDisplayId() == State.getMirrorVirtualDisplayId()) {
             return;
         }
+        if ("Moonlight".equals(display.getName())) {
+            return;
+        }
+        if ("DisplayLink".equals(display.getName())) {
+            return;
+        }
+        if ("Mirror".equals(display.getName())) {
+            return;
+        }
         if (CreateVirtualDisplay.isCreating) {
             return;
         }
