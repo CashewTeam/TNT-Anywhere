@@ -1,5 +1,6 @@
 package com.connect_screen.mirror.job;
 
+import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Handler;
 import android.os.Looper;
@@ -8,6 +9,8 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.util.Log;
+import android.view.Display;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.MotionEventHidden;
@@ -17,8 +20,10 @@ import android.widget.Toast;
 import android.media.AudioRecord;
 import android.media.AudioManager;
 
+import androidx.annotation.NonNull;
+
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -33,9 +38,19 @@ import dev.rikka.tools.refine.Refine;
 public class SunshineServer {
     public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
     private static IInputManager inputManager;
-    private static int screenWidth;
-    private static int screenHeight;
+    // screenWidth * screenHeight always in landscape mode
+    private static float screenWidth;
+    private static float screenHeight;
+    private static float portraitMirrorWidth;
+    private static float portraitMirrorHeight;
+    private static float landscapeMirrorWidth;
+    private static float landscapeMirrorHeight;
     private static int originalVolume;
+    private static boolean autoScale;
+    private static boolean singleAppMode;
+    private static boolean autoRotate;
+    private static float defaultDisplayWidth;
+    private static float defaultDisplayHeight;
 
     static {
         System.loadLibrary("sunshine");
@@ -91,17 +106,41 @@ public class SunshineServer {
     
     
     // surface created by MediaCodec
+    // width always > height, as it is a landscape mode
     public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMute) {
+        Context context = State.getContext();
+        if (context == null) {
+            return;
+        }
         if (ShizukuUtils.hasPermission()) {
             inputManager = ServiceUtils.getInputManager();
-            screenWidth = width;
-            screenHeight = height;
         }
+        screenWidth = width;
+        screenHeight = height;
+        singleAppMode = Pref.getSingleAppMode();
+        autoRotate = Pref.getAutoRotate();
+        autoScale = Pref.getAutoScale();
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+        defaultDisplayWidth = Math.max(defaultDisplay.getWidth(), defaultDisplay.getHeight());
+        defaultDisplayHeight = Math.min(defaultDisplay.getWidth(), defaultDisplay.getHeight());
+        float aspectRatio = defaultDisplayWidth / defaultDisplayHeight;
+        
+        portraitMirrorWidth = height / aspectRatio;
+        portraitMirrorHeight = height;
+        landscapeMirrorWidth = Math.min(width, defaultDisplayWidth);
+        landscapeMirrorHeight = width / aspectRatio;
+
+        State.log("主屏尺寸 defaultDisplayWidth: " + defaultDisplayWidth + " defaultDisplayHeight: " + defaultDisplayHeight);
+        State.log("客户端屏幕尺寸 screenWidth: " + screenWidth + " screenHeight: " + screenHeight);
+        if (!singleAppMode) {
+            State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight);
+        }
+        
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
         });
-        Context context = State.getContext();
-        if (shouldMute && context != null) {
+        if (shouldMute) {
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
@@ -138,53 +177,123 @@ public class SunshineServer {
 
     public static native void enableH265();
 
-    private static class PointerStatus {
+    private static class Point {
         public float x = 0;
         public float y = 0;
     }
 
-    private static Map<Integer, PointerStatus> pointers = new HashMap<>();
+    private static Map<Integer, Point> pointers = new HashMap<>();
+
+    private static Point translate(float x, float y) {
+        if (singleAppMode) {
+            return translateSingleAppMode(x, y);
+        } else {
+            return translateMirrorMode(x, y);
+        }
+    }
+
+    private static Point translateMirrorMode(float x, float y) {
+        int displayRotation = MirrorDisplayMonitor.getRotation(Display.DEFAULT_DISPLAY);
+        float xInScreen = x * screenWidth;
+        float yInScreen = y * screenHeight;
+        switch(displayRotation) {
+            case Surface.ROTATION_0:
+                return translateRotation0Mirror(xInScreen, yInScreen);
+            case Surface.ROTATION_90:
+                return translateRotation90Mirror(xInScreen, yInScreen);
+            case Surface.ROTATION_180:
+            case Surface.ROTATION_270:
+        }
+        throw new RuntimeException("invalid rotation");
+    }
+
+    private static Point translateRotation0Mirror(float xInScreen, float yInScreen) {
+        Point point = new Point();
+        float xBlackBar = (screenWidth - portraitMirrorWidth) / 2;
+        float yBlackBar = (screenHeight - portraitMirrorHeight) / 2;
+        float adjustedX = xInScreen - xBlackBar;
+        if (adjustedX > portraitMirrorWidth) {
+            adjustedX = portraitMirrorWidth;
+        } else if (adjustedX < 0) {
+            adjustedX = 0;
+        }
+        float adjustedY = yInScreen - yBlackBar;
+        if (adjustedY > portraitMirrorHeight) {
+            adjustedY = portraitMirrorHeight;
+        } else if (adjustedY < 0) {
+            adjustedY = 0;
+        }
+        point.x = (adjustedX / portraitMirrorWidth) * defaultDisplayHeight;
+        point.y = (adjustedY / portraitMirrorHeight) * defaultDisplayWidth;
+        return point;
+    }
+
+    private static Point translateRotation90Mirror(float xInScreen, float yInScreen) {
+        Point point = new Point();
+        float xBlackBar = (screenWidth - landscapeMirrorWidth) / 2;
+        float yBlackBar = (screenHeight - landscapeMirrorHeight) / 2;
+        float adjustedX = xInScreen - xBlackBar;
+        if (adjustedX > landscapeMirrorWidth) {
+            adjustedX = landscapeMirrorWidth;
+        } else if (adjustedX < 0) {
+            adjustedX = 0;
+        }
+        float adjustedY = yInScreen - yBlackBar;
+        if (adjustedY > landscapeMirrorHeight) {
+            adjustedY = landscapeMirrorHeight;
+        } else if (adjustedY < 0) {
+            adjustedY = 0;
+        }
+        point.x = (adjustedX / landscapeMirrorWidth) * defaultDisplayWidth;
+        point.y = (adjustedY / landscapeMirrorHeight) * defaultDisplayHeight;
+        return point;
+    }
+
+    private static @NonNull Point translateSingleAppMode(float x, float y) {
+        int displayRotation = State.mirrorVirtualDisplay.getDisplay().getRotation();
+        Point point = new Point();
+        switch (displayRotation) {
+            case Surface.ROTATION_0:
+                point.x = x * screenWidth;
+                point.y = y * screenHeight;
+                break;
+            case Surface.ROTATION_90:
+                point.x = y * screenHeight;
+                point.y = (1 - x) * screenWidth;
+                break;
+            case Surface.ROTATION_180:
+                point.x = (1 - x) * screenWidth;
+                point.y = (1 - y) * screenHeight;
+                break;
+            case Surface.ROTATION_270:
+                point.x = (1 - y) * screenHeight;
+                point.y = x * screenWidth;
+                break;
+        }
+        return point;
+    }
 
     public static void handleAbsMouseMovePacket(float x, float y, float width, float height) {
         x = x / width;
         y = y / height;
-        int displayRotation = State.mirrorVirtualDisplay.getDisplay().getRotation();
         // 根据屏幕旋转调整坐标
-        float adjustedX = x * screenWidth;
-        float adjustedY = y * screenHeight;
-        switch (displayRotation) {
-            case Surface.ROTATION_90:
-                adjustedX = y * screenHeight;
-                adjustedY = (1 - x) * screenWidth;
-                break;
-            case Surface.ROTATION_180:
-                adjustedX = (1 - x) * screenWidth;
-                adjustedY = (1 - y) * screenHeight;
-                break;
-            case Surface.ROTATION_270:
-                adjustedX = (1 - y) * screenHeight;
-                adjustedY = x * screenWidth;
-                break;
-        }
+        Point point = translate(x, y);
         if (pointers.containsKey(0)) {
-            handleTouchEventMove(0, adjustedX, adjustedY);
+            handleTouchEventMove(0, point.x, point.y);
         } else {
-            PointerStatus pointerStatus = new PointerStatus();
-            pointerStatus.x = adjustedX;
-            pointerStatus.y = adjustedY;
-            pointers.put(0, pointerStatus);
+            pointers.put(0, point);
         }
     }
 
     public static void handleLeftMouseButton(boolean release) {
-        PointerStatus pointerStatus = pointers.get(0);
-        if (pointerStatus == null) {
+        Point point = pointers.get(0);
+        if (point == null) {
             return;
         }
         if (release) {
-            handleTouchEventUp(0, pointerStatus.x, pointerStatus.y, false);
+            handleTouchEventUp(0, point.x, point.y, false);
         } else {
-            handleTouchEventDown(0, pointerStatus.x, pointerStatus.y);
+            handleTouchEventDown(0, point.x, point.y);
         }
     }
 
@@ -195,37 +304,21 @@ public class SunshineServer {
         if (inputManager == null) {
             return;
         }
-        int displayRotation = State.mirrorVirtualDisplay.getDisplay().getRotation();
         // 根据屏幕旋转调整坐标
-        float adjustedX = x * screenWidth;
-        float adjustedY = y * screenHeight;
-        switch (displayRotation) {
-            case Surface.ROTATION_90:
-                adjustedX = y * screenHeight;
-                adjustedY = (1 - x) * screenWidth;
-                break;
-            case Surface.ROTATION_180:
-                adjustedX = (1 - x) * screenWidth;
-                adjustedY = (1 - y) * screenHeight;
-                break;
-            case Surface.ROTATION_270:
-                adjustedX = (1 - y) * screenHeight;
-                adjustedY = x * screenWidth;
-                break;
-        }
+        Point point = translate(x, y);
         pointerId = pointerId % 10;
         switch (eventType) {
             case 0x01: // LI_TOUCH_EVENT_DOWN
-                handleTouchEventDown(pointerId, adjustedX, adjustedY);
+                handleTouchEventDown(pointerId, point.x, point.y);
                 break;
             case 0x02: // LI_TOUCH_EVENT_UP
-                handleTouchEventUp(pointerId, adjustedX, adjustedY, false);
+                handleTouchEventUp(pointerId, point.x, point.y, false);
                 break;
             case 0x03: // LI_TOUCH_EVENT_MOVE
-                handleTouchEventMove(pointerId, adjustedX, adjustedY);
+                handleTouchEventMove(pointerId, point.x, point.y);
                 break;
             case 0x04: // LI_TOUCH_EVENT_CANCEL
-                handleTouchEventUp(pointerId, adjustedX, adjustedY, true);
+                handleTouchEventUp(pointerId, point.x, point.y, true);
                 break;
             case 0x07: // LI_TOUCH_EVENT_CANCEL_ALL
                 handleTouchEventCancelAll();
@@ -241,10 +334,10 @@ public class SunshineServer {
             triggerTouchEventMove();
         }
         if (!pointers.containsKey(pointerId)) {
-            PointerStatus pointerStatus = new PointerStatus();
-            pointerStatus.x = x;
-            pointerStatus.y = y;
-            pointers.put(pointerId, pointerStatus);
+            Point point = new Point();
+            point.x = x;
+            point.y = y;
+            pointers.put(pointerId, point);
         }
 
         int action = pointers.size() == 1 ? android.view.MotionEvent.ACTION_DOWN :
@@ -259,7 +352,7 @@ public class SunshineServer {
         
         int index = 0;
         for (Integer k : pointers.keySet()) {
-            PointerStatus status = pointers.get(k);
+            Point status = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;  // 保持id为原始的pointerId
             properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
@@ -288,16 +381,25 @@ public class SunshineServer {
             InputDevice.SOURCE_TOUCHSCREEN,
             0 // flags
         );
-        if (State.mirrorVirtualDisplay != null) {
-            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+        injectEvent("inject down", event);
+    }
+
+    private static void injectEvent(String prefix, MotionEvent event) {
+        if (singleAppMode) {
+            if (State.mirrorVirtualDisplay != null) {
+                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+                motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+                inputManager.injectInputEvent(event, 0);
+                Log.d("SunshineServer", prefix + ": " + event);
+            }
+        } else {
             inputManager.injectInputEvent(event, 0);
-            android.util.Log.d("SunshineServer", "inject down: " + event);
+            Log.d("SunshineServer", prefix + ": " + event);
         }
     }
 
     private static void handleTouchEventUp(int pointerId, float x, float y, boolean cancelled) {
-        PointerStatus status = pointers.get(pointerId);
+        Point status = pointers.get(pointerId);
         if(status == null) {
             return;
         }
@@ -322,7 +424,7 @@ public class SunshineServer {
 
         int index = 0;
         for (Integer k : pointers.keySet()) {
-            PointerStatus ps = pointers.get(k);
+            Point ps = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;  // 保持id为原始的pointerId
             properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
@@ -354,18 +456,13 @@ public class SunshineServer {
 
         pointers.remove(pointerId);
 
-        if (State.mirrorVirtualDisplay != null) {
-            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-            inputManager.injectInputEvent(event, 0);
-            android.util.Log.d("SunshineServer", "inject up: " + event);
-        }
+        injectEvent("inject up", event);
     }
 
     private static Set<Integer> bufferedMove = new HashSet<>();
 
     private static void handleTouchEventMove(int pointerId, float x, float y) {
-        PointerStatus status = pointers.get(pointerId);
+        Point status = pointers.get(pointerId);
         if (status == null) {
             return;
         }
@@ -393,7 +490,7 @@ public class SunshineServer {
         
         int index = 0;
         for (Integer k : pointers.keySet()) {
-            PointerStatus status = pointers.get(k);
+            Point status = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;
             properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
@@ -418,12 +515,7 @@ public class SunshineServer {
         );
         pointers.clear();
         
-        if (State.mirrorVirtualDisplay != null) {
-            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-            inputManager.injectInputEvent(event, 0);
-            android.util.Log.d("SunshineServer", "inject cancel: " + event);
-        }
+        injectEvent("inject cancel", event);
     }
 
     private static void triggerTouchEventMove() {
@@ -438,7 +530,7 @@ public class SunshineServer {
         
         int index = 0;
         for (Integer k : pointers.keySet()) {
-            PointerStatus status = pointers.get(k);
+            Point status = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;
             properties[index].toolType = MotionEvent.TOOL_TYPE_FINGER;
@@ -461,14 +553,7 @@ public class SunshineServer {
             InputDevice.SOURCE_TOUCHSCREEN,
             0
         );
-        
-        if (State.mirrorVirtualDisplay != null) {
-            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-            motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-            inputManager.injectInputEvent(event, 0);
-            android.util.Log.d("SunshineServer", "inject move: " + event);
-        }
-
+        injectEvent("inject move", event);
     }
 
     // 添加显示编码器错误的方法

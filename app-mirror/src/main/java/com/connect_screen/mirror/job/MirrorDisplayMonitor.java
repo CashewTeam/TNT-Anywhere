@@ -9,6 +9,7 @@ import android.media.AudioManager;
 import android.media.IAudioService;
 import android.os.Build;
 import android.view.Display;
+import android.view.Surface;
 
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
@@ -16,10 +17,12 @@ import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import java.util.HashMap;
 import java.util.List;
 
 public class MirrorDisplayMonitor {
     private static boolean registered = false;
+    public static HashMap<Integer, Integer> displayRotation = new HashMap<>();
     public static void init(DisplayManager displayManager) {
         for (Display display : displayManager.getDisplays()) {
             handleNewDisplay(display);
@@ -45,6 +48,8 @@ public class MirrorDisplayMonitor {
 
             @Override
             public void onDisplayChanged(int displayId) {
+                Display display = displayManager.getDisplay(displayId);
+                displayRotation.put(displayId, display.getRotation());
             }
         }, null);
     }
@@ -124,5 +129,13 @@ public class MirrorDisplayMonitor {
                 }
             }
         }
+    }
+
+    public static int getRotation(int displayId) {
+        Integer rotation = displayRotation.get(displayId);
+        if (rotation == null) {
+            return Surface.ROTATION_0;
+        }
+        return rotation;
     }
 }

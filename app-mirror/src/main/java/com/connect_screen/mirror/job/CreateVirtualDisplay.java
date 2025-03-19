@@ -97,7 +97,6 @@ public class CreateVirtualDisplay {
     }
 
     public static void doPowerOffScreen(Context context) {
-        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean singleApp = Pref.getSingleAppMode();
         if (State.userService != null) {
             try {
