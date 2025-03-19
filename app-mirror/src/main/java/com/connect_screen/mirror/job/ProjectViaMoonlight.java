@@ -4,7 +4,6 @@ import static com.connect_screen.mirror.MirrorMainActivity.REQUEST_RECORD_AUDIO_
 
 import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
@@ -12,10 +11,6 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.AudioRecord;
-import android.media.projection.MediaProjectionConfig;
-import android.media.projection.MediaProjectionManager;
-import android.view.Display;
-import android.view.IWindowManager;
 import android.view.Surface;
 
 
@@ -23,9 +18,8 @@ import androidx.core.app.ActivityCompat;
 
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -104,15 +98,15 @@ public class ProjectViaMoonlight implements Job {
             }
         }
         SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        boolean autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
-        boolean autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        boolean autoRotate = Pref.getAutoRotate();
+        boolean autoScale = Pref.getAutoScale();
+        boolean singleAppMode = Pref.getSingleAppMode();
         if (singleAppMode) {
             if (ShizukuUtils.hasPermission()) {
-                int singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
+                int singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
                 State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
                         width, height, frameRate, singleAppDpi, autoRotate), surface);
-                String selectedAppPackage = preferences.getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
+                String selectedAppPackage = preferences.getString(Pref.KEY_SELECTED_APP_PACKAGE, "");
                 ServiceUtils.launchPackage(context, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());

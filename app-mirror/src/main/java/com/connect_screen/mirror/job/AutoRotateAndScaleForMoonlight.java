@@ -19,8 +19,8 @@ import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
 import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
 
 public class AutoRotateAndScaleForMoonlight {
 
@@ -112,9 +112,8 @@ public class AutoRotateAndScaleForMoonlight {
             return;
         }
         // 读取设置
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
-        autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
+        autoRotate = Pref.getAutoRotate();
+        autoScale = Pref.getAutoScale();
 
         // 只在autoRotate为true时注册屏幕方向变化监听
         if (autoRotate) {

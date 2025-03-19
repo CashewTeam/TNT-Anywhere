@@ -11,6 +11,7 @@ import android.os.Build;
 import android.view.Display;
 
 import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -86,7 +87,7 @@ public class MirrorDisplayMonitor {
             return;
         }
         boolean isDisabled = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE)
-                .getBoolean(MirrorSettingsActivity.KEY_DISABLE_USB_AUDIO, false);
+                .getBoolean(Pref.KEY_DISABLE_USB_AUDIO, false);
         if (!isDisabled) {
             return;
         }

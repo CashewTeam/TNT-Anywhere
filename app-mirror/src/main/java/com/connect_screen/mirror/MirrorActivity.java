@@ -120,10 +120,10 @@ public class MirrorActivity extends AppCompatActivity {
 
         // 读取设置
         SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
-        autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
-        singleAppDpi = preferences.getInt(MirrorSettingsActivity.KEY_SINGLE_APP_DPI, 160);
-        singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
+        autoRotate = Pref.getAutoRotate();
+        autoScale = Pref.getAutoScale();
+        singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+        singleAppMode = Pref.getSingleAppMode();
         if (!ShizukuUtils.hasPermission()) {
             singleAppMode = false;
         }
@@ -306,7 +306,7 @@ public class MirrorActivity extends AppCompatActivity {
                                     ), targetSurface);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
                             String selectedAppPackage = preferences
-                                    .getString(MirrorSettingsActivity.KEY_SELECTED_APP_PACKAGE, "");
+                                    .getString(Pref.KEY_SELECTED_APP_PACKAGE, "");
                             ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
                             if (ShizukuUtils.hasPermission()) {
                                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);

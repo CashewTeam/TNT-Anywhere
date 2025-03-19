@@ -1,6 +1,6 @@
 package com.connect_screen.mirror;
 
-import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_FLOATING_BACK_BUTTON;
+import static com.connect_screen.mirror.Pref.KEY_FLOATING_BACK_BUTTON;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.Service;

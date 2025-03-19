@@ -1,8 +1,7 @@
 package com.connect_screen.mirror.job;
 
-import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_MATCH_ASPECT_RATIO;
-import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_AUTO_SCREEN_OFF;
-import static com.connect_screen.mirror.MirrorSettingsActivity.KEY_SINGLE_APP_MODE;
+import static com.connect_screen.mirror.Pref.KEY_AUTO_MATCH_ASPECT_RATIO;
+import static com.connect_screen.mirror.Pref.KEY_AUTO_SCREEN_OFF;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.ActivityOptions;
@@ -30,10 +29,9 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 
-import com.connect_screen.mirror.MirrorMainActivity;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -100,7 +98,7 @@ public class CreateVirtualDisplay {
 
     public static void doPowerOffScreen(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        boolean singleApp = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
+        boolean singleApp = Pref.getSingleAppMode();
         if (State.userService != null) {
             try {
                 State.userService.startListenVolumeKey();

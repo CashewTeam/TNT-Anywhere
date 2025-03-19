@@ -1,32 +1,22 @@
 package com.connect_screen.mirror;
 
 import android.app.ActivityManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbManager;
-import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -34,29 +24,11 @@ import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.ExitAll;
-import com.connect_screen.mirror.job.MirrorDisplayMonitor;
-import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
-import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.InvocationTargetException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.Enumeration;
-import java.util.List;
-
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
 
 import rikka.shizuku.Shizuku;
 
@@ -183,7 +155,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         touchScreenBtn.setOnClickListener(v -> {
             SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-            boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
+            boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
             if (ShizukuUtils.hasPermission() && useTouchscreen) {
                 VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
                 if (virtualDisplay == null) {
@@ -338,8 +310,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             return;
         }
         SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        boolean singleAppMode = preferences.getBoolean(MirrorSettingsActivity.KEY_SINGLE_APP_MODE, false);
-        boolean useTouchscreen = preferences.getBoolean(MirrorSettingsActivity.KEY_USE_TOUCHSCREEN, true);
+        boolean singleAppMode = Pref.getSingleAppMode();
+        boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
         
         // 更新 ViewModel 中的状态
         boolean isScreenMirroring = State.mirrorVirtualDisplay != null || 

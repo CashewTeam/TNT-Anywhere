@@ -19,9 +19,9 @@ import android.view.Surface;
 import android.content.SharedPreferences;
 
 import com.connect_screen.mirror.DisplaylinkState;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.MirrorSettingsActivity;
-import com.connect_screen.mirror.SunshineService;
 
 import java.nio.ByteBuffer;
 
@@ -55,9 +55,8 @@ public class AutoRotateAndScaleForDisplaylink {
         this.virtualDisplayArgs = virtualDisplayArgs;
         
         // 从 SharedPreferences 读取设置
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-        autoRotate = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_ROTATE, true);
-        autoScale = preferences.getBoolean(MirrorSettingsActivity.KEY_AUTO_SCALE, true);
+        autoRotate = Pref.getAutoRotate();
+        autoScale = Pref.getAutoScale();
         
         DisplaylinkState displaylinkState = State.displaylinkState;
         displaylinkState.handlerThread = new HandlerThread("ListenOpenglAndPostFrame");

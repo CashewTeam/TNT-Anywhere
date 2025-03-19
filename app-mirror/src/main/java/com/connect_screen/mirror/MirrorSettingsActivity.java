@@ -34,19 +34,6 @@ import java.util.List;
 public class MirrorSettingsActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     public static final String PREF_NAME = "mirror_settings";
-    public static final String KEY_AUTO_ROTATE = "auto_rotate";
-    public static final String KEY_AUTO_SCALE = "auto_scale";
-    public static final String KEY_SINGLE_APP_MODE = "single_app_mode";
-    public static final String KEY_SELECTED_APP_PACKAGE = "selected_app_package";
-    public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
-    public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
-    public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
-    public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
-    public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
-    public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
-    public static final String KEY_DISABLE_USB_AUDIO = "disable_usb_audio";
-    public static final String KEY_USE_TOUCHSCREEN = "use_touchscreen";
-    public static final String KEY_AUTO_MATCH_ASPECT_RATIO = "auto_match_aspect_ratio";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -77,17 +64,17 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         CheckBox autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
         
         // 加载保存的设置
-        boolean singleAppMode = preferences.getBoolean(KEY_SINGLE_APP_MODE, false);
-        boolean autoRotate = preferences.getBoolean(KEY_AUTO_ROTATE, true);
-        boolean autoScale = preferences.getBoolean(KEY_AUTO_SCALE, true);
-        int singleAppDpi = preferences.getInt(KEY_SINGLE_APP_DPI, 160);
-        boolean floatingBackButton = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
-        boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
-        boolean autoBindInput = preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
-        boolean autoMoveIme = preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
-        boolean disableUsbAudio = preferences.getBoolean(KEY_DISABLE_USB_AUDIO, false);
-        boolean useTouchscreen = preferences.getBoolean(KEY_USE_TOUCHSCREEN, true);
-        boolean autoMatchAspectRatio = preferences.getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
+        boolean singleAppMode = Pref.getSingleAppMode();
+        boolean autoRotate = Pref.getAutoRotate();
+        boolean autoScale = Pref.getAutoScale();
+        int singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+        boolean floatingBackButton = preferences.getBoolean(Pref.KEY_FLOATING_BACK_BUTTON, false);
+        boolean autoScreenOff = preferences.getBoolean(Pref.KEY_AUTO_SCREEN_OFF, false);
+        boolean autoBindInput = preferences.getBoolean(Pref.KEY_AUTO_BIND_INPUT, true);
+        boolean autoMoveIme = preferences.getBoolean(Pref.KEY_AUTO_MOVE_IME, true);
+        boolean disableUsbAudio = preferences.getBoolean(Pref.KEY_DISABLE_USB_AUDIO, false);
+        boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
+        boolean autoMatchAspectRatio = preferences.getBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -111,7 +98,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         
         // 显示已选择的应用名称（如果有）
-        String selectedAppName = preferences.getString(KEY_SELECTED_APP_NAME, "");
+        String selectedAppName = preferences.getString(Pref.KEY_SELECTED_APP_NAME, "");
         if (!selectedAppName.isEmpty() && singleAppMode) {
             singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
         } else {
@@ -120,7 +107,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         
         // 监听复选框变化
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_SINGLE_APP_MODE, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_SINGLE_APP_MODE, isChecked).apply();
             autoScaleCheckbox.setEnabled(!isChecked);
             singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
@@ -132,11 +119,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
         
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_ROTATE, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_ROTATE, isChecked).apply();
         });
 
         autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_SCALE, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_SCALE, isChecked).apply();
         });
         autoScaleCheckbox.setEnabled(!singleAppMode);
 
@@ -262,7 +249,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加悬浮返回键复选框监听器
         floatingBackButtonCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_FLOATING_BACK_BUTTON, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_FLOATING_BACK_BUTTON, isChecked).apply();
         });
         if (!ShizukuUtils.hasPermission()) {
             floatingBackButtonCheckbox.setEnabled(false);
@@ -273,12 +260,12 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加自动熄屏复选框监听器
         autoScreenOffCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_SCREEN_OFF, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_SCREEN_OFF, isChecked).apply();
         });
 
         // 添加自动绑定输入复选框监听器
         autoBindInputCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_BIND_INPUT, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_BIND_INPUT, isChecked).apply();
         });
         
         // 如果没有 Shizuku 权限
@@ -288,7 +275,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加自动移动输入法复选框监听器
         autoMoveImeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_MOVE_IME, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_MOVE_IME, isChecked).apply();
         });
         
         // 如果没有 Shizuku 权限，禁用该选项
@@ -298,7 +285,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加停用USB音频复选框监听器
         disableUsbAudioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_DISABLE_USB_AUDIO, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_DISABLE_USB_AUDIO, isChecked).apply();
             
             // 如果有Shizuku权限，则更新系统设置
             if (ShizukuUtils.hasPermission()) {
@@ -321,7 +308,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加触摸屏控制复选框监听器
         useTouchscreenCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_USE_TOUCHSCREEN, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_USE_TOUCHSCREEN, isChecked).apply();
         });
         
         // 如果没有 Shizuku 权限，禁用该选项
@@ -331,7 +318,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         // 添加自动匹配宽高比复选框监听器
         autoMatchAspectRatioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, isChecked).apply();
+            preferences.edit().putBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, isChecked).apply();
         });
         
         // 如果没有 Shizuku 权限，禁用该选项
@@ -418,8 +405,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             
             // 保存选择的应用
             preferences.edit()
-                    .putString(KEY_SELECTED_APP_PACKAGE, selectedPackage)
-                    .putString(KEY_SELECTED_APP_NAME, selectedName)
+                    .putString(Pref.KEY_SELECTED_APP_PACKAGE, selectedPackage)
+                    .putString(Pref.KEY_SELECTED_APP_NAME, selectedName)
                     .apply();
             
             // 更新UI显示
@@ -487,10 +474,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             if (dpi < 60) dpi = 60;
             if (dpi > 600) dpi = 600;
             dpiEditText.setText(String.valueOf(dpi)); // 更新显示值
-            preferences.edit().putInt(KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
+            preferences.edit().putInt(Pref.KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
         } catch (NumberFormatException e) {
             // 如果输入无效，恢复为默认值或上次保存的值
-            dpiEditText.setText(String.valueOf(preferences.getInt(KEY_SINGLE_APP_DPI, 160)));
+            dpiEditText.setText(String.valueOf(preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160)));
         }
     }
 } 

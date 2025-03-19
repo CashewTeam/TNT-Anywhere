@@ -115,29 +115,6 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_postAudioSample(JNIEnv *env, jclass clazz, jfloatArray audioData, jint sampleCount) {
-    // 获取 Java 浮点数组的元素
-    jfloat *audioBuffer = env->GetFloatArrayElements(audioData, nullptr);
-    if (audioBuffer == nullptr) {
-        BOOST_LOG(error) << "无法获取音频数据缓冲区"sv;
-        return;
-    }
-    
-    // 将 Java 浮点数组转换为 std::vector<float>
-    std::vector<float> audioSamples(audioBuffer, audioBuffer + sampleCount);
-    
-    // 将音频数据传递给 Sunshine 的音频处理系统
-    if (samples) {
-        samples->raise(std::move(audioSamples));
-    } else {
-        BOOST_LOG(error) << "音频样本队列未初始化"sv;
-    }
-    
-    // 释放 Java 数组
-    env->ReleaseFloatArrayElements(audioData, audioBuffer, JNI_ABORT);
-}
-
-JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *env, jclass clazz, jobject audioRecord, jint framesPerPacket) {
     // 创建 AudioRecord 的全局引用，以便在线程中使用
     jobject globalAudioRecord = env->NewGlobalRef(audioRecord);
