@@ -122,8 +122,12 @@ public class SunshineServer {
         autoScale = Pref.getAutoScale();
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-        defaultDisplayWidth = Math.max(defaultDisplay.getWidth(), defaultDisplay.getHeight());
-        defaultDisplayHeight = Math.min(defaultDisplay.getWidth(), defaultDisplay.getHeight());
+        
+        // 获取包含刘海的真实全屏尺寸
+        android.graphics.Point realSize = new android.graphics.Point();
+        defaultDisplay.getRealSize(realSize);
+        defaultDisplayWidth = Math.max(realSize.x, realSize.y);
+        defaultDisplayHeight = Math.min(realSize.x, realSize.y);
         float aspectRatio = defaultDisplayWidth / defaultDisplayHeight;
         
         portraitMirrorWidth = height / aspectRatio;
