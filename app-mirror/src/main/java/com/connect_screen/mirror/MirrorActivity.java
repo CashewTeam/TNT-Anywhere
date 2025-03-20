@@ -302,7 +302,7 @@ public class MirrorActivity extends AppCompatActivity {
                                     new VirtualDisplayArgs(
                                         "Mirror", isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
                                             isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(),
-                                            (int) display.getRefreshRate(), singleAppDpi, autoRotate
+                                            (int) display.getRefreshRate(), singleAppDpi, Pref.getAutoRotate()
                                     ), targetSurface);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
                             String selectedAppPackage = preferences
