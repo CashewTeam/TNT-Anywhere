@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.IDisplayManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -92,13 +94,18 @@ public class DisplayDetailFragment extends Fragment {
             return view;
         }
 
-        DisplayCutout cutout = display.getCutout();
+        DisplayCutout cutout = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            cutout = display.getCutout();
+        }
         String cutoutInfo = "无刘海";
         if (cutout != null) {
             StringBuilder cutoutDetails = new StringBuilder("刘海边界:\n");
-            for (android.graphics.Rect rect : cutout.getBoundingRects()) {
-                cutoutDetails.append(String.format("左:%d 上:%d 右:%d 下:%d\n",
-                    rect.left, rect.top, rect.right, rect.bottom));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                for (Rect rect : cutout.getBoundingRects()) {
+                    cutoutDetails.append(String.format("左:%d 上:%d 右:%d 下:%d\n",
+                        rect.left, rect.top, rect.right, rect.bottom));
+                }
             }
             cutoutInfo = cutoutDetails.toString();
         }
@@ -146,7 +153,7 @@ public class DisplayDetailFragment extends Fragment {
 
         Button touchpadButton = view.findViewById(R.id.touchpad_button);
         if (displayId != Display.DEFAULT_DISPLAY) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R || ShizukuUtils.hasPermission()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R || ShizukuUtils.hasPermission()) {
                 touchpadButton.setVisibility(View.VISIBLE);
             }
         }

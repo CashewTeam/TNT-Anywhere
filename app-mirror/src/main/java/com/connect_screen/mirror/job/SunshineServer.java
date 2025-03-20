@@ -1,5 +1,6 @@
 package com.connect_screen.mirror.job;
 
+import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.os.Handler;
@@ -11,6 +12,7 @@ import android.text.InputFilter;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Display;
+import android.view.DisplayCutout;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.MotionEventHidden;
@@ -126,14 +128,30 @@ public class SunshineServer {
         singleAppMode = Pref.getSingleAppMode();
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
+
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-        
-        // 获取包含刘海的真实全屏尺寸
-        android.graphics.Point realSize = new android.graphics.Point();
-        defaultDisplay.getRealSize(realSize);
-        defaultDisplayWidth = Math.max(realSize.x, realSize.y);
-        defaultDisplayHeight = Math.min(realSize.x, realSize.y);
+        if (Pref.getAutoMatchAspectRatio()) {
+            defaultDisplayWidth = screenWidth;
+            defaultDisplayHeight = screenHeight;
+            DisplayCutout cutout = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                cutout = defaultDisplay.getCutout();
+            }
+            if (cutout != null) {
+                for(Rect rect : cutout.getBoundingRects()) {
+                    if (rect.top == 0) {
+                        defaultDisplayWidth += rect.bottom;
+                        break;
+                    }
+                }
+            }
+        } else {
+            android.graphics.Point realSize = new android.graphics.Point();
+            defaultDisplay.getRealSize(realSize);
+            defaultDisplayWidth = Math.max(realSize.x, realSize.y);
+            defaultDisplayHeight = Math.min(realSize.x, realSize.y);
+        }
         float aspectRatio = defaultDisplayWidth / defaultDisplayHeight;
 
         portraitMirrorHeight = Math.min(height, defaultDisplayHeight);
