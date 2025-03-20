@@ -35,6 +35,14 @@ public class Pref {
         return getBoolean(KEY_AUTO_MOVE_IME, true);
     }
 
+    public static boolean getAutoHideFloatingBackButton() {
+        return getBoolean(KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, false);
+    }
+
+    public static boolean getAutoScreenOff() {
+        return getBoolean(KEY_AUTO_SCREEN_OFF, false);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }

@@ -1,7 +1,6 @@
 package com.connect_screen.mirror.job;
 
 import static com.connect_screen.mirror.Pref.KEY_AUTO_MATCH_ASPECT_RATIO;
-import static com.connect_screen.mirror.Pref.KEY_AUTO_SCREEN_OFF;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.ActivityOptions;
@@ -88,8 +87,7 @@ public class CreateVirtualDisplay {
         if (context == null) {
             return;
         }
-        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        boolean autoScreenOff = preferences.getBoolean(KEY_AUTO_SCREEN_OFF, false);
+        boolean autoScreenOff = Pref.getAutoScreenOff();
         if (!autoScreenOff) {
             return;
         }
