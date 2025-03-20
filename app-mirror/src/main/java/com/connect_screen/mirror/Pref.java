@@ -20,19 +20,23 @@ public class Pref {
     public static final String KEY_SHOW_FLOATING_IN_MIRROR_MODE = "floating_back_button_in_mirror";
 
     public static boolean getAutoRotate() {
-        return getBoolean(Pref.KEY_AUTO_ROTATE, true);
+        return getBoolean(KEY_AUTO_ROTATE, true);
     }
 
     public static boolean  getAutoScale() {
-        return getBoolean(Pref.KEY_AUTO_SCALE, true);
+        return getBoolean(KEY_AUTO_SCALE, true);
     }
 
     public static boolean getSingleAppMode() {
-        return getBoolean(Pref.KEY_SINGLE_APP_MODE, false);
+        return getBoolean(KEY_SINGLE_APP_MODE, false);
+    }
+
+    public static boolean getAutoMoveIme() {
+        return getBoolean(KEY_AUTO_MOVE_IME, true);
     }
 
     public static int getSingleAppDpi() {
-        return getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+        return getInt(KEY_SINGLE_APP_DPI, 160);
     }
 
     private static int getInt(String key, int defaultValue) {

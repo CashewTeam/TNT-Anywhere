@@ -55,6 +55,7 @@ public class ProjectViaMirror implements Job {
                 int singleAppDpi = Pref.getSingleAppDpi();
                 IWindowManager wm = ServiceUtils.getWindowManager();
                 wm.setForcedDisplayDensityForUser(targetDisplayId, singleAppDpi, 0);
+                InputRouting.moveImeToExternal(targetDisplayId);
             }
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {

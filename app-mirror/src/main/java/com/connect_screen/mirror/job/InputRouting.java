@@ -2,7 +2,6 @@ package com.connect_screen.mirror.job;
 
 
 import static com.connect_screen.mirror.Pref.KEY_AUTO_BIND_INPUT;
-import static com.connect_screen.mirror.Pref.KEY_AUTO_MOVE_IME;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.content.Context;
@@ -18,6 +17,7 @@ import android.view.IWindowManager;
 import android.view.InputDevice;
 import android.widget.Toast;
 
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -146,13 +146,8 @@ public class InputRouting {
     }
 
     private static boolean shouldMoveIme() {
-        Context context = State.getContext();
-        if (context == null) {
-            return false;
-        }
         try {
-            SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-            return preferences.getBoolean(KEY_AUTO_MOVE_IME, true);
+            return Pref.getAutoMoveIme();
         } catch(Exception e) {
             // ignore
         }
