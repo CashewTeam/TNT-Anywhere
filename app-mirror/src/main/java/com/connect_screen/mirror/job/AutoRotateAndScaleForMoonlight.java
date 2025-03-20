@@ -67,6 +67,12 @@ public class AutoRotateAndScaleForMoonlight {
         return instance;
     }
 
+    public void exitScale() {
+        renderHandler.post(() -> {
+           landscapeRenderer.landscapeAutoScaler.exitScale();
+        });
+    }
+
     private class OrientationChangeCallback implements DisplayManager.DisplayListener {
         @Override
         public void onDisplayAdded(int displayId) {}

@@ -1,6 +1,7 @@
 package com.connect_screen.mirror.job;
 
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -176,5 +177,16 @@ public class LandscapeAutoScaler {
 
     private boolean isBlackPixel(byte r, byte g, byte b) {
         return (r & 0xFF) == 0 && (g & 0xFF) == 0 && (b & 0xFF) == 0;
+    }
+
+    public void exitScale() {
+        if (!hasSymmetricBlackBar) {
+            return;
+        }
+        Log.d("LandscapeAutoScaler", "exitScale");
+        // 如果没有对称黑边，使用单位矩阵
+        for(int i = 0; i < identityMvpMatrix.length; i++) {
+            landscapeMvpMatrix[i] = identityMvpMatrix[i];
+        }
     }
 }

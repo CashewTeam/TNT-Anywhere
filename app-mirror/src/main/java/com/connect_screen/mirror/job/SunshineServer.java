@@ -417,6 +417,9 @@ public class SunshineServer {
     private static List<MotionEvent> gesture = new ArrayList<>();
 
     private static void injectEvent(String prefix, MotionEvent event) {
+        if (autoScale && autoRotateAndScaleForMoonlight != null) {
+            autoRotateAndScaleForMoonlight.exitScale();
+        }
         if (inputManager != null) {
             if (singleAppMode) {
                 if (State.mirrorVirtualDisplay == null) {
