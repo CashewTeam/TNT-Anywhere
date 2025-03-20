@@ -104,6 +104,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_SINGLE_APP_MODE, isChecked).apply();
             autoScaleCheckbox.setEnabled(!isChecked);
+            autoMatchAspectRatioCheckbox.setEnabled(!isChecked);
+            showFloatingInMirrorModeCheckbox.setEnabled(!isChecked);
             singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
@@ -112,6 +114,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
             }
         });
+        autoScaleCheckbox.setEnabled(!singleAppMode);
+        autoMatchAspectRatioCheckbox.setEnabled(!singleAppMode);
+        showFloatingInMirrorModeCheckbox.setEnabled(!singleAppMode);
         
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_AUTO_ROTATE, isChecked).apply();
