@@ -1,6 +1,5 @@
 package com.connect_screen.mirror.job;
 
-import static com.connect_screen.mirror.Pref.KEY_AUTO_MATCH_ASPECT_RATIO;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.ActivityOptions;
@@ -253,12 +252,7 @@ public class CreateVirtualDisplay {
         if (!ShizukuUtils.hasPermission()) {
             return false;
         }
-        Context context = State.getContext();
-        if (context == null) {
-            return false;
-        }
-        SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        boolean autoMatchAspectRatio = preferences.getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
+        boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
         if (!autoMatchAspectRatio) {
             return false;
         }

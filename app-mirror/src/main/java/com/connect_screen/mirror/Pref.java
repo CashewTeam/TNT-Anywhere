@@ -51,6 +51,10 @@ public class Pref {
         return getBoolean(KEY_DISABLE_USB_AUDIO, false);
     }
 
+    public static boolean getAutoMatchAspectRatio() {
+        return getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }
