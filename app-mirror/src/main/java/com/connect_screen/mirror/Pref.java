@@ -43,6 +43,14 @@ public class Pref {
         return getBoolean(KEY_AUTO_SCREEN_OFF, false);
     }
 
+    public static boolean getAutoBindInput() {
+        return getBoolean(KEY_AUTO_BIND_INPUT, true);
+    }
+
+    public static boolean getDisableUsbAudio() {
+        return getBoolean(KEY_DISABLE_USB_AUDIO, false);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }

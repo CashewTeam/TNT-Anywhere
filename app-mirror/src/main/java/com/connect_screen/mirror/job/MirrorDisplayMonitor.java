@@ -109,8 +109,7 @@ public class MirrorDisplayMonitor {
         if (!ShizukuUtils.hasPermission()) {
             return;
         }
-        boolean isDisabled = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE)
-                .getBoolean(Pref.KEY_DISABLE_USB_AUDIO, false);
+        boolean isDisabled = Pref.getDisableUsbAudio();
         if (!isDisabled) {
             return;
         }

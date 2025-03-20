@@ -1,7 +1,6 @@
 package com.connect_screen.mirror.job;
 
 
-import static com.connect_screen.mirror.Pref.KEY_AUTO_BIND_INPUT;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.content.Context;
@@ -113,13 +112,8 @@ public class InputRouting {
     }
 
     private static boolean shouldBind() {
-        Context context = State.getContext();
-        if (context == null) {
-            return false;
-        }
         try {
-            SharedPreferences preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-            return preferences.getBoolean(KEY_AUTO_BIND_INPUT, true);
+            return Pref.getAutoBindInput();
         } catch(Exception e) {
             // ignore
         }

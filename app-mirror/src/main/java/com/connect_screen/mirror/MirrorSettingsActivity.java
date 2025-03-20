@@ -69,9 +69,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         int singleAppDpi = Pref.getSingleAppDpi();
         boolean floatingBackButton = Pref.getAutoHideFloatingBackButton();
         boolean autoScreenOff = Pref.getAutoScreenOff();
-        boolean autoBindInput = preferences.getBoolean(Pref.KEY_AUTO_BIND_INPUT, true);
+        boolean autoBindInput = Pref.getAutoBindInput();
         boolean autoMoveIme = Pref.getAutoMoveIme();
-        boolean disableUsbAudio = preferences.getBoolean(Pref.KEY_DISABLE_USB_AUDIO, false);
+        boolean disableUsbAudio = Pref.getDisableUsbAudio();
         boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
         boolean autoMatchAspectRatio = preferences.getBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, false);
         boolean showFloatingInMirrorMode = preferences.getBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
