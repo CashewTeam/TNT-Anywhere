@@ -151,6 +151,7 @@ public class SunshineService extends Service {
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
+        State.refreshMainActivity();
         return START_NOT_STICKY;
     }
 

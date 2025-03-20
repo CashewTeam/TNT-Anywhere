@@ -47,6 +47,7 @@ public class ProjectViaMirror implements Job {
         if (singleAppMode && (!ShizukuUtils.hasPermission() || !useTouchscreen)) {
             String selectedAppPackage = preferences.getString(Pref.KEY_SELECTED_APP_PACKAGE, "");
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
+            State.refreshMainActivity();
             CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);

@@ -1,6 +1,10 @@
 package com.connect_screen.mirror.job;
 
+import static android.app.PendingIntent.getActivity;
+
+import android.app.ActivityOptions;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceAttributes;
@@ -8,12 +12,16 @@ import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.media.IAudioService;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Display;
 import android.view.Surface;
 
+import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -39,6 +47,15 @@ public class MirrorDisplayMonitor {
                 if (display != null) {
                     handleNewDisplay(display);
                 }
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (SunshineService.instance == null) {
+                        return;
+                    }
+                    Intent intent = new Intent(SunshineService.instance, MirrorMainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ActivityOptions options = ActivityOptions.makeBasic();
+                    SunshineService.instance.startActivity(intent, options.toBundle());
+                }, 1000);
             }
 
             @Override

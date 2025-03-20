@@ -96,7 +96,6 @@ public class MirrorDisplaylinkMonitor {
             State.displaylinkState.destroy();
             State.displaylinkDeviceName = null;
             State.displaylinkState.device = null;
-            State.refreshMainActivity();
             CreateVirtualDisplay.powerOnScreen();
             InputRouting.moveImeToDefault();
         }

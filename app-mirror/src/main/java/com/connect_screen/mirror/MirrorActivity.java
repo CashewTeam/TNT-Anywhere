@@ -403,7 +403,6 @@ public class MirrorActivity extends AppCompatActivity {
 
                         State.mirrorVirtualDisplay.setSurface(targetSurface);
                     }
-                    State.refreshMainActivity();
 
                 });
             }

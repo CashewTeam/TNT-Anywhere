@@ -190,8 +190,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onResume() {
         super.onResume();
-        refresh();
         State.currentActivity = new WeakReference<>(this);
+        refresh();
     }
 
     @Override

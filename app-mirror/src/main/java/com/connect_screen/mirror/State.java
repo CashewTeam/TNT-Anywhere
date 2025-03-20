@@ -92,12 +92,10 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        refreshMainActivity();
     }
 
     public static void resumeJob() {
         if (currentJob == null) {
-            refreshMainActivity();
             return;
         }
         try {
@@ -113,7 +111,6 @@ public class State {
             State.log("堆栈跟踪: " + stackTrace);
             currentJob = null;
         }
-        refreshMainActivity();
     }
 
     public static void resumeJobLater(long delayMillis) {
