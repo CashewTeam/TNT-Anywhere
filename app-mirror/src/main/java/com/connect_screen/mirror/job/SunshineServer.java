@@ -24,11 +24,15 @@ import androidx.annotation.NonNull;
 
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.TouchpadAccessibilityService;
+import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -330,9 +334,6 @@ public class SunshineServer {
     public static void handleTouchPacket(int eventType, int rotation, int pointerId, 
                                         float x, float y, float pressureOrDistance,
                                         float contactAreaMajor, float contactAreaMinor) {
-        if (inputManager == null) {
-            return;
-        }
         // 根据屏幕旋转调整坐标
         Point point = translate(x, y);
         pointerId = pointerId % 10;
@@ -413,17 +414,32 @@ public class SunshineServer {
         injectEvent("inject down", event);
     }
 
+    private static List<MotionEvent> gesture = new ArrayList<>();
+
     private static void injectEvent(String prefix, MotionEvent event) {
-        if (singleAppMode) {
-            if (State.mirrorVirtualDisplay != null) {
+        if (inputManager != null) {
+            if (singleAppMode) {
+                if (State.mirrorVirtualDisplay == null) {
+                    return;
+                }
                 MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
                 motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
-                inputManager.injectInputEvent(event, 0);
-                Log.d("SunshineServer", prefix + ": " + event);
             }
-        } else {
             inputManager.injectInputEvent(event, 0);
             Log.d("SunshineServer", prefix + ": " + event);
+        } else if (TouchpadAccessibilityService.getInstance() != null) {
+            gesture.add(event);
+            if ((event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) && pointers.isEmpty()) {
+                if (singleAppMode) {
+                    if (State.mirrorVirtualDisplay == null) {
+                        return;
+                    }
+                    TouchpadActivity.replayGestureViaAccessibility(gesture, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+                } else {
+                    TouchpadActivity.replayGestureViaAccessibility(gesture, Display.DEFAULT_DISPLAY);
+                }
+                gesture.clear();
+            }
         }
     }
 

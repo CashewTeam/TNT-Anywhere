@@ -267,7 +267,7 @@ public class TouchpadActivity extends AppCompatActivity {
                         // ignore
                     } else {
                         // 构建手势路径并通过无障碍服务执行
-                        replayGestureViaAccessibility();
+                        replayGestureViaAccessibility(gestureState.allMotionEvents, displayId);
                     }
                 }
                 gestureState.lastReplayed = 0;
@@ -647,19 +647,19 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     // 添加新方法：通过无障碍服务回放手势
-    private void replayGestureViaAccessibility() {
+    public static void replayGestureViaAccessibility(List<MotionEvent> allMotionEvents, int displayId) {
         TouchpadAccessibilityService service = TouchpadAccessibilityService.getInstance();
-        if (service == null || gestureState.allMotionEvents.isEmpty() || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        if (service == null || allMotionEvents.isEmpty() || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return;
         }
 
         // 为每个触点记录起点和终点
         SparseArray<StrokePoint> startPoints = new SparseArray<>();
         SparseArray<StrokePoint> endPoints = new SparseArray<>();
-        long baseTime = gestureState.allMotionEvents.get(0).getDownTime();
+        long baseTime = allMotionEvents.get(0).getDownTime();
 
         // 遍历所有事件来记录每个触点的起点和终点
-        for (MotionEvent event : gestureState.allMotionEvents) {
+        for (MotionEvent event : allMotionEvents) {
             int action = event.getActionMasked();
             int pointerIndex = event.getActionIndex();
             
