@@ -1,6 +1,5 @@
 package com.connect_screen.mirror;
 
-import static com.connect_screen.mirror.Pref.KEY_SELECTED_APP_PACKAGE;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.accessibilityservice.GestureDescription;
@@ -360,9 +359,8 @@ public class TouchpadActivity extends AppCompatActivity {
     }
 
     public static void launchSingleApp(Context context, int displayId) {
-        SharedPreferences appPreferences = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-        String lastPackageName = appPreferences.getString(KEY_SELECTED_APP_PACKAGE, null);
-        if (lastPackageName == null) {
+        String lastPackageName = Pref.getSelectedAppPackage();
+        if (lastPackageName == null || lastPackageName.isEmpty()) {
             return;
         }
         ServiceUtils.launchPackage(context, lastPackageName, displayId);

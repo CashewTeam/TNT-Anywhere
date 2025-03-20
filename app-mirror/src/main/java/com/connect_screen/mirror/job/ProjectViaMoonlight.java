@@ -106,7 +106,7 @@ public class ProjectViaMoonlight implements Job {
                 int singleAppDpi = Pref.getSingleAppDpi();
                 State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
                         width, height, frameRate, singleAppDpi, autoRotate), surface);
-                String selectedAppPackage = preferences.getString(Pref.KEY_SELECTED_APP_PACKAGE, "");
+                String selectedAppPackage = Pref.getSelectedAppPackage();
                 ServiceUtils.launchPackage(context, selectedAppPackage, State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.bindAllExternalInputToDisplay(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
                 InputRouting.moveImeToExternal(State.mirrorVirtualDisplay.getDisplay().getDisplayId());

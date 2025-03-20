@@ -39,6 +39,18 @@ public class Pref {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }
 
+    public static String getSelectedAppPackage() {
+        return getString(KEY_SELECTED_APP_PACKAGE, "");
+    }
+
+    private static String getString(String key, String defaultValue) {
+        SharedPreferences preferences = getPreferences();
+        if (preferences == null) {
+            return defaultValue;
+        }
+        return preferences.getString(key, defaultValue);
+    }
+
     private static int getInt(String key, int defaultValue) {
         SharedPreferences preferences = getPreferences();
         if (preferences == null) {

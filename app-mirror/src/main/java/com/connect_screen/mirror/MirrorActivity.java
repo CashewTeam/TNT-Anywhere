@@ -305,8 +305,7 @@ public class MirrorActivity extends AppCompatActivity {
                                             (int) display.getRefreshRate(), singleAppDpi, Pref.getAutoRotate()
                                     ), targetSurface);
                             int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
-                            String selectedAppPackage = preferences
-                                    .getString(Pref.KEY_SELECTED_APP_PACKAGE, "");
+                            String selectedAppPackage = Pref.getSelectedAppPackage();
                             ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
                             if (ShizukuUtils.hasPermission()) {
                                 InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
