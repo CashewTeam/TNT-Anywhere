@@ -51,8 +51,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         View singleAppContainer = findViewById(R.id.singleAppContainer);
         CheckBox autoRotateCheckbox = findViewById(R.id.autoRotateCheckbox);
         CheckBox autoScaleCheckbox = findViewById(R.id.autoScaleCheckbox);
-        EditText widthEditText = findViewById(R.id.widthEditText);
-        EditText heightEditText = findViewById(R.id.heightEditText);
         EditText dpiEditText = findViewById(R.id.dpiEditText);
         LinearLayout dpiLayout = findViewById(R.id.dpiLayout);
         CheckBox autoHideFloatingCheckbox = findViewById(R.id.autoHideFloatingCheckbox);
@@ -94,12 +92,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
 
-        // 设置分辨率初始值
-        DisplaylinkPref.load(this);
-        widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
-        heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
-
-        
         // 显示已选择的应用名称（如果有）
         String selectedAppName = preferences.getString(Pref.KEY_SELECTED_APP_NAME, "");
         if (!selectedAppName.isEmpty() && singleAppMode) {
@@ -130,84 +122,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
         autoScaleCheckbox.setEnabled(!singleAppMode);
 
-        // 监听分辨率输入变化
-        widthEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                try {
-                    Context context = this;
-                    DisplaylinkPref.load(context);
-                    int width = Integer.parseInt(widthEditText.getText().toString());
-                    DisplaylinkPref.monitorWidth = width;
-                    DisplaylinkPref.save(context);
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-            }
-        });
-
-        heightEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                try {
-                    Context context = this;
-                    DisplaylinkPref.load(context);
-                    int height = Integer.parseInt(heightEditText.getText().toString());
-                    DisplaylinkPref.monitorHeight = height;
-                    DisplaylinkPref.save(context);
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-            }
-        });
-
-        // 添加分辨率预设选项
-        Spinner resolutionPresetSpinner = findViewById(R.id.resolutionPresetSpinner);
-        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
-        ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            resolutionPresets
-        );
-        resolutionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        resolutionPresetSpinner.setAdapter(resolutionAdapter);
-        
-        resolutionPresetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    switch (position) {
-                        case 1: // 1080p
-                            widthEditText.setText("1920");
-                            heightEditText.setText("1080");
-                            break;
-                        case 2: // 1440p
-                            widthEditText.setText("2560");
-                            heightEditText.setText("1440");
-                            break;
-                        case 3: // 2160p
-                            widthEditText.setText("3840");
-                            heightEditText.setText("2160");
-                            break;
-                        case 4: // ipad4
-                            widthEditText.setText("2048");
-                            heightEditText.setText("1536");
-                            break;
-                    }
-                    
-                    DisplaylinkPref.load(MirrorSettingsActivity.this);
-                    int height = Integer.parseInt(heightEditText.getText().toString());
-                    int width = Integer.parseInt(widthEditText.getText().toString());
-                    DisplaylinkPref.monitorHeight = height;
-                    DisplaylinkPref.monitorWidth = width;
-                    DisplaylinkPref.save(MirrorSettingsActivity.this);
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // 不做任何操作
-            }
+        // 将分辨率相关控件替换为单个按钮
+        Button resolutionButton = findViewById(R.id.resolutionButton);
+        resolutionButton.setOnClickListener(v -> {
+            showResolutionDialog();
         });
 
         // 添加关于按钮点击事件
@@ -499,5 +417,84 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             // 如果输入无效，恢复为默认值或上次保存的值
             dpiEditText.setText(String.valueOf(preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160)));
         }
+    }
+
+    private void showResolutionDialog() {
+        // 创建对话框布局
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_resolution_settings, null);
+        
+        // 获取对话框中的控件
+        EditText widthEditText = dialogView.findViewById(R.id.widthEditText);
+        EditText heightEditText = dialogView.findViewById(R.id.heightEditText);
+        Spinner resolutionPresetSpinner = dialogView.findViewById(R.id.resolutionPresetSpinner);
+        
+        // 设置当前分辨率
+        DisplaylinkPref.load(this);
+        widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
+        heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
+        
+        // 添加分辨率预设选项
+        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
+        ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_spinner_item,
+            resolutionPresets
+        );
+        resolutionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        resolutionPresetSpinner.setAdapter(resolutionAdapter);
+        
+        // 设置预设选项的监听器
+        resolutionPresetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                try {
+                    switch (position) {
+                        case 1: // 1080p
+                            widthEditText.setText("1920");
+                            heightEditText.setText("1080");
+                            break;
+                        case 2: // 1440p
+                            widthEditText.setText("2560");
+                            heightEditText.setText("1440");
+                            break;
+                        case 3: // 2160p
+                            widthEditText.setText("3840");
+                            heightEditText.setText("2160");
+                            break;
+                        case 4: // ipad4
+                            widthEditText.setText("2048");
+                            heightEditText.setText("1536");
+                            break;
+                    }
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // 不做任何操作
+            }
+        });
+        
+        // 创建并显示对话框
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Displaylink 输出分辨率");
+        builder.setView(dialogView);
+        builder.setPositiveButton("确定", (dialog, which) -> {
+            try {
+                int width = Integer.parseInt(widthEditText.getText().toString());
+                int height = Integer.parseInt(heightEditText.getText().toString());
+                
+                DisplaylinkPref.load(this);
+                DisplaylinkPref.monitorWidth = width;
+                DisplaylinkPref.monitorHeight = height;
+                DisplaylinkPref.save(this);
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        });
+        builder.setNegativeButton("取消", null);
+        builder.show();
     }
 } 
