@@ -4,6 +4,7 @@ import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.opengl.EGLSurface;
@@ -21,6 +22,7 @@ import android.opengl.GLES20;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 
 public class AutoRotateAndScaleForMoonlight {
 
@@ -74,37 +76,36 @@ public class AutoRotateAndScaleForMoonlight {
 
         @Override
         public void onDisplayChanged(int displayId) {
-            Context context = State.getContext();
+            if (displayId == Display.DEFAULT_DISPLAY) {
+                checkRotation();
+            }
+        }
+
+        private void checkRotation() {
+            Context context = SunshineService.instance;
             if (context == null) {
                 android.util.Log.d("AutoRotateAndScaleForMoonlight", "context is null");
                 return;
             }
-            if (displayId == Display.DEFAULT_DISPLAY) {
-                DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-                Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-                DisplayMetrics metrics = new DisplayMetrics();
-                display.getRealMetrics(metrics);
+            boolean isLandscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
-                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
-                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
+            android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: " + isLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
+            if (AutoRotateAndScaleForMoonlight.this.isLandscape == isLandscape) {
+                return;
+            }
 
-                android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: " + isLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
-                if (AutoRotateAndScaleForMoonlight.this.isLandscape == isLandscape) {
-                    return;
+            AutoRotateAndScaleForMoonlight.this.isLandscape = isLandscape;
+
+            if (State.mirrorVirtualDisplay != null) {
+                if (isLandscape) {
+                    android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to landscape");
+                    State.mirrorVirtualDisplay.resize(virtualDisplayArgs.width, virtualDisplayArgs.height, 160);
+                } else {
+                    android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to portrait");
+                    State.mirrorVirtualDisplay.resize(virtualDisplayArgs.height, virtualDisplayArgs.width, 160);
                 }
-
-                AutoRotateAndScaleForMoonlight.this.isLandscape = isLandscape;
-
-                if (State.mirrorVirtualDisplay != null) {
-                    if (isLandscape) {
-                        android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to landscape");
-                        State.mirrorVirtualDisplay.resize(virtualDisplayArgs.width, virtualDisplayArgs.height, 160);
-                    } else {
-                        android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to portrait");
-                        State.mirrorVirtualDisplay.resize(virtualDisplayArgs.height, virtualDisplayArgs.width, 160);
-                    }
-                    State.mirrorVirtualDisplay.setSurface(targetSurface);
-                }
+                State.mirrorVirtualDisplay.setSurface(targetSurface);
             }
         }
     }

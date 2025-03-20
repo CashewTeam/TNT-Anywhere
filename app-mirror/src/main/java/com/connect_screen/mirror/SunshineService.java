@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
@@ -18,6 +19,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.OrientationEventListener;
 
 import androidx.core.app.NotificationCompat;
 

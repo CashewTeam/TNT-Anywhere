@@ -55,6 +55,7 @@ public class MirrorDisplayMonitor {
     }
 
     private static void handleNewDisplay(Display display) {
+        displayRotation.put(display.getDisplayId(), display.getRotation());
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
             return;
         }
