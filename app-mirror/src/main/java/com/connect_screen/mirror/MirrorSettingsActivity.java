@@ -55,38 +55,41 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         EditText heightEditText = findViewById(R.id.heightEditText);
         EditText dpiEditText = findViewById(R.id.dpiEditText);
         LinearLayout dpiLayout = findViewById(R.id.dpiLayout);
-        CheckBox floatingBackButtonCheckbox = findViewById(R.id.floatingBackButtonCheckbox);
+        CheckBox autoHideFloatingCheckbox = findViewById(R.id.autoHideFloatingCheckbox);
         CheckBox autoScreenOffCheckbox = findViewById(R.id.autoScreenOffCheckbox);
         CheckBox autoBindInputCheckbox = findViewById(R.id.autoBindInputCheckbox);
         CheckBox autoMoveImeCheckbox = findViewById(R.id.autoMoveImeCheckbox);
         CheckBox disableUsbAudioCheckbox = findViewById(R.id.disableUsbAudioCheckbox);
         CheckBox useTouchscreenCheckbox = findViewById(R.id.useTouchscreenCheckbox);
         CheckBox autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
+        CheckBox showFloatingInMirrorModeCheckbox = findViewById(R.id.showFloatingInMirrorModeCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = Pref.getSingleAppMode();
         boolean autoRotate = Pref.getAutoRotate();
         boolean autoScale = Pref.getAutoScale();
         int singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
-        boolean floatingBackButton = preferences.getBoolean(Pref.KEY_FLOATING_BACK_BUTTON, false);
+        boolean floatingBackButton = preferences.getBoolean(Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, false);
         boolean autoScreenOff = preferences.getBoolean(Pref.KEY_AUTO_SCREEN_OFF, false);
         boolean autoBindInput = preferences.getBoolean(Pref.KEY_AUTO_BIND_INPUT, true);
         boolean autoMoveIme = preferences.getBoolean(Pref.KEY_AUTO_MOVE_IME, true);
         boolean disableUsbAudio = preferences.getBoolean(Pref.KEY_DISABLE_USB_AUDIO, false);
         boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
         boolean autoMatchAspectRatio = preferences.getBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, false);
+        boolean showFloatingInMirrorMode = preferences.getBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
         autoScaleCheckbox.setChecked(autoScale);
         dpiEditText.setText(String.valueOf(singleAppDpi));
-        floatingBackButtonCheckbox.setChecked(floatingBackButton);
+        autoHideFloatingCheckbox.setChecked(floatingBackButton);
         autoScreenOffCheckbox.setChecked(autoScreenOff);
         autoBindInputCheckbox.setChecked(autoBindInput);
         autoMoveImeCheckbox.setChecked(autoMoveIme);
         disableUsbAudioCheckbox.setChecked(disableUsbAudio);
         useTouchscreenCheckbox.setChecked(useTouchscreen);
         autoMatchAspectRatioCheckbox.setChecked(autoMatchAspectRatio);
+        showFloatingInMirrorModeCheckbox.setChecked(showFloatingInMirrorMode);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -248,12 +251,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
 
         // 添加悬浮返回键复选框监听器
-        floatingBackButtonCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_FLOATING_BACK_BUTTON, isChecked).apply();
+        autoHideFloatingCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, isChecked).apply();
         });
-        if (!ShizukuUtils.hasPermission()) {
-            floatingBackButtonCheckbox.setEnabled(false);
-        }
 
         // 设置单应用模式容器的可见性
         singleAppContainer.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
@@ -325,6 +325,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         if (!ShizukuUtils.hasPermission()) {
             autoMatchAspectRatioCheckbox.setEnabled(false);
         }
+
+        // 添加镜像模式下显示悬浮返回键复选框监听器
+        showFloatingInMirrorModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, isChecked).apply();
+        });
     }
 
     @Override

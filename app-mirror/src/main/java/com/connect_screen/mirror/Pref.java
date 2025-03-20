@@ -10,13 +10,14 @@ public class Pref {
     public static final String KEY_SELECTED_APP_PACKAGE = "selected_app_package";
     public static final String KEY_SELECTED_APP_NAME = "selected_app_name";
     public static final String KEY_SINGLE_APP_DPI = "single_app_dpi";
-    public static final String KEY_FLOATING_BACK_BUTTON = "floating_back_button";
+    public static final String KEY_AUTO_HIDE_FLOATING_BACK_BUTTON = "floating_back_button";
     public static final String KEY_AUTO_SCREEN_OFF = "auto_screen_off";
     public static final String KEY_AUTO_BIND_INPUT = "auto_bind_input";
     public static final String KEY_AUTO_MOVE_IME = "auto_move_ime";
     public static final String KEY_DISABLE_USB_AUDIO = "disable_usb_audio";
     public static final String KEY_USE_TOUCHSCREEN = "use_touchscreen";
     public static final String KEY_AUTO_MATCH_ASPECT_RATIO = "auto_match_aspect_ratio";
+    public static final String KEY_SHOW_FLOATING_IN_MIRROR_MODE = "floating_back_button_in_mirror";
 
     public static boolean getAutoRotate() {
         return getBoolean(Pref.KEY_AUTO_ROTATE, true);

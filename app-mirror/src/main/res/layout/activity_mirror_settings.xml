@@ -116,14 +116,6 @@
                 android:layout_marginStart="16dp"/>
 
             <CheckBox
-                android:id="@+id/floatingBackButtonCheckbox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="自动隐藏悬浮返回键（单击返回上一级，双击返回被投屏应用）"
-                android:textSize="16sp"
-                android:padding="8dp"/>
-
-            <CheckBox
                 android:id="@+id/autoBindInputCheckbox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -223,6 +215,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="自动改变主屏宽高比以适配扩展屏"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
+        <CheckBox
+            android:id="@+id/showFloatingInMirrorModeCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="在镜像模式下也显示悬浮返回键"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
+        <CheckBox
+            android:id="@+id/autoHideFloatingCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="自动隐藏悬浮返回键（单击返回上一级，双击返回被投屏应用）"
             android:textSize="16sp"
             android:padding="8dp"/>
 

@@ -1,6 +1,6 @@
 package com.connect_screen.mirror;
 
-import static com.connect_screen.mirror.Pref.KEY_FLOATING_BACK_BUTTON;
+import static com.connect_screen.mirror.Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON;
 import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
 
 import android.app.Service;
@@ -54,7 +54,7 @@ public class FloatingButtonService extends Service {
                     this.onDestroy();
                 }
                 SharedPreferences preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-                autoHide = preferences.getBoolean(KEY_FLOATING_BACK_BUTTON, false);
+                autoHide = preferences.getBoolean(KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, false);
                 createFloatingButton();
             }
         }
