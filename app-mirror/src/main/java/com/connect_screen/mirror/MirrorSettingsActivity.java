@@ -122,10 +122,16 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
         autoScaleCheckbox.setEnabled(!singleAppMode);
 
-        // 将分辨率相关控件替换为单个按钮
+        // 将分辨率相关控件替换为单个按钮和显示当前分辨率的文本视图
         Button resolutionButton = findViewById(R.id.resolutionButton);
+        TextView currentResolutionText = findViewById(R.id.currentResolutionText);
+        
+        // 显示当前分辨率
+        DisplaylinkPref.load(this);
+        updateResolutionText(currentResolutionText);
+        
         resolutionButton.setOnClickListener(v -> {
-            showResolutionDialog();
+            showResolutionDialog(currentResolutionText);
         });
 
         // 添加关于按钮点击事件
@@ -419,7 +425,13 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void showResolutionDialog() {
+    private void updateResolutionText(TextView textView) {
+        String resolutionText = String.format("Displaylink 输出分辨率: %dx%d", 
+                DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight);
+        textView.setText(resolutionText);
+    }
+
+    private void showResolutionDialog(TextView currentResolutionText) {
         // 创建对话框布局
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_resolution_settings, null);
         
@@ -490,6 +502,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 DisplaylinkPref.monitorWidth = width;
                 DisplaylinkPref.monitorHeight = height;
                 DisplaylinkPref.save(this);
+                
+                // 更新显示的分辨率文本
+                updateResolutionText(currentResolutionText);
             } catch (NumberFormatException e) {
                 // ignore
             }
