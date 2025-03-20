@@ -10,6 +10,7 @@ import android.os.Build;
 import android.util.Log;
 import android.view.Display;
 import android.view.DisplayHidden;
+import android.view.IWindowManager;
 
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
@@ -50,6 +51,11 @@ public class ProjectViaMirror implements Job {
             State.refreshMainActivity();
             CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();
+            if (ShizukuUtils.hasPermission()) {
+                int singleAppDpi = Pref.getSingleAppDpi();
+                IWindowManager wm = ServiceUtils.getWindowManager();
+                wm.setForcedDisplayDensityForUser(targetDisplayId, singleAppDpi, 0);
+            }
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
                 @Override

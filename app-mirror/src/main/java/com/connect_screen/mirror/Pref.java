@@ -31,6 +31,18 @@ public class Pref {
         return getBoolean(Pref.KEY_SINGLE_APP_MODE, false);
     }
 
+    public static int getSingleAppDpi() {
+        return getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+    }
+
+    private static int getInt(String key, int defaultValue) {
+        SharedPreferences preferences = getPreferences();
+        if (preferences == null) {
+            return defaultValue;
+        }
+        return preferences.getInt(key, defaultValue);
+    }
+
     private static boolean getBoolean(String key, boolean defaultValue) {
         SharedPreferences preferences = getPreferences();
         if (preferences == null) {

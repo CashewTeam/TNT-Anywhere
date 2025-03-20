@@ -103,7 +103,7 @@ public class ProjectViaMoonlight implements Job {
         boolean singleAppMode = Pref.getSingleAppMode();
         if (singleAppMode) {
             if (ShizukuUtils.hasPermission()) {
-                int singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+                int singleAppDpi = Pref.getSingleAppDpi();
                 State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(new VirtualDisplayArgs("Moonlight",
                         width, height, frameRate, singleAppDpi, autoRotate), surface);
                 String selectedAppPackage = preferences.getString(Pref.KEY_SELECTED_APP_PACKAGE, "");

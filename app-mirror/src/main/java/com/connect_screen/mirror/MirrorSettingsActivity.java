@@ -66,7 +66,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean singleAppMode = Pref.getSingleAppMode();
         boolean autoRotate = Pref.getAutoRotate();
         boolean autoScale = Pref.getAutoScale();
-        int singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+        int singleAppDpi = Pref.getSingleAppDpi();
         boolean floatingBackButton = preferences.getBoolean(Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, false);
         boolean autoScreenOff = preferences.getBoolean(Pref.KEY_AUTO_SCREEN_OFF, false);
         boolean autoBindInput = preferences.getBoolean(Pref.KEY_AUTO_BIND_INPUT, true);
@@ -421,7 +421,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             preferences.edit().putInt(Pref.KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
         } catch (NumberFormatException e) {
             // 如果输入无效，恢复为默认值或上次保存的值
-            dpiEditText.setText(String.valueOf(preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160)));
+            dpiEditText.setText(Pref.getSingleAppDpi());
         }
     }
 

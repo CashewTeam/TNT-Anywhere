@@ -122,7 +122,7 @@ public class MirrorActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
-        singleAppDpi = preferences.getInt(Pref.KEY_SINGLE_APP_DPI, 160);
+        singleAppDpi = Pref.getSingleAppDpi();
         singleAppMode = Pref.getSingleAppMode();
         if (!ShizukuUtils.hasPermission()) {
             singleAppMode = false;
