@@ -4,6 +4,7 @@ import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
@@ -93,12 +94,7 @@ public class MirrorActivity extends AppCompatActivity {
         @Override
         public void onDisplayChanged(int displayId) {
             if (displayId == Display.DEFAULT_DISPLAY) {
-                DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
-                Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-                DisplayMetrics metrics = new DisplayMetrics();
-                display.getRealMetrics(metrics);
-
-                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
                 Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
                 if (State.mirrorVirtualDisplay != null) {
@@ -289,9 +285,7 @@ public class MirrorActivity extends AppCompatActivity {
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
                         stopVirtualDisplay();
-                        DisplayMetrics metrics = new DisplayMetrics();
-                        display.getRealMetrics(metrics);
-                        boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                        boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
                         if (!autoRotate) {
                             isLandscape = true;
                         }
@@ -394,9 +388,7 @@ public class MirrorActivity extends AppCompatActivity {
                         }
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
-                        DisplayMetrics metrics = new DisplayMetrics();
-                        display.getRealMetrics(metrics);
-                        boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
+                        boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
                         State.mirrorVirtualDisplay.setSurface(targetSurface);
