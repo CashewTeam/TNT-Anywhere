@@ -119,7 +119,6 @@ public class MirrorActivity extends AppCompatActivity {
         instance = this;
 
         // 读取设置
-        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
         singleAppDpi = Pref.getSingleAppDpi();

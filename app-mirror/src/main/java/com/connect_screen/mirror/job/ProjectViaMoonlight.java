@@ -97,7 +97,6 @@ public class ProjectViaMoonlight implements Job {
                 throw new YieldException("等待录音权限授权");
             }
         }
-        SharedPreferences preferences = context.getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         boolean autoRotate = Pref.getAutoRotate();
         boolean autoScale = Pref.getAutoScale();
         boolean singleAppMode = Pref.getSingleAppMode();

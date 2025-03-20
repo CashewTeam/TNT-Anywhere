@@ -1,11 +1,8 @@
 package com.connect_screen.mirror.job;
 
-import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
-
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;

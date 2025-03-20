@@ -1,7 +1,5 @@
 package com.connect_screen.mirror;
 
-import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
-
 import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
 import android.app.ActivityTaskManager;

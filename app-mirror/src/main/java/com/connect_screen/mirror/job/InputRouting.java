@@ -1,10 +1,7 @@
 package com.connect_screen.mirror.job;
 
 
-import static com.connect_screen.mirror.MirrorSettingsActivity.PREF_NAME;
-
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.input.IInputManager;
 import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;

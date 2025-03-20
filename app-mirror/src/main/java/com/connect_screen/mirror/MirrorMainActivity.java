@@ -154,8 +154,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         });
 
         touchScreenBtn.setOnClickListener(v -> {
-            SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
-            boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
+            boolean useTouchscreen = Pref.getUseTouchscreen();
             if (ShizukuUtils.hasPermission() && useTouchscreen) {
                 VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
                 if (virtualDisplay == null) {
@@ -309,9 +308,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (State.uiState.getValue().errorStatusText != null) {
             return;
         }
-        SharedPreferences preferences = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE);
         boolean singleAppMode = Pref.getSingleAppMode();
-        boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
+        boolean useTouchscreen = Pref.getUseTouchscreen();
         
         // 更新 ViewModel 中的状态
         boolean isScreenMirroring = State.mirrorVirtualDisplay != null || 

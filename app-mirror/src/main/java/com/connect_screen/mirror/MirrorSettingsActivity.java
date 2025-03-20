@@ -72,7 +72,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean autoBindInput = Pref.getAutoBindInput();
         boolean autoMoveIme = Pref.getAutoMoveIme();
         boolean disableUsbAudio = Pref.getDisableUsbAudio();
-        boolean useTouchscreen = preferences.getBoolean(Pref.KEY_USE_TOUCHSCREEN, true);
+        boolean useTouchscreen = Pref.getUseTouchscreen();
         boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
         boolean showFloatingInMirrorMode = preferences.getBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
         

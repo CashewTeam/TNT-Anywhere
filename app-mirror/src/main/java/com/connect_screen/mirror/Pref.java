@@ -55,6 +55,10 @@ public class Pref {
         return getBoolean(KEY_AUTO_MATCH_ASPECT_RATIO, false);
     }
 
+    public static boolean getUseTouchscreen() {
+        return getBoolean(KEY_USE_TOUCHSCREEN, true);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }
