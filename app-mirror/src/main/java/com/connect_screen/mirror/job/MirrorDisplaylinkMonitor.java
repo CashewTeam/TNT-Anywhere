@@ -8,7 +8,7 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 
-import com.connect_screen.mirror.DisplaylinkPref;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
 
@@ -78,8 +78,7 @@ public class MirrorDisplaylinkMonitor {
         }
         // 处理 USB 设备连接的逻辑
         if (device.getDeviceName().equals(State.displaylinkDeviceName)) {
-            DisplaylinkPref.load(context);
-            State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
+            State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", Pref.getDisplaylinkWidth(), Pref.getDisplaylinkHeight(), Pref.getDisplaylinkRefreshRate(), Pref.getSingleAppDpi(), Pref.getAutoRotate());
             State.startNewJob(new ProjectViaDisplaylink(device, State.displaylinkState.virtualDisplayArgs));
         }
     }

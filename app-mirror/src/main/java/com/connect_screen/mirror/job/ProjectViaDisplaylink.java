@@ -19,7 +19,6 @@ import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.DisplayMode;
-import com.connect_screen.mirror.DisplaylinkPref;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.DisplaylinkState;
@@ -280,12 +279,6 @@ public class ProjectViaDisplaylink implements Job {
     private boolean requestMediaProjectionPermission(Context context, DisplaylinkState displaylinkState) throws YieldException {
         if (State.displaylinkState.getVirtualDisplay() != null) {
             State.log("已存在 virtual display 跳过询问投屏权限");
-            return true;
-        }
-        if (ShizukuUtils.hasPermission() && DisplaylinkPref.skipMediaProjectionPermission) {
-            State.log("按设置要求跳过询问投屏权限");
-            // 无需 media projection 授权
-            displaylinkState.stopVirtualDisplay();
             return true;
         }
         if (State.getMediaProjection() != null) {

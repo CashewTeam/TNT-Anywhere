@@ -127,7 +127,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         TextView currentResolutionText = findViewById(R.id.currentResolutionText);
         
         // 显示当前分辨率
-        DisplaylinkPref.load(this);
         updateResolutionText(currentResolutionText);
         
         resolutionButton.setOnClickListener(v -> {
@@ -427,7 +426,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
     private void updateResolutionText(TextView textView) {
         String resolutionText = String.format("Displaylink 输出分辨率: %dx%d", 
-                DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight);
+                Pref.getDisplaylinkWidth(), Pref.getDisplaylinkHeight());
         textView.setText(resolutionText);
     }
 
@@ -441,9 +440,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         Spinner resolutionPresetSpinner = dialogView.findViewById(R.id.resolutionPresetSpinner);
         
         // 设置当前分辨率
-        DisplaylinkPref.load(this);
-        widthEditText.setText(String.valueOf(DisplaylinkPref.monitorWidth));
-        heightEditText.setText(String.valueOf(DisplaylinkPref.monitorHeight));
+        widthEditText.setText(String.valueOf(Pref.getDisplaylinkWidth()));
+        heightEditText.setText(String.valueOf(Pref.getDisplaylinkHeight()));
         
         // 添加分辨率预设选项
         String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
@@ -498,10 +496,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 int width = Integer.parseInt(widthEditText.getText().toString());
                 int height = Integer.parseInt(heightEditText.getText().toString());
                 
-                DisplaylinkPref.load(this);
-                DisplaylinkPref.monitorWidth = width;
-                DisplaylinkPref.monitorHeight = height;
-                DisplaylinkPref.save(this);
+                preferences.edit()
+                        .putInt(Pref.KEY_DISPLAYLINK_WIDTH, width)
+                        .putInt(Pref.KEY_DISPLAYLINK_HEIGHT, height)
+                        .apply();
                 
                 // 更新显示的分辨率文本
                 updateResolutionText(currentResolutionText);

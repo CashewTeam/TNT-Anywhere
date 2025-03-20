@@ -6,9 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.ProjectionMode;
 import com.displaylink.manager.display.MonitorInfo;
-import com.connect_screen.mirror.DisplaylinkPref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.DisplaylinkState;
 import com.connect_screen.mirror.job.ProjectViaDisplaylink;
@@ -66,8 +66,7 @@ public class NativeDriverListener {
                 displaylinkState.monitorInfo = monitorInfo;
                 Context context = State.getContext();
                 if (!State.isJobRunning() && wasNoMonitor && context != null) {
-                    DisplaylinkPref.load(context);
-                    State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", DisplaylinkPref.monitorWidth, DisplaylinkPref.monitorHeight, DisplaylinkPref.refreshRate, DisplaylinkPref.dpi, DisplaylinkPref.rotatesWithContent);
+                    State.displaylinkState.virtualDisplayArgs = new VirtualDisplayArgs("DisplayLink", Pref.getDisplaylinkWidth(), Pref.getDisplaylinkHeight(), Pref.getDisplaylinkRefreshRate(), Pref.getSingleAppDpi(), Pref.getAutoRotate());
                     State.startNewJob(new ProjectViaDisplaylink(displaylinkState.device, displaylinkState.virtualDisplayArgs));
                 }
             }

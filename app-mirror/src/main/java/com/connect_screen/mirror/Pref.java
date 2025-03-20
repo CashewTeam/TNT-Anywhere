@@ -18,6 +18,9 @@ public class Pref {
     public static final String KEY_USE_TOUCHSCREEN = "use_touchscreen";
     public static final String KEY_AUTO_MATCH_ASPECT_RATIO = "auto_match_aspect_ratio";
     public static final String KEY_SHOW_FLOATING_IN_MIRROR_MODE = "floating_back_button_in_mirror";
+    public static final String KEY_DISPLAYLINK_WIDTH = "displaylink_width";
+    public static final String KEY_DISPLAYLINK_HEIGHT = "displaylink_height";
+    public static final String KEY_DISPLAYLINK_REFRESH_RATE = "displaylink_refresh_rate";
 
     public static boolean getAutoRotate() {
         return getBoolean(KEY_AUTO_ROTATE, true);
@@ -61,6 +64,18 @@ public class Pref {
 
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
+    }
+
+    public static int getDisplaylinkWidth() {
+        return getInt(KEY_DISPLAYLINK_WIDTH, 1920);
+    }
+
+    public static int getDisplaylinkHeight() {
+        return getInt(KEY_DISPLAYLINK_HEIGHT, 1080);
+    }
+
+    public static int getDisplaylinkRefreshRate() {
+        return getInt(KEY_DISPLAYLINK_REFRESH_RATE, 60);
     }
 
     public static String getSelectedAppPackage() {
