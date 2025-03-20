@@ -51,6 +51,8 @@ public class SunshineServer {
     private static boolean autoRotate;
     private static float defaultDisplayWidth;
     private static float defaultDisplayHeight;
+    private static float rotatedPortraitMirrorWidth;
+    private static float rotatedPortraitMirrorHeight;
 
     static {
         System.loadLibrary("sunshine");
@@ -129,16 +131,18 @@ public class SunshineServer {
         defaultDisplayWidth = Math.max(realSize.x, realSize.y);
         defaultDisplayHeight = Math.min(realSize.x, realSize.y);
         float aspectRatio = defaultDisplayWidth / defaultDisplayHeight;
-        
-        portraitMirrorWidth = height / aspectRatio;
-        portraitMirrorHeight = height;
+
+        portraitMirrorHeight = Math.min(height, defaultDisplayHeight);
+        portraitMirrorWidth = portraitMirrorHeight / aspectRatio;
+        rotatedPortraitMirrorWidth = Math.min(width, defaultDisplayWidth);
+        rotatedPortraitMirrorHeight = rotatedPortraitMirrorWidth / aspectRatio;
         landscapeMirrorWidth = Math.min(width, defaultDisplayWidth);
-        landscapeMirrorHeight = width / aspectRatio;
+        landscapeMirrorHeight = landscapeMirrorWidth / aspectRatio;
 
         State.log("主屏尺寸 defaultDisplayWidth: " + defaultDisplayWidth + " defaultDisplayHeight: " + defaultDisplayHeight);
         State.log("客户端屏幕尺寸 screenWidth: " + screenWidth + " screenHeight: " + screenHeight);
         if (!singleAppMode) {
-            State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight);
+            State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight + " rotatedPortraitMirrorWidth: " + rotatedPortraitMirrorWidth + " rotatedPortraitMirrorHeight: " + rotatedPortraitMirrorHeight);
         }
         
         new Handler(Looper.getMainLooper()).post(() -> {
@@ -212,24 +216,45 @@ public class SunshineServer {
     }
 
     private static Point translateRotation0Mirror(float xInScreen, float yInScreen) {
-        Point point = new Point();
-        float xBlackBar = (screenWidth - portraitMirrorWidth) / 2;
-        float yBlackBar = (screenHeight - portraitMirrorHeight) / 2;
-        float adjustedX = xInScreen - xBlackBar;
-        if (adjustedX > portraitMirrorWidth) {
-            adjustedX = portraitMirrorWidth;
-        } else if (adjustedX < 0) {
-            adjustedX = 0;
+        if (autoRotate) {
+            Point point = new Point();
+            float xBlackBar = (screenWidth - rotatedPortraitMirrorWidth) / 2;
+            float yBlackBar = (screenHeight - rotatedPortraitMirrorHeight) / 2;
+            float adjustedX = xInScreen - xBlackBar;
+            if (adjustedX > rotatedPortraitMirrorWidth) {
+                adjustedX = rotatedPortraitMirrorWidth;
+            } else if (adjustedX < 0) {
+                adjustedX = 0;
+            }
+            float adjustedY = yInScreen - yBlackBar;
+            if (adjustedY > rotatedPortraitMirrorHeight) {
+                adjustedY = rotatedPortraitMirrorHeight;
+            } else if (adjustedY < 0) {
+                adjustedY = 0;
+            }
+            point.y = (adjustedX / rotatedPortraitMirrorWidth) * defaultDisplayWidth;
+            point.x = (1 - (adjustedY / rotatedPortraitMirrorHeight)) * defaultDisplayHeight;
+            return point;
+        } else {
+            Point point = new Point();
+            float xBlackBar = (screenWidth - portraitMirrorWidth) / 2;
+            float yBlackBar = (screenHeight - portraitMirrorHeight) / 2;
+            float adjustedX = xInScreen - xBlackBar;
+            if (adjustedX > portraitMirrorWidth) {
+                adjustedX = portraitMirrorWidth;
+            } else if (adjustedX < 0) {
+                adjustedX = 0;
+            }
+            float adjustedY = yInScreen - yBlackBar;
+            if (adjustedY > portraitMirrorHeight) {
+                adjustedY = portraitMirrorHeight;
+            } else if (adjustedY < 0) {
+                adjustedY = 0;
+            }
+            point.x = (adjustedX / portraitMirrorWidth) * defaultDisplayHeight;
+            point.y = (adjustedY / portraitMirrorHeight) * defaultDisplayWidth;
+            return point;
         }
-        float adjustedY = yInScreen - yBlackBar;
-        if (adjustedY > portraitMirrorHeight) {
-            adjustedY = portraitMirrorHeight;
-        } else if (adjustedY < 0) {
-            adjustedY = 0;
-        }
-        point.x = (adjustedX / portraitMirrorWidth) * defaultDisplayHeight;
-        point.y = (adjustedY / portraitMirrorHeight) * defaultDisplayWidth;
-        return point;
     }
 
     private static Point translateRotation90Mirror(float xInScreen, float yInScreen) {

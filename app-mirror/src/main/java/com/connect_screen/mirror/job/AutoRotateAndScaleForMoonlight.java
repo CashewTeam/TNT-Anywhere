@@ -75,7 +75,11 @@ public class AutoRotateAndScaleForMoonlight {
         @Override
         public void onDisplayChanged(int displayId) {
             Context context = State.getContext();
-            if (displayId == Display.DEFAULT_DISPLAY && context != null) {
+            if (context == null) {
+                android.util.Log.d("AutoRotateAndScaleForMoonlight", "context is null");
+                return;
+            }
+            if (displayId == Display.DEFAULT_DISPLAY) {
                 DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
                 Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
                 DisplayMetrics metrics = new DisplayMetrics();
@@ -84,6 +88,7 @@ public class AutoRotateAndScaleForMoonlight {
                 boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
                 Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
+                android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: " + isLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
                 if (AutoRotateAndScaleForMoonlight.this.isLandscape == isLandscape) {
                     return;
                 }
@@ -115,13 +120,6 @@ public class AutoRotateAndScaleForMoonlight {
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
 
-        // 只在autoRotate为true时注册屏幕方向变化监听
-        if (autoRotate) {
-            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-            orientationChangeCallback = new OrientationChangeCallback();
-            displayManager.registerDisplayListener(orientationChangeCallback, renderHandler);
-        }
-
         // 获取手机主屏的完整显示信息
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -144,6 +142,12 @@ public class AutoRotateAndScaleForMoonlight {
         renderThread = new HandlerThread("MirrorActivityRenderThread");
         renderThread.start();
         renderHandler = new Handler(renderThread.getLooper());
+
+        // 只在autoRotate为true时注册屏幕方向变化监听
+        if (autoRotate) {
+            orientationChangeCallback = new OrientationChangeCallback();
+            displayManager.registerDisplayListener(orientationChangeCallback, renderHandler);
+        }
 
         // 在渲染线程中初始化OpenGL
         renderHandler.post(() -> {

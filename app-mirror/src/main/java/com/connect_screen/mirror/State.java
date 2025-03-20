@@ -194,7 +194,7 @@ public class State {
     }
 
     public static Context getContext() {
-        if (currentActivity.get() != null) {
+        if (currentActivity != null && currentActivity.get() != null) {
             return currentActivity.get();
         }
         if (SunshineService.instance != null) {
