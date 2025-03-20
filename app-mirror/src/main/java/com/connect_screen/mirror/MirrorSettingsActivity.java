@@ -327,6 +327,21 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // 更新权限状态
+        TextView shizukuStatus = findViewById(R.id.shizukuStatus);
+        Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
+        TextView accessibilityStatus = findViewById(R.id.accessibilityStatus);
+        TextView overlayStatus = findViewById(R.id.overlayStatus);
+        
+        updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
+        updateAccessibilityStatus(accessibilityStatus);
+        updateOverlayStatus(overlayStatus);
+    }
+
     private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
         boolean started = ShizukuUtils.hasShizukuStarted();
         boolean hasPermission = ShizukuUtils.hasPermission();

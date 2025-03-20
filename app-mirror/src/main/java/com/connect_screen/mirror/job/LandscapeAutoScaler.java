@@ -183,6 +183,7 @@ public class LandscapeAutoScaler {
         if (!hasSymmetricBlackBar) {
             return;
         }
+        hasSymmetricBlackBar = false;
         Log.d("LandscapeAutoScaler", "exitScale");
         // 如果没有对称黑边，使用单位矩阵
         for(int i = 0; i < identityMvpMatrix.length; i++) {
