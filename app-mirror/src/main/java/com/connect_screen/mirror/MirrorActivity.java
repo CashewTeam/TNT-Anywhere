@@ -73,7 +73,6 @@ public class MirrorActivity extends AppCompatActivity {
         if (State.mirrorVirtualDisplay == null) {
             return;
         }
-        State.mirrorDisplayId = -1;
         State.mirrorVirtualDisplay.release();
         State.mirrorVirtualDisplay = null;
     }
@@ -117,15 +116,6 @@ public class MirrorActivity extends AppCompatActivity {
         // 读取设置
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
-        singleAppDpi = Pref.getSingleAppDpi();
-        singleAppMode = Pref.getSingleAppMode();
-        if (!ShizukuUtils.hasPermission()) {
-            singleAppMode = false;
-        }
-        if (singleAppMode) {
-            autoRotate = false;
-            autoScale = false;
-        }
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
@@ -290,102 +280,64 @@ public class MirrorActivity extends AppCompatActivity {
                             isLandscape = true;
                         }
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                        if (singleAppMode) {
-                            State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(
-                                    new VirtualDisplayArgs(
-                                        "Mirror", isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
-                                            isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(),
-                                            (int) display.getRefreshRate(), singleAppDpi, Pref.getAutoRotate()
-                                    ), targetSurface);
-                            int mirrorDisplayId = State.mirrorVirtualDisplay.getDisplay().getDisplayId();
-                            String selectedAppPackage = Pref.getSelectedAppPackage();
-                            ServiceUtils.launchPackage(MirrorActivity.this, selectedAppPackage, mirrorDisplayId);
-                            if (ShizukuUtils.hasPermission()) {
-                                InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
-                            }
-                            InputRouting.moveImeToExternal(mirrorDisplayId);
-                            DisplayManager displayManager2 = (DisplayManager) MirrorActivity.this
-                                    .getSystemService(Context.DISPLAY_SERVICE);
-                            displayManager2.registerDisplayListener(new DisplayManager.DisplayListener() {
-                                @Override
-                                public void onDisplayAdded(int i) {
+                        State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
+                                isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
+                                isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
+                                DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                                targetSurface, null, renderHandler);
+                        State.setMediaProjection(null);
+                        CreateVirtualDisplay.changeAspectRatio(surfaceView.getWidth(), surfaceView.getHeight());
 
-                                }
-
-                                @Override
-                                public void onDisplayRemoved(int i) {
-                                    if (i == mirrorDisplayId) {
-                                        CreateVirtualDisplay.powerOnScreen();
-                                        InputRouting.moveImeToDefault();
-                                        ExitAll.execute(null, false);
-                                    }
-                                }
-
-                                @Override
-                                public void onDisplayChanged(int i) {
-
-                                }
-                            }, null);
-                        } else {
-                            State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Mirror",
-                                    isLandscape ? surfaceView.getWidth() : surfaceView.getHeight(),
-                                    isLandscape ? surfaceView.getHeight() : surfaceView.getWidth(), 160,
-                                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                                    targetSurface, null, renderHandler);
-                            State.setMediaProjection(null);
-                            CreateVirtualDisplay.changeAspectRatio(surfaceView.getWidth(), surfaceView.getHeight());
-
-                            IInputManager inputManager = ServiceUtils.getInputManager();
-                            // 修改触摸监听器
-                            surfaceView.setOnTouchListener((v, event) -> {
-                                Display targetDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-                                if (targetDisplay == null)
-                                    return true;
-
-                                // 获取原始坐标
-                                float x = event.getX();
-                                float y = event.getY();
-
-                                // 计算相对坐标
-                                float relativeX = x / v.getWidth();
-                                float relativeY = y / v.getHeight();
-
-                                // 获取目标显示器的旋转角度
-                                int rotation = targetDisplay.getRotation();
-                                float targetWidth = targetDisplay.getWidth();
-                                float targetHeight = targetDisplay.getHeight();
-                                Log.d("MirrorActivity", "rotation: " + rotation);
-
-                                // 根据旋转角度调整坐标映射
-                                float mappedX, mappedY;
-                                switch (rotation) {
-                                    case Surface.ROTATION_270:
-                                        mappedX = (1 - relativeX) * targetWidth;
-                                        mappedY = (1 - relativeY) * targetHeight;
-                                        break;
-                                    case Surface.ROTATION_180:
-                                        mappedX = relativeY * targetWidth;
-                                        mappedY = (1 - relativeX) * targetHeight;
-                                        break;
-                                    case Surface.ROTATION_90:
-                                        mappedX = relativeX * targetWidth;
-                                        mappedY = relativeY * targetHeight;
-                                        break;
-                                    default: // Surface.ROTATION_0
-                                        mappedX = (1 - relativeY) * targetWidth;
-                                        mappedY = relativeX * targetHeight;
-                                        break;
-                                }
-                                // 设置整后的坐标
-                                event.setLocation(mappedX, mappedY);
-
-                                MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
-                                motionEventHidden.setDisplayId(Display.DEFAULT_DISPLAY);
-                                TouchpadActivity.setFocus(inputManager, 0);
-                                inputManager.injectInputEvent(event, 0);
+                        IInputManager inputManager = ServiceUtils.getInputManager();
+                        // 修改触摸监听器
+                        surfaceView.setOnTouchListener((v, event) -> {
+                            Display targetDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+                            if (targetDisplay == null)
                                 return true;
-                            });
-                        }
+
+                            // 获取原始坐标
+                            float x = event.getX();
+                            float y = event.getY();
+
+                            // 计算相对坐标
+                            float relativeX = x / v.getWidth();
+                            float relativeY = y / v.getHeight();
+
+                            // 获取目标显示器的旋转角度
+                            int rotation = targetDisplay.getRotation();
+                            float targetWidth = targetDisplay.getWidth();
+                            float targetHeight = targetDisplay.getHeight();
+                            Log.d("MirrorActivity", "rotation: " + rotation);
+
+                            // 根据旋转角度调整坐标映射
+                            float mappedX, mappedY;
+                            switch (rotation) {
+                                case Surface.ROTATION_270:
+                                    mappedX = (1 - relativeX) * targetWidth;
+                                    mappedY = (1 - relativeY) * targetHeight;
+                                    break;
+                                case Surface.ROTATION_180:
+                                    mappedX = relativeY * targetWidth;
+                                    mappedY = (1 - relativeX) * targetHeight;
+                                    break;
+                                case Surface.ROTATION_90:
+                                    mappedX = relativeX * targetWidth;
+                                    mappedY = relativeY * targetHeight;
+                                    break;
+                                default: // Surface.ROTATION_0
+                                    mappedX = (1 - relativeY) * targetWidth;
+                                    mappedY = relativeX * targetHeight;
+                                    break;
+                            }
+                            // 设置整后的坐标
+                            event.setLocation(mappedX, mappedY);
+
+                            MotionEventHidden motionEventHidden = Refine.unsafeCast(event);
+                            motionEventHidden.setDisplayId(Display.DEFAULT_DISPLAY);
+                            TouchpadActivity.setFocus(inputManager, 0);
+                            inputManager.injectInputEvent(event, 0);
+                            return true;
+                        });
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
                         boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;

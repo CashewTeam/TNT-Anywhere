@@ -5,6 +5,7 @@ import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.util.Log;
@@ -12,6 +13,7 @@ import android.view.Display;
 import android.view.DisplayHidden;
 import android.view.IWindowManager;
 
+import com.connect_screen.mirror.BridgeActivity;
 import com.connect_screen.mirror.MirrorActivity;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
@@ -80,20 +82,42 @@ public class ProjectViaMirror implements Job {
         }
         if (requestMediaProjectionPermission(State.currentActivity.get(), singleAppMode)) {
             // 检查是否允许在该显示器上启动Activity
-            ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-            // 启动 MirrorActivity
-            Intent intent = new Intent(context, MirrorActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
-                    Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
-                    return;
+            if (singleAppMode) {
+                Point initialSize = new Point();
+                ServiceUtils.getWindowManager().getInitialDisplaySize(mirrorDisplay.getDisplayId(), initialSize);
+                Intent intent = new Intent(context, BridgeActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra("virtualDisplayArgs", new VirtualDisplayArgs(
+                        "Mirror",
+                        initialSize.x,
+                        initialSize.y,
+                        (int) mirrorDisplay.getRefreshRate(),
+                        Pref.getSingleAppDpi(),
+                        Pref.getAutoRotate()));
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                    if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
+                        Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
+                        return;
+                    }
                 }
+                context.startActivity(intent, options.toBundle());
+            } else {
+                Intent intent = new Intent(context, MirrorActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ActivityOptions options = ActivityOptions.makeBasic();
+                options.setLaunchDisplayId(mirrorDisplay.getDisplayId());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                    if (!activityManager.isActivityStartAllowedOnDisplay(context, mirrorDisplay.getDisplayId(), intent)) {
+                        Log.d("ProjectViaMirror", "该显示器不允许启动Activity，displayId: " + mirrorDisplay.getDisplayId());
+                        return;
+                    }
+                }
+                context.startActivity(intent, options.toBundle());
             }
-            context.startActivity(intent, options.toBundle());
-            State.mirrorDisplayId = mirrorDisplay.getDisplayId();
         }
     }
 

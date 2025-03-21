@@ -58,7 +58,6 @@ public class AutoRotateAndScaleForMoonlight {
         if (State.mirrorVirtualDisplay == null) {
             return;
         }
-        State.mirrorDisplayId = -1;
         State.mirrorVirtualDisplay.release();
         State.mirrorVirtualDisplay = null;
     }

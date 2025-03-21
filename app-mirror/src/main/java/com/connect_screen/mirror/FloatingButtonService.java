@@ -91,9 +91,7 @@ public class FloatingButtonService extends Service {
         params.gravity = Gravity.TOP | Gravity.START;
         
         // 读取强制横屏设置
-        SharedPreferences appPreferences = getSharedPreferences("app_preferences", Context.MODE_PRIVATE);
-        boolean forceLandscape = appPreferences.getBoolean("FLOATING_BUTTON_FORCE_LANDSCAPE", false);
-        if (forceLandscape) {
+        if (!Pref.getAutoRotate()) {
             params.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
         }
         // 读取上次保存的位置
