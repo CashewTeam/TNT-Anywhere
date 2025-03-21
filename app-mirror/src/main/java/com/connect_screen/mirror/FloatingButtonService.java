@@ -36,6 +36,15 @@ public class FloatingButtonService extends Service {
     private long lastTapTime = 0;
     private boolean autoHide;
 
+    public static void startForMirror() {
+        if (!Pref.getShowFloatingInMirrorMode()) {
+            return;
+        }
+        Intent intent = new Intent(State.getContext(), FloatingButtonService.class);
+        intent.putExtra("display_id", Display.DEFAULT_DISPLAY);
+        State.getContext().startService(intent);
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -91,7 +100,7 @@ public class FloatingButtonService extends Service {
         params.gravity = Gravity.TOP | Gravity.START;
         
         // 读取强制横屏设置
-        if (!Pref.getAutoRotate()) {
+        if (!Pref.getAutoRotate() && displayId != Display.DEFAULT_DISPLAY) {
             params.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
         }
         // 读取上次保存的位置
@@ -139,9 +148,6 @@ public class FloatingButtonService extends Service {
                     return true;
 
                 case MotionEvent.ACTION_MOVE:
-                    float moveX = Math.abs(event.getRawX() - initialTouchX);
-                    float moveY = Math.abs(event.getRawY() - initialTouchY);
-                    
                     params.x = (int) (initialX + (event.getRawX() - initialTouchX));
                     params.y = (int) (initialY + (event.getRawY() - initialTouchY));
                     windowManager.updateViewLayout(floatingView, params);

@@ -286,6 +286,7 @@ public class MirrorActivity extends AppCompatActivity {
                                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                                 targetSurface, null, renderHandler);
                         State.setMediaProjection(null);
+                        FloatingButtonService.startForMirror();
                         CreateVirtualDisplay.changeAspectRatio(surfaceView.getWidth(), surfaceView.getHeight());
 
                         IInputManager inputManager = ServiceUtils.getInputManager();

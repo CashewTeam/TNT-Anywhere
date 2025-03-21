@@ -122,10 +122,12 @@ public class ServiceUtils {
         if (android.os.Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
             _launchPackage(context, packageName, targetDisplayId);
         }
-        if (ShizukuUtils.hasPermission()) {
+        try {
             Intent serviceIntent = new Intent(context, FloatingButtonService.class);
             serviceIntent.putExtra("display_id", targetDisplayId);
             context.startService(serviceIntent);
+        } catch(Throwable e) {
+            State.log("failed to start floating back button" + e);
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             State.lastSingleAppDisplay = targetDisplayId;

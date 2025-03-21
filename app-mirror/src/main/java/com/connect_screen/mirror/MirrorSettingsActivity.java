@@ -74,7 +74,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean disableUsbAudio = Pref.getDisableUsbAudio();
         boolean useTouchscreen = Pref.getUseTouchscreen();
         boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
-        boolean showFloatingInMirrorMode = preferences.getBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
+        boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);

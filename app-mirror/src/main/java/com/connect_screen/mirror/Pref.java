@@ -62,6 +62,10 @@ public class Pref {
         return getBoolean(KEY_USE_TOUCHSCREEN, true);
     }
 
+    public static boolean getShowFloatingInMirrorMode() {
+        return getBoolean(KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }

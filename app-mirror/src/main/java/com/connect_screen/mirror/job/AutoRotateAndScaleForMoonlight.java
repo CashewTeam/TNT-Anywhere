@@ -19,6 +19,7 @@ import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
+import com.connect_screen.mirror.FloatingButtonService;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
@@ -253,6 +254,7 @@ public class AutoRotateAndScaleForMoonlight {
                         null,
                         null);
                 State.setMediaProjection(null);
+                FloatingButtonService.startForMirror();
             } else if (State.mirrorVirtualDisplay != null) {
                 DisplayMetrics metrics = new DisplayMetrics();
                 display.getRealMetrics(metrics);

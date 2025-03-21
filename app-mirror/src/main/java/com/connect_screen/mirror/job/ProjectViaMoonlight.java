@@ -16,6 +16,7 @@ import android.view.Surface;
 
 import androidx.core.app.ActivityCompat;
 
+import com.connect_screen.mirror.FloatingButtonService;
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
@@ -125,6 +126,7 @@ public class ProjectViaMoonlight implements Job {
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     surface, null, null);
             State.setMediaProjection(null);
+            FloatingButtonService.startForMirror();
             CreateVirtualDisplay.powerOffScreen();
         }
     }
