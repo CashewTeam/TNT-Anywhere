@@ -113,13 +113,11 @@ public class ProjectViaMoonlight implements Job {
                 State.showErrorStatus("moonlight 单应用投屏需要 shizuku 权限");
             }
         } else if (autoRotate || autoScale) {
-            CreateVirtualDisplay.changeAspectRatio(width, height);
             SunshineServer.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(new VirtualDisplayArgs("Moonlight",
                     width, height, frameRate, 160, false));
             SunshineServer.autoRotateAndScaleForMoonlight.start(surface);
             CreateVirtualDisplay.powerOffScreen();
         } else {
-            CreateVirtualDisplay.changeAspectRatio(width, height);
             State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay("Moonlight",
                     width,
                     height,

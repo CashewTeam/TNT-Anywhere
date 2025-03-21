@@ -13,6 +13,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.Display;
 import android.view.DisplayCutout;
+import android.view.IWindowManager;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.MotionEventHidden;
@@ -131,18 +132,28 @@ public class SunshineServer {
 
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         Display defaultDisplay = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-        if (Pref.getAutoMatchAspectRatio()) {
-            defaultDisplayWidth = screenWidth;
-            defaultDisplayHeight = screenHeight;
-            DisplayCutout cutout = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                cutout = defaultDisplay.getCutout();
-            }
-            if (cutout != null) {
-                for(Rect rect : cutout.getBoundingRects()) {
-                    if (rect.top == 0) {
-                        defaultDisplayWidth += rect.bottom;
-                        break;
+        if (!singleAppMode && Pref.getAutoMatchAspectRatio() && ShizukuUtils.hasPermission()) {
+            CreateVirtualDisplay.changeAspectRatio(width, height);
+            IWindowManager windowManager = ServiceUtils.getWindowManager();
+            android.graphics.Point baseSize = new android.graphics.Point();
+            windowManager.getBaseDisplaySize(Display.DEFAULT_DISPLAY, baseSize);
+            defaultDisplayWidth = Math.max(baseSize.x, baseSize.y);
+            defaultDisplayHeight = Math.min(baseSize.x, baseSize.y);
+            float aspectRatio1 = defaultDisplayWidth / defaultDisplayHeight;
+            float aspectRatio2 = screenWidth / screenHeight;
+            if (Math.abs(aspectRatio1 - aspectRatio2) > 0.01) {
+                // 修改分辨率有画面拉伸
+                defaultDisplayWidth = screenWidth;
+                DisplayCutout cutout = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    cutout = defaultDisplay.getCutout();
+                }
+                if (cutout != null) {
+                    for(Rect rect : cutout.getBoundingRects()) {
+                        if (rect.top == 0) {
+                            defaultDisplayWidth += rect.bottom * 2;
+                            break;
+                        }
                     }
                 }
             }
