@@ -58,8 +58,6 @@ public class SunshineServer {
     private static boolean autoRotate;
     private static float defaultDisplayWidth;
     private static float defaultDisplayHeight;
-    private static float rotatedPortraitMirrorWidth;
-    private static float rotatedPortraitMirrorHeight;
 
     static {
         System.loadLibrary("sunshine");
@@ -165,17 +163,24 @@ public class SunshineServer {
         }
         float aspectRatio = defaultDisplayWidth / defaultDisplayHeight;
 
-        portraitMirrorHeight = Math.min(height, defaultDisplayHeight);
+        landscapeMirrorHeight = screenHeight;
+        landscapeMirrorWidth = landscapeMirrorHeight * aspectRatio;
+        if (landscapeMirrorWidth > screenWidth) {
+            landscapeMirrorWidth = screenWidth;
+            landscapeMirrorHeight = landscapeMirrorWidth / aspectRatio;
+        }
+
+        portraitMirrorHeight = screenHeight;
         portraitMirrorWidth = portraitMirrorHeight / aspectRatio;
-        rotatedPortraitMirrorWidth = Math.min(width, defaultDisplayWidth);
-        rotatedPortraitMirrorHeight = rotatedPortraitMirrorWidth / aspectRatio;
-        landscapeMirrorWidth = Math.min(width, defaultDisplayWidth);
-        landscapeMirrorHeight = landscapeMirrorWidth / aspectRatio;
+        if (portraitMirrorWidth > screenWidth) {
+            portraitMirrorWidth = screenWidth;
+            portraitMirrorHeight = portraitMirrorWidth * aspectRatio;
+        }
 
         State.log("主屏尺寸 defaultDisplayWidth: " + defaultDisplayWidth + " defaultDisplayHeight: " + defaultDisplayHeight);
         State.log("客户端屏幕尺寸 screenWidth: " + screenWidth + " screenHeight: " + screenHeight);
         if (!singleAppMode) {
-            State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight + " rotatedPortraitMirrorWidth: " + rotatedPortraitMirrorWidth + " rotatedPortraitMirrorHeight: " + rotatedPortraitMirrorHeight);
+            State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight);
         }
         
         new Handler(Looper.getMainLooper()).post(() -> {
@@ -250,23 +255,27 @@ public class SunshineServer {
 
     private static Point translateRotation0Mirror(float xInScreen, float yInScreen) {
         if (autoRotate) {
+            Log.d("SunshineServer", "!!! xInScreen: " + xInScreen);
             Point point = new Point();
-            float xBlackBar = (screenWidth - rotatedPortraitMirrorWidth) / 2;
-            float yBlackBar = (screenHeight - rotatedPortraitMirrorHeight) / 2;
+            float xBlackBar = (screenWidth - landscapeMirrorWidth) / 2;
+            Log.d("SunshineServer", "!!! xBlackBar: " + xBlackBar);
+            float yBlackBar = (screenHeight - landscapeMirrorHeight) / 2;
             float adjustedX = xInScreen - xBlackBar;
-            if (adjustedX > rotatedPortraitMirrorWidth) {
-                adjustedX = rotatedPortraitMirrorWidth;
+            if (adjustedX > landscapeMirrorWidth) {
+                adjustedX = landscapeMirrorWidth;
             } else if (adjustedX < 0) {
                 adjustedX = 0;
             }
+            Log.d("SunshineServer", "!!! adjustedX: " + adjustedX);
             float adjustedY = yInScreen - yBlackBar;
-            if (adjustedY > rotatedPortraitMirrorHeight) {
-                adjustedY = rotatedPortraitMirrorHeight;
+            if (adjustedY > landscapeMirrorHeight) {
+                adjustedY = landscapeMirrorHeight;
             } else if (adjustedY < 0) {
                 adjustedY = 0;
             }
-            point.y = (adjustedX / rotatedPortraitMirrorWidth) * defaultDisplayWidth;
-            point.x = (1 - (adjustedY / rotatedPortraitMirrorHeight)) * defaultDisplayHeight;
+            point.y = (adjustedX / landscapeMirrorWidth) * defaultDisplayWidth;
+            Log.d("SunshineServer", "!!! final y: " + point.y);
+            point.x = (1 - (adjustedY / landscapeMirrorHeight)) * defaultDisplayHeight;
             return point;
         } else {
             Point point = new Point();
