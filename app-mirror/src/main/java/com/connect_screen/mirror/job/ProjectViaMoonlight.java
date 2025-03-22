@@ -64,9 +64,7 @@ public class ProjectViaMoonlight implements Job {
                 // packetDuration 是毫秒，所以需要除以1000转换为秒
                 int framesPerPacket = (int) (sampleRate * packetDuration / 1000.0f);
                 AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(State.getMediaProjection())
-                        .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
-                        .addMatchingUsage(AudioAttributes.USAGE_GAME)
-                        .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+                        .excludeUsage(AudioAttributes.USAGE_ALARM)
                         .build();
                 AudioRecord audioRecord = new AudioRecord.Builder()
                         .setAudioPlaybackCaptureConfig(config)
