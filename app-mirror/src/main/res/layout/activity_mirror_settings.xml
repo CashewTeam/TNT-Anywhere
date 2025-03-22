@@ -268,7 +268,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="* 注：安卓系统设置里的无线投屏创建的无线屏幕，也是可以用 shizuku 权限投单应用的"
+            android:text="* 注: 安卓系统设置里的无线投屏创建的无线屏幕，也是可以用 shizuku 权限投单应用的"
             android:textSize="14sp"
             android:textColor="#666666"/>
 
