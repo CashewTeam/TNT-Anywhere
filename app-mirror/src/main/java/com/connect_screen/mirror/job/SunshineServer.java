@@ -60,6 +60,8 @@ public class SunshineServer {
     private static boolean autoRotate;
     private static float defaultDisplayWidth;
     private static float defaultDisplayHeight;
+    private static boolean isMuted = false;
+    private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
 
     static {
         System.loadLibrary("sunshine");
@@ -192,6 +194,53 @@ public class SunshineServer {
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+            isMuted = true;
+            
+            // 注册音量变化监听器
+            registerVolumeChangeListener(context);
+        }
+    }
+
+    // 添加注册音量变化监听器的方法
+    private static void registerVolumeChangeListener(Context context) {
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        
+        // 创建音频焦点变化监听器
+        volumeChangeListener = focusChange -> {
+            // 如果还在投屏且应该保持静音状态，检查并重新设置静音
+            if (State.mirrorVirtualDisplay != null && isMuted) {
+                checkAndRestoreMute(context);
+            }
+        };
+        
+        // 请求音频焦点以便接收音频变化事件
+        audioManager.requestAudioFocus(volumeChangeListener, 
+                AudioManager.STREAM_MUSIC, 
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+                
+        // 创建内容观察者监听音量变化
+        context.getContentResolver().registerContentObserver(
+            android.provider.Settings.System.CONTENT_URI, 
+            true, 
+            new android.database.ContentObserver(new Handler(Looper.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    super.onChange(selfChange);
+                    // 如果还在投屏且应该保持静音状态，检查并重新设置静音
+                    if (State.mirrorVirtualDisplay != null && isMuted) {
+                        checkAndRestoreMute(context);
+                    }
+                }
+            }
+        );
+    }
+    
+    // 检查并恢复静音状态
+    private static void checkAndRestoreMute(Context context) {
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (!audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
+            State.log("检测到音量变化，重新设置静音");
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
         }
     }
 
@@ -207,6 +256,14 @@ public class SunshineServer {
                 AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
                 audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
+                
+                // 取消注册音量变化监听器
+                if (volumeChangeListener != null) {
+                    audioManager.abandonAudioFocus(volumeChangeListener);
+                    volumeChangeListener = null;
+                }
+                
+                isMuted = false;
             }
             if (autoRotateAndScaleForMoonlight != null) {
                 autoRotateAndScaleForMoonlight.stop();
