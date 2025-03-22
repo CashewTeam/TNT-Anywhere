@@ -581,7 +581,7 @@ public class SunshineServer {
             return;
         }
 
-        if (bufferedMove.contains(pointerId)) {
+        if (bufferedMove.contains(pointerId) || bufferedMove.size() == pointers.size()) {
             bufferedMove.clear();
             triggerTouchEventMove();
         } else {
