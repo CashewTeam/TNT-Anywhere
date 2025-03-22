@@ -84,6 +84,7 @@ public class AutoRotateAndScaleForMoonlight {
         public void onDisplayChanged(int displayId) {
             if (displayId == Display.DEFAULT_DISPLAY) {
                 checkRotation();
+                new Handler().postDelayed(this::checkRotation, 2000);
             }
         }
 
@@ -97,10 +98,6 @@ public class AutoRotateAndScaleForMoonlight {
             Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
             android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: " + isLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
-            if (AutoRotateAndScaleForMoonlight.this.isLandscape == isLandscape) {
-                return;
-            }
-
             AutoRotateAndScaleForMoonlight.this.isLandscape = isLandscape;
 
             if (State.mirrorVirtualDisplay != null) {

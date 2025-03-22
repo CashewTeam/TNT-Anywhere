@@ -1,5 +1,6 @@
 package com.connect_screen.mirror.job;
 
+import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
@@ -27,6 +28,7 @@ import androidx.annotation.NonNull;
 
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
@@ -239,18 +241,14 @@ public class SunshineServer {
     }
 
     private static Point translateMirrorMode(float x, float y) {
-        int displayRotation = MirrorDisplayMonitor.getRotation(Display.DEFAULT_DISPLAY);
+        boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         float xInScreen = x * screenWidth;
         float yInScreen = y * screenHeight;
-        switch(displayRotation) {
-            case Surface.ROTATION_0:
-                return translateRotation0Mirror(xInScreen, yInScreen);
-            case Surface.ROTATION_90:
-                return translateRotation90Mirror(xInScreen, yInScreen);
-            case Surface.ROTATION_180:
-            case Surface.ROTATION_270:
+        if (isLandscape) {
+            return translateRotation90Mirror(xInScreen, yInScreen);
+        } else {
+            return translateRotation0Mirror(xInScreen, yInScreen);
         }
-        throw new RuntimeException("invalid rotation");
     }
 
     private static Point translateRotation0Mirror(float xInScreen, float yInScreen) {

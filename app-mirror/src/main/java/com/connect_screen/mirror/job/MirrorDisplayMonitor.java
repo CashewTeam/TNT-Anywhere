@@ -5,6 +5,7 @@ import static android.app.PendingIntent.getActivity;
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceAttributes;
@@ -30,7 +31,6 @@ import java.util.List;
 
 public class MirrorDisplayMonitor {
     private static boolean registered = false;
-    public static HashMap<Integer, Integer> displayRotation = new HashMap<>();
     public static void init(DisplayManager displayManager) {
         for (Display display : displayManager.getDisplays()) {
             handleNewDisplay(display);
@@ -65,14 +65,11 @@ public class MirrorDisplayMonitor {
 
             @Override
             public void onDisplayChanged(int displayId) {
-                Display display = displayManager.getDisplay(displayId);
-                displayRotation.put(displayId, display.getRotation());
             }
         }, null);
     }
 
     private static void handleNewDisplay(Display display) {
-        displayRotation.put(display.getDisplayId(), display.getRotation());
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
             return;
         }
@@ -146,13 +143,5 @@ public class MirrorDisplayMonitor {
                 }
             }
         }
-    }
-
-    public static int getRotation(int displayId) {
-        Integer rotation = displayRotation.get(displayId);
-        if (rotation == null) {
-            return Surface.ROTATION_0;
-        }
-        return rotation;
     }
 }
