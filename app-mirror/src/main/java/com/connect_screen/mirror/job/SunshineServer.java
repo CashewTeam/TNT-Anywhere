@@ -392,25 +392,46 @@ public class SunshineServer {
             bufferedMove.clear();
             triggerTouchEventMove();
         }
-        if (!pointers.containsKey(pointerId)) {
-            Point point = new Point();
-            point.x = x;
-            point.y = y;
-            pointers.put(pointerId, point);
+        
+        // 先保存当前触摸点
+        Point point = new Point();
+        point.x = x;
+        point.y = y;
+        
+        // 确定是否是第一个触摸点
+        boolean isFirstPointer = pointers.isEmpty();
+        
+        // 添加到指针集合
+        pointers.put(pointerId, point);
+
+        ArrayList<Integer> pointerIds = new ArrayList<>(pointers.keySet());
+        // 确定正确的动作类型
+        int action;
+        if (isFirstPointer) {
+            action = MotionEvent.ACTION_DOWN;
+        } else {
+            // 查找当前pointerId在所有活跃指针中的索引
+            int pointerIndex = 0;
+            int i = 0;
+            for (Integer id : pointerIds) {
+                if (id == pointerId) {
+                    pointerIndex = i;
+                    break;
+                }
+                i++;
+            }
+            action = MotionEvent.ACTION_POINTER_DOWN | (pointerIndex << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
         }
 
-        int action = pointers.size() == 1 ? android.view.MotionEvent.ACTION_DOWN :
-                                    android.view.MotionEvent.ACTION_POINTER_DOWN | (pointerId << 8);
         // 构造 MotionEvent
         long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
         
-
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointers.size()];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointers.size()];
         
         int index = 0;
-        for (Integer k : pointers.keySet()) {
+        for (Integer k : pointerIds) {
             Point status = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;  // 保持id为原始的pointerId
@@ -487,9 +508,25 @@ public class SunshineServer {
         status.x = x;
         status.y = y;
 
+        // 查找当前pointerId在所有活跃指针中的索引
+        int pointerIndex = 0;
+        int i = 0;
+        ArrayList<Integer> pointerIds = new ArrayList<>(pointers.keySet());
+        for (Integer id : pointerIds) {
+            if (id == pointerId) {
+                pointerIndex = i;
+                break;
+            }
+            i++;
+        }
+
         // 确定动作类型
-        int action = pointers.size() == 1 ? android.view.MotionEvent.ACTION_UP :
-                android.view.MotionEvent.ACTION_POINTER_UP | (pointerId << 8);
+        int action;
+        if (pointers.size() == 1) {
+            action = MotionEvent.ACTION_UP;
+        } else {
+            action = MotionEvent.ACTION_POINTER_UP | (pointerIndex << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+        }
 
         // 构造 MotionEvent
         long downTime = SystemClock.uptimeMillis();
@@ -500,7 +537,7 @@ public class SunshineServer {
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointers.size()];
 
         int index = 0;
-        for (Integer k : pointers.keySet()) {
+        for (Integer k : pointerIds) {
             Point ps = pointers.get(k);
             properties[index] = new MotionEvent.PointerProperties();
             properties[index].id = k;  // 保持id为原始的pointerId
