@@ -760,4 +760,41 @@ namespace sunshine_callbacks {
 
         jvm->DetachCurrentThread();
     }
+
+    void callJavaSetConnectScreenServerUuid(std::string uuid) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jmethodID setServerUuidMethod = env->GetStaticMethodID(sunshineServerClass, "setConnectScreenServerUuid", "(Ljava/lang/String;)V");
+        if (setServerUuidMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 setConnectScreenServerUuid 方法"sv;
+            jvm->DetachCurrentThread();
+            return;
+        }
+
+        jstring jUuid = env->NewStringUTF(uuid.c_str());
+        env->CallStaticVoidMethod(sunshineServerClass, setServerUuidMethod, jUuid);
+        env->DeleteLocalRef(jUuid);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
+    }
 }

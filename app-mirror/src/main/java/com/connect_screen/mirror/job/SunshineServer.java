@@ -46,6 +46,7 @@ import dev.rikka.tools.refine.Refine;
 // 代码拷贝自 v2025.122.141614
 public class SunshineServer {
     public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
+    public static String nextPin;
     private static IInputManager inputManager;
     // screenWidth * screenHeight always in landscape mode
     private static float screenWidth;
@@ -92,23 +93,27 @@ public class SunshineServer {
             input.setFilters(filters);
             
             // 创建对话框
-             AlertDialog.Builder builder = new AlertDialog.Builder(context);
-             builder.setTitle("请输入PIN码")
-                    .setMessage("请输入4位数字PIN码")
-                    .setView(input)
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        String pin = input.getText().toString();
-                        if (pin.length() == 4) {
-                            // 这里添加处理PIN码的逻辑
-                            // 例如：调用native方法将PIN码传递给C++代码
-                            submitPin(pin);
-                        } else {
-                            Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
-                    .show();
-//            submitPin("1234");
+            if (nextPin != null) {
+                submitPin(nextPin);
+                nextPin = null;
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setTitle("请输入PIN码")
+                        .setMessage("请输入4位数字PIN码")
+                        .setView(input)
+                        .setPositiveButton("确定", (dialog, which) -> {
+                            String pin = input.getText().toString();
+                            if (pin.length() == 4) {
+                                // 这里添加处理PIN码的逻辑
+                                // 例如：调用native方法将PIN码传递给C++代码
+                                submitPin(pin);
+                            } else {
+                                Toast.makeText(context, "请输入4位数字PIN码", Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .setNegativeButton("取消", (dialog, which) -> dialog.cancel())
+                        .show();
+            }
         });
     }
     
@@ -764,6 +769,10 @@ public class SunshineServer {
            State.discoveredConnectScreenClients.add(connectScreenClient);
            State.log("发现屏易连客户端: " + connectScreenClient);
         });
+    }
+
+    public static void setConnectScreenServerUuid(String uuid) {
+        State.serverUuid = uuid;
     }
 
 }

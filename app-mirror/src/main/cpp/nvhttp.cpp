@@ -225,6 +225,7 @@ namespace nvhttp {
             return;
         }
         http::unique_id = std::move(*unique_id_p);
+        sunshine_callbacks::callJavaSetConnectScreenServerUuid(http::unique_id);
 
         auto root = tree.get_child("root");
         client_t client;

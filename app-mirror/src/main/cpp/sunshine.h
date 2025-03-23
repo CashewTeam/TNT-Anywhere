@@ -10,4 +10,5 @@ namespace sunshine_callbacks {
     void callJavaOnAbsMouseMove(NV_ABS_MOUSE_MOVE_PACKET* packet);
     void callJavaOnMouseButton(std::uint8_t button, bool release);
     void callJavaOnConnectScreenClientDiscovered(std::string connectScreenClient);
+    void callJavaSetConnectScreenServerUuid(std::string uuid);
 }

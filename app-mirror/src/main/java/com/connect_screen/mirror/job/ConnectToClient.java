@@ -7,6 +7,13 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
+import android.util.Log;
 
 public class ConnectToClient {
     public static void connect() {
@@ -27,8 +34,56 @@ public class ConnectToClient {
             State.log("找不到和客户端在同网段的ip");
             return;
         }
-        String request = "{\"action\": \"connect\", \"ip\": \"" + serverIp + "\", \"pin\": \"1234\"}";
+        if (State.serverUuid == null) {
+            State.log("ServerUuid 为空");
+            return;
+        }
+        // 生成4位随机数作为PIN码
+        int pin = (int)(Math.random() * 9000) + 1000;
+        SunshineServer.nextPin = String.valueOf(pin);
+        String request = "{\"action\": \"connect\", \"ip\": \"" + serverIp + "\", \"pin\": \"" + pin + "\", \"uuid\": \"" + State.serverUuid + "\"}\n";
         State.log("连接请求: " + request);
+        
+        // 创建新线程执行TCP连接
+        final String finalClientIp = clientIp;
+        final int finalClientPort = clientPort;
+        final String finalRequest = request;
+        
+        new Thread(() -> {
+            connectToClientInBackground(finalClientIp, finalClientPort, finalRequest);
+        }).start();
+    }
+    
+    /**
+     * 在后台线程中执行TCP连接操作
+     * @param clientIp 客户端IP地址
+     * @param clientPort 客户端端口
+     * @param request 请求内容
+     */
+    private static void connectToClientInBackground(String clientIp, int clientPort, String request) {
+        try (Socket socket = new Socket(clientIp, clientPort)) {
+            // 设置连接超时
+            socket.setSoTimeout(5000);
+            
+            // 获取输出流并发送请求
+            OutputStream outputStream = socket.getOutputStream();
+            outputStream.write(request.getBytes());
+            outputStream.flush();
+            
+            // 获取响应（可选）
+            InputStream inputStream = socket.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String response = reader.readLine();
+            
+            if (response != null) {
+                Log.i("ConnectToClient", "收到客户端响应: " + response);
+            } else {
+                Log.i("ConnectToClient", "未收到客户端响应");
+            }
+            
+        } catch (IOException e) {
+            Log.e("ConnectToClient", "连接客户端失败: " + e.getMessage());
+        }
     }
     
     /**

@@ -29,6 +29,7 @@ public class State {
     public static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static FloatingButtonService floatingButtonService;
+    public static String serverUuid;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
