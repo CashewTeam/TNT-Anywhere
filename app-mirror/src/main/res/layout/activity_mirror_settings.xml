@@ -236,6 +236,7 @@
 
         <CheckBox
             android:id="@+id/autoConnectClientCheckbox"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="自动连接屏易连客户端"
