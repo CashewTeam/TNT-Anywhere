@@ -18,7 +18,9 @@ import com.connect_screen.mirror.shizuku.UserService;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import rikka.shizuku.Shizuku;
 
@@ -34,11 +36,10 @@ public class State {
     public static MediaProjection mediaProjectionInUse;
     public static int lastSingleAppDisplay;
     public static String displaylinkDeviceName;
-    public static VirtualDisplay bridgeVirtualDisplay;
     public static VirtualDisplay mirrorVirtualDisplay;
-    public static int mirrorDisplayId = -1;
     public static Activity isInPureBlackActivity = null;
     public static volatile IUserService userService;
+    public static Set<String> discoveredConnectScreenClients = new HashSet<>();
 
     public static final ServiceConnection userServiceConnection = new ServiceConnection() {
         @Override
@@ -150,13 +151,6 @@ public class State {
             return -1;
         }
         return displaylinkState.getVirtualDisplay().getDisplay().getDisplayId();
-    }
-
-    public static int getBridgeVirtualDisplayId() {
-        if (bridgeVirtualDisplay == null) {
-            return -1;
-        }
-        return bridgeVirtualDisplay.getDisplay().getDisplayId();
     }
 
     public static int getMirrorVirtualDisplayId() {

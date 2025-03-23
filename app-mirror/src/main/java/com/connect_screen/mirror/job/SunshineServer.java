@@ -754,4 +754,14 @@ public class SunshineServer {
         });
     }
 
+    public static void onConnectScreenClientDiscovered(String connectScreenClient) {
+        if (State.discoveredConnectScreenClients.contains(connectScreenClient)) {
+            return;
+        }
+        new Handler(Looper.getMainLooper()).post(() -> {
+           State.discoveredConnectScreenClients.add(connectScreenClient);
+           State.log("发现屏易连客户端: " + connectScreenClient);
+        });
+    }
+
 }

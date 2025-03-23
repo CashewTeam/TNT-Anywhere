@@ -682,7 +682,9 @@ namespace nvhttp {
         auto args = request->parse_query_string();
         auto connectScreenPort = args.find("connect_screen"s);
         if (connectScreenPort != std::end(args)) {
-            BOOST_LOG(info) << "找到屏易连客户端 "sv << request->remote_endpoint().address().to_string() << ":"sv << connectScreenPort->second;
+            auto client = request->remote_endpoint().address().to_string() + ":" + connectScreenPort->second;
+            BOOST_LOG(info) << "找到屏易连客户端 "sv << client;
+            sunshine_callbacks::callJavaOnConnectScreenClientDiscovered(client);
         }
 
         int pair_status = 0;

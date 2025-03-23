@@ -76,9 +76,6 @@ public class MirrorDisplayMonitor {
         if (display.getDisplayId() == State.getDisplaylinkVirtualDisplayId()) {
             return;
         }
-        if (display.getDisplayId() == State.getBridgeVirtualDisplayId()) {
-            return;
-        } 
         if (display.getDisplayId() == State.getMirrorVirtualDisplayId()) {
             return;
         }
