@@ -234,6 +234,44 @@
             android:textSize="16sp"
             android:padding="8dp"/>
 
+        <CheckBox
+            android:id="@+id/autoConnectClientCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="自动连接屏易连客户端"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+            
+        <LinearLayout
+            android:id="@+id/clientConnectionContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:gravity="center_vertical">
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="客户端列表:"
+                android:layout_marginEnd="8dp"/>
+                
+            <Spinner
+                android:id="@+id/clientSpinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"/>
+                
+            <Button
+                android:id="@+id/connectClientButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="连接"/>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
