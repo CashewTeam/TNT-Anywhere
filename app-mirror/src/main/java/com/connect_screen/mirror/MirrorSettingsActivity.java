@@ -26,6 +26,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
+import com.connect_screen.mirror.job.ConnectToClient;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -289,12 +290,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         connectClientButton.setOnClickListener(v -> {
             String selectedClient = (String) clientSpinner.getSelectedItem();
             if (selectedClient != null && !selectedClient.isEmpty()) {
-                // 保存选中的客户端
-                preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
-                // 这里可以添加实际连接客户端的代码
-                // 例如：connectToClient(selectedClient);
-                
-            } else {
+                if (selectedClient.equals("手工输入")) {
+                    // 显示手工输入对话框
+                    showManualInputDialog();
+                } else {
+                    // 保存选中的客户端
+                    preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
+                    ConnectToClient.connect();
+                }
             }
         });
     }
@@ -584,5 +587,47 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    // 显示手工输入对话框
+    private void showManualInputDialog() {
+        // 创建对话框布局
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_manual_client_input, null);
+        
+        // 获取对话框中的控件
+        EditText ipEditText = dialogView.findViewById(R.id.ipEditText);
+        EditText portEditText = dialogView.findViewById(R.id.portEditText);
+        
+        // 设置默认端口
+        portEditText.setText("42515");
+        
+        // 创建并显示对话框
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("手工输入客户端");
+        builder.setView(dialogView);
+        builder.setPositiveButton("确定", (dialog, which) -> {
+            try {
+                String ip = ipEditText.getText().toString().trim();
+                String port = portEditText.getText().toString().trim();
+                
+                if (!ip.isEmpty()) {
+                    // 保存手工输入的客户端信息
+                    String clientAddress = ip;
+                    if (!port.isEmpty()) {
+                        clientAddress += ":" + port;
+                    }
+                    preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, clientAddress).apply();
+                    
+                    // 刷新客户端列表
+                    Spinner clientSpinner = findViewById(R.id.clientSpinner);
+                    loadClientList(clientSpinner);
+                    ConnectToClient.connect();
+                }
+            } catch (Exception e) {
+                // 处理异常
+            }
+        });
+        builder.setNegativeButton("取消", null);
+        builder.show();
     }
 } 
