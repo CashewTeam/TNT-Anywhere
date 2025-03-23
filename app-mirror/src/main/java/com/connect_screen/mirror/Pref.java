@@ -21,6 +21,8 @@ public class Pref {
     public static final String KEY_DISPLAYLINK_WIDTH = "displaylink_width";
     public static final String KEY_DISPLAYLINK_HEIGHT = "displaylink_height";
     public static final String KEY_DISPLAYLINK_REFRESH_RATE = "displaylink_refresh_rate";
+    public static final String KEY_SELECTED_CLIENT = "selected_client";
+    public static final String KEY_AUTO_CONNECT_CLIENT = "auto_connect_client";
 
     public static boolean getAutoRotate() {
         return getBoolean(KEY_AUTO_ROTATE, true);
@@ -84,6 +86,10 @@ public class Pref {
 
     public static String getSelectedAppPackage() {
         return getString(KEY_SELECTED_APP_PACKAGE, "");
+    }
+
+    public static String getSelectedClient() {
+        return getString(KEY_SELECTED_CLIENT, "");
     }
 
     private static String getString(String key, String defaultValue) {

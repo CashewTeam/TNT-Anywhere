@@ -29,6 +29,7 @@ import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MirrorSettingsActivity extends AppCompatActivity {
@@ -61,6 +62,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         CheckBox useTouchscreenCheckbox = findViewById(R.id.useTouchscreenCheckbox);
         CheckBox autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
         CheckBox showFloatingInMirrorModeCheckbox = findViewById(R.id.showFloatingInMirrorModeCheckbox);
+        CheckBox autoConnectClientCheckbox = findViewById(R.id.autoConnectClientCheckbox);
+        LinearLayout clientConnectionContainer = findViewById(R.id.clientConnectionContainer);
+        Spinner clientSpinner = findViewById(R.id.clientSpinner);
+        Button connectClientButton = findViewById(R.id.connectClientButton);
         
         // 加载保存的设置
         boolean singleAppMode = Pref.getSingleAppMode();
@@ -75,6 +80,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean useTouchscreen = Pref.getUseTouchscreen();
         boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
         boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
+        boolean autoConnectClient = preferences.getBoolean(Pref.KEY_AUTO_CONNECT_CLIENT, false);
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -88,6 +94,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         useTouchscreenCheckbox.setChecked(useTouchscreen);
         autoMatchAspectRatioCheckbox.setChecked(autoMatchAspectRatio);
         showFloatingInMirrorModeCheckbox.setChecked(showFloatingInMirrorMode);
+        autoConnectClientCheckbox.setChecked(autoConnectClient);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -257,6 +264,38 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         // 添加镜像模式下显示悬浮返回键复选框监听器
         showFloatingInMirrorModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, isChecked).apply();
+        });
+
+        // 显示或隐藏客户端连接容器
+        clientConnectionContainer.setVisibility(autoConnectClient ? View.VISIBLE : View.GONE);
+        
+        // 设置自动连接客户端复选框监听器
+        autoConnectClientCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_AUTO_CONNECT_CLIENT, isChecked).apply();
+            clientConnectionContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            
+            // 如果选中，加载客户端列表
+            if (isChecked) {
+                loadClientList(clientSpinner);
+            }
+        });
+        
+        // 如果自动连接客户端已启用，加载客户端列表
+        if (autoConnectClient) {
+            loadClientList(clientSpinner);
+        }
+        
+        // 设置连接按钮点击事件
+        connectClientButton.setOnClickListener(v -> {
+            String selectedClient = (String) clientSpinner.getSelectedItem();
+            if (selectedClient != null && !selectedClient.isEmpty()) {
+                // 保存选中的客户端
+                preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
+                // 这里可以添加实际连接客户端的代码
+                // 例如：connectToClient(selectedClient);
+                
+            } else {
+            }
         });
     }
 
@@ -514,5 +553,36 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
         builder.setNegativeButton("取消", null);
         builder.show();
+    }
+
+    // 加载客户端列表
+    private void loadClientList(Spinner spinner) {
+        // 设置默认选中项
+        String selectedClient = Pref.getSelectedClient();
+        // 示例数据
+        List<String> clients = new ArrayList<>();
+        clients.add("手工输入");
+        if (!selectedClient.isEmpty()) {
+            clients.add(selectedClient);
+        }
+        clients.addAll(State.discoveredConnectScreenClients);
+        
+        // 创建适配器
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_spinner_item,
+            clients
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+
+        if (!selectedClient.isEmpty()) {
+            for (int i = 0; i < clients.size(); i++) {
+                if (clients.get(i).equals(selectedClient)) {
+                    spinner.setSelection(i);
+                    break;
+                }
+            }
+        }
     }
 } 
