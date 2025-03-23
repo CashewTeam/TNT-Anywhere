@@ -679,10 +679,14 @@ namespace nvhttp {
     template<class T>
     void serverinfo(std::shared_ptr<typename SimpleWeb::ServerBase<T>::Response> response, std::shared_ptr<typename SimpleWeb::ServerBase<T>::Request> request) {
         print_req<T>(request);
+        auto args = request->parse_query_string();
+        auto connectScreenPort = args.find("connect_screen"s);
+        if (connectScreenPort != std::end(args)) {
+            BOOST_LOG(info) << "找到屏易连客户端 "sv << request->remote_endpoint().address().to_string() << ":"sv << connectScreenPort->second;
+        }
 
         int pair_status = 0;
         if constexpr (std::is_same_v<SunshineHTTPS, T>) {
-            auto args = request->parse_query_string();
             auto clientID = args.find("uniqueid"s);
 
             if (clientID != std::end(args)) {
