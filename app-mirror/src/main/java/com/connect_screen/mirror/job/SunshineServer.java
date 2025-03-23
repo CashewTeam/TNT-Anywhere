@@ -399,27 +399,29 @@ public class SunshineServer {
         return point;
     }
 
+    private static Point singlePoint = null;
     public static void handleAbsMouseMovePacket(float x, float y, float width, float height) {
         x = x / width;
         y = y / height;
         // 根据屏幕旋转调整坐标
         Point point = translate(x, y);
-        if (pointers.containsKey(0)) {
-            handleTouchEventMove(0, point.x, point.y);
+        if (singlePoint != null) {
+            singlePoint = point;
+            handleTouchEventMove(0, singlePoint.x, singlePoint.y);
         } else {
-            pointers.put(0, point);
+            singlePoint = point;
         }
     }
 
     public static void handleLeftMouseButton(boolean release) {
-        Point point = pointers.get(0);
-        if (point == null) {
+        if (singlePoint == null) {
             return;
         }
         if (release) {
-            handleTouchEventUp(0, point.x, point.y, false);
+            handleTouchEventUp(0, singlePoint.x, singlePoint.y, false);
+            singlePoint = null;
         } else {
-            handleTouchEventDown(0, point.x, point.y);
+            handleTouchEventDown(0, singlePoint.x, singlePoint.y);
         }
     }
 
