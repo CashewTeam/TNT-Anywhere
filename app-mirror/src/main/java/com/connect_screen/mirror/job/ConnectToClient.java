@@ -63,7 +63,7 @@ public class ConnectToClient {
     private static void connectToClientInBackground(String clientIp, int clientPort, String request) {
         try (Socket socket = new Socket(clientIp, clientPort)) {
             // 设置连接超时
-            socket.setSoTimeout(5000);
+            socket.setSoTimeout(15000);
             
             // 获取输出流并发送请求
             OutputStream outputStream = socket.getOutputStream();
@@ -80,8 +80,7 @@ public class ConnectToClient {
             } else {
                 Log.i("ConnectToClient", "未收到客户端响应");
             }
-            
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e("ConnectToClient", "连接客户端失败: " + e.getMessage());
         }
     }
