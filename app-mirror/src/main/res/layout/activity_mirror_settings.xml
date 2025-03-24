@@ -238,7 +238,7 @@
             android:id="@+id/autoConnectClientCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="自动连接屏易连客户端"
+            android:text="自动连接moonlight自启版（普通版无法自动连接）"
             android:textSize="16sp"
             android:padding="8dp"/>
             
