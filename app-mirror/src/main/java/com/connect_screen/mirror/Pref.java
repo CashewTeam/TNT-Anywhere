@@ -69,6 +69,10 @@ public class Pref {
         return getBoolean(KEY_SHOW_FLOATING_IN_MIRROR_MODE, false);
     }
 
+    public static boolean getAutoConnectClient() {
+        return getBoolean(KEY_AUTO_CONNECT_CLIENT, false);
+    }
+
     public static int getSingleAppDpi() {
         return getInt(KEY_SINGLE_APP_DPI, 160);
     }

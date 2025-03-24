@@ -81,7 +81,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean useTouchscreen = Pref.getUseTouchscreen();
         boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
         boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
-        boolean autoConnectClient = preferences.getBoolean(Pref.KEY_AUTO_CONNECT_CLIENT, false);
+        boolean autoConnectClient = Pref.getAutoConnectClient();
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);

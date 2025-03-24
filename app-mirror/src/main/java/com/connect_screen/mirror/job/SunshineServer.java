@@ -773,6 +773,9 @@ public class SunshineServer {
 
     public static void setConnectScreenServerUuid(String uuid) {
         State.serverUuid = uuid;
+        if (Pref.getAutoConnectClient() && !Pref.getSelectedClient().isEmpty()) {
+            ConnectToClient.connect();
+        }
     }
 
 }

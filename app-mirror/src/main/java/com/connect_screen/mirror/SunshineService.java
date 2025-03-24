@@ -23,6 +23,7 @@ import android.view.OrientationEventListener;
 
 import androidx.core.app.NotificationCompat;
 
+import com.connect_screen.mirror.job.ConnectToClient;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
