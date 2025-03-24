@@ -300,6 +300,22 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // 初始化无障碍禁用复选框
+        CheckBox disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
+        boolean disableAccessibility = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
+        disableAccessibilityCheckbox.setChecked(disableAccessibility);
+        
+        // 添加无障碍禁用复选框监听器
+        disableAccessibilityCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, isChecked).apply();
+            updateAccessibilityStatus(accessibilityStatus);
+            if (isChecked) {
+                if (ShizukuUtils.hasPermission()) {
+                    TouchpadAccessibilityService.disableAll(MirrorSettingsActivity.this);
+                }
+            }
+        });
     }
 
     @Override
@@ -315,6 +331,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
         updateAccessibilityStatus(accessibilityStatus);
         updateOverlayStatus(overlayStatus);
+
+        // 更新无障碍状态显示
+        CheckBox disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
+        boolean disableAccessibility = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
+        disableAccessibilityCheckbox.setChecked(disableAccessibility);
     }
 
     private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
@@ -338,7 +359,13 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
     private void updateAccessibilityStatus(TextView statusView) {
         boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(this);
-        statusView.setText(isEnabled ? "已授权" : "未授权");
+        boolean isDisabled = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
+        
+        if (isDisabled) {
+            statusView.setText("已禁用");
+        } else {
+            statusView.setText(isEnabled ? "已授权" : "未授权");
+        }
         
         // 获取或创建授权按钮
         View parent = (View) statusView.getParent();
@@ -346,7 +373,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         
         // 根据授权状态显示或隐藏按钮
         if (accessibilityPermissionBtn != null) {
-            accessibilityPermissionBtn.setVisibility(isEnabled ? View.GONE : View.VISIBLE);
+            accessibilityPermissionBtn.setVisibility((isEnabled || isDisabled) ? View.GONE : View.VISIBLE);
             accessibilityPermissionBtn.setOnClickListener(v -> {
                 // 跳转到系统无障碍设置页面
                 Intent intent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);

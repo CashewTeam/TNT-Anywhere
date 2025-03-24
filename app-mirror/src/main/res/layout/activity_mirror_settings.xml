@@ -64,6 +64,13 @@
                     android:layout_marginStart="8dp"
                     android:text="授权"
                     android:visibility="gone" />
+                
+                <CheckBox
+                    android:id="@+id/disableAccessibilityCheckbox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="禁用所有无障碍" />
             </LinearLayout>
 
             <LinearLayout

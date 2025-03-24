@@ -23,6 +23,7 @@ public class Pref {
     public static final String KEY_DISPLAYLINK_REFRESH_RATE = "displaylink_refresh_rate";
     public static final String KEY_SELECTED_CLIENT = "selected_client";
     public static final String KEY_AUTO_CONNECT_CLIENT = "auto_connect_client";
+    public static final String KEY_DISABLE_ACCESSIBILITY = "disable_accessibility";
 
     public static boolean getAutoRotate() {
         return getBoolean(KEY_AUTO_ROTATE, true);
@@ -90,6 +91,10 @@ public class Pref {
 
     public static String getSelectedClient() {
         return getString(KEY_SELECTED_CLIENT, "");
+    }
+
+    public static boolean getDisableAccessibility() {
+        return getBoolean(KEY_DISABLE_ACCESSIBILITY, false);
     }
 
     private static String getString(String key, String defaultValue) {

@@ -38,6 +38,9 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         if (TouchpadAccessibilityService.getInstance() != null) {
             return;
         }
+        if (Pref.getDisableAccessibility()) {
+            return;
+        }
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
             // 获取现有的无障碍服务配置
             String existingServices = Settings.Secure.getString(context.getContentResolver(),
@@ -60,6 +63,19 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
             Intent serviceIntent = new Intent(context, TouchpadAccessibilityService.class);
             context.startService(serviceIntent);
+        }
+    }
+
+    public static void disableAll(Context context) {
+        if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+            // 获取现有的无障碍服务配置
+            String existingServices = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+
+            // 更新无障碍服务配置
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "");
+            Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "0");
         }
     }
 

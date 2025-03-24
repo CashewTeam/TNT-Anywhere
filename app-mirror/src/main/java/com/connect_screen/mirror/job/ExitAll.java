@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import com.connect_screen.mirror.BuildConfig;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
+import com.connect_screen.mirror.TouchpadAccessibilityService;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
@@ -28,8 +29,11 @@ public class ExitAll {
             mainIntent.setPackage(context.getPackageName());
             context.startActivity(mainIntent);
         }
-        
-        context.stopService(new Intent(context, SunshineService.class));
+
+        if (context != null) {
+            context.stopService(new Intent(context, SunshineService.class));
+            context.stopService(new Intent(context, TouchpadAccessibilityService.class));
+        }
 
         // 退出应用进程
         android.os.Process.killProcess(android.os.Process.myPid());
