@@ -11,6 +11,7 @@ import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -90,17 +91,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         super.onCreate(savedInstanceState);
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
-        if (ShizukuUtils.hasPermission()) {
-            if (State.userService == null) {
-                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
-            }
-            TouchpadAccessibilityService.startServiceByShizuku(this);
-        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
-            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-            this.startService(serviceIntent);
+        if (!Pref.getDisableAccessibility()) {
+            ensureAccessiblityServiceStarted();
         }
-        
+
         // 检查 SunshineService 是否已经在运行，如果没有运行才启动
         if (SunshineService.instance == null) {
             startMediaProjectionService();
@@ -129,6 +123,27 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         // 初始化主界面控件
         initHomeControls();
+    }
+
+    private void ensureAccessiblityServiceStarted() {
+        if (ShizukuUtils.hasPermission()) {
+            if (State.userService == null) {
+                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+            }
+            TouchpadAccessibilityService.startServiceByShizuku(this);
+        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+            this.startService(serviceIntent);
+        }
+        if (TouchpadAccessibilityService.getInstance() == null) {
+            new Handler().postDelayed(() -> {
+                if (TouchpadAccessibilityService.getInstance() == null) {
+                    State.log("无障碍服务启动异常，尝试重启");
+                    TouchpadAccessibilityService.restartServiceByShizuku(this);
+                }
+            }, 500);
+        }
     }
 
     // 添加初始化主界面控件的方法

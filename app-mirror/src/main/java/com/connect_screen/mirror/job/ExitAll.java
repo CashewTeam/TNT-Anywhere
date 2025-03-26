@@ -31,7 +31,11 @@ public class ExitAll {
             context.startActivity(mainIntent);
         }
 
+        if (TouchpadAccessibilityService.getInstance() != null) {
+            TouchpadAccessibilityService.getInstance().disableSelf();
+        }
         if (context != null) {
+            context.stopService(new Intent(context, TouchpadAccessibilityService.class));
             context.stopService(new Intent(context, SunshineService.class));
         }
 

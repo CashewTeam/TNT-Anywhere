@@ -3,6 +3,7 @@ package com.connect_screen.mirror;
 import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
 import android.provider.Settings;
 import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.view.KeyEvent;
+
+import androidx.annotation.NonNull;
 
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -42,14 +45,10 @@ public class TouchpadAccessibilityService extends AccessibilityService {
             return;
         }
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
-            // 获取现有的无障碍服务配置
-            String existingServices = Settings.Secure.getString(context.getContentResolver(),
-                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-
-            // 准备新的服务字符串
             String newService = BuildConfig.APPLICATION_ID + "/" + TouchpadAccessibilityService.class.getCanonicalName();
-            String finalServices;
+            String existingServices = getExistingServices(context, newService);
 
+            String finalServices;
             // 如果已有配置，则追加新服务；否则直接使用新服务
             if (existingServices != null && !existingServices.isEmpty()) {
                 finalServices = existingServices + ":" + newService;
@@ -66,13 +65,44 @@ public class TouchpadAccessibilityService extends AccessibilityService {
         }
     }
 
+    public static void restartServiceByShizuku(Context context) {
+        if (Pref.getDisableAccessibility()) {
+            return;
+        }
+        if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+            String newService = BuildConfig.APPLICATION_ID + "/" + TouchpadAccessibilityService.class.getCanonicalName();
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, getExistingServices(context, newService));
+            new Handler().postDelayed(() -> {
+                startServiceByShizuku(context);
+            }, 100);
+        }
+    }
+
+    private static @NonNull String getExistingServices(Context context, String newService) {
+        String existingServices = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if(existingServices == null) {
+            existingServices = "";
+        }
+        if (existingServices.contains(":" + newService)) {
+            existingServices = existingServices.replace(":" + newService, "");
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, existingServices);
+        } else if (existingServices.contains(newService + ":")) {
+            existingServices = existingServices.replace(newService + ":", "");
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, existingServices);
+        } else if (existingServices.contains(newService)) {
+            existingServices = "";
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, existingServices);
+        }
+        return existingServices;
+    }
+
     public static void disableAll(Context context) {
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
-            // 获取现有的无障碍服务配置
-            String existingServices = Settings.Secure.getString(context.getContentResolver(),
-                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-
-            // 更新无障碍服务配置
             Settings.Secure.putString(context.getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "");
             Settings.Secure.putString(context.getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "0");
