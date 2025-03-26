@@ -33,7 +33,6 @@ public class ExitAll {
 
         if (context != null) {
             context.stopService(new Intent(context, SunshineService.class));
-            context.stopService(new Intent(context, TouchpadAccessibilityService.class));
         }
 
         // 退出应用进程

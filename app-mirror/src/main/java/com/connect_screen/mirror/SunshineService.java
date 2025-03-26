@@ -37,6 +37,7 @@ import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -119,12 +120,12 @@ public class SunshineService extends Service {
             try {
                 SunshineServer.setFileStatePath(SunshineService.this.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(SunshineService.this);
-                new Thread(() -> { SunshineServer.start(); }).start();
-
+                List<JmDNS> dnsServers = new ArrayList<>();
                 if(!ipAddresses.isEmpty()) {
                     for (String addr : ipAddresses) {
                         try {
                             JmDNS jmdns = JmDNS.create(InetAddress.getByName(addr));
+                            dnsServers.add(jmdns);
                             ServiceInfo serviceInfo = ServiceInfo.create(
                                     "_nvstream._tcp.local.",
                                     "ConnectScreen",
@@ -133,14 +134,24 @@ public class SunshineService extends Service {
                             );
 
                             jmdns.registerService(serviceInfo);
-                            Log.i("MirrorHomeFragment", "JmDNS服务注册成功，IP: " + addr);
+                            Log.i("SunshineService", "JmDNS服务注册成功，IP: " + addr);
                         } catch (Exception e) {
-                            Log.e("MirrorHomeFragment", "在IP " + addr + " 上注册JmDNS服务失败", e);
+                            Log.e("SunshineService", "在IP " + addr + " 上注册JmDNS服务失败", e);
                         }
                     }
                 }
+                new Thread(() -> { 
+                    try {
+                        SunshineServer.start();
+                        for (JmDNS server : dnsServers) {
+                            server.close();
+                        }
+                    } catch(Throwable e) {
+                        Log.e("SunshineService", "thread quit", e);
+                    }
+                }).start();
             } catch (Exception e) {
-                Log.e("MirrorHomeFragment", "初始化网络服务失败", e);
+                Log.e("SunshineService", "初始化网络服务失败", e);
             }
         }).start();
 
