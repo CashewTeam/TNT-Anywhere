@@ -4,16 +4,21 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.util.Log;
 
 import com.connect_screen.mirror.BuildConfig;
+import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
-        SunshineServer.exitServer();
+        boolean wasSunshineStarted = SunshineServer.exitServer();
         CreateVirtualDisplay.restoreAspectRatio();
+        CreateVirtualDisplay.powerOnScreen();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
             State.mediaProjectionInUse = null;
@@ -31,16 +36,28 @@ public class ExitAll {
             context.startActivity(mainIntent);
         }
 
-        if (TouchpadAccessibilityService.getInstance() != null) {
-            TouchpadAccessibilityService.getInstance().disableSelf();
-        }
-        if (context != null) {
-            context.stopService(new Intent(context, TouchpadAccessibilityService.class));
-            context.stopService(new Intent(context, SunshineService.class));
+        if (State.mirrorVirtualDisplay != null) {
+            State.mirrorVirtualDisplay.release();
         }
 
+        State.displaylinkState.destroy();
+
+        if (!wasSunshineStarted && !ShizukuUtils.hasPermission() && TouchpadAccessibilityService.getInstance() != null) {
+            if (State.currentActivity.get() != null) {
+                State.currentActivity.get().finish();
+            }
+            return;
+        }
+
+        if (context != null) {
+            context.stopService(new Intent(context, SunshineService.class));
+        }
         // 退出应用进程
-        android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);
+        try {
+            android.os.Process.killProcess(android.os.Process.myPid());
+        } catch(Throwable e) {
+            // ignore
+        }
     }
 }

@@ -136,7 +136,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
             this.startService(serviceIntent);
         }
-        if (TouchpadAccessibilityService.getInstance() == null) {
+        if (TouchpadAccessibilityService.getInstance() == null && ShizukuUtils.hasPermission()) {
             new Handler().postDelayed(() -> {
                 if (TouchpadAccessibilityService.getInstance() == null) {
                     State.log("无障碍服务启动异常，尝试重启");
