@@ -1863,7 +1863,11 @@ namespace stream {
   namespace session {
     std::atomic_uint running_sessions;
 
-    state_e state(session_t &session) {
+      uint getRunningSessions() {
+          return running_sessions;
+      }
+
+      state_e state(session_t &session) {
       return session.state.load(std::memory_order_relaxed);
     }
 
@@ -1904,7 +1908,8 @@ namespace stream {
 //      input::reset(session.input);
 
       // If this is the last session, invoke the platform callbacks
-//      if (--running_sessions == 0) {
+      if (--running_sessions == 0) {
+          BOOST_LOG(debug) << "Running_sessions: "sv << running_sessions;
 //        if (proc::proc.running()) {
 //#if defined SUNSHINE_TRAY && SUNSHINE_TRAY >= 1
 //          system_tray::update_tray_pausing(proc::proc.get_last_run_app_name());
@@ -1914,7 +1919,7 @@ namespace stream {
 //        }
 //
 //        platf::streaming_will_stop();
-//      }
+      }
 
       BOOST_LOG(debug) << "Session ended"sv;
     }
@@ -1951,12 +1956,13 @@ namespace stream {
       session.state.store(state_e::RUNNING, std::memory_order_relaxed);
 
       // If this is the first session, invoke the platform callbacks
-//      if (++running_sessions == 1) {
+      if (++running_sessions == 1) {
+          BOOST_LOG(debug) << "Running_sessions: "sv << running_sessions;
 //        platf::streaming_will_start();
 //#if defined SUNSHINE_TRAY && SUNSHINE_TRAY >= 1
 //        system_tray::update_tray_playing(proc::proc.get_last_run_app_name());
 //#endif
-//      }
+      }
 
       return 0;
     }

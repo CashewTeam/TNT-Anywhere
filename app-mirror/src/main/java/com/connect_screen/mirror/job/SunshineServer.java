@@ -778,4 +778,6 @@ public class SunshineServer {
         }
     }
 
+    public static native boolean exitServer();
+
 }

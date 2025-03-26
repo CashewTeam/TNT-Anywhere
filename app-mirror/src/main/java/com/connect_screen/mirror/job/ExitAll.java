@@ -12,6 +12,7 @@ import com.connect_screen.mirror.TouchpadAccessibilityService;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
+        SunshineServer.exitServer();
         CreateVirtualDisplay.restoreAspectRatio();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();

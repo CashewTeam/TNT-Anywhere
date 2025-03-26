@@ -54,5 +54,6 @@ namespace stream {
     void stop(session_t &session);
     void join(session_t &session);
     state_e state(session_t &session);
+      uint getRunningSessions();
   }  // namespace session
 }  // namespace stream

@@ -186,6 +186,23 @@ Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclas
     video::active_hevc_mode = 2;
 }
 
+JNIEXPORT jboolean JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_exitServer(JNIEnv *env, jclass clazz) {
+    BOOST_LOG(info) << "退出 Sunshine 服务器"sv;
+    auto broadcast_shutdown_event = mail::man->event<bool>(mail::broadcast_shutdown);
+    broadcast_shutdown_event->raise(true);
+    if (stream::session::getRunningSessions() == 0) {
+        return JNI_TRUE;
+    }
+    for (int i = 0; i < 5; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (stream::session::getRunningSessions() == 0) {
+            return JNI_TRUE;
+        }
+    }
+    return JNI_FALSE;
+}
+
 }
 
 namespace sunshine_callbacks {
