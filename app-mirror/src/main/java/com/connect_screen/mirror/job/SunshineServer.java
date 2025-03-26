@@ -315,10 +315,8 @@ public class SunshineServer {
 
     private static Point translateRotation0Mirror(float xInScreen, float yInScreen) {
         if (autoRotate) {
-            Log.d("SunshineServer", "!!! xInScreen: " + xInScreen);
             Point point = new Point();
             float xBlackBar = (screenWidth - landscapeMirrorWidth) / 2;
-            Log.d("SunshineServer", "!!! xBlackBar: " + xBlackBar);
             float yBlackBar = (screenHeight - landscapeMirrorHeight) / 2;
             float adjustedX = xInScreen - xBlackBar;
             if (adjustedX > landscapeMirrorWidth) {
@@ -326,7 +324,6 @@ public class SunshineServer {
             } else if (adjustedX < 0) {
                 adjustedX = 0;
             }
-            Log.d("SunshineServer", "!!! adjustedX: " + adjustedX);
             float adjustedY = yInScreen - yBlackBar;
             if (adjustedY > landscapeMirrorHeight) {
                 adjustedY = landscapeMirrorHeight;
@@ -334,7 +331,6 @@ public class SunshineServer {
                 adjustedY = 0;
             }
             point.y = (adjustedX / landscapeMirrorWidth) * defaultDisplayWidth;
-            Log.d("SunshineServer", "!!! final y: " + point.y);
             point.x = (1 - (adjustedY / landscapeMirrorHeight)) * defaultDisplayHeight;
             return point;
         } else {
