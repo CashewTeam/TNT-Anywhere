@@ -43,12 +43,16 @@ public class ExitAll {
         State.displaylinkState.destroy();
 
         if (!wasSunshineStarted && !ShizukuUtils.hasPermission() && TouchpadAccessibilityService.getInstance() != null) {
+            // 对于 typec 直连，但是只用无障碍的用户不退无障碍
             if (State.currentActivity.get() != null) {
                 State.currentActivity.get().finish();
             }
             return;
         }
-
+        if (TouchpadAccessibilityService.getInstance() != null && ShizukuUtils.hasPermission()) {
+            // 下次可自动获取
+            TouchpadAccessibilityService.getInstance().disableSelf();
+        }
         if (context != null) {
             context.stopService(new Intent(context, SunshineService.class));
         }
