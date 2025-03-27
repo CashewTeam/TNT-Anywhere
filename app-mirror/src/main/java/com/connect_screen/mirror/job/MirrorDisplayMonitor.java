@@ -23,6 +23,7 @@ import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
+import com.connect_screen.mirror.shizuku.DisplayControl;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -54,6 +55,7 @@ public class MirrorDisplayMonitor {
                     Intent intent = new Intent(SunshineService.instance, MirrorMainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     ActivityOptions options = ActivityOptions.makeBasic();
+                    options.setLaunchDisplayId(Display.DEFAULT_DISPLAY);
                     SunshineService.instance.startActivity(intent, options.toBundle());
                 }, 1000);
             }

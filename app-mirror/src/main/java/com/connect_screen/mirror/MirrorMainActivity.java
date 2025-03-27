@@ -165,7 +165,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         });
 
         screenOffBtn.setOnClickListener(v -> {
-            CreateVirtualDisplay.doPowerOffScreen(this);
+            if (State.screenPowerOff) {
+                CreateVirtualDisplay.powerOnScreen();
+            } else {
+                CreateVirtualDisplay.doPowerOffScreen(this);
+            }
         });
 
         touchScreenBtn.setOnClickListener(v -> {
@@ -310,6 +314,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         mirrorStatus.setVisibility(View.VISIBLE);
         
         settingsBtn.setVisibility(state.settingsBtnVisibility ? View.VISIBLE : View.GONE);
+        if (State.screenPowerOff) {
+            screenOffBtn.setText("亮屏");
+        } else {
+            screenOffBtn.setText("熄屏");
+        }
         screenOffBtn.setVisibility(state.screenOffBtnVisibility ? View.VISIBLE : View.GONE);
         touchScreenBtn.setVisibility(state.touchScreenBtnVisibility ? View.VISIBLE : View.GONE);
         

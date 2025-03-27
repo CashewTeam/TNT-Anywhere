@@ -95,7 +95,9 @@ public class CreateVirtualDisplay {
         if (State.userService != null) {
             try {
                 State.userService.startListenVolumeKey();
-                if (!State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
+                if (State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
+                    State.screenPowerOff = true;
+                } else {
                     if (singleApp) {
                         Intent intent = new Intent(context, PureBlackActivity.class);
                         ActivityOptions options = ActivityOptions.makeBasic();
@@ -238,6 +240,7 @@ public class CreateVirtualDisplay {
                 try {
                     State.userService.stopListenVolumeKey();
                     State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+                    State.screenPowerOff = false;
                 } catch (RemoteException e) {
                     State.log("powerUpScreen failed: " + e.getMessage());
                 }

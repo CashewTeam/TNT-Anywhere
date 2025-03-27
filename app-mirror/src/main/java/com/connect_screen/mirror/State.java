@@ -32,6 +32,7 @@ public class State {
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static FloatingButtonService floatingButtonService;
     public static String serverUuid;
+    public static boolean screenPowerOff;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
