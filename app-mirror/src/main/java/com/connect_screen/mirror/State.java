@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
@@ -14,6 +15,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.connect_screen.mirror.job.Job;
 import com.connect_screen.mirror.job.YieldException;
 import com.connect_screen.mirror.shizuku.IUserService;
+import com.connect_screen.mirror.shizuku.SurfaceControl;
 import com.connect_screen.mirror.shizuku.UserService;
 
 import java.lang.ref.WeakReference;
@@ -62,7 +64,7 @@ public class State {
 
     public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
             .daemon(true)
-            .tag("temp9")
+            .tag("temp6")
             .processNameSuffix("connect-screen")
             .debuggable(false)
             .version(BuildConfig.VERSION_CODE);

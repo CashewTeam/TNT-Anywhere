@@ -11,6 +11,7 @@ import android.os.RemoteException;
 import android.view.Display;
 
 import androidx.annotation.Keep;
+import androidx.annotation.Nullable;
 
 import rikka.shizuku.SystemServiceHelper;
 
@@ -93,52 +94,36 @@ public class UserService extends IUserService.Stub  {
 
     public boolean setScreenPower(int powerMode) {
         Log.i("UserService", "try to setScreenPower: " + powerMode);
-        IDisplayManager displayManager = IDisplayManager.Stub.asInterface(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
-        if (Build.VERSION.SDK_INT >= 35) {
-            if (powerMode == SurfaceControl.POWER_MODE_OFF) {
-                try {
-                    displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, false);
-                    Log.i("UserService", "requestDisplayPower by bool");
-                } catch(Throwable e) {
-                    Log.e("UserService", "failed to power off screen", e);
-                    try {
-                        displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
-                        Log.i("UserService", "requestDisplayPower by int");
-                    } catch(Throwable e2) {
-                        Log.e("UserService", "failed to power off screen", e2);
-                        return false;
-                    }
-                }
-            } else {
-                try {
-                    displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, true);
-                    Log.i("UserService", "requestDisplayPower by bool");
-                } catch (Throwable e) {
-                    Log.e("UserService", "failed to power up screen", e);
-                    try {
-                        displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_NORMAL);
-                        Log.i("UserService", "requestDisplayPower by int");
-                    } catch(Throwable e2) {
-                        Log.e("UserService", "failed to power up screen", e2);
-                        return false;
-                    }
-                }
-            }
-        } else {
-            try {
-                IBinder d = SurfaceControl.getBuiltInDisplay();
-                if (d == null) {
-                    Log.i("UserService", "Could not get built-in display");
-                } else {
-                    SurfaceControl.setDisplayPowerMode(d, powerMode);
-                    Log.i("UserService", "setDisplayPowerMode success");
-                }
-            }catch(Throwable e) {
-                Log.e("UserService", "failed to power up screen", e);
+        try {
+            IBinder displayToken = getDisplayToken();
+            if (displayToken == null) {
                 return false;
             }
+            boolean result = SurfaceControl.setDisplayPowerMode(displayToken, powerMode);
+            Ln.d("after setDisplayPowerMode: " + result);
+        } catch(Throwable e) {
+            Ln.e("setScreenPower failed", e);
         }
         return true;
+    }
+
+    private @Nullable IBinder getDisplayToken() {
+        try {
+            long[] physicalDisplayIds = DisplayControl.getPhysicalDisplayIds();
+            Ln.d("physicalDisplayIds count: " + physicalDisplayIds.length);
+            if (physicalDisplayIds.length > 0) {
+                return DisplayControl.getPhysicalDisplayToken(physicalDisplayIds[0]);
+            }
+            return SurfaceControl.getBuiltInDisplay();
+        } catch (Throwable e) {
+            Ln.e("failed to getDisplayToken", e);
+            try {
+                return SurfaceControl.getBuiltInDisplay();
+            } catch (Throwable e2) {
+                Ln.e("failed to getDisplayToken", e2);
+            }
+        }
+        return null;
     }
 
     public void startListenVolumeKey() throws RemoteException {
