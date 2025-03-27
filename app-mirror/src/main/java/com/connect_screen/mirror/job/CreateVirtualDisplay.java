@@ -143,7 +143,7 @@ public class CreateVirtualDisplay {
     private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly) {
         int virtualDisplayWidth = virtualDisplayArgs.width;
         IDisplayManager displayManager = ServiceUtils.getDisplayManager();
-        int flags = getFlags(virtualDisplayArgs, ownContentOnly);
+        int flags = getFlags(ownContentOnly, virtualDisplayArgs.rotatesWithContent);
         VirtualDisplayConfig config = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             config = new VirtualDisplayConfig.Builder(
@@ -208,14 +208,14 @@ public class CreateVirtualDisplay {
         return virtualDisplay;
     }
 
-    private static int getFlags(VirtualDisplayArgs virtualDisplayArgs, boolean ownContentOnly) {
+    public static int getFlags(boolean ownContentOnly, boolean rotatesWithContent) {
         int flags = VIRTUAL_DISPLAY_FLAG_PUBLIC
                 | VIRTUAL_DISPLAY_FLAG_SUPPORTS_TOUCH;
         //    | VIRTUAL_DISPLAY_FLAG_DESTROY_CONTENT_ON_REMOVAL;
         if (ownContentOnly) {
             flags |= VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
         }
-        if (virtualDisplayArgs.rotatesWithContent) {
+        if (rotatesWithContent) {
             flags |= VIRTUAL_DISPLAY_FLAG_ROTATES_WITH_CONTENT;
         }
         if (Build.VERSION.SDK_INT >= AndroidVersions.API_33_ANDROID_13) {

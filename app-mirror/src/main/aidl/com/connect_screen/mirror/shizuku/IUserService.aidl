@@ -1,5 +1,7 @@
 package com.connect_screen.mirror.shizuku;
 
+import android.view.Surface;
+
 interface IUserService {
 
     void destroy() = 16777114; // Destroy method defined by Shizuku server
@@ -15,4 +17,6 @@ interface IUserService {
     void startListenVolumeKey() = 5;
 
     void stopListenVolumeKey() = 6;
+
+    int createVirtualDisplay(in Surface surface) = 7;
 }
