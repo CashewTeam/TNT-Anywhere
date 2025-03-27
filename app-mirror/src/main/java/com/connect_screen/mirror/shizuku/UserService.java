@@ -147,37 +147,44 @@ public class UserService extends IUserService.Stub  {
         }
         listenVolumeKey = true;
         Thread thread = new Thread(() -> {
-            try {
-                listenVolumeKeyProcess = Runtime.getRuntime().exec("getevent");
-                java.io.BufferedReader reader = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(listenVolumeKeyProcess.getInputStream()));
-                while (true) {
-                    String line = reader.readLine();
-                    if (line == null || !listenVolumeKey) {
-                        break;
-                    }
-                    if (!line.endsWith("0000 0000 00000000") &&
-                            (line.endsWith("0001 0072 00000001") || line.endsWith("0001 0073 00000001"))) {
-                        Log.i("UserService", "try to exit pure black activity");
-                        setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-                        if (context != null) {
-                            Intent intent = new Intent("com.connect_screen.mirror.EXIT_PURE_BLACK");
-                            intent.setPackage("com.connect_screen.mirror");
-                            context.sendBroadcast(intent);
-                        } else {
-                            Log.i("UserService", "context is null, can not send EXIT_PURE_BLACK");
+            while(listenVolumeKey) {
+                try {
+                    listenVolumeKeyProcess = Runtime.getRuntime().exec("getevent");
+                    java.io.BufferedReader reader = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(listenVolumeKeyProcess.getInputStream()));
+                    while (listenVolumeKey) {
+                        String line = reader.readLine();
+                        if (line == null || !listenVolumeKey) {
+                            break;
+                        }
+                        if (!line.endsWith("0000 0000 00000000") &&
+                                (line.endsWith("0001 0072 00000001") || line.endsWith("0001 0073 00000001"))) {
+                            Log.i("UserService", "try to exit pure black activity");
+                            setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+                            if (context != null) {
+                                Intent intent = new Intent("com.connect_screen.mirror.EXIT_PURE_BLACK");
+                                intent.setPackage("com.connect_screen.mirror");
+                                context.sendBroadcast(intent);
+                            } else {
+                                Log.i("UserService", "context is null, can not send EXIT_PURE_BLACK");
+                            }
                         }
                     }
+                    reader.close();
+                    listenVolumeKeyProcess.waitFor();
+                    if (android.os.Build.VERSION.SDK_INT >= 26) {
+                        listenVolumeKeyProcess.destroyForcibly();
+                    } else {
+                        listenVolumeKeyProcess.destroy();
+                    }
+                } catch (Exception e) {
+                    Log.e("UserService", "Listen volume key failed", e);
                 }
-                reader.close();
-                listenVolumeKeyProcess.waitFor();
-                if (android.os.Build.VERSION.SDK_INT >= 26) {
-                    listenVolumeKeyProcess.destroyForcibly();
-                } else {
-                    listenVolumeKeyProcess.destroy();
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    break;
                 }
-            } catch (Exception e) {
-                Log.e("UserService", "Listen volume key failed", e);
             }
         });
         volumeKeyThread = thread;
