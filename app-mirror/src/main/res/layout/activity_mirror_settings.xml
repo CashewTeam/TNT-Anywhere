@@ -118,7 +118,7 @@
                 android:id="@+id/selectAppButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="选择被投屏应用（例如 ATV 启动器）"
+                android:text="选择被投屏应用"
                 android:layout_marginTop="8dp"
                 android:layout_marginStart="16dp"/>
 

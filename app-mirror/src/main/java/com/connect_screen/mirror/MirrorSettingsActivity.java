@@ -414,7 +414,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         
         // 创建并显示选择对话框
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("选择应用");
+        builder.setTitle("不要每次都来这里找应用，固定设置为你喜欢的启动器类型的应用");
         builder.setAdapter(adapter, (dialog, which) -> {
             ResolveInfo selectedApp = launcherApps.get(which);
             String selectedPackage = selectedApp.activityInfo.packageName;
