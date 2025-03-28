@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.ConnectToClient;
+import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -296,7 +297,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 } else {
                     // 保存选中的客户端
                     preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
-                    ConnectToClient.connect();
+                    int pin = (int)(Math.random() * 9000) + 1000;
+                    SunshineServer.nextPin = String.valueOf(pin);
+                    ConnectToClient.connect(pin);
                 }
             }
         });
@@ -648,7 +651,9 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     // 刷新客户端列表
                     Spinner clientSpinner = findViewById(R.id.clientSpinner);
                     loadClientList(clientSpinner);
-                    ConnectToClient.connect();
+                    int pin = (int) (Math.random() * 9000) + 1000;
+                    SunshineServer.nextPin = String.valueOf(pin);
+                    ConnectToClient.connect(pin);
                 }
             } catch (Exception e) {
                 // 处理异常

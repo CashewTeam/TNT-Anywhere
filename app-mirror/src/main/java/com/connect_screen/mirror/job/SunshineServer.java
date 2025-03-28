@@ -95,7 +95,6 @@ public class SunshineServer {
             // 创建对话框
             if (nextPin != null) {
                 submitPin(nextPin);
-                nextPin = null;
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                 builder.setTitle("请输入PIN码")
@@ -124,6 +123,7 @@ public class SunshineServer {
     // surface created by MediaCodec
     // width always > height, as it is a landscape mode
     public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMute) {
+        nextPin = null;
         Context context = State.getContext();
         if (context == null) {
             return;
@@ -761,16 +761,13 @@ public class SunshineServer {
         if (State.discoveredConnectScreenClients.contains(connectScreenClient)) {
             return;
         }
-        new Handler(Looper.getMainLooper()).post(() -> {
-           State.discoveredConnectScreenClients.add(connectScreenClient);
-           State.log("发现屏易连客户端: " + connectScreenClient);
-        });
+        State.discoveredConnectScreenClients.add(connectScreenClient);
     }
 
     public static void setConnectScreenServerUuid(String uuid) {
         State.serverUuid = uuid;
         if (Pref.getAutoConnectClient() && !Pref.getSelectedClient().isEmpty()) {
-            ConnectToClient.connect();
+            ConnectToClient.connect((int)(Math.random() * 9000) + 1000);
         }
     }
 

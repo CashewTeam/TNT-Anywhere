@@ -8,7 +8,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -16,7 +15,7 @@ import java.net.Socket;
 import android.util.Log;
 
 public class ConnectToClient {
-    public static void connect() {
+    public static void connect(int pin) {
         String clientIpAndPort = Pref.getSelectedClient();
         // 解析客户端 IP 和端口
         String[] parts = clientIpAndPort.split(":");
@@ -39,8 +38,6 @@ public class ConnectToClient {
             return;
         }
         // 生成4位随机数作为PIN码
-        int pin = (int)(Math.random() * 9000) + 1000;
-        SunshineServer.nextPin = String.valueOf(pin);
         String request = "{\"action\": \"connect\", \"ip\": \"" + serverIp + "\", \"pin\": \"" + pin + "\", \"uuid\": \"" + State.serverUuid + "\"}\n";
         State.log("连接请求: " + request);
         
