@@ -16,6 +16,7 @@ import android.util.Log;
 
 public class ConnectToClient {
     public static void connect(int pin) {
+        SunshineServer.pinCandidate = String.valueOf(pin);
         String clientIpAndPort = Pref.getSelectedClient();
         // 解析客户端 IP 和端口
         String[] parts = clientIpAndPort.split(":");

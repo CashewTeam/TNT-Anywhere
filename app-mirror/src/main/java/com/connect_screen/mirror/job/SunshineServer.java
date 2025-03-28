@@ -46,7 +46,8 @@ import dev.rikka.tools.refine.Refine;
 // 代码拷贝自 v2025.122.141614
 public class SunshineServer {
     public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
-    public static String nextPin;
+    public static String suppressPin;
+    public static String pinCandidate;
     private static IInputManager inputManager;
     // screenWidth * screenHeight always in landscape mode
     private static float screenWidth;
@@ -87,14 +88,15 @@ public class SunshineServer {
             // 创建一个输入框
             final EditText input = new EditText(context);
             input.setInputType(InputType.TYPE_CLASS_NUMBER);
+            input.setText(pinCandidate);
             // 限制输入长度为4位
             InputFilter[] filters = new InputFilter[1];
             filters[0] = new InputFilter.LengthFilter(4);
             input.setFilters(filters);
             
             // 创建对话框
-            if (nextPin != null) {
-                submitPin(nextPin);
+            if (suppressPin != null) {
+                submitPin(suppressPin);
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                 builder.setTitle("请输入PIN码")
@@ -123,7 +125,7 @@ public class SunshineServer {
     // surface created by MediaCodec
     // width always > height, as it is a landscape mode
     public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMute) {
-        nextPin = null;
+        suppressPin = null;
         Context context = State.getContext();
         if (context == null) {
             return;

@@ -298,7 +298,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     // 保存选中的客户端
                     preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
                     int pin = (int)(Math.random() * 9000) + 1000;
-                    SunshineServer.nextPin = String.valueOf(pin);
+                    SunshineServer.suppressPin = String.valueOf(pin);
                     ConnectToClient.connect(pin);
                 }
             }
@@ -652,7 +652,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     Spinner clientSpinner = findViewById(R.id.clientSpinner);
                     loadClientList(clientSpinner);
                     int pin = (int) (Math.random() * 9000) + 1000;
-                    SunshineServer.nextPin = String.valueOf(pin);
+                    SunshineServer.suppressPin = String.valueOf(pin);
                     ConnectToClient.connect(pin);
                 }
             } catch (Exception e) {
