@@ -175,7 +175,6 @@ public class FloatingButtonService extends Service {
 
         try {
             windowManager.addView(floatingView, params);
-            State.log("添加悬浮窗于 (" + params.x + "," + params.y + ")");
         } catch (Exception e) {
             State.log("添加悬浮窗失败: " + e.getMessage());
             stopSelf();

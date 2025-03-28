@@ -44,9 +44,9 @@ public class PureBlackActivity extends AppCompatActivity {
     public static class ExitReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("com.connect_screen.mirror.EXIT_PURE_BLACK".equals(intent.getAction())) {
-                CreateVirtualDisplay.powerOnScreen();
-            }
+            State.log("从熄屏中唤醒");
+            State.screenPowerOff = false;
+            CreateVirtualDisplay.powerOnScreen();
         }
     }
 
