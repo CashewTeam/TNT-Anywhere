@@ -195,7 +195,7 @@ public class SunshineServer {
         }
         
         new Handler(Looper.getMainLooper()).post(() -> {
-            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface));
+            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
         });
         if (shouldMute) {
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);

@@ -31,15 +31,17 @@ public class ProjectViaMoonlight implements Job {
     private final int frameRate;
     private final int packetDuration;
     private final Surface surface;
+    private final boolean shouldSendAudio;
     private boolean mediaProjectionRequested;
     private boolean audioPermissionRequested;
 
-    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface) {
+    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldSendAudio) {
         this.width = width;
         this.height = height;
         this.frameRate = frameRate;
         this.packetDuration = packetDuration;
         this.surface = surface;
+        this.shouldSendAudio = shouldSendAudio;
     }
 
     @Override
@@ -52,7 +54,7 @@ public class ProjectViaMoonlight implements Job {
             return;
         }
         // 创建AudioRecord
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+        if (shouldSendAudio && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                 // 配置音频捕获参数
                 int sampleRate = 48000; // 与您的Opus配置匹配
