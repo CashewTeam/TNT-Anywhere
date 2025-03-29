@@ -213,7 +213,7 @@
             android:id="@+id/disableUsbAudioCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="停用外接屏幕的声音输出"
+            android:text="停用USB外接屏幕的声音输出（moonlight播放声音设备使用moonlight的设置）"
             android:textSize="16sp"
             android:padding="8dp"/>
 

@@ -5,6 +5,14 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="这个分辨率只是控制 displaylink 芯片的扩展坞输出分辨率。如果是 typec 直连屏幕则改不了分辨率，完全看安卓操作系统自动分配的分辨率。如果是 moonlight 无线投屏，可以在 moonlight 的设置里修改分辨率和码率。"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="16dp"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

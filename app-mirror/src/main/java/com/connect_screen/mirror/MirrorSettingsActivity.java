@@ -322,6 +322,12 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        SunshineServer.suppressPin = null;
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         

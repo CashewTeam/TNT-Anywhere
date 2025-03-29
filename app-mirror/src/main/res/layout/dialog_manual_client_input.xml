@@ -16,7 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="text"
-        android:hint="例如: 192.168.1.100"
+        android:hint="自启版会显示自己的ip"
         android:layout_marginBottom="16dp"/>
 
     <TextView
