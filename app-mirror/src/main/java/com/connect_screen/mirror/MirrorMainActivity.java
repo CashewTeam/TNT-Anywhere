@@ -91,6 +91,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         super.onCreate(savedInstanceState);
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
+        
+        // 获取 DoNotAutoStartMoonlight 参数
+        boolean doNotAutoStartMoonlight = getIntent().getBooleanExtra("DoNotAutoStartMoonlight", false);
+        if (doNotAutoStartMoonlight) {
+            State.log("DoNotAutoStartMoonlight 参数为 true，不自动启动 Moonlight");
+            Pref.doNotAutoStartMoonlight = doNotAutoStartMoonlight;
+        }
+
         if (!Pref.getDisableAccessibility()) {
             ensureAccessiblityServiceStarted();
         }

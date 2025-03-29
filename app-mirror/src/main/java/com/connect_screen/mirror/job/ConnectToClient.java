@@ -40,7 +40,7 @@ public class ConnectToClient {
         }
         // 生成4位随机数作为PIN码
         String request = "{\"action\": \"connect\", \"ip\": \"" + serverIp + "\", \"pin\": \"" + pin + "\", \"uuid\": \"" + State.serverUuid + "\"}\n";
-        State.log("连接请求: " + request);
+        State.log("发送自启动请求到: " + clientIp + ":" + clientPort);
         
         // 创建新线程执行TCP连接
         final String finalClientIp = clientIp;

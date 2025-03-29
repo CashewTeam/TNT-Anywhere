@@ -768,8 +768,13 @@ public class SunshineServer {
 
     public static void setConnectScreenServerUuid(String uuid) {
         State.serverUuid = uuid;
-        if (Pref.getAutoConnectClient() && !Pref.getSelectedClient().isEmpty()) {
-            ConnectToClient.connect((int)(Math.random() * 9000) + 1000);
+        if (!Pref.doNotAutoStartMoonlight) {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                State.log("开始自动连接");
+                if (Pref.getAutoConnectClient() && !Pref.getSelectedClient().isEmpty()) {
+                    ConnectToClient.connect((int)(Math.random() * 9000) + 1000);
+                }
+            }, 1000);
         }
     }
 

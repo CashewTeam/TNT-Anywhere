@@ -24,6 +24,7 @@ public class Pref {
     public static final String KEY_SELECTED_CLIENT = "selected_client";
     public static final String KEY_AUTO_CONNECT_CLIENT = "auto_connect_client";
     public static final String KEY_DISABLE_ACCESSIBILITY = "disable_accessibility";
+    public static boolean doNotAutoStartMoonlight;
 
     public static boolean getAutoRotate() {
         return getBoolean(KEY_AUTO_ROTATE, true);

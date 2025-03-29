@@ -33,6 +33,7 @@ public class ExitAll {
             // Required for API 34 and later
             // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
             mainIntent.setPackage(context.getPackageName());
+            mainIntent.putExtra("DoNotAutoStartMoonlight", true);
             context.startActivity(mainIntent);
         }
 
