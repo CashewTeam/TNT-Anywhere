@@ -11,6 +11,7 @@ import android.hardware.display.IVirtualDisplayCallback;
 import android.hardware.display.VirtualDisplay;
 import android.hardware.display.VirtualDisplayConfig;
 import android.media.projection.IMediaProjection;
+import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionHidden;
 import android.os.Build;
 import android.os.Handler;
@@ -58,14 +59,15 @@ public class CreateVirtualDisplay {
         try {
             if (ShizukuUtils.hasPermission()) {
                 try {
-                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true);
+                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, State.getMediaProjection());
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
                     powerOffScreen();
                     return virtualDisplay;
                 } catch(Exception e) {
-                    android.util.Log.e("CreateVirtualDisplay", "failed to create virtual display by shizuku", e);
+                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, null);
+                    android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
                     powerOffScreen();
-                    return createByMediaProjection(virtualDisplayArgs, surface);
+                    return virtualDisplay;
                 }
             } else {
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -140,7 +142,7 @@ public class CreateVirtualDisplay {
         return virtualDisplay;
     }
 
-    private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly) {
+    private static @NonNull VirtualDisplay createByShizuku(VirtualDisplayArgs virtualDisplayArgs, Surface surface, boolean ownContentOnly, MediaProjection mediaProjection) {
         int virtualDisplayWidth = virtualDisplayArgs.width;
         IDisplayManager displayManager = ServiceUtils.getDisplayManager();
         int flags = getFlags(ownContentOnly, virtualDisplayArgs.rotatesWithContent);
@@ -165,8 +167,8 @@ public class CreateVirtualDisplay {
         }
         IVirtualDisplayCallback callback = new VirtualDisplayCallback();
         IMediaProjection projection = null;
-        if (State.getMediaProjection() != null) {
-            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(State.getMediaProjection());
+        if (mediaProjection != null) {
+            MediaProjectionHidden mediaProjectionHidden = Refine.unsafeCast(mediaProjection);
             projection = mediaProjectionHidden.getProjection();
         }
         int displayId = -1;
