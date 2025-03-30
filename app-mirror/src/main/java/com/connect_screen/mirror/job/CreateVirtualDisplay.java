@@ -13,6 +13,7 @@ import android.hardware.display.VirtualDisplayConfig;
 import android.media.projection.IMediaProjection;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionHidden;
+import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -172,10 +173,18 @@ public class CreateVirtualDisplay {
             projection = mediaProjectionHidden.getProjection();
         }
         int displayId = -1;
+        String packageName = "com.android.shell";
+        try {
+            if (State.userService != null && State.userService.isRooted()) {
+                packageName = null;
+            }
+        } catch (Throwable e) {
+            // ignore;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            displayId = displayManager.createVirtualDisplay(config, callback, projection, "com.android.shell");
+            displayId = displayManager.createVirtualDisplay(config, callback, projection, packageName);
         } else {
-            displayId = displayManager.createVirtualDisplay(callback, projection, "com.android.shell", virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi, surface, flags, virtualDisplayArgs.virtualDisplayName);
+            displayId = displayManager.createVirtualDisplay(callback, projection, packageName, virtualDisplayArgs.virtualDisplayName, virtualDisplayWidth, virtualDisplayArgs.height, virtualDisplayArgs.dpi, surface, flags, virtualDisplayArgs.virtualDisplayName);
         }
         DisplayInfo displayInfo = ServiceUtils.getDisplayManager().getDisplayInfo(displayId);
         android.util.Log.i("CreateVirtualDisplay", "创建虚拟显示成功，displayId: " + displayId + ", uniqueId: " + displayInfo.uniqueId);

@@ -19,4 +19,6 @@ interface IUserService {
     void stopListenVolumeKey() = 6;
 
     int createVirtualDisplay(in Surface surface) = 7;
+
+    boolean isRooted() = 8;
 }

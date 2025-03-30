@@ -26,16 +26,13 @@ public class UserService extends IUserService.Stub  {
     private Thread volumeKeyThread;
 
     public UserService() {
-        Log.i("UserService", "constructor");
+        Ln.i("Start UserService without context: " + android.os.Process.myUid());
     }
 
     @Keep
     public UserService(Context context) {
         this.context = context;
-        Log.i("UserService", "constructor with Context: context=" + context.toString());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Ln.i("ContextUserInService: " + android.os.Process.myUid() + ", " + context.getPackageName() + ", " + context.getOpPackageName());
-        }
+        Ln.i("Start UserService with context: " + android.os.Process.myUid());
     }
 
     /**
@@ -208,5 +205,10 @@ public class UserService extends IUserService.Stub  {
             Ln.e("failed to create virtual display", e);
         }
         return 0;
+    }
+
+    @Override
+    public boolean isRooted() throws RemoteException {
+        return android.os.Process.myUid() == 0;
     }
 }
