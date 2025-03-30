@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.hardware.display.IDisplayManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.UserHandle;
 import android.util.Log;
 
 import android.os.RemoteException;
@@ -32,6 +33,9 @@ public class UserService extends IUserService.Stub  {
     public UserService(Context context) {
         this.context = context;
         Log.i("UserService", "constructor with Context: context=" + context.toString());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Ln.i("ContextUserInService: " + android.os.Process.myUid() + ", " + context.getPackageName() + ", " + context.getOpPackageName());
+        }
     }
 
     /**

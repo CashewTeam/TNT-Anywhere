@@ -130,6 +130,7 @@ public class SunshineServer {
         if (context == null) {
             return;
         }
+
         if (ShizukuUtils.hasPermission()) {
             inputManager = ServiceUtils.getInputManager();
         }
@@ -198,31 +199,43 @@ public class SunshineServer {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
         });
         if (shouldMute) {
+            // 检查音频设置权限
+            if (context.checkSelfPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                State.log("没有音频控制权限，无法静音");
+            }
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-            isMuted = true;
-            
-            // 注册音量变化监听器
-            registerVolumeChangeListener(context);
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+            if (ServiceUtils.getAudioManager().isStreamMute(AudioManager.STREAM_MUSIC)) {
+                isMuted = true;
+                State.log("应客户端的请求对手机静音，记录原始的音量值为：" + originalVolume);
+                // 注册音量变化监听器
+                registerVolumeChangeListener(context, audioManager);
+            } else {
+                originalVolume = 0;
+                State.log("静音设置未成功");
+            }
+        } else {
+            State.log("客户端请求不要对手机静音");
         }
     }
 
     // 添加注册音量变化监听器的方法
-    private static void registerVolumeChangeListener(Context context) {
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        
+    private static void registerVolumeChangeListener(Context context, AudioManager audioManager) {
+
         // 创建音频焦点变化监听器
         volumeChangeListener = focusChange -> {
             // 如果还在投屏且应该保持静音状态，检查并重新设置静音
             if (State.mirrorVirtualDisplay != null && isMuted) {
-                checkAndRestoreMute(context);
+                checkAndRestoreMute();
             }
         };
         
         // 请求音频焦点以便接收音频变化事件
-        audioManager.requestAudioFocus(volumeChangeListener, 
-                AudioManager.STREAM_MUSIC, 
+        audioManager.requestAudioFocus(volumeChangeListener,
+                AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
                 
         // 创建内容观察者监听音量变化
@@ -235,7 +248,7 @@ public class SunshineServer {
                     super.onChange(selfChange);
                     // 如果还在投屏且应该保持静音状态，检查并重新设置静音
                     if (State.mirrorVirtualDisplay != null && isMuted) {
-                        checkAndRestoreMute(context);
+                        checkAndRestoreMute();
                     }
                 }
             }
@@ -243,11 +256,16 @@ public class SunshineServer {
     }
     
     // 检查并恢复静音状态
-    private static void checkAndRestoreMute(Context context) {
+    private static void checkAndRestoreMute() {
+        Context context = State.getContext();
+        if (context == null) {
+            return;
+        }
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         if (!audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
             State.log("检测到音量变化，重新设置静音");
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
         }
     }
 
@@ -258,20 +276,7 @@ public class SunshineServer {
             CreateVirtualDisplay.restoreAspectRatio();
             InputRouting.moveImeToDefault();
             Context context = State.getContext();
-            if (originalVolume != 0 && context != null) {
-                State.log("恢复音量: " + originalVolume);
-                AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
-                
-                // 取消注册音量变化监听器
-                if (volumeChangeListener != null) {
-                    audioManager.abandonAudioFocus(volumeChangeListener);
-                    volumeChangeListener = null;
-                }
-                
-                isMuted = false;
-            }
+            restoreVolume(context);
             if (autoRotateAndScaleForMoonlight != null) {
                 autoRotateAndScaleForMoonlight.stop();
                 autoRotateAndScaleForMoonlight = null;
@@ -282,6 +287,23 @@ public class SunshineServer {
                 ExitAll.execute(State.getContext(), true);
             }
         });
+    }
+
+    public static void restoreVolume(Context context) {
+        if (originalVolume != 0 && context != null) {
+            State.log("恢复音量: " + originalVolume);
+            isMuted = false;
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
+
+            // 取消注册音量变化监听器
+            if (volumeChangeListener != null) {
+                audioManager.abandonAudioFocus(volumeChangeListener);
+                volumeChangeListener = null;
+            }
+
+        }
     }
 
     // 添加新方法用于启动音频录制
@@ -770,7 +792,6 @@ public class SunshineServer {
         State.serverUuid = uuid;
         if (!Pref.doNotAutoStartMoonlight) {
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                State.log("开始自动连接");
                 if (Pref.getAutoConnectClient() && !Pref.getSelectedClient().isEmpty()) {
                     ConnectToClient.connect((int)(Math.random() * 9000) + 1000);
                 }

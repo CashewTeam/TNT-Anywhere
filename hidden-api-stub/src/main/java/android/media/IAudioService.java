@@ -4,6 +4,7 @@ import android.media.audiopolicy.AudioProductStrategy;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.os.UserHandle;
 
 import java.util.List;
 
@@ -22,4 +23,8 @@ public interface IAudioService extends IInterface {
     List<AudioDeviceAttributes> getPreferredDevicesForStrategy(int strategy);
     int setHdmiSystemAudioSupported(boolean on);
     boolean isHdmiSystemAudioSupported();
+    boolean isStreamMute(int streamType);
+    void adjustStreamVolumeForUid(int streamType, int direction, int flags,
+                                  String packageName, int uid, int pid, UserHandle userHandle,
+                                  int targetSdkVersion);
 }
