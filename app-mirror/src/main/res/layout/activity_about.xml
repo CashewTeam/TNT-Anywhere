@@ -61,7 +61,7 @@
         android:id="@+id/bilibiliLink"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="b站：安卓屏连"
+        android:text="b站：屏易连"
         android:textSize="16sp"
         android:textColor="@color/blue"
         android:layout_marginTop="8dp"

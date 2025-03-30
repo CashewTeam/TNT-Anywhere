@@ -103,7 +103,7 @@
             android:id="@+id/singleAppModeCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="单应用投屏"
+            android:text="单应用投屏（可以投微软桌面这类启动器类型的应用）"
             android:textSize="16sp"
             android:padding="8dp"/>
 

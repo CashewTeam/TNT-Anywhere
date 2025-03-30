@@ -106,7 +106,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         if (!selectedAppName.isEmpty() && singleAppMode) {
             singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
         } else {
-            singleAppModeCheckbox.setText("单应用投屏");
+            singleAppModeCheckbox.setText("单应用投屏（可以投微软桌面这类启动器类型的应用）");
         }
         
         // 监听复选框变化
@@ -118,7 +118,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (!isChecked) {
-                singleAppModeCheckbox.setText("单应用投屏");
+                singleAppModeCheckbox.setText("单应用投屏（可以投微软桌面这类启动器类型的应用）");
             } else if (!selectedAppName.isEmpty()) {
                 singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
             }
@@ -240,7 +240,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         // 如果没有Shizuku权限，禁用该选项
         if (!ShizukuUtils.hasPermission()) {
             disableUsbAudioCheckbox.setEnabled(false);
-            disableUsbAudioCheckbox.setText("停用外接屏幕的声音输出（需要Shizuku权限）");
         }
 
         // 添加触摸屏控制复选框监听器
@@ -418,12 +417,19 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> launcherApps = pm.queryIntentActivities(intent, 0);
         
+        // 按应用名称排序
+        launcherApps.sort((a, b) -> {
+            String labelA = a.loadLabel(pm).toString();
+            String labelB = b.loadLabel(pm).toString();
+            return labelA.compareToIgnoreCase(labelB);
+        });
+        
         // 创建自定义适配器来显示应用图标和名称
         AppListAdapter adapter = new AppListAdapter(this, launcherApps, pm);
         
         // 创建并显示选择对话框
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("不要每次都来这里找应用，固定设置为你喜欢的启动器类型的应用");
+        builder.setTitle("请固定设置为微软桌面，ATV Launcher这类应用，一劳永逸");
         builder.setAdapter(adapter, (dialog, which) -> {
             ResolveInfo selectedApp = launcherApps.get(which);
             String selectedPackage = selectedApp.activityInfo.packageName;
