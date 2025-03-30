@@ -364,16 +364,17 @@ namespace sunshine_callbacks {
         // 创建 MediaFormat
         AMediaFormat *format = AMediaFormat_new();
         AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, config.videoFormat == 1 ? "video/hevc" : "video/avc");
-        
+
+        auto encodeFrameRate = config.framerate < 60 ? 60 : config.framerate;
         // 基本配置保持不变
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, config.bitrate * 1000);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, 120);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 120);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 120);
-        AMediaFormat_setInt32(format, "max-fps-to-encoder", config.framerate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 2); // 关键帧间隔(秒)
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
+        AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
+        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, 3); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, 10);
@@ -439,7 +440,7 @@ namespace sunshine_callbacks {
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, 60);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
             AMediaFormat_setInt32(format, "max-fps-to-encoder", 60);
-            codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
+            codec = AMediaCodec_createEncoderByType("video/avc");
         }
         if (!codec) {
             BOOST_LOG(error) << "无法创建编码器"sv;
@@ -497,7 +498,7 @@ namespace sunshine_callbacks {
         }
         
         // 调用 createVirtualDisplay 方法，传递 shouldMute 参数
-        createVirtualDisplay(env, config.width, config.height, 120, audioConfig.packetDuration, javaSurface, shouldMute);
+        createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
