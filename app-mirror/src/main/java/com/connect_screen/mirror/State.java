@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -55,14 +57,21 @@ public class State {
             State.log("user service connected");
             State.userService = IUserService.Stub.asInterface(binder);
             if (State.currentActivity.get() != null) {
-                State.currentActivity.get().runOnUiThread(() -> {
+                MirrorMainActivity context = State.currentActivity.get();
+                context.runOnUiThread(() -> {
                     State.resumeJob();
                 });
             }
-            try {
-                State.userService.executeCommand("appops set com.connect_screen.mirror PROJECT_MEDIA allow");
-            } catch (Throwable e) {
-                // ignorepp
+            SharedPreferences preferences = Pref.getPreferences();
+            if (preferences != null && preferences.getInt("AUTO_GRANT_PERMISSION", 0) != BuildConfig.VERSION_CODE) {
+                preferences.edit().putInt("AUTO_GRANT_PERMISSION", BuildConfig.VERSION_CODE).apply();
+                State.log("授予媒体投影权限和悬浮窗权限");
+                try {
+                    State.userService.executeCommand("appops set com.connect_screen.mirror PROJECT_MEDIA allow");
+                    State.userService.executeCommand("appops set com.connect_screen.mirror SYSTEM_ALERT_WINDOW allow");
+                } catch (Throwable e) {
+                    // ignorepp
+                }
             }
             try {
                 if (State.userService.isRooted()) {
