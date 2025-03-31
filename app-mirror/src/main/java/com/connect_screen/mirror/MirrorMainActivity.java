@@ -32,8 +32,18 @@ import org.lsposed.hiddenapibypass.HiddenApiBypass;
 import java.lang.ref.WeakReference;
 
 import rikka.shizuku.Shizuku;
+import com.topjohnwu.superuser.Shell;
 
 public class MirrorMainActivity extends AppCompatActivity implements IMainActivity {
+
+    static {
+        // Set settings before the main shell can be created
+        Shell.enableVerboseLogging = BuildConfig.DEBUG;
+        Shell.setDefaultBuilder(Shell.Builder.create()
+                .setFlags(Shell.FLAG_MOUNT_MASTER)
+                .setTimeout(10));
+    }
+
     public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
     public static final String TAG = "MirrorMainActivity";
@@ -91,7 +101,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         super.onCreate(savedInstanceState);
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
-        
+
         // 获取 DoNotAutoStartMoonlight 参数
         boolean doNotAutoStartMoonlight = getIntent().getBooleanExtra("DoNotAutoStartMoonlight", false);
         if (doNotAutoStartMoonlight) {

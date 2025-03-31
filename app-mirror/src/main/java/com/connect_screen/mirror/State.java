@@ -6,7 +6,9 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -17,6 +19,8 @@ import com.connect_screen.mirror.job.YieldException;
 import com.connect_screen.mirror.shizuku.IUserService;
 import com.connect_screen.mirror.shizuku.SurfaceControl;
 import com.connect_screen.mirror.shizuku.UserService;
+import com.topjohnwu.superuser.Shell;
+import com.topjohnwu.superuser.ShellUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -54,6 +58,34 @@ public class State {
                 State.currentActivity.get().runOnUiThread(() -> {
                     State.resumeJob();
                 });
+            }
+            try {
+                if (State.userService.isRooted()) {
+                    State.log("检测到 shizuku 是 root 启动的，尝试拿 root 权限，把 shizuku 重启为 adb 身份");
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        boolean success = Shell.getShell().newJob()
+                                .add("/data/adb/magisk/busybox killall shizuku_server")
+                                .add("su 2000")
+                                .add("/data/local/tmp/shizuku_starter")
+                                .exec()
+                                .isSuccess();
+                        Log.e("State", "kill shizuku " + success);
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                           if (success) {
+                               State.log("Shizuku 已重启为 adb 身份，请退出重新进入屏易连");
+                           } else {
+                               State.log("Shizuku 重启失败");
+                           }
+                        });
+                    }).start();
+                }
+            } catch (RemoteException e) {
+                // ignore
             }
         }
 
