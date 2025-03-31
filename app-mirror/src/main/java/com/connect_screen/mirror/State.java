@@ -60,28 +60,33 @@ public class State {
                 });
             }
             try {
+                State.userService.executeCommand("appops set com.connect_screen.mirror PROJECT_MEDIA allow");
+            } catch (Throwable e) {
+                // ignorepp
+            }
+            try {
                 if (State.userService.isRooted()) {
                     State.log("检测到 shizuku 是 root 启动的，尝试拿 root 权限，把 shizuku 重启为 adb 身份");
                     new Thread(() -> {
                         try {
                             Thread.sleep(2000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                            boolean success = Shell.getShell().newJob()
+                                    .add("/data/adb/magisk/busybox killall shizuku_server")
+                                    .add("su 2000")
+                                    .add("/data/local/tmp/shizuku_starter")
+                                    .exec()
+                                    .isSuccess();
+                            Log.e("State", "kill shizuku " + success);
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                if (success) {
+                                    State.log("Shizuku 已重启为 adb 身份，请退出重新进入屏易连");
+                                } else {
+                                    State.log("Shizuku 重启失败");
+                                }
+                            });
+                        } catch (Throwable e) {
+                            // ignore
                         }
-                        boolean success = Shell.getShell().newJob()
-                                .add("/data/adb/magisk/busybox killall shizuku_server")
-                                .add("su 2000")
-                                .add("/data/local/tmp/shizuku_starter")
-                                .exec()
-                                .isSuccess();
-                        Log.e("State", "kill shizuku " + success);
-                        new Handler(Looper.getMainLooper()).post(() -> {
-                           if (success) {
-                               State.log("Shizuku 已重启为 adb 身份，请退出重新进入屏易连");
-                           } else {
-                               State.log("Shizuku 重启失败");
-                           }
-                        });
                     }).start();
                 }
             } catch (RemoteException e) {
@@ -97,7 +102,7 @@ public class State {
 
     public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
             .daemon(true)
-            .tag("temp3")
+            .tag("temp4")
             .processNameSuffix("connect-screen")
             .debuggable(false)
             .version(BuildConfig.VERSION_CODE);
