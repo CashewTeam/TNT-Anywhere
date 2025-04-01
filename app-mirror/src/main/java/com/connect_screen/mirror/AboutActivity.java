@@ -26,7 +26,9 @@ public class AboutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_about);
         
         TextView aboutContent = findViewById(R.id.aboutContent);
-        aboutContent.setText("本应用使用了DisplayLink®的驱动程序(.so文件)用于支持DisplayLink®设备的连接功能。DisplayLink®是Synaptics Incorporated的注册商标。我们仅将其驱动程序用于实现与DisplayLink®设备的兼容性，未对驱动程序进行任何修改。\n\n" +
+        aboutContent.setText(
+        "本应用使用了开源软件 sunshine（https://github.com/LizardByte/Sunshine） 的源代码。\n\n" +     
+        "本应用使用了DisplayLink®的驱动程序(.so文件)用于支持DisplayLink®设备的连接功能。DisplayLink®是Synaptics Incorporated的注册商标。我们仅将其驱动程序用于实现与DisplayLink®设备的兼容性，未对驱动程序进行任何修改。\n\n" +
                 "- DisplayLink®驱动程序的所有权利均属于Synaptics Incorporated\n" +
                 "- 本应用仅将DisplayLink®驱动用于其预期用途，即支持DisplayLink®设备的连接\n" +
                 "- 用户在使用DisplayLink®相关功能时应遵守Synaptics Incorporated的相关许可条款\n" +
