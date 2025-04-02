@@ -47,7 +47,6 @@ import dev.rikka.tools.refine.Refine;
 public class SunshineServer {
     public static String suppressPin;
     public static String pinCandidate;
-    private static int originalVolume;
     private static boolean isMuted = false;
     private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
 
@@ -129,15 +128,13 @@ public class SunshineServer {
                 State.log("没有音频控制权限，无法静音");
             }
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
             if (ServiceUtils.getAudioManager().isStreamMute(AudioManager.STREAM_MUSIC)) {
                 isMuted = true;
-                State.log("应客户端的请求对手机静音，记录原始的音量值为：" + originalVolume);
+                State.log("应客户端的请求对手机静音");
                 // 注册音量变化监听器
                 registerVolumeChangeListener(context, audioManager);
             } else {
-                originalVolume = 0;
                 State.log("静音设置未成功");
             }
         } else {
@@ -206,14 +203,14 @@ public class SunshineServer {
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
-                ExitAll.execute(State.getContext(), true);
+                ExitAll.execute(context, true);
             }
         });
     }
 
     public static void restoreVolume(Context context) {
-        if (originalVolume != 0 && context != null) {
-            State.log("恢复音量: " + originalVolume);
+        if (isMuted && context != null) {
+            State.log("恢复音量");
             isMuted = false;
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);

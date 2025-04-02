@@ -24,6 +24,7 @@ public class Pref {
     public static final String KEY_SELECTED_CLIENT = "selected_client";
     public static final String KEY_AUTO_CONNECT_CLIENT = "auto_connect_client";
     public static final String KEY_DISABLE_ACCESSIBILITY = "disable_accessibility";
+    public static final String KEY_USE_BLACK_IMAGE = "use_black_image";
     public static boolean doNotAutoStartMoonlight;
 
     public static boolean getAutoRotate() {
@@ -100,6 +101,10 @@ public class Pref {
 
     public static boolean getDisableAccessibility() {
         return getBoolean(KEY_DISABLE_ACCESSIBILITY, false);
+    }
+
+    public static boolean getUseBlackImage() {
+        return getBoolean(KEY_USE_BLACK_IMAGE, false);
     }
 
     private static String getString(String key, String defaultValue) {

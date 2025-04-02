@@ -38,7 +38,6 @@ public class PureBlackActivity extends AppCompatActivity {
     private final Set<Integer> externalDeviceIds = new HashSet<>();
     private final boolean hasShizukuPermission = ShizukuUtils.hasPermission();
     private IInputManager inputManager;
-    private boolean useRealScreenOff;
 
     // 将 ExitReceiver 修改为静态内部类
     public static class ExitReceiver extends BroadcastReceiver {
@@ -89,8 +88,6 @@ public class PureBlackActivity extends AppCompatActivity {
         view.setBackgroundColor(Color.BLACK);
         setContentView(view);
 
-        useRealScreenOff = ShizukuUtils.hasPermission();
-        
         // 添加鼠标捕获
         view.setOnGenericMotionListener((v, event) -> {
             TouchpadActivity.setFocus(inputManager, Display.DEFAULT_DISPLAY);
@@ -157,7 +154,6 @@ public class PureBlackActivity extends AppCompatActivity {
            inputManager = ServiceUtils.getInputManager();
            TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
            TouchpadAccessibilityService.startServiceByShizuku(this);
-           powerOffScreen();
            new Handler().postDelayed(() -> {
                TouchpadActivity.setFocus(inputManager, State.lastSingleAppDisplay);
            }, 500);
@@ -175,29 +171,10 @@ public class PureBlackActivity extends AppCompatActivity {
        }
     }
 
-    private void powerOffScreen() {
-        if (useRealScreenOff && State.userService != null) {
-            try {
-                State.userService.startListenVolumeKey();
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF);
-            } catch (RemoteException e) {
-                State.log("powerOffScreen failed: " + e.getMessage());
-            }
-        }
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
         State.isInPureBlackActivity = null;
-        if (useRealScreenOff && State.userService != null) {
-            try {
-                State.userService.stopListenVolumeKey();
-                State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-            } catch (RemoteException e) {
-                State.log("powerUpScreen failed: " + e.getMessage());
-            }
-        }
     }
 
     private boolean isExternalDevice(MotionEvent event) {
@@ -216,19 +193,5 @@ public class PureBlackActivity extends AppCompatActivity {
             }
         }
         return false;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (useRealScreenOff) {
-           if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-               // 让系统处理音量调节
-               super.onKeyDown(keyCode, event);
-               // 关闭当前Activity
-               finish();
-               return true;
-           }
-        }
-        return super.onKeyDown(keyCode, event);
     }
 }

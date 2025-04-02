@@ -68,6 +68,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         LinearLayout clientConnectionContainer = findViewById(R.id.clientConnectionContainer);
         Spinner clientSpinner = findViewById(R.id.clientSpinner);
         Button connectClientButton = findViewById(R.id.connectClientButton);
+        CheckBox useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = Pref.getSingleAppMode();
@@ -83,6 +84,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
         boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
         boolean autoConnectClient = Pref.getAutoConnectClient();
+        boolean useBlackImage = Pref.getUseBlackImage();
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -97,6 +99,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         autoMatchAspectRatioCheckbox.setChecked(autoMatchAspectRatio);
         showFloatingInMirrorModeCheckbox.setChecked(showFloatingInMirrorMode);
         autoConnectClientCheckbox.setChecked(autoConnectClient);
+        useBlackImageCheckbox.setChecked(useBlackImage);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -317,6 +320,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     TouchpadAccessibilityService.disableAll(MirrorSettingsActivity.this);
                 }
             }
+        });
+
+        // 添加使用黑色图片复选框监听器
+        useBlackImageCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_USE_BLACK_IMAGE, isChecked).apply();
         });
     }
 

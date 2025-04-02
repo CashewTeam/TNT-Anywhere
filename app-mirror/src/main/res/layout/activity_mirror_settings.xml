@@ -210,6 +210,14 @@
             android:padding="8dp"/>
 
         <CheckBox
+            android:id="@+id/useBlackImageCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="使用黑色图片模拟熄屏"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
+        <CheckBox
             android:id="@+id/disableUsbAudioCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

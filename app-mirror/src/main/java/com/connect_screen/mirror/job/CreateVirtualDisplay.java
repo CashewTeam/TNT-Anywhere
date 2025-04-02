@@ -95,7 +95,7 @@ public class CreateVirtualDisplay {
 
     public static void doPowerOffScreen(Context context) {
         boolean singleApp = Pref.getSingleAppMode();
-        if (State.userService != null) {
+        if (State.userService != null && !Pref.getUseBlackImage()) {
             try {
                 State.userService.startListenVolumeKey();
                 if (State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
