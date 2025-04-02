@@ -35,6 +35,10 @@ static jmethodID handleTouchPacketMethod = nullptr;
 static jmethodID handleAbsMouseMoveMethod = nullptr;
 static jmethodID handleLeftMouseButtonMethod = nullptr;
 
+// 在全局变量区域添加新的缓存变量
+static jclass sunshineKeyboardClass = nullptr;
+static jmethodID handleKeyboardMethod = nullptr;
+
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass clazz) {
     env->GetJavaVM(&jvm);
@@ -63,6 +67,22 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
         }
     } else {
         BOOST_LOG(error) << "无法在启动时找到 SunshineMouse 类"sv;
+    }
+    
+    // 在现有类引用创建后添加 SunshineKeyboard 类的缓存
+    jclass keyboardClass = env->FindClass("com/connect_screen/mirror/job/SunshineKeyboard");
+    if (keyboardClass != nullptr) {
+        sunshineKeyboardClass = (jclass)env->NewGlobalRef(keyboardClass);
+        env->DeleteLocalRef(keyboardClass);
+        
+        // 缓存键盘处理方法ID
+        handleKeyboardMethod = env->GetStaticMethodID(sunshineKeyboardClass, "handleKeyboardEvent", "(IZI)V");
+        
+        if (!handleKeyboardMethod) {
+            BOOST_LOG(warning) << "无法缓存键盘处理方法ID"sv;
+        }
+    } else {
+        BOOST_LOG(error) << "无法在启动时找到 SunshineKeyboard 类"sv;
     }
     
     deinit = logging::init(1, "/dev/null");
@@ -121,6 +141,14 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
         handleAbsMouseMoveMethod = nullptr;
         handleLeftMouseButtonMethod = nullptr;
     }
+    
+    // 在清理部分添加对 SunshineKeyboard 类的清理
+    if (sunshineKeyboardClass != nullptr) {
+        env->DeleteGlobalRef(sunshineKeyboardClass);
+        sunshineKeyboardClass = nullptr;
+        handleKeyboardMethod = nullptr;
+    }
+    
     // 其他清理工作...
 }
 
@@ -827,5 +855,34 @@ namespace sunshine_callbacks {
     }
 
     void callJavaOnKeyboard(uint16_t modcode, bool release, uint8_t flags) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+        
+        if (sunshineKeyboardClass == nullptr || handleKeyboardMethod == nullptr) {
+            BOOST_LOG(error) << "SunshineKeyboard 类引用或方法ID为空"sv;
+            return;
+        }
+
+        JNIEnv *env;
+        jint result = jvm->AttachCurrentThread(&env, nullptr);
+        if (result != JNI_OK) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        // 直接使用缓存的类引用和方法ID
+        env->CallStaticVoidMethod(sunshineKeyboardClass, handleKeyboardMethod, 
+            static_cast<jint>(modcode),
+            static_cast<jboolean>(release),
+            static_cast<jint>(flags));
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+
+        jvm->DetachCurrentThread();
     }
 }

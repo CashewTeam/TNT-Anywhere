@@ -35,6 +35,7 @@ import java.util.Set;
 import dev.rikka.tools.refine.Refine;
 
 public class SunshineMouse {
+    private static String TAG = "SunshineMouse";
     public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
     private static IInputManager inputManager;
     private static float defaultDisplayWidth;
@@ -284,7 +285,7 @@ public class SunshineMouse {
                 handleTouchEventCancelAll();
                 break;
             default:
-                android.util.Log.e("SunshineServer", "未知的触摸事件类型: " + eventType);
+                Log.e(TAG, "未知的触摸事件类型: " + eventType);
         }
     }
 
@@ -380,7 +381,7 @@ public class SunshineMouse {
                 motionEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
             }
             inputManager.injectInputEvent(event, 0);
-            Log.d("SunshineServer", prefix + ": " + event);
+            Log.d(TAG, prefix + ": " + event);
         } else if (TouchpadAccessibilityService.getInstance() != null) {
             gesture.add(event);
             if ((event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) && pointers.isEmpty()) {
