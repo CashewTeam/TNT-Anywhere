@@ -117,6 +117,7 @@ public class SunshineServer {
         }
 
         SunshineMouse.initialize(width, height);
+        SunshineKeyboard.initialize();
         
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
