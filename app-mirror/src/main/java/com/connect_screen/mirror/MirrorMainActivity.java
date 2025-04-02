@@ -109,6 +109,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             Pref.doNotAutoStartMoonlight = doNotAutoStartMoonlight;
         }
 
+        AcquireShizuku.fixRootShizuku();
         if (!Pref.getDisableAccessibility()) {
             ensureAccessiblityServiceStarted();
         }
@@ -146,8 +147,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     private void ensureAccessiblityServiceStarted() {
         if (ShizukuUtils.hasPermission()) {
             if (State.userService == null) {
-                Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
-                Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+                State.bindUserService();
             }
             TouchpadAccessibilityService.startServiceByShizuku(this);
         } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {

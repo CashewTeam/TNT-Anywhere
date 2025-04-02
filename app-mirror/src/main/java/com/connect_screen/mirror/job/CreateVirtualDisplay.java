@@ -177,7 +177,7 @@ public class CreateVirtualDisplay {
         try {
             if (State.userService != null && State.userService.isRooted()) {
                 new Handler(Looper.getMainLooper()).post(() -> {
-                    State.log("用 root 权限启动的 shizuku 无法单应用投屏，需要改成 adb 权限启动");
+                    State.log("用 root 权限启动的 shizuku 可能无法单应用投屏，最好改成 adb 权限启动");
                 });
             }
         } catch (Throwable e) {

@@ -19,6 +19,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.connect_screen.mirror.job.Job;
 import com.connect_screen.mirror.job.YieldException;
 import com.connect_screen.mirror.shizuku.IUserService;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.connect_screen.mirror.shizuku.SurfaceControl;
 import com.connect_screen.mirror.shizuku.UserService;
 import com.topjohnwu.superuser.Shell;
@@ -72,34 +73,6 @@ public class State {
                 } catch (Throwable e) {
                     // ignorepp
                 }
-            }
-            try {
-                if (State.userService.isRooted()) {
-                    State.log("检测到 shizuku 是 root 启动的，尝试拿 root 权限，把 shizuku 重启为 adb 身份");
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(2000);
-                            boolean success = Shell.getShell().newJob()
-                                    .add("/data/adb/magisk/busybox killall shizuku_server")
-                                    .add("su 2000")
-                                    .add("/data/local/tmp/shizuku_starter")
-                                    .exec()
-                                    .isSuccess();
-                            Log.e("State", "kill shizuku " + success);
-                            new Handler(Looper.getMainLooper()).post(() -> {
-                                if (success) {
-                                    State.log("Shizuku 已重启为 adb 身份，请退出重新进入屏易连");
-                                } else {
-                                    State.log("Shizuku 重启失败");
-                                }
-                            });
-                        } catch (Throwable e) {
-                            // ignore
-                        }
-                    }).start();
-                }
-            } catch (RemoteException e) {
-                // ignore
             }
         }
 
@@ -212,9 +185,8 @@ public class State {
 
     public static void unbindUserService() {
         try {
-            if (userService == null) {
-                Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, true); // 解绑用户服务
-            }
+            State.userService = null;
+            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, true); // 解绑用户服务
         } catch (Exception e) {
             // ignore
         }
@@ -242,5 +214,10 @@ public class State {
             return SunshineService.instance;
         }
         return null;
+    }
+
+    public static void bindUserService() {
+        Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
+        Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
     }
 }
