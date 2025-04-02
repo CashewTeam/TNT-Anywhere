@@ -131,7 +131,6 @@ public class SunshineServer {
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
             if (ServiceUtils.getAudioManager().isStreamMute(AudioManager.STREAM_MUSIC)) {
                 isMuted = true;
                 State.log("应客户端的请求对手机静音，记录原始的音量值为：" + originalVolume);
@@ -189,7 +188,6 @@ public class SunshineServer {
         if (!audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
             State.log("检测到音量变化，重新设置静音");
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
         }
     }
 
@@ -219,7 +217,6 @@ public class SunshineServer {
             isMuted = false;
             AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0);
 
             // 取消注册音量变化监听器
             if (volumeChangeListener != null) {
