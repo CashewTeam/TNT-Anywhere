@@ -101,6 +101,45 @@ public class SunshineKeyboard {
     private static IInputManager inputManager;
     private static boolean singleAppMode;
 
+    // 添加修饰键状态跟踪
+    private static int currentMetaState = 0;
+    
+    private static void updateMetaState(int keycode, boolean pressed) {
+        int mask = 0;
+        switch (keycode) {
+            case KeyEvent.KEYCODE_SHIFT_LEFT:
+                mask = KeyEvent.META_SHIFT_ON | KeyEvent.META_SHIFT_LEFT_ON;
+                break;
+            case KeyEvent.KEYCODE_SHIFT_RIGHT:
+                mask = KeyEvent.META_SHIFT_ON | KeyEvent.META_SHIFT_RIGHT_ON;
+                break;
+            case KeyEvent.KEYCODE_CTRL_LEFT:
+                mask = KeyEvent.META_CTRL_ON | KeyEvent.META_CTRL_LEFT_ON;
+                break;
+            case KeyEvent.KEYCODE_CTRL_RIGHT:
+                mask = KeyEvent.META_CTRL_ON | KeyEvent.META_CTRL_RIGHT_ON;
+                break;
+            case KeyEvent.KEYCODE_ALT_LEFT:
+                mask = KeyEvent.META_ALT_ON | KeyEvent.META_ALT_LEFT_ON;
+                break;
+            case KeyEvent.KEYCODE_ALT_RIGHT:
+                mask = KeyEvent.META_ALT_ON | KeyEvent.META_ALT_RIGHT_ON;
+                break;
+            case KeyEvent.KEYCODE_META_LEFT:
+                mask = KeyEvent.META_META_ON | KeyEvent.META_META_LEFT_ON;
+                break;
+            case KeyEvent.KEYCODE_META_RIGHT:
+                mask = KeyEvent.META_META_ON | KeyEvent.META_META_RIGHT_ON;
+                break;
+        }
+        
+        if (pressed) {
+            currentMetaState |= mask;
+        } else {
+            currentMetaState &= ~mask;
+        }
+    }
+
     public static void initialize() {
         Context context = State.getContext();
         if (context == null) {
@@ -112,13 +151,20 @@ public class SunshineKeyboard {
         singleAppMode = Pref.getSingleAppMode();
     }
 
-    public static void handleKeyboardEvent(int modcode, boolean release, int flags) {
-        if(inputManager ==null) {
+    public static void handleKeyboardEvent(int modcode, boolean release, int _notUsed) {
+        if(inputManager == null) {
             return;
         }
         long now = SystemClock.uptimeMillis();
-        KeyEvent keyEvent = new KeyEvent(now, now, release ? KeyEvent.ACTION_UP : KeyEvent.ACTION_DOWN,
-                translateWindowsVKToAndroidKey(modcode), 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
+        int androidKeyCode = translateWindowsVKToAndroidKey(modcode);
+        
+        // 更新修饰键状态
+        updateMetaState(androidKeyCode, !release);
+        
+        KeyEvent keyEvent = new KeyEvent(now, now, 
+                release ? KeyEvent.ACTION_UP : KeyEvent.ACTION_DOWN,
+                androidKeyCode, 0, currentMetaState, // 使用当前的修饰键状态
+                KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                 InputDevice.SOURCE_KEYBOARD);
         if (singleAppMode) {
             if (State.mirrorVirtualDisplay == null) {
