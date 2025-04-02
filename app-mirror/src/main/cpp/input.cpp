@@ -689,27 +689,33 @@ namespace input {
       // Press any synthetic modifiers required for this key
       if (synthetic_modifiers & MODIFIER_SHIFT) {
 //        platf::keyboard_update(platf_input, VKEY_SHIFT, false, flags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_SHIFT, false, flags);
       }
       if (synthetic_modifiers & MODIFIER_CTRL) {
 //        platf::keyboard_update(platf_input, VKEY_CONTROL, false, flags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_CONTROL, false, flags);
       }
       if (synthetic_modifiers & MODIFIER_ALT) {
 //        platf::keyboard_update(platf_input, VKEY_MENU, false, flags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, false, flags);
       }
     }
 
 //    platf::keyboard_update(platf_input, map_keycode(key_code), release, flags);
-
+sunshine_callbacks::callJavaOnKeyboard(map_keycode(key_code), release, flags);
     if (!release) {
       // Raise any synthetic modifier keys we pressed
       if (synthetic_modifiers & MODIFIER_SHIFT) {
 //        platf::keyboard_update(platf_input, VKEY_SHIFT, true, flags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_SHIFT, true, flags);
       }
       if (synthetic_modifiers & MODIFIER_CTRL) {
 //        platf::keyboard_update(platf_input, VKEY_CONTROL, true, flags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_CONTROL, true, flags);
       }
       if (synthetic_modifiers & MODIFIER_ALT) {
-//        platf::keyboard_update(platf_input, VKEY_MENU, true, flags);
+//        platf::keyboard_update(platf_input, VKEY_MENU, true, f  lags);
+sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
       }
     }
   }

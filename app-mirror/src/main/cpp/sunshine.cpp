@@ -815,4 +815,7 @@ namespace sunshine_callbacks {
 
         jvm->DetachCurrentThread();
     }
+
+    void callJavaOnKeyboard(uint16_t modcode, bool release, uint8_t flags) {
+    }
 }

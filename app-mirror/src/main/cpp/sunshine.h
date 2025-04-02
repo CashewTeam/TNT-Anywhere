@@ -11,4 +11,5 @@ namespace sunshine_callbacks {
     void callJavaOnMouseButton(std::uint8_t button, bool release);
     void callJavaOnConnectScreenClientDiscovered(std::string connectScreenClient);
     void callJavaSetConnectScreenServerUuid(std::string uuid);
+    void callJavaOnKeyboard(uint16_t modcode, bool release, uint8_t flags);
 }
