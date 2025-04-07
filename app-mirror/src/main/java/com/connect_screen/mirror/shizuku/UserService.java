@@ -271,7 +271,7 @@ public class UserService extends IUserService.Stub  {
         AudioRecord.Builder builder = new AudioRecord.Builder();
         if (Build.VERSION.SDK_INT >= AndroidVersions.API_31_ANDROID_12) {
             // On older APIs, Workarounds.fillAppInfo() must be called beforehand
-            builder.setContext(FakeContext.get());
+            builder.setContext(context);
         }
         builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
         int sampleRate = 48000; // 与您的Opus配置匹配
