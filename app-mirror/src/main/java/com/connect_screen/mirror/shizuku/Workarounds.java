@@ -82,7 +82,11 @@ public final class Workarounds {
         //   "Attempt to read from field 'android.os.MessageQueue android.os.Looper.mQueue'
         //    on a null object reference"
         // <https://github.com/Genymobile/scrcpy/issues/921>
-        Looper.prepareMainLooper();
+        try {
+            Looper.prepareMainLooper();
+        } catch(Throwable e) {
+            // ignore;
+        }
     }
 
     private static void fillAppInfo() {

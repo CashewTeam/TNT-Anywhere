@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -122,7 +123,7 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
         });
-        if (shouldMute) {
+        if (false) {
             // 检查音频设置权限
             if (context.checkSelfPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
                     != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -210,6 +211,13 @@ public class SunshineServer {
     }
 
     public static void restoreVolume(Context context) {
+        if (State.userService != null) {
+            try {
+                State.userService.stopRecordingAudio();
+            } catch (RemoteException e) {
+                // ignore
+            }
+        }
         if (isMuted && context != null) {
             State.log("恢复音量");
             isMuted = false;
@@ -226,7 +234,7 @@ public class SunshineServer {
     }
 
     // 添加新方法用于启动音频录制
-    public static native void startAudioRecording(AudioRecord audioRecord, int framesPerPacket);
+    public static native void startAudioRecording(Object audioRecord, int framesPerPacket);
 
     public static native void enableH265();
 

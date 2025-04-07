@@ -21,4 +21,10 @@ interface IUserService {
     int createVirtualDisplay(in Surface surface) = 7;
 
     boolean isRooted() = 8;
+
+    int readAudio(out float[] buffer) = 9;
+
+    boolean startRecordingAudio() = 10;
+
+    boolean stopRecordingAudio() = 11;
 }

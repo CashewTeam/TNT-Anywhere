@@ -1,8 +1,12 @@
 package com.connect_screen.mirror.shizuku;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.display.IDisplayManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.UserHandle;
@@ -15,6 +19,7 @@ import android.view.Surface;
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 
+import com.connect_screen.mirror.job.AndroidVersions;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 
 import rikka.shizuku.SystemServiceHelper;
@@ -24,6 +29,8 @@ public class UserService extends IUserService.Stub  {
     private boolean listenVolumeKey = false;
     private Process listenVolumeKeyProcess;
     private Thread volumeKeyThread;
+    private AudioRecord audioRecord;
+    private float[] buffer;
 
     public UserService() {
         Ln.i("Start UserService without context: " + android.os.Process.myUid());
@@ -210,5 +217,77 @@ public class UserService extends IUserService.Stub  {
     @Override
     public boolean isRooted() throws RemoteException {
         return android.os.Process.myUid() == 0;
+    }
+
+    @Override
+    public int readAudio(float[] result) throws RemoteException {
+        try {
+            if (audioRecord == null) {
+                return 0;
+            }
+            return audioRecord.read(result, 0, result.length, AudioRecord.READ_BLOCKING);
+        } catch(Throwable e) {
+            Ln.e("failed to read audio", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public boolean startRecordingAudio() throws RemoteException {
+        try {
+            if (audioRecord == null) {
+                Ln.d("before start recording");
+                audioRecord = createAudioRecord();
+                audioRecord.startRecording();
+                Ln.d("started recording");
+                return true;
+            } else {
+                return true;
+            }
+        } catch(Throwable e) {
+            Ln.e("failed to start recording audio", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean stopRecordingAudio() throws RemoteException {
+        try {
+            if (audioRecord == null) {
+                return true;
+            } else {
+                audioRecord.stop();
+                audioRecord = null;
+                return true;
+            }
+        } catch(Throwable e) {
+            Ln.e("failed to stop recording audio", e);
+            return false;
+        }
+    }
+
+    @SuppressLint({"WrongConstant", "MissingPermission"})
+    private AudioRecord createAudioRecord() {
+        AudioRecord.Builder builder = new AudioRecord.Builder();
+        if (Build.VERSION.SDK_INT >= AndroidVersions.API_31_ANDROID_12) {
+            // On older APIs, Workarounds.fillAppInfo() must be called beforehand
+            builder.setContext(FakeContext.get());
+        }
+        builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
+        int sampleRate = 48000; // 与您的Opus配置匹配
+        int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
+        int audioEncoding = AudioFormat.ENCODING_PCM_FLOAT;
+        AudioFormat audioFormat = new AudioFormat.Builder()
+                .setEncoding(audioEncoding)
+                .setSampleRate(sampleRate)
+                .setChannelMask(channelConfig)
+                .build();
+        builder.setAudioFormat(audioFormat);
+        int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioEncoding);
+        if (minBufferSize > 0) {
+            // This buffer size does not impact latency
+            builder.setBufferSizeInBytes(2 * minBufferSize);
+        }
+        return builder.build();
     }
 }

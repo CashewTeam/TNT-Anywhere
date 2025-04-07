@@ -204,7 +204,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
                         if (samples) {
                             samples->raise(std::move(audioSamples));
                         }
-                        
+
                         // 释放缓冲区
                         threadEnv->ReleaseFloatArrayElements(buffer, audioData, JNI_ABORT);
                     }
