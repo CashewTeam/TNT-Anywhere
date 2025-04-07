@@ -48,8 +48,6 @@ import dev.rikka.tools.refine.Refine;
 public class SunshineServer {
     public static String suppressPin;
     public static String pinCandidate;
-    private static boolean isMuted = false;
-    private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
 
     static {
         System.loadLibrary("sunshine");
@@ -123,72 +121,8 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
         });
-        if (false) {
-            // 检查音频设置权限
-            if (context.checkSelfPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                State.log("没有音频控制权限，无法静音");
-            }
-            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-            if (ServiceUtils.getAudioManager().isStreamMute(AudioManager.STREAM_MUSIC)) {
-                isMuted = true;
-                State.log("应客户端的请求对手机静音");
-                // 注册音量变化监听器
-                registerVolumeChangeListener(context, audioManager);
-            } else {
-                State.log("静音设置未成功");
-            }
-        } else {
-            State.log("客户端请求不要对手机静音");
-        }
     }
 
-    // 添加注册音量变化监听器的方法
-    private static void registerVolumeChangeListener(Context context, AudioManager audioManager) {
-
-        // 创建音频焦点变化监听器
-        volumeChangeListener = focusChange -> {
-            // 如果还在投屏且应该保持静音状态，检查并重新设置静音
-            if (State.mirrorVirtualDisplay != null && isMuted) {
-                checkAndRestoreMute();
-            }
-        };
-        
-        // 请求音频焦点以便接收音频变化事件
-        audioManager.requestAudioFocus(volumeChangeListener,
-                AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-                
-        // 创建内容观察者监听音量变化
-        context.getContentResolver().registerContentObserver(
-            android.provider.Settings.System.CONTENT_URI, 
-            true, 
-            new android.database.ContentObserver(new Handler(Looper.getMainLooper())) {
-                @Override
-                public void onChange(boolean selfChange) {
-                    super.onChange(selfChange);
-                    // 如果还在投屏且应该保持静音状态，检查并重新设置静音
-                    if (State.mirrorVirtualDisplay != null && isMuted) {
-                        checkAndRestoreMute();
-                    }
-                }
-            }
-        );
-    }
-    
-    // 检查并恢复静音状态
-    private static void checkAndRestoreMute() {
-        Context context = State.getContext();
-        if (context == null) {
-            return;
-        }
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (!audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
-            State.log("检测到音量变化，重新设置静音");
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-        }
-    }
 
     public static void stopVirtualDisplay() {
         new Handler(Looper.getMainLooper()).post(() -> {
@@ -197,7 +131,7 @@ public class SunshineServer {
             CreateVirtualDisplay.restoreAspectRatio();
             InputRouting.moveImeToDefault();
             Context context = State.getContext();
-            restoreVolume(context);
+            SunshineAudio.restoreVolume(context);
             if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
                 SunshineMouse.autoRotateAndScaleForMoonlight.stop();
                 SunshineMouse.autoRotateAndScaleForMoonlight = null;
@@ -208,29 +142,6 @@ public class SunshineServer {
                 ExitAll.execute(context, true);
             }
         });
-    }
-
-    public static void restoreVolume(Context context) {
-        if (State.userService != null) {
-            try {
-                State.userService.stopRecordingAudio();
-            } catch (RemoteException e) {
-                // ignore
-            }
-        }
-        if (isMuted && context != null) {
-            State.log("恢复音量");
-            isMuted = false;
-            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
-
-            // 取消注册音量变化监听器
-            if (volumeChangeListener != null) {
-                audioManager.abandonAudioFocus(volumeChangeListener);
-                volumeChangeListener = null;
-            }
-
-        }
     }
 
     // 添加新方法用于启动音频录制
