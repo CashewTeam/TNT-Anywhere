@@ -20,6 +20,7 @@ public class ExitAll {
         CreateVirtualDisplay.restoreAspectRatio();
         CreateVirtualDisplay.powerOnScreen();
         SunshineAudio.restoreVolume(context);
+        State.unbindUserService();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
             State.mediaProjectionInUse = null;

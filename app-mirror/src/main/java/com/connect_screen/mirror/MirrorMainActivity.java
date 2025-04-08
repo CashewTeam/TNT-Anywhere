@@ -145,22 +145,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private void ensureAccessiblityServiceStarted() {
-        if (ShizukuUtils.hasPermission()) {
-            if (State.userService == null) {
-                State.bindUserService();
-            }
-            TouchpadAccessibilityService.startServiceByShizuku(this);
-        } else if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+        if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
             Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
             this.startService(serviceIntent);
-        }
-        if (TouchpadAccessibilityService.getInstance() == null && ShizukuUtils.hasPermission()) {
-            new Handler().postDelayed(() -> {
-                if (TouchpadAccessibilityService.getInstance() == null) {
-                    State.log("无障碍服务启动异常，尝试重启");
-                    TouchpadAccessibilityService.restartServiceByShizuku(this);
-                }
-            }, 500);
         }
     }
 
@@ -233,9 +220,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        State.unbindUserService();
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-
         State.currentActivity = null;
     }
     
@@ -366,7 +351,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             newUiState.screenOffBtnVisibility = false;
             newUiState.touchScreenBtnVisibility = false;
         } else if (isScreenMirroring) {
-            newUiState.mirrorStatusText = "镜像投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀";
+            newUiState.mirrorStatusText = "投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀。如果没有 shizuku 权限可能无法触摸";
             newUiState.settingsBtnVisibility = false;
             newUiState.screenOffBtnVisibility = ShizukuUtils.hasPermission();
             newUiState.touchScreenBtnVisibility = singleAppMode;

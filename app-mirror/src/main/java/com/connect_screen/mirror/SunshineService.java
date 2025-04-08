@@ -17,6 +17,7 @@ import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.OrientationEventListener;
@@ -27,6 +28,7 @@ import com.connect_screen.mirror.job.ConnectToClient;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -81,6 +83,7 @@ public class SunshineService extends Service {
         } catch (Exception e) {
             // ignore
         }
+        State.unbindUserService();
     }
 
     @Override
@@ -164,6 +167,20 @@ public class SunshineService extends Service {
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
         State.refreshMainActivity();
+        Handler handler = new Handler();
+        handler.postDelayed(() -> {
+            if (ShizukuUtils.hasPermission() && State.userService == null) {
+                State.log("try start shizuku user service");
+                State.bindUserService();
+                handler.postDelayed(() -> {
+                    if (ShizukuUtils.hasPermission() && State.userService == null) {
+                        State.log("shizuku user service 启动失败，请取消 shizuku 授权并再次授予。try start user service again");
+                        State.unbindUserService();
+                        State.bindUserService();
+                    }
+                }, 15 * 1000);
+            }
+        }, 3000);
         return START_NOT_STICKY;
     }
 

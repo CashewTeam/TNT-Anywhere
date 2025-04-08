@@ -84,7 +84,7 @@ public class State {
 
     public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
             .daemon(true)
-            .tag("temp2")
+            .tag("temp")
             .processNameSuffix("connect-screen")
             .debuggable(false)
             .version(BuildConfig.VERSION_CODE);
@@ -185,8 +185,8 @@ public class State {
 
     public static void unbindUserService() {
         try {
+            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, false); // 解绑用户服务
             State.userService = null;
-            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, true); // 解绑用户服务
         } catch (Exception e) {
             // ignore
         }

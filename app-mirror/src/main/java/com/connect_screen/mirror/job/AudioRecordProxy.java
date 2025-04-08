@@ -7,7 +7,11 @@ import com.connect_screen.mirror.State;
 public class AudioRecordProxy {
     public int read(float[] audioData, int offsetInFloats, int sizeInFloats, int readMode) {
         try {
-            return State.userService.readAudio(audioData);
+            if (State.userService != null) {
+                return State.userService.readAudio(audioData);
+            } else {
+                return 0;
+            }
         } catch (RemoteException e) {
             return 0;
         }

@@ -49,6 +49,10 @@ public class UserService extends IUserService.Stub  {
     public void destroy() {
         Log.i("UserService", "destroy");
         stopListenVolumeKey();
+        setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
+        if (audioRecord != null) {
+            audioRecord.stop();
+        }
         System.exit(0);
     }
 
