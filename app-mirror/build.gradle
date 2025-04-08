@@ -11,8 +11,8 @@ android {
         applicationId "com.connect_screen.mirror"
         minSdk 28
         targetSdk 34
-        versionCode 58
-        versionName "1.5.8"
+        versionCode 59
+        versionName "1.5.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
