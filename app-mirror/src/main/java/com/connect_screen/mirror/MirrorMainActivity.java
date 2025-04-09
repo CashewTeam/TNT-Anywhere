@@ -102,6 +102,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.currentActivity = new WeakReference<>(this);
 
+        // 添加保持屏幕常亮的标志
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         // 获取 DoNotAutoStartMoonlight 参数
         boolean doNotAutoStartMoonlight = getIntent().getBooleanExtra("DoNotAutoStartMoonlight", false);
         if (doNotAutoStartMoonlight) {

@@ -10,7 +10,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.media.MediaCodecInfo;
 import android.media.projection.MediaProjection;
@@ -20,21 +19,20 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
-import android.view.OrientationEventListener;
 
 import androidx.core.app.NotificationCompat;
 
-import com.connect_screen.mirror.job.ConnectToClient;
 import com.connect_screen.mirror.job.MirrorDisplayMonitor;
 import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -67,7 +65,7 @@ public class SunshineService extends Service {
         }
     };
 
-    private PowerManager.WakeLock wakeLock;
+    private int currentTimeout;
 
     @Override
     public void onCreate() {
@@ -79,19 +77,22 @@ public class SunshineService extends Service {
 
     @Override
     public void onDestroy() {
-        // 释放 wake lock
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
-        
         super.onDestroy();
         instance = null;
+        releaseWakeLock();
         try {
             unregisterReceiver(usbPermissionReceiver);
         } catch (Exception e) {
             // ignore
         }
         State.unbindUserService();
+    }
+
+    public void releaseWakeLock() {
+        if (currentTimeout > 0) {
+            Settings.System.putInt(this.getContentResolver(),
+                    Settings.System.SCREEN_OFF_TIMEOUT, currentTimeout);
+        }
     }
 
     @Override
@@ -111,6 +112,9 @@ public class SunshineService extends Service {
         } else {
             State.log("SunshineService 收到错误的授权数据");
             State.resumeJob();
+        }
+        if (Pref.getPreventAutoLock()) {
+            preventAutoLock();
         }
         // 在后台线程中启动 Sunshine 服务器
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
@@ -189,11 +193,24 @@ public class SunshineService extends Service {
                 }, 15 * 1000);
             }
         }, 3000);
-        // 获取并持有 wake lock
-        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "SunshineService::WakeLock");
-        wakeLock.acquire();
         return START_NOT_STICKY;
+    }
+
+    private void preventAutoLock() {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+            // 读取当前的屏幕超时设置
+            currentTimeout = Settings.System.getInt(this.getContentResolver(),
+                    Settings.System.SCREEN_OFF_TIMEOUT, 0);
+            Log.i("SunshineService", "当前屏幕超时设置: " + currentTimeout + "ms");
+            if (currentTimeout >= 4 * 60 * 60 * 1000) {
+                currentTimeout = 15 * 1000;
+            }
+            Settings.System.putInt(this.getContentResolver(),
+                    Settings.System.SCREEN_OFF_TIMEOUT, 4 * 60 * 60 * 1000);
+        }
     }
 
     @Override
@@ -254,44 +271,6 @@ public class SunshineService extends Service {
             }
         }
         return false;
-    }
-
-    private static boolean isWifiApEnabled(WifiManager mWifiManager) {
-        boolean apState = false;
-        try {
-            // @RequiresPermission(android.Manifest.permission.ACCESS_WIFI_STATE)
-            apState = (boolean) mWifiManager.getClass().getMethod("isWifiApEnabled").invoke(mWifiManager);
-            Log.i(TAG, "isWifiApEnabled :" + apState + "");
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            Log.e(TAG, "failed to get  isWifiApEnabled", e );
-        }
-        return apState;
-    }
-
-    private static String getApIP() {
-        try {
-            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-            while (networkInterfaces.hasMoreElements()){
-                NetworkInterface ni = networkInterfaces.nextElement();
-                Log.d(TAG, "network interface: " + ni.getName());
-                if(ni.isUp() && !ni.isPointToPoint() && !ni.isLoopback() && ("ap0".equals(ni.getName()) || "softap0".equals(ni.getName()) || "wlan2".equals(ni.getName()))){
-                    List<InterfaceAddress> interfaceAddresses = ni.getInterfaceAddresses();
-                    for (InterfaceAddress interfaceAddress : interfaceAddresses) {
-                        if(interfaceAddress.getAddress() != null){
-                            Log.d(TAG,"address:"+interfaceAddress.getAddress().toString());
-                            if(interfaceAddress.getAddress().toString().contains("/192.168")){
-                                String softApIP = interfaceAddress.getAddress().toString().substring(1);
-                                Log.d(TAG,"getApIP:"+softApIP);
-                                return softApIP;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (SocketException e) {
-            throw new RuntimeException(e);
-        }
-        return null;
     }
 
     public static Set<String> getAllWifiIpAddresses(Context context) {

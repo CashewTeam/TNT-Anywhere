@@ -16,6 +16,9 @@ import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {
+        if (SunshineService.instance != null) {
+            SunshineService.instance.releaseWakeLock();
+        }
         boolean wasSunshineStarted = SunshineServer.exitServer();
         CreateVirtualDisplay.restoreAspectRatio();
         CreateVirtualDisplay.powerOnScreen();

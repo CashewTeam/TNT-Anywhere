@@ -69,6 +69,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         Spinner clientSpinner = findViewById(R.id.clientSpinner);
         Button connectClientButton = findViewById(R.id.connectClientButton);
         CheckBox useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
+        CheckBox preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = Pref.getSingleAppMode();
@@ -85,6 +86,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
         boolean autoConnectClient = Pref.getAutoConnectClient();
         boolean useBlackImage = Pref.getUseBlackImage();
+        boolean preventAutoLock = Pref.getPreventAutoLock();
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -100,6 +102,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         showFloatingInMirrorModeCheckbox.setChecked(showFloatingInMirrorMode);
         autoConnectClientCheckbox.setChecked(autoConnectClient);
         useBlackImageCheckbox.setChecked(useBlackImage);
+        preventAutoLockCheckbox.setChecked(preventAutoLock);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -326,6 +329,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         useBlackImageCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_USE_BLACK_IMAGE, isChecked).apply();
         });
+
+        // 添加阻止自动锁屏复选框监听器
+        preventAutoLockCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_PREVENT_AUTO_LOCK, isChecked).apply();
+        });
+        if (!ShizukuUtils.hasPermission()) {
+            preventAutoLockCheckbox.setEnabled(false);
+        }
     }
 
     @Override

@@ -235,6 +235,14 @@
             android:padding="8dp"/>
 
         <CheckBox
+            android:id="@+id/preventAutoLockCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="阻止自动锁屏（原理是修改系统设置里的超时时间）"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
+        <CheckBox
             android:id="@+id/autoHideFloatingCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
