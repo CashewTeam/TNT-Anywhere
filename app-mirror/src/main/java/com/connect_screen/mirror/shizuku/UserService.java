@@ -9,7 +9,6 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.IBinder;
-import android.os.UserHandle;
 import android.util.Log;
 
 import android.os.RemoteException;
@@ -109,17 +108,55 @@ public class UserService extends IUserService.Stub  {
 
     public boolean setScreenPower(int powerMode) {
         Log.i("UserService", "try to setScreenPower: " + powerMode);
+        if (Build.VERSION.SDK_INT >= 35) {
+            setScreenPowerViaNewApi(powerMode);
+        }
         try {
             IBinder displayToken = getDisplayToken();
             if (displayToken == null) {
                 return false;
             }
+            Ln.d("setDisplayPowerMode: " + displayToken + " " + powerMode);
             boolean result = SurfaceControl.setDisplayPowerMode(displayToken, powerMode);
             Ln.d("after setDisplayPowerMode: " + result);
         } catch(Throwable e) {
             Ln.e("setScreenPower failed", e);
         }
         return true;
+    }
+
+    private boolean setScreenPowerViaNewApi(int powerMode) {
+        IDisplayManager displayManager = IDisplayManager.Stub.asInterface(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
+        if (powerMode == SurfaceControl.POWER_MODE_OFF) {
+            try {
+                displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, false);
+                Log.i("UserService", "requestDisplayPower by bool");
+            } catch(Throwable e) {
+                Log.e("UserService", "failed to power off screen", e);
+                try {
+                    displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
+                    Log.i("UserService", "requestDisplayPower by int");
+                } catch(Throwable e2) {
+                    Log.e("UserService", "failed to power off screen", e2);
+                    return false;
+                }
+            }
+        } else {
+            try {
+                displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, true);
+                Log.i("UserService", "requestDisplayPower by bool");
+            } catch (Throwable e) {
+                Log.e("UserService", "failed to power up screen", e);
+                try {
+                    displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_NORMAL);
+                    Log.i("UserService", "requestDisplayPower by int");
+                } catch(Throwable e2) {
+                    Log.e("UserService", "failed to power up screen", e2);
+                    return false;
+                }
+            }
+        }
+        return false;
     }
 
     private @Nullable IBinder getDisplayToken() {

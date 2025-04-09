@@ -54,6 +54,7 @@ public class PureBlackActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         State.isInPureBlackActivity = this;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // 隐藏标题栏
         if (getSupportActionBar() != null) {
