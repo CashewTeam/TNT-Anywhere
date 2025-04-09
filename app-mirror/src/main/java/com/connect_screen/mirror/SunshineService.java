@@ -19,6 +19,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.OrientationEventListener;
 
@@ -66,6 +67,8 @@ public class SunshineService extends Service {
         }
     };
 
+    private PowerManager.WakeLock wakeLock;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -76,6 +79,11 @@ public class SunshineService extends Service {
 
     @Override
     public void onDestroy() {
+        // 释放 wake lock
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        
         super.onDestroy();
         instance = null;
         try {
@@ -181,6 +189,10 @@ public class SunshineService extends Service {
                 }, 15 * 1000);
             }
         }, 3000);
+        // 获取并持有 wake lock
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "SunshineService::WakeLock");
+        wakeLock.acquire();
         return START_NOT_STICKY;
     }
 
