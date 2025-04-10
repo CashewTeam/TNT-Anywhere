@@ -69,7 +69,7 @@ public class ProjectViaMirror implements Job {
                 public void onDisplayRemoved(int i) {
                     if (i == targetDisplayId) {
                         CreateVirtualDisplay.powerOnScreen();
-                        ExitAll.execute(null, false);
+                        ExitAll.execute(State.getContext(), false);
                     }
                 }
 

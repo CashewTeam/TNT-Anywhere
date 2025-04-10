@@ -128,10 +128,6 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.log("停止 Moonlight 投屏");
             CreateVirtualDisplay.powerOnScreen();
-            CreateVirtualDisplay.restoreAspectRatio();
-            InputRouting.moveImeToDefault();
-            Context context = State.getContext();
-            SunshineAudio.restoreVolume(context);
             if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
                 SunshineMouse.autoRotateAndScaleForMoonlight.stop();
                 SunshineMouse.autoRotateAndScaleForMoonlight = null;
@@ -139,8 +135,9 @@ public class SunshineServer {
             if (State.mirrorVirtualDisplay != null) {
                 State.mirrorVirtualDisplay.release();
                 State.mirrorVirtualDisplay = null;
-                ExitAll.execute(context, true);
             }
+            Context context = State.getContext();
+            ExitAll.execute(context, true);
         });
     }
 

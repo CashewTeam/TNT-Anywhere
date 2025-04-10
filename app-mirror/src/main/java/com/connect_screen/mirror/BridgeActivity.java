@@ -145,8 +145,7 @@ public class BridgeActivity extends AppCompatActivity {
                     public void onDisplayRemoved(int i) {
                         if (i == mirrorDisplayId) {
                             CreateVirtualDisplay.powerOnScreen();
-                            InputRouting.moveImeToDefault();
-                            ExitAll.execute(null, false);
+                            ExitAll.execute(State.getContext(), false);
                         }
                     }
 

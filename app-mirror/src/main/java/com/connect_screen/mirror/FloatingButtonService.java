@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -204,17 +205,8 @@ public class FloatingButtonService extends Service {
 
     public void resetButtonVisibility() {
         if (autoHide) {
-            handler.removeCallbacks(fadeOutRunnable);
-            floatingView.animate()
-                    .alpha(1.0f)
-                    .setDuration(200)
-                    .withEndAction(new Runnable() {
-                        @Override
-                        public void run() {
-                            isReady = true;
-                        }
-                    })
-                    .start();
+            floatingView.setAlpha(1.0f);
+            isReady = true;
             startFadeOutTimer();
         }
     }
@@ -238,6 +230,7 @@ public class FloatingButtonService extends Service {
 
     public void onDisplayChanged(int displayId) {
         if (this.displayId == displayId) {
+            Log.i("FloatingButtonService", "detected display change, reset button visibility");
             resetButtonVisibility();
         }
     }
