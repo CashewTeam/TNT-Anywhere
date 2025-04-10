@@ -156,7 +156,7 @@ public class UserService extends IUserService.Stub  {
                 }
             }
         }
-        return false;
+        return true;
     }
 
     private @Nullable IBinder getDisplayToken() {
