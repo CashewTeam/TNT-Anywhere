@@ -109,7 +109,7 @@ public class UserService extends IUserService.Stub  {
     public boolean setScreenPower(int powerMode) {
         Log.i("UserService", "try to setScreenPower: " + powerMode);
         if (Build.VERSION.SDK_INT >= 35) {
-            setScreenPowerViaNewApi(powerMode);
+            return setScreenPowerViaNewApi(powerMode);
         }
         try {
             IBinder displayToken = getDisplayToken();
@@ -130,12 +130,12 @@ public class UserService extends IUserService.Stub  {
         if (powerMode == SurfaceControl.POWER_MODE_OFF) {
             try {
                 displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, false);
-                Log.i("UserService", "requestDisplayPower by bool");
+                Log.i("UserService", "requestDisplayPower by bool false");
             } catch(Throwable e) {
                 Log.e("UserService", "failed to power off screen", e);
                 try {
                     displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_OFF);
-                    Log.i("UserService", "requestDisplayPower by int");
+                    Log.i("UserService", "requestDisplayPower by int: " + powerMode);
                 } catch(Throwable e2) {
                     Log.e("UserService", "failed to power off screen", e2);
                     return false;
@@ -144,12 +144,12 @@ public class UserService extends IUserService.Stub  {
         } else {
             try {
                 displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, true);
-                Log.i("UserService", "requestDisplayPower by bool");
+                Log.i("UserService", "requestDisplayPower by bool true");
             } catch (Throwable e) {
                 Log.e("UserService", "failed to power up screen", e);
                 try {
                     displayManager.requestDisplayPower(Display.DEFAULT_DISPLAY, SurfaceControl.POWER_MODE_NORMAL);
-                    Log.i("UserService", "requestDisplayPower by int");
+                    Log.i("UserService", "requestDisplayPower by int: " + powerMode);
                 } catch(Throwable e2) {
                     Log.e("UserService", "failed to power up screen", e2);
                     return false;
@@ -196,7 +196,7 @@ public class UserService extends IUserService.Stub  {
                         }
                         if (!line.endsWith("0000 0000 00000000") &&
                                 (line.endsWith("0001 0072 00000001") || line.endsWith("0001 0073 00000001"))) {
-                            Log.i("UserService", "try to exit pure black activity");
+                            Log.i("UserService", "detected volume key, try to power on screen");
                             setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
                             if (context != null) {
                                 Intent intent = new Intent("com.connect_screen.mirror.EXIT_PURE_BLACK");
@@ -208,11 +208,13 @@ public class UserService extends IUserService.Stub  {
                         }
                     }
                     reader.close();
-                    listenVolumeKeyProcess.waitFor();
-                    if (android.os.Build.VERSION.SDK_INT >= 26) {
-                        listenVolumeKeyProcess.destroyForcibly();
-                    } else {
-                        listenVolumeKeyProcess.destroy();
+                    if (listenVolumeKeyProcess != null) {
+                        listenVolumeKeyProcess.waitFor();
+                        if (android.os.Build.VERSION.SDK_INT >= 26) {
+                            listenVolumeKeyProcess.destroyForcibly();
+                        } else {
+                            listenVolumeKeyProcess.destroy();
+                        }
                     }
                 } catch (Exception e) {
                     Log.e("UserService", "Listen volume key failed", e);

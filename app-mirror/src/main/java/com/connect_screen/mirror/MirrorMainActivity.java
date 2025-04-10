@@ -108,7 +108,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         // 获取 DoNotAutoStartMoonlight 参数
         boolean doNotAutoStartMoonlight = getIntent().getBooleanExtra("DoNotAutoStartMoonlight", false);
         if (doNotAutoStartMoonlight) {
-            State.log("DoNotAutoStartMoonlight 参数为 true，不自动启动 Moonlight");
             Pref.doNotAutoStartMoonlight = doNotAutoStartMoonlight;
         }
 
