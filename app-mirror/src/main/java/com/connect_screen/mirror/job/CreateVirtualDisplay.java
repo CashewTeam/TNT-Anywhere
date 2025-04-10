@@ -26,6 +26,7 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 
+import com.connect_screen.mirror.FloatingButtonService;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.PureBlackActivity;
 import com.connect_screen.mirror.State;
@@ -94,13 +95,14 @@ public class CreateVirtualDisplay {
     }
 
     public static void doPowerOffScreen(Context context) {
+        if (State.floatingButtonService != null) {
+            State.floatingButtonService.resetButtonVisibility();
+        }
         boolean singleApp = Pref.getSingleAppMode();
         if (State.userService != null && !Pref.getUseBlackImage()) {
             try {
                 State.userService.startListenVolumeKey();
-                if (State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
-                    State.screenPowerOff = true;
-                } else {
+                if (!State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
                     if (singleApp) {
                         Intent intent = new Intent(context, PureBlackActivity.class);
                         ActivityOptions options = ActivityOptions.makeBasic();
@@ -246,6 +248,9 @@ public class CreateVirtualDisplay {
     }
 
     public static void powerOnScreen() {
+        if (State.floatingButtonService != null) {
+            State.floatingButtonService.resetButtonVisibility();
+        }
         if (State.isInPureBlackActivity != null) {
             State.isInPureBlackActivity.finish();
         } else {
@@ -253,7 +258,6 @@ public class CreateVirtualDisplay {
                 try {
                     State.userService.stopListenVolumeKey();
                     State.userService.setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-                    State.screenPowerOff = false;
                 } catch (RemoteException e) {
                     State.log("powerUpScreen failed: " + e.getMessage());
                 }

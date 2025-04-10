@@ -202,7 +202,7 @@ public class FloatingButtonService extends Service {
                 .start();
     }
 
-    private void resetButtonVisibility() {
+    public void resetButtonVisibility() {
         if (autoHide) {
             handler.removeCallbacks(fadeOutRunnable);
             floatingView.animate()

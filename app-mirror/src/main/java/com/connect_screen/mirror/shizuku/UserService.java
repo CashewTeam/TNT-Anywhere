@@ -108,8 +108,9 @@ public class UserService extends IUserService.Stub  {
 
     public boolean setScreenPower(int powerMode) {
         Log.i("UserService", "try to setScreenPower: " + powerMode);
-        if (Build.VERSION.SDK_INT >= 35) {
-            return setScreenPowerViaNewApi(powerMode);
+        if (Build.VERSION.SDK_INT >= 35 && powerMode == SurfaceControl.POWER_MODE_NORMAL) {
+            setScreenPowerViaNewApi(SurfaceControl.POWER_MODE_OFF);
+            setScreenPowerViaNewApi(SurfaceControl.POWER_MODE_NORMAL);
         }
         try {
             IBinder displayToken = getDisplayToken();

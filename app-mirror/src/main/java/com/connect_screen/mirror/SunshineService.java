@@ -120,19 +120,12 @@ public class SunshineService extends Service {
         String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         Set<String> ipAddresses = getAllWifiIpAddresses(this);
-        if (ipAddresses.isEmpty()) {
-            State.log("无法获取WiFi IP地址");
-        } else {
-            State.log("发布 moonlight 服务名："  + sunshineName);
-            for (String addr : ipAddresses) {
-                State.log("发布 moonlight ip："  + addr);
-            }
-        }
         probeH265();
 
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
             try {
+                Thread.sleep(1000);
                 SunshineServer.setFileStatePath(SunshineService.this.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(SunshineService.this);
                 List<JmDNS> dnsServers = new ArrayList<>();
@@ -165,6 +158,14 @@ public class SunshineService extends Service {
                         Log.e("SunshineService", "thread quit", e);
                     }
                 }).start();
+                if (ipAddresses.isEmpty()) {
+                    State.log("无法获取WiFi IP地址");
+                } else {
+                    State.log("发布 moonlight 服务名："  + sunshineName);
+                    for (String addr : ipAddresses) {
+                        State.log("发布 moonlight ip："  + addr);
+                    }
+                }
             } catch (Exception e) {
                 Log.e("SunshineService", "初始化网络服务失败", e);
             }
@@ -192,7 +193,7 @@ public class SunshineService extends Service {
                     }
                 }, 15 * 1000);
             }
-        }, 3000);
+        }, 2000);
         return START_NOT_STICKY;
     }
 

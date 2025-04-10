@@ -44,7 +44,6 @@ public class PureBlackActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             State.log("从熄屏中唤醒");
-            State.screenPowerOff = false;
             CreateVirtualDisplay.powerOnScreen();
         }
     }

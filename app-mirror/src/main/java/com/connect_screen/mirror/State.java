@@ -39,7 +39,6 @@ public class State {
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static FloatingButtonService floatingButtonService;
     public static String serverUuid;
-    public static boolean screenPowerOff;
     private static Job currentJob;
     public static List<String> logs = new ArrayList<>();
     public static DisplaylinkState displaylinkState = new DisplaylinkState();
@@ -84,7 +83,7 @@ public class State {
 
     public static Shizuku.UserServiceArgs userServiceArgs = new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, UserService.class.getName()))
             .daemon(true)
-            .tag("temp3")
+            .tag("temp4")
             .processNameSuffix("connect-screen")
             .debuggable(false)
             .version(BuildConfig.VERSION_CODE);
