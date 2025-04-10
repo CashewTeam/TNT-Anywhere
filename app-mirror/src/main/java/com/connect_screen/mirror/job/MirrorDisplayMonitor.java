@@ -23,6 +23,7 @@ import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
+import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.DisplayControl;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -51,6 +52,9 @@ public class MirrorDisplayMonitor {
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
                     if (SunshineService.instance == null) {
                         return;
+                    }
+                    if (State.currentActivity.get() != null) {
+                        State.currentActivity.get().finish();
                     }
                     Intent intent = new Intent(SunshineService.instance, MirrorMainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
