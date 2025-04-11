@@ -355,6 +355,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         } else {
             newUiState.mirrorStatusText = "请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏";
+            try {
+                for (String ip : SunshineService.getAllWifiIpAddresses(this)) {
+                    newUiState.mirrorStatusText += "\n";
+                    newUiState.mirrorStatusText += ip;
+                }
+            } catch(Throwable e) {
+                // ignore
+            }
             newUiState.settingsBtnVisibility = true;
             newUiState.screenOffBtnVisibility = false;
             newUiState.touchScreenBtnVisibility = false;
