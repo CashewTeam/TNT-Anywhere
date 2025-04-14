@@ -17,6 +17,7 @@ import android.os.RemoteException;
 import androidx.core.app.ActivityCompat;
 
 import com.connect_screen.mirror.MirrorMainActivity;
+import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 
@@ -104,6 +105,9 @@ public class SunshineAudio {
     }
 
     private static boolean shouldUseShizukuAudio() {
+        if (Pref.getDisableRemoteSubmix()) {
+            return false;
+        }
         return State.userService != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S;
     }
 
