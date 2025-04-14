@@ -125,7 +125,6 @@ public class SunshineService extends Service {
         // 将网络初始化操作移到后台线程
         new Thread(() -> {
             try {
-                Thread.sleep(1000);
                 SunshineServer.setFileStatePath(SunshineService.this.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 writeCertAndKey(SunshineService.this);
                 List<JmDNS> dnsServers = new ArrayList<>();
