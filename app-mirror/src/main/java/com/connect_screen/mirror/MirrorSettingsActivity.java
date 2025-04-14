@@ -70,6 +70,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         Button connectClientButton = findViewById(R.id.connectClientButton);
         CheckBox useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
         CheckBox preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
+        CheckBox disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
         
         // 加载保存的设置
         boolean singleAppMode = Pref.getSingleAppMode();
@@ -87,6 +88,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         boolean autoConnectClient = Pref.getAutoConnectClient();
         boolean useBlackImage = Pref.getUseBlackImage();
         boolean preventAutoLock = Pref.getPreventAutoLock();
+        boolean disableRemoteSubmix = Pref.getDisableRemoteSubmix();
         
         singleAppModeCheckbox.setChecked(singleAppMode);
         autoRotateCheckbox.setChecked(autoRotate);
@@ -103,6 +105,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         autoConnectClientCheckbox.setChecked(autoConnectClient);
         useBlackImageCheckbox.setChecked(useBlackImage);
         preventAutoLockCheckbox.setChecked(preventAutoLock);
+        disableRemoteSubmixCheckbox.setChecked(disableRemoteSubmix);
         if (ShizukuUtils.hasPermission()) {
             autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
         }
@@ -337,6 +340,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         if (!ShizukuUtils.hasPermission()) {
             preventAutoLockCheckbox.setEnabled(false);
         }
+
+        // 添加禁用 REMOTE_SUBMIX 复选框监听器
+        disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply();
+        });
     }
 
     @Override

@@ -243,6 +243,14 @@
             android:padding="8dp"/>
 
         <CheckBox
+            android:id="@+id/disableRemoteSubmixCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="moonlight无声音，尝试不使用 REMOTE_SUBMIX"
+            android:textSize="16sp"
+            android:padding="8dp"/>
+
+        <CheckBox
             android:id="@+id/autoHideFloatingCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
