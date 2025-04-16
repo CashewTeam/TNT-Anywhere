@@ -291,7 +291,7 @@ public class ProjectViaDisplaylink implements Job {
         }
         displaylinkState.stopVirtualDisplay();
         mediaProjectionRequested = true;
-        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
         if (mirrorMainActivity == null) {
             return false;
         }

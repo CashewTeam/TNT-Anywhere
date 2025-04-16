@@ -100,7 +100,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // 设置 State.currentActivity 为当前的 MainActivity 实例
-        State.currentActivity = new WeakReference<>(this);
+        State.setCurrentActivity(this);
 
         // 添加保持屏幕常亮的标志
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -211,7 +211,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onResume() {
         super.onResume();
-        State.currentActivity = new WeakReference<>(this);
+        State.setCurrentActivity(this);
         refresh();
     }
 
@@ -219,7 +219,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     protected void onDestroy() {
         super.onDestroy();
         Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
-        State.currentActivity = null;
+        State.setCurrentActivity(null);
     }
     
     @Override
@@ -291,7 +291,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             } else {
                 captureIntent = mediaProjectionManager.createScreenCaptureIntent();
             }
-            MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+            MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
             if (mirrorMainActivity != null) {
                 mirrorMainActivity.startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
                 TouchpadAccessibilityService.grantPermissionByClick(mirrorMainActivity);

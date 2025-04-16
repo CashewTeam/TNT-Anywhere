@@ -35,7 +35,7 @@ import rikka.shizuku.Shizuku;
 
 public class State {
     // 弱引用保存当前的 MainActivity 实例
-    public static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
+    private static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static FloatingButtonService floatingButtonService;
     public static String serverUuid;
@@ -51,12 +51,23 @@ public class State {
     public static volatile IUserService userService;
     public static Set<String> discoveredConnectScreenClients = new HashSet<>();
 
+    public static MirrorMainActivity getCurrentActivity() {
+        if (currentActivity == null) {
+            return null;
+        }
+        return currentActivity.get();
+    }
+
+    public static void setCurrentActivity(MirrorMainActivity activity) {
+        currentActivity = new WeakReference<>(activity);
+    }
+
     public static final ServiceConnection userServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             State.log("user service connected");
             State.userService = IUserService.Stub.asInterface(binder);
-            if (State.currentActivity.get() != null) {
+            if (State.currentActivity != null && State.currentActivity.get() != null) {
                 MirrorMainActivity context = State.currentActivity.get();
                 context.runOnUiThread(() -> {
                     State.resumeJob();

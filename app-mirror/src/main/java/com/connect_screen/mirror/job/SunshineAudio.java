@@ -158,7 +158,7 @@ public class SunshineAudio {
                 return true;
             }
             audioPermissionRequested = true;
-            MirrorMainActivity activity = State.currentActivity.get();
+            MirrorMainActivity activity = State.getCurrentActivity();
             if (activity == null) {
                 return true;
             }

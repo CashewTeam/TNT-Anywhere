@@ -50,8 +50,8 @@ public class ExitAll {
 
         if (!wasSunshineStarted && !ShizukuUtils.hasPermission() && TouchpadAccessibilityService.getInstance() != null) {
             // 对于 typec 直连，但是只用无障碍的用户不退无障碍
-            if (State.currentActivity.get() != null) {
-                State.currentActivity.get().finish();
+            if (State.getCurrentActivity() != null) {
+                State.getCurrentActivity().finish();
             }
             return;
         }

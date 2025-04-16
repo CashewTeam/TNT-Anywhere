@@ -95,7 +95,7 @@ public class ProjectViaMoonlight implements Job {
             return false;
         }
         mediaProjectionRequested = true;
-        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
         if (mirrorMainActivity == null) {
             return false;
         }

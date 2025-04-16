@@ -53,8 +53,8 @@ public class MirrorDisplayMonitor {
                     if (SunshineService.instance == null) {
                         return;
                     }
-                    if (State.currentActivity.get() != null) {
-                        State.currentActivity.get().finish();
+                    if (State.getCurrentActivity() != null) {
+                        State.getCurrentActivity().finish();
                     }
                     Intent intent = new Intent(SunshineService.instance, MirrorMainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

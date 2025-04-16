@@ -80,7 +80,7 @@ public class ProjectViaMirror implements Job {
             }, null);
             return;
         }
-        if (requestMediaProjectionPermission(State.currentActivity.get(), singleAppMode)) {
+        if (requestMediaProjectionPermission(State.getCurrentActivity(), singleAppMode)) {
             // 检查是否允许在该显示器上启动Activity
             if (singleAppMode) {
                 Point initialSize = new Point();
@@ -141,7 +141,7 @@ public class ProjectViaMirror implements Job {
             return false;
         }
         mediaProjectionRequested = true;
-        MirrorMainActivity mirrorMainActivity = State.currentActivity.get();
+        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
         if (mirrorMainActivity == null) {
             return false;
         }

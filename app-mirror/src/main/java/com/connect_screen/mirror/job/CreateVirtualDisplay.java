@@ -298,6 +298,9 @@ public class CreateVirtualDisplay {
         if(!ShizukuUtils.hasPermission()) {
             return;
         }
+        if(!shouldChangeAspectRatio()) {
+            return;
+        }
         IWindowManager wm = ServiceUtils.getWindowManager();
         Point baseSize = new Point();
         wm.getBaseDisplaySize(Display.DEFAULT_DISPLAY, baseSize);
