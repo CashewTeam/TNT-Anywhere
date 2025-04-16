@@ -61,12 +61,12 @@ public class CreateVirtualDisplay {
         try {
             if (ShizukuUtils.hasPermission()) {
                 try {
-                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, State.getMediaProjection());
+                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, null);
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
                     powerOffScreen();
                     return virtualDisplay;
                 } catch(Exception e) {
-                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, null);
+                    VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, State.getMediaProjection());
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
                     powerOffScreen();
                     return virtualDisplay;
