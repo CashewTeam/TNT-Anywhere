@@ -541,8 +541,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     }
 
     private void updateResolutionText(TextView textView) {
-        String resolutionText = String.format("Displaylink 输出分辨率: %dx%d", 
-                Pref.getDisplaylinkWidth(), Pref.getDisplaylinkHeight());
+        String resolutionText = String.format("Displaylink 输出: %dx%d@%dHz", 
+                Pref.getDisplaylinkWidth(), 
+                Pref.getDisplaylinkHeight(),
+                Pref.getDisplaylinkRefreshRate());
         textView.setText(resolutionText);
     }
 
@@ -553,11 +555,13 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         // 获取对话框中的控件
         EditText widthEditText = dialogView.findViewById(R.id.widthEditText);
         EditText heightEditText = dialogView.findViewById(R.id.heightEditText);
+        EditText refreshRateEditText = dialogView.findViewById(R.id.refreshRateEditText);
         Spinner resolutionPresetSpinner = dialogView.findViewById(R.id.resolutionPresetSpinner);
         
-        // 设置当前分辨率
+        // 设置当前值
         widthEditText.setText(String.valueOf(Pref.getDisplaylinkWidth()));
         heightEditText.setText(String.valueOf(Pref.getDisplaylinkHeight()));
+        refreshRateEditText.setText(String.valueOf(Pref.getDisplaylinkRefreshRate()));
         
         // 添加分辨率预设选项
         String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
@@ -578,18 +582,22 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                         case 1: // 1080p
                             widthEditText.setText("1920");
                             heightEditText.setText("1080");
+                            refreshRateEditText.setText("60");
                             break;
                         case 2: // 1440p
                             widthEditText.setText("2560");
                             heightEditText.setText("1440");
+                            refreshRateEditText.setText("60");
                             break;
                         case 3: // 2160p
                             widthEditText.setText("3840");
                             heightEditText.setText("2160");
+                            refreshRateEditText.setText("60");
                             break;
                         case 4: // ipad4
                             widthEditText.setText("2048");
                             heightEditText.setText("1536");
+                            refreshRateEditText.setText("60");
                             break;
                     }
                 } catch (NumberFormatException e) {
@@ -611,10 +619,15 @@ public class MirrorSettingsActivity extends AppCompatActivity {
             try {
                 int width = Integer.parseInt(widthEditText.getText().toString());
                 int height = Integer.parseInt(heightEditText.getText().toString());
+                int refreshRate = Integer.parseInt(refreshRateEditText.getText().toString());
+                
+                // 限制刷新率范围在24-240之间
+                refreshRate = Math.max(24, Math.min(240, refreshRate));
                 
                 preferences.edit()
                         .putInt(Pref.KEY_DISPLAYLINK_WIDTH, width)
                         .putInt(Pref.KEY_DISPLAYLINK_HEIGHT, height)
+                        .putInt(Pref.KEY_DISPLAYLINK_REFRESH_RATE, refreshRate)
                         .apply();
                 
                 // 更新显示的分辨率文本
