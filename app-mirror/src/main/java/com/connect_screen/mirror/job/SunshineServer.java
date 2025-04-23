@@ -128,6 +128,7 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.log("停止 Moonlight 投屏");
             CreateVirtualDisplay.powerOnScreen();
+            CreateVirtualDisplay.restoreAspectRatio();
             if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
                 SunshineMouse.autoRotateAndScaleForMoonlight.stop();
                 SunshineMouse.autoRotateAndScaleForMoonlight = null;
