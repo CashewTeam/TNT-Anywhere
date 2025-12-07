@@ -1,0 +1,21 @@
+[submodule "connect-screen.com"]
+	path = connect-screen.com
+	url = https://github.com/taowen/connect-screen.com.git
+[submodule "termux-x11"]
+	path = termux-x11
+	url = https://github.com/termux/termux-x11.git
+[submodule "app-mirror/src/main/cpp/dependencies/libwordexp"]
+	path = app-mirror/src/main/cpp/dependencies/libwordexp
+	url = https://github.com/leleliu008/libwordexp.git
+[submodule "app-mirror/src/main/cpp/dependencies/moonlight-common-c"]
+	path = app-mirror/src/main/cpp/dependencies/moonlight-common-c
+	url = https://github.com/moonlight-stream/moonlight-common-c.git
+[submodule "app-mirror/src/main/cpp/dependencies/openssl-cmake"]
+	path = app-mirror/src/main/cpp/dependencies/openssl-cmake
+	url = https://github.com/viaduck/openssl-cmake
+[submodule "app-mirror/src/main/cpp/dependencies/nanors"]
+	path = app-mirror/src/main/cpp/dependencies/nanors
+	url = https://github.com/sleepybishop/nanors.git
+[submodule "app-mirror/src/main/cpp/dependencies/Simple-Web-Server"]
+	path = app-mirror/src/main/cpp/dependencies/Simple-Web-Server
+	url = https://gitlab.com/eidheim/Simple-Web-Server.git
