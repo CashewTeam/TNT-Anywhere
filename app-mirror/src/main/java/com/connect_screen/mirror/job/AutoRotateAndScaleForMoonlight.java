@@ -50,6 +50,7 @@ public class AutoRotateAndScaleForMoonlight {
     private boolean autoScale;
     private OrientationChangeCallback orientationChangeCallback;
     private boolean isLandscape;
+    private volatile boolean stopping;
 
     public AutoRotateAndScaleForMoonlight(VirtualDisplayArgs virtualDisplayArgs) {
         this.virtualDisplayArgs = virtualDisplayArgs;
@@ -273,10 +274,18 @@ public class AutoRotateAndScaleForMoonlight {
     }
 
     private void surfaceDestroyed() {
+        stopping = true;
         renderHandler.post(() -> {
+            if (portraitInputSurfaceTexture != null) {
+                portraitInputSurfaceTexture.setOnFrameAvailableListener(null);
+            }
+            if (landscapeInputSurfaceTexture != null) {
+                landscapeInputSurfaceTexture.setOnFrameAvailableListener(null);
+            }
             // 清理OpenGL资源
             if (portraitRenderer != null) {
                 portraitRenderer.release();
+                portraitRenderer = null;
             }
             if (portraitInputTextureId != -1) {
                 int[] textures = new int[]{portraitInputTextureId};
@@ -286,6 +295,7 @@ public class AutoRotateAndScaleForMoonlight {
 
             if (landscapeRenderer != null) {
                 landscapeRenderer.release();
+                landscapeRenderer = null;
             }
             if (landscapeInputTextureId != -1) {
                 int[] textures = new int[]{landscapeInputTextureId};
@@ -333,6 +343,7 @@ public class AutoRotateAndScaleForMoonlight {
     }
 
     public void stop() {
+        stopping = true;
         surfaceDestroyed();
         instance = null;
         Context context = State.getContext();
@@ -348,6 +359,7 @@ public class AutoRotateAndScaleForMoonlight {
         protected final ExternalTextureRenderer externalTextureRenderer;
         protected final EGLDisplay eglDisplay;
         protected final EGLSurface eglOutputSurface;
+        private volatile boolean released;
 
         public PortraitRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
             this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
@@ -361,13 +373,24 @@ public class AutoRotateAndScaleForMoonlight {
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            surfaceTexture.updateTexImage();
-            externalTextureRenderer.renderFrame(portraitMvpMatrix);
-            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
+            if (released) {
+                return;
+            }
+            try {
+                surfaceTexture.updateTexImage();
+                if (released) {
+                    return;
+                }
+                externalTextureRenderer.renderFrame(portraitMvpMatrix);
+                EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
+            } catch (RuntimeException e) {
+                android.util.Log.w("AutoRotateAndScaleForMoonlight", "ignore portrait frame during shutdown", e);
+            }
         }
 
         // 添加清理方法
         public void release() {
+            released = true;
             externalTextureRenderer.release();
         }
     }
@@ -380,6 +403,7 @@ public class AutoRotateAndScaleForMoonlight {
         private final LandscapeAutoScaler landscapeAutoScaler;
         private int[] fbo = new int[1];
         private int[] tempTexture = new int[1];
+        private volatile boolean released;
 
         public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale) {
             this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
@@ -413,15 +437,26 @@ public class AutoRotateAndScaleForMoonlight {
         }
 
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            surfaceTexture.updateTexImage();
-            externalTextureRenderer.renderFrame(landscapeAutoScaler.landscapeMvpMatrix);
-            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
-            if (autoScale) {
-                landscapeAutoScaler.onFrame();
+            if (released) {
+                return;
+            }
+            try {
+                surfaceTexture.updateTexImage();
+                if (released) {
+                    return;
+                }
+                externalTextureRenderer.renderFrame(landscapeAutoScaler.landscapeMvpMatrix);
+                EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
+                if (autoScale) {
+                    landscapeAutoScaler.onFrame();
+                }
+            } catch (RuntimeException e) {
+                android.util.Log.w("AutoRotateAndScaleForMoonlight", "ignore landscape frame during shutdown", e);
             }
         }
 
         public void release() {
+            released = true;
             this.externalTextureRenderer.release();
             // 清理额外的资源
             GLES20.glDeleteFramebuffers(1, fbo, 0);

@@ -68,6 +68,13 @@ public class State {
         currentActivity = new WeakReference<>(activity);
     }
 
+    public static void clearCurrentActivity(MirrorMainActivity activity) {
+        MirrorMainActivity current = getCurrentActivity();
+        if (current == activity) {
+            currentActivity = new WeakReference<>(null);
+        }
+    }
+
     public static final ServiceConnection userServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
@@ -123,6 +130,14 @@ public class State {
     public static boolean isJobRunning() {
         return currentJob != null;
     }   
+
+    public static void cancelCurrentJob(String reason) {
+        if (currentJob == null) {
+            return;
+        }
+        State.log("取消任务 " + currentJob.getClass().getSimpleName() + ": " + reason);
+        currentJob = null;
+    }
 
     public static void startNewJob(Job job) {
         if (currentJob != null) {
@@ -224,7 +239,7 @@ public class State {
     public static void refreshMainActivity() {
         MirrorMainActivity mirrorMainActivity = currentActivity.get();
         if (mirrorMainActivity != null) {
-            mirrorMainActivity.runOnUiThread(mirrorMainActivity::refresh);
+            mirrorMainActivity.runOnUiThread(mirrorMainActivity::forceRefreshUi);
         }
     }
 

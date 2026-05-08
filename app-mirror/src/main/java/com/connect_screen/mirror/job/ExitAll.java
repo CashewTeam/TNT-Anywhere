@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.connect_screen.mirror.BuildConfig;
@@ -53,12 +54,14 @@ public class ExitAll {
 
     public static boolean stopServices(Context context) {
         SunshineService.markStopping();
+        State.cancelCurrentJob("SunshineService stopping");
         if (SunshineService.instance != null) {
             SunshineService.instance.releaseWakeLock();
         }
         boolean wasSunshineStarted = SunshineServer.exitServer();
         CreateVirtualDisplay.restoreAspectRatio();
         SunshineAudio.restoreVolume(context);
+        SunshineServer.stopVirtualDisplay();
         State.unbindUserService();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
@@ -78,11 +81,46 @@ public class ExitAll {
 
         if (context != null) {
             context.stopService(new Intent(context, SunshineService.class));
+            scheduleStopRetry(context.getApplicationContext(), 1);
         }
         if (SunshineService.instance == null && !wasSunshineStarted) {
             SunshineService.markStopped();
         }
         State.refreshMainActivity();
         return wasSunshineStarted;
+    }
+
+    private static void scheduleStopRetry(Context context, int attempt) {
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            SunshineService.LifecycleState state = SunshineService.getLifecycleState();
+            if (state == SunshineService.LifecycleState.STOPPED) {
+                return;
+            }
+            if (SunshineService.instance == null && !SunshineService.isNativeThreadRunning()) {
+                SunshineService.markStopped();
+                State.refreshMainActivity();
+                return;
+            }
+            State.log("SunshineService stop retry " + attempt + ": native service is still stopping");
+            SunshineService.markStopping();
+            State.cancelCurrentJob("SunshineService stop retry");
+            SunshineServer.exitServer();
+            SunshineServer.stopVirtualDisplay();
+            SunshineAudio.restoreVolume(context);
+            if (State.mediaProjectionInUse != null) {
+                State.mediaProjectionInUse.stop();
+                State.mediaProjectionInUse = null;
+            }
+            State.setMediaProjection(null);
+            context.stopService(new Intent(context, SunshineService.class));
+            State.refreshMainActivity();
+            if (attempt >= 2) {
+                State.log("SunshineService stop watchdog: force STOPPED state after cleanup");
+                SunshineService.markStopped();
+                State.refreshMainActivity();
+            } else {
+                scheduleStopRetry(context, attempt + 1);
+            }
+        }, 2500);
     }
 }

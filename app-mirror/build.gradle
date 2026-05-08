@@ -11,8 +11,8 @@ android {
         applicationId "com.connect_screen.mirror"
         minSdk 28
         targetSdk 34
-        versionCode 94
-        versionName "0.5.0"
+        versionCode 96
+        versionName "0.6.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -78,4 +78,5 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel:2.6.2"
     implementation "androidx.lifecycle:lifecycle-livedata:2.6.2"
     implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2"
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.68'
 }

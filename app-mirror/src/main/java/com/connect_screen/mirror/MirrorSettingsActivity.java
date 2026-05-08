@@ -36,6 +36,7 @@ import java.util.Locale;
 public class MirrorSettingsActivity extends AppCompatActivity {
     public static final String PREF_NAME = "mirror_settings";
     private static final String MANUAL_INPUT_LABEL = "Manual input";
+    private static final int[] ENCODER_CODEC_VALUES = new int[]{Pref.ENCODER_CODEC_H264, Pref.ENCODER_CODEC_H265};
     private static final int[] ENCODER_BITRATE_MODE_VALUES = new int[]{2, 1, 0};
     private static final TntOverlayPreset[] TNT_OVERLAY_PRESETS = new TntOverlayPreset[]{
             new TntOverlayPreset("Default 1080P (1920 x 1080 / 216dpi)", 1920, 1080, 216, false),
@@ -73,6 +74,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     private EditText encoderIFrameIntervalEditText;
     private EditText encoderMaxFpsEditText;
     private EditText streamFecPercentEditText;
+    private Spinner encoderCodecSpinner;
     private Spinner encoderBitrateModeSpinner;
     private SwitchCompat encoderLowLatencyCheckbox;
     private SwitchCompat encoderDisableBFramesCheckbox;
@@ -425,6 +427,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         encoderIFrameIntervalEditText = findViewById(R.id.encoderIFrameIntervalEditText);
         encoderMaxFpsEditText = findViewById(R.id.encoderMaxFpsEditText);
         streamFecPercentEditText = findViewById(R.id.streamFecPercentEditText);
+        encoderCodecSpinner = findViewById(R.id.encoderCodecSpinner);
         encoderBitrateModeSpinner = findViewById(R.id.encoderBitrateModeSpinner);
         encoderLowLatencyCheckbox = findViewById(R.id.encoderLowLatencyCheckbox);
         encoderDisableBFramesCheckbox = findViewById(R.id.encoderDisableBFramesCheckbox);
@@ -434,6 +437,17 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         styleSwitch(encoderLowLatencyCheckbox);
         styleSwitch(encoderDisableBFramesCheckbox);
         styleSwitch(encoderRealtimePriorityCheckbox);
+
+        String[] codecs = new String[]{
+                "H.264 / AVC - default",
+                "H.265 / HEVC - higher compression"
+        };
+        ArrayAdapter<String> codecAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                codecs);
+        codecAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        encoderCodecSpinner.setAdapter(codecAdapter);
 
         String[] bitrateModes = new String[]{
                 "CBR - Stable bandwidth",
@@ -453,6 +467,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         saveEncoderSettingsButton.setOnClickListener(v -> {
             saveEncoderSettingsFromViews();
             SunshineServer.setEncoderSettingsFromPreferences();
+            SunshineServer.setVideoCodec(Pref.getEncoderCodec());
             Toast.makeText(this, "Encoder settings saved.", Toast.LENGTH_SHORT).show();
         });
 
@@ -460,17 +475,19 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         resetEncoderSettingsButton.setOnClickListener(v -> {
             preferences.edit()
                     .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, 100)
+                    .putInt(Pref.KEY_ENCODER_CODEC, Pref.ENCODER_CODEC_H264)
                     .putInt(Pref.KEY_ENCODER_BITRATE_MODE, 2)
                     .putInt(Pref.KEY_ENCODER_COMPLEXITY, 5)
                     .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, 3)
-                    .putInt(Pref.KEY_ENCODER_MAX_FPS, 120)
+                    .putInt(Pref.KEY_ENCODER_MAX_FPS, 60)
                     .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, true)
                     .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, true)
                     .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, true)
-                    .putInt(Pref.KEY_STREAM_FEC_PERCENT, 20)
+                    .putInt(Pref.KEY_STREAM_FEC_PERCENT, 0)
                     .apply();
             loadEncoderSettingsIntoViews();
             SunshineServer.setEncoderSettingsFromPreferences();
+            SunshineServer.setVideoCodec(Pref.getEncoderCodec());
             Toast.makeText(this, "Encoder settings reset.", Toast.LENGTH_SHORT).show();
         });
     }
@@ -485,6 +502,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         encoderDisableBFramesCheckbox.setChecked(Pref.getEncoderDisableBFrames());
         encoderRealtimePriorityCheckbox.setChecked(Pref.getEncoderRealtimePriority());
 
+        int codec = Pref.getEncoderCodec();
+        for (int i = 0; i < ENCODER_CODEC_VALUES.length; i++) {
+            if (ENCODER_CODEC_VALUES[i] == codec) {
+                encoderCodecSpinner.setSelection(i);
+                break;
+            }
+        }
+
         int bitrateMode = Pref.getEncoderBitrateMode();
         for (int i = 0; i < ENCODER_BITRATE_MODE_VALUES.length; i++) {
             if (ENCODER_BITRATE_MODE_VALUES[i] == bitrateMode) {
@@ -496,20 +521,25 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     }
 
     private void saveEncoderSettingsFromViews() {
+        int codecIndex = encoderCodecSpinner.getSelectedItemPosition();
+        int codec = ENCODER_CODEC_VALUES[Math.max(
+                0,
+                Math.min(ENCODER_CODEC_VALUES.length - 1, codecIndex))];
         int bitrateModeIndex = encoderBitrateModeSpinner.getSelectedItemPosition();
         int bitrateMode = ENCODER_BITRATE_MODE_VALUES[Math.max(
                 0,
                 Math.min(ENCODER_BITRATE_MODE_VALUES.length - 1, bitrateModeIndex))];
         preferences.edit()
+                .putInt(Pref.KEY_ENCODER_CODEC, codec)
                 .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, parseClampedInt(encoderBitratePercentEditText, 100, 25, 200))
                 .putInt(Pref.KEY_ENCODER_BITRATE_MODE, bitrateMode)
                 .putInt(Pref.KEY_ENCODER_COMPLEXITY, parseClampedInt(encoderComplexityEditText, 5, 0, 10))
                 .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, parseClampedInt(encoderIFrameIntervalEditText, 3, 1, 10))
-                .putInt(Pref.KEY_ENCODER_MAX_FPS, parseClampedInt(encoderMaxFpsEditText, 120, 1, 240))
+                .putInt(Pref.KEY_ENCODER_MAX_FPS, parseClampedInt(encoderMaxFpsEditText, 60, 1, 240))
                 .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, encoderLowLatencyCheckbox.isChecked())
                 .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, encoderDisableBFramesCheckbox.isChecked())
                 .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, encoderRealtimePriorityCheckbox.isChecked())
-                .putInt(Pref.KEY_STREAM_FEC_PERCENT, parseClampedInt(streamFecPercentEditText, 20, 0, 50))
+                .putInt(Pref.KEY_STREAM_FEC_PERCENT, parseClampedInt(streamFecPercentEditText, 0, 0, 50))
                 .apply();
         loadEncoderSettingsIntoViews();
     }
@@ -524,6 +554,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     }
 
     private void updateEncoderSettingsText() {
+        String codecName = Pref.getEncoderCodec() == Pref.ENCODER_CODEC_H264 ? "H.264" : "H.265";
         String modeName;
         switch (Pref.getEncoderBitrateMode()) {
             case 0:
@@ -539,7 +570,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
         String text = String.format(
                 Locale.US,
-                "Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | FEC %d%%",
+                "Codec %s | Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | FEC %d%%",
+                codecName,
                 Pref.getEncoderBitratePercent(),
                 modeName,
                 Pref.getEncoderComplexity(),

@@ -1,7 +1,5 @@
 package com.connect_screen.mirror.job;
 
-import static com.connect_screen.mirror.MirrorMainActivity.REQUEST_RECORD_AUDIO_PERMISSION;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -15,15 +13,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 
-import androidx.core.app.ActivityCompat;
-
-import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 public class SunshineAudio {
-    private static boolean audioPermissionRequested;
     private static boolean isMuted = false;
     private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
     public static boolean sendAudio(Context context, int packetDuration) throws YieldException {
@@ -125,7 +119,7 @@ public class SunshineAudio {
             State.log("安卓版本太低，无法录音");
             return false;
         }
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             // 配置音频捕获参数
             int sampleRate = 48000; // 与您的Opus配置匹配
             int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
@@ -165,19 +159,8 @@ public class SunshineAudio {
             SunshineServer.startAudioRecording(audioRecord, framesPerPacket);
 
         } else {
-            if (audioPermissionRequested) {
-                State.log("因为未授予录音权限，跳过任务");
-                return true;
-            }
-            audioPermissionRequested = true;
-            MirrorMainActivity activity = State.getCurrentActivity();
-            if (activity == null) {
-                return true;
-            }
-            ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.RECORD_AUDIO},
-                    REQUEST_RECORD_AUDIO_PERMISSION);
-            throw new YieldException("等待录音权限授权");
+            State.log("未授予录音权限，跳过音频捕获并继续视频串流");
+            return false;
         }
         return false;
     }

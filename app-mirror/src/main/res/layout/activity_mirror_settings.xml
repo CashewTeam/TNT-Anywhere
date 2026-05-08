@@ -368,6 +368,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:text="说明：H.264 默认用于更好的实时性能和兼容性；H.265 更省带宽，但部分设备可能延迟更高。码率比例会按 Moonlight 请求码率缩放。最大 FPS 默认 60，可限制编码器负载。FEC 是网络纠错冗余，局域网稳定时建议 0，网络抖动时再提高。"
+                android:textColor="#666666"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Codec"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/encoderCodecSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:text="码率比例（25-200）"
                 android:textSize="14sp" />
 

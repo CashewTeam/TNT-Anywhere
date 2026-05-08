@@ -3,6 +3,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstring>
+#include <exception>
+#include <filesystem>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -42,11 +44,15 @@ static std::atomic_int encoderBitratePercent {100};
 static std::atomic_int encoderBitrateMode {2};
 static std::atomic_int encoderComplexity {5};
 static std::atomic_int encoderIFrameInterval {3};
-static std::atomic_int encoderMaxFps {120};
+static std::atomic_int encoderMaxFps {60};
 static std::atomic_bool encoderLowLatency {true};
 static std::atomic_bool encoderDisableBFrames {true};
 static std::atomic_bool encoderRealtimePriority {true};
-static std::atomic_int streamFecPercent {20};
+static std::atomic_int streamFecPercent {0};
+static std::string runtimePkeyPath;
+static std::string runtimeCertPath;
+static std::string runtimeFileStatePath;
+static std::string runtimeSunshineName;
 
 // 缓存常用的方法ID
 static jmethodID handleTouchPacketMethod = nullptr;
@@ -81,18 +87,50 @@ static void resetJavaCaches(JNIEnv *env) {
 }
 
 static void shutdownNativeRuntime(JNIEnv *env) {
+    BOOST_LOG(info) << "Sunshine native shutdown begin"sv;
+    serverRunning = false;
     if (mail::man) {
         auto shutdown_event = mail::man->event<bool>(mail::shutdown);
         shutdown_event->raise(true);
     }
+    BOOST_LOG(debug) << "Sunshine native shutdown: stopping task pool"sv;
     task_pool.stop();
+    BOOST_LOG(debug) << "Sunshine native shutdown: joining task pool"sv;
     task_pool.join();
+    BOOST_LOG(debug) << "Sunshine native shutdown: task pool joined"sv;
     mail::man.reset();
-    deinit.reset();
     if (env != nullptr) {
         resetJavaCaches(env);
     }
-    serverRunning = false;
+    // Keep the Android log sink alive for the process lifetime. Tearing down the
+    // Boost async sink during service stop can block the native thread and keep
+    // the UI stuck in STOPPING even after all streaming threads have exited.
+    BOOST_LOG(info) << "Sunshine native shutdown end"sv;
+}
+
+static std::string jstringToString(JNIEnv *env, jstring value) {
+    if (value == nullptr) {
+        return {};
+    }
+    const char *chars = env->GetStringUTFChars(value, nullptr);
+    std::string result = chars != nullptr ? chars : "";
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+
+static void applyRuntimeConfigOverrides() {
+    if (!runtimePkeyPath.empty()) {
+        config::nvhttp.pkey = runtimePkeyPath;
+    }
+    if (!runtimeCertPath.empty()) {
+        config::nvhttp.cert = runtimeCertPath;
+    }
+    if (!runtimeFileStatePath.empty()) {
+        config::nvhttp.file_state = runtimeFileStatePath;
+    }
+    if (!runtimeSunshineName.empty()) {
+        config::nvhttp.sunshine_name = runtimeSunshineName;
+    }
 }
 
 JNIEXPORT void JNICALL
@@ -153,14 +191,35 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
         BOOST_LOG(error) << "无法在启动时找到 SunshineKeyboard 类"sv;
     }
     
-    deinit = logging::init(1, "/dev/null");
+    if (!deinit) {
+        deinit = logging::init(1, "/dev/null");
+    }
+    applyRuntimeConfigOverrides();
     BOOST_LOG(info) << "start sunshine server"sv;
+    BOOST_LOG(info) << "Sunshine certificate path: "sv << config::nvhttp.cert
+                    << " exists="sv << std::filesystem::exists(config::nvhttp.cert);
+    BOOST_LOG(info) << "Sunshine private key path: "sv << config::nvhttp.pkey
+                    << " exists="sv << std::filesystem::exists(config::nvhttp.pkey);
     mail::man = std::make_shared<safe::mail_raw_t>();
     task_pool.start(1);
     
-    std::thread httpThread {nvhttp::start};
+    std::exception_ptr httpException;
+    std::thread httpThread {[&httpException]() {
+        try {
+            nvhttp::start();
+        } catch (...) {
+            httpException = std::current_exception();
+            if (mail::man) {
+                auto shutdown_event = mail::man->event<bool>(mail::shutdown);
+                shutdown_event->raise(true);
+            }
+        }
+    }};
     rtsp_stream::rtpThread();
     httpThread.join();
+    if (httpException) {
+        std::rethrow_exception(httpException);
+    }
     BOOST_LOG(info) << "sunshine server stopped"sv;
     } catch (const std::exception &e) {
         BOOST_LOG(error) << "Sunshine native start failed with exception: "sv << e.what();
@@ -173,30 +232,26 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_setSunshineName(JNIEnv *env, jclass clazz, jstring sunshine_name) {
-    const char *str = env->GetStringUTFChars(sunshine_name, nullptr);
-    config::nvhttp.sunshine_name = str;
-    env->ReleaseStringUTFChars(sunshine_name, str);
+    runtimeSunshineName = jstringToString(env, sunshine_name);
+    config::nvhttp.sunshine_name = runtimeSunshineName;
 }
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_setPkeyPath(JNIEnv *env, jclass clazz, jstring path) {
-    const char *str = env->GetStringUTFChars(path, nullptr);
-    config::nvhttp.pkey = str;
-    env->ReleaseStringUTFChars(path, str);
+    runtimePkeyPath = jstringToString(env, path);
+    config::nvhttp.pkey = runtimePkeyPath;
 }
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_setCertPath(JNIEnv *env, jclass clazz, jstring path) {
-    const char *str = env->GetStringUTFChars(path, nullptr);
-    config::nvhttp.cert = str;
-    env->ReleaseStringUTFChars(path, str);
+    runtimeCertPath = jstringToString(env, path);
+    config::nvhttp.cert = runtimeCertPath;
 }
 
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_setFileStatePath(JNIEnv *env, jclass clazz, jstring path) {
-    const char *str = env->GetStringUTFChars(path, nullptr);
-    config::nvhttp.file_state = str;
-    env->ReleaseStringUTFChars(path, str);
+    runtimeFileStatePath = jstringToString(env, path);
+    config::nvhttp.file_state = runtimeFileStatePath;
 }
 
 JNIEXPORT void JNICALL
@@ -378,6 +433,17 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
 JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
     video::active_hevc_mode = 2;
+}
+
+JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_setVideoCodec(JNIEnv *env, jclass clazz, jint codec) {
+    if (codec == 1) {
+        video::active_hevc_mode = 2;
+        BOOST_LOG(info) << "Video codec preference: H.265/HEVC"sv;
+    } else {
+        video::active_hevc_mode = 1;
+        BOOST_LOG(info) << "Video codec preference: H.264/AVC"sv;
+    }
 }
 
 JNIEXPORT jboolean JNICALL

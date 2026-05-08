@@ -30,19 +30,38 @@ import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -50,6 +69,7 @@ import javax.jmdns.ServiceInfo;
 public class SunshineService extends Service {
     public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static SunshineService instance;
+
     public enum LifecycleState {
         STOPPED,
         STARTING,
@@ -58,9 +78,13 @@ public class SunshineService extends Service {
     }
 
     private static volatile LifecycleState lifecycleState = LifecycleState.STOPPED;
+    private static volatile boolean stopRequested = false;
+    private static volatile boolean nativeThreadRunning = false;
     private static final String CHANNEL_ID = "SunshineServiceChannel";
     private static final int NOTIFICATION_ID = 2;
     private static final String TAG = "SunshineService";
+    private static final String CERT_FILE_NAME = "cacert.pem";
+    private static final String KEY_FILE_NAME = "cakey.pem";
     private boolean usbPermissionRegistered = false;
     private Thread nativeThread;
 
@@ -90,15 +114,26 @@ public class SunshineService extends Service {
     }
 
     public static void markStarting() {
+        stopRequested = false;
         setLifecycleState(LifecycleState.STARTING);
     }
 
     public static void markStopping() {
+        stopRequested = true;
         setLifecycleState(LifecycleState.STOPPING);
     }
 
     public static void markStopped() {
+        stopRequested = false;
         setLifecycleState(LifecycleState.STOPPED);
+    }
+
+    public static boolean isStopRequested() {
+        return stopRequested;
+    }
+
+    public static boolean isNativeThreadRunning() {
+        return nativeThreadRunning;
     }
 
     private static void setLifecycleState(LifecycleState state) {
@@ -110,7 +145,9 @@ public class SunshineService extends Service {
     public void onCreate() {
         super.onCreate();
         instance = this;
-        setLifecycleState(LifecycleState.STARTING);
+        if (!stopRequested) {
+            setLifecycleState(LifecycleState.STARTING);
+        }
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
     }
@@ -119,7 +156,9 @@ public class SunshineService extends Service {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
-        if (nativeThread != null && nativeThread.isAlive()) {
+        if (lifecycleState == LifecycleState.STOPPED) {
+            State.refreshMainActivity();
+        } else if (nativeThreadRunning || (nativeThread != null && nativeThread.isAlive())) {
             setLifecycleState(LifecycleState.STOPPING);
         } else {
             setLifecycleState(LifecycleState.STOPPED);
@@ -147,10 +186,11 @@ public class SunshineService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (nativeThread != null && nativeThread.isAlive()) {
-            State.log("SunshineService 已在运行，忽略重复启动请求");
+            State.log("SunshineService already running, ignore duplicate start");
             State.refreshMainActivity();
             return START_NOT_STICKY;
         }
+        stopRequested = false;
         setLifecycleState(LifecycleState.STARTING);
         if (intent != null && intent.hasExtra("data")) {
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -160,31 +200,35 @@ public class SunshineService extends Service {
                 @Override
                 public void onStop() {
                     super.onStop();
-                    State.log("MediaProjection onStop 回调");
+                    State.log("MediaProjection onStop callback");
                 }
             }, null);
             State.resumeJob();
         } else {
-            State.log("SunshineService 收到错误的授权数据");
+            State.log("SunshineService received invalid media projection data");
             State.resumeJob();
         }
         if (Pref.getPreventAutoLock()) {
             preventAutoLock();
         }
-        // 在后台线程中启动 Sunshine 服务器
-        String sunshineName = "TNT Shaker-"  + Build.MANUFACTURER + "-" + Build.MODEL;
+
+        String sunshineName = "TNT Shaker-" + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         Set<String> ipAddresses = getAllWifiIpAddresses(this);
-        probeH265();
 
-        // 将网络初始化操作移到后台线程
         new Thread(() -> {
             try {
                 SunshineServer.setFileStatePath(SunshineService.this.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
                 SunshineServer.setEncoderSettingsFromPreferences();
-                writeCertAndKey(SunshineService.this);
+                applyVideoCodecPreference();
+                if (!writeCertAndKey(SunshineService.this)) {
+                    State.log("Sunshine certificate/private key preparation failed");
+                    setLifecycleState(LifecycleState.STOPPED);
+                    stopSelf();
+                    return;
+                }
                 List<JmDNS> dnsServers = new ArrayList<>();
-                if(!ipAddresses.isEmpty()) {
+                if (!ipAddresses.isEmpty()) {
                     for (String addr : ipAddresses) {
                         try {
                             JmDNS jmdns = JmDNS.create(InetAddress.getByName(addr));
@@ -197,24 +241,37 @@ public class SunshineService extends Service {
                             );
 
                             jmdns.registerService(serviceInfo);
-                            Log.i("SunshineService", "JmDNS服务注册成功，IP: " + addr);
+                            Log.i("SunshineService", "JmDNS service registered, IP: " + addr);
                         } catch (Exception e) {
-                            Log.e("SunshineService", "在IP " + addr + " 上注册JmDNS服务失败", e);
+                            Log.e("SunshineService", "Failed to register JmDNS on IP " + addr, e);
                         }
                     }
                 }
+                if (stopRequested) {
+                    State.log("SunshineService stop requested before native start");
+                    setLifecycleState(LifecycleState.STOPPING);
+                    stopSelf();
+                    return;
+                }
                 nativeThread = new Thread(() -> {
+                    nativeThreadRunning = true;
                     try {
+                        if (stopRequested) {
+                            State.log("SunshineService stop requested, skip RUNNING state");
+                            SunshineServer.exitServer();
+                            return;
+                        }
                         setLifecycleState(LifecycleState.RUNNING);
                         SunshineServer.start();
-                    } catch(Throwable e) {
+                    } catch (Throwable e) {
                         Log.e("SunshineService", "thread quit", e);
                     } finally {
+                        nativeThreadRunning = false;
                         for (JmDNS server : dnsServers) {
                             try {
                                 server.close();
                             } catch (IOException e) {
-                                Log.w("SunshineService", "JmDNS 服务关闭失败", e);
+                                Log.w("SunshineService", "JmDNS close failed", e);
                             }
                         }
                         setLifecycleState(LifecycleState.STOPPED);
@@ -223,28 +280,26 @@ public class SunshineService extends Service {
                 }, "SunshineNativeThread");
                 nativeThread.start();
                 if (ipAddresses.isEmpty()) {
-                    State.log("无法获取WiFi IP地址");
+                    State.log("Cannot get Wi-Fi IP address");
                 } else {
-                    State.log("发布 moonlight 服务名："  + sunshineName);
+                    State.log("Published Moonlight service name: " + sunshineName);
                     for (String addr : ipAddresses) {
-                        State.log("发布 moonlight ip："  + addr);
+                        State.log("Published Moonlight IP: " + addr);
                     }
                 }
             } catch (Exception e) {
-                Log.e("SunshineService", "初始化网络服务失败", e);
+                Log.e("SunshineService", "Failed to initialize network service", e);
                 setLifecycleState(LifecycleState.STOPPED);
                 stopSelf();
             }
         }).start();
 
-        // 注册 USB 权限广播接收器
         IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
         if (!usbPermissionRegistered) {
             registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
             usbPermissionRegistered = true;
         }
 
-        // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         MirrorDisplayMonitor.init(displayManager);
         MirrorDisplaylinkMonitor.init(this);
@@ -257,7 +312,7 @@ public class SunshineService extends Service {
                 State.bindUserService();
                 handler.postDelayed(() -> {
                     if (ShizukuUtils.hasPermission() && !State.isUserServiceAlive()) {
-                        State.log("shizuku user service 启动失败，请取消 shizuku 授权并再次授予。try start user service again");
+                        State.log("shizuku user service start failed, revoke and grant Shizuku permission again if needed");
                         State.unbindUserService();
                         State.bindUserService();
                     }
@@ -272,10 +327,9 @@ public class SunshineService extends Service {
             return;
         }
         if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
-            // 读取当前的屏幕超时设置
             currentTimeout = Settings.System.getInt(this.getContentResolver(),
                     Settings.System.SCREEN_OFF_TIMEOUT, 0);
-            Log.i("SunshineService", "当前屏幕超时设置: " + currentTimeout + "ms");
+            Log.i("SunshineService", "Current screen off timeout: " + currentTimeout + "ms");
             if (currentTimeout >= 4 * 60 * 60 * 1000) {
                 currentTimeout = 15 * 1000;
             }
@@ -292,9 +346,9 @@ public class SunshineService extends Service {
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
-                CHANNEL_ID,
-                "Sunshine Service Channel",
-                NotificationManager.IMPORTANCE_LOW
+                    CHANNEL_ID,
+                    "Sunshine Service Channel",
+                    NotificationManager.IMPORTANCE_LOW
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
@@ -303,15 +357,20 @@ public class SunshineService extends Service {
 
     private Notification createNotification() {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("TNT Shaker")
-            .setContentText("Sunshine Host 正在运行")
-            .setSmallIcon(R.mipmap.ic_mirror)
-            .build();
+                .setContentTitle("TNT Shaker")
+                .setContentText("Sunshine Host is running")
+                .setSmallIcon(R.mipmap.ic_mirror)
+                .build();
     }
 
-    private boolean probeH265() {
+    private boolean applyVideoCodecPreference() {
+        if (Pref.getEncoderCodec() == Pref.ENCODER_CODEC_H264) {
+            SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H264);
+            State.log("Encoder codec preference: H.264/AVC");
+            return true;
+        }
+
         try {
-            // 检查设备是否支持 H.265/HEVC 编码
             android.media.MediaCodecList codecList = new android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS);
             for (android.media.MediaCodecInfo codecInfo : codecList.getCodecInfos()) {
                 if (!codecInfo.isHardwareAccelerated()) {
@@ -323,13 +382,16 @@ public class SunshineService extends Service {
                 if (!isSupported(codecInfo, "video/hevc")) {
                     continue;
                 }
-                SunshineServer.enableH265();
+                SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H265);
+                State.log("Encoder codec preference: H.265/HEVC");
                 return true;
             }
-            State.log("设备不支持 H.265/HEVC 编码");
+            SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H264);
+            State.log("Device does not support H.265/HEVC encoding, falling back to H.264/AVC");
             return false;
         } catch (Exception e) {
-            State.log("检查 H.265 编码支持时出错: " + e.getMessage());
+            SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H264);
+            State.log("Failed to probe H.265 support, falling back to H.264/AVC: " + e.getMessage());
             return false;
         }
     }
@@ -346,13 +408,11 @@ public class SunshineService extends Service {
 
     public static Set<String> getAllWifiIpAddresses(Context context) {
         Set<String> ipAddresses = new HashSet<>();
-        
-        // 获取WiFi IP地址
+
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiManager != null && wifiManager.isWifiEnabled()) {
             int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
             if (ipAddress != 0) {
-                // Convert little-endian to big-endian if needed
                 byte[] bytes = new byte[4];
                 bytes[0] = (byte) (ipAddress & 0xFF);
                 bytes[1] = (byte) ((ipAddress >> 8) & 0xFF);
@@ -363,12 +423,11 @@ public class SunshineService extends Service {
                     String ip = InetAddress.getByAddress(bytes).getHostAddress();
                     ipAddresses.add(ip);
                 } catch (UnknownHostException e) {
-                    Log.e(TAG, "获取WiFi IP地址失败", e);
+                    Log.e(TAG, "Failed to get Wi-Fi IP address", e);
                 }
             }
         }
-        
-        // 获取所有网络接口的IP地址
+
         try {
             Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
             while (networkInterfaces.hasMoreElements()) {
@@ -386,39 +445,103 @@ public class SunshineService extends Service {
                 }
             }
         } catch (SocketException e) {
-            Log.e(TAG, "获取网络接口IP地址失败", e);
+            Log.e(TAG, "Failed to get network interface IP addresses", e);
         }
-        
+
         return ipAddresses;
     }
 
-    public static void writeCertAndKey(Context context) {
+    public static boolean writeCertAndKey(Context context) {
         try {
-            // 写入证书文件
-            try (InputStream certInput = context.getAssets().open("cacert.pem");
-                 FileOutputStream certOutput = context.openFileOutput("cacert.pem", Context.MODE_PRIVATE)) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = certInput.read(buffer)) > 0) {
-                    certOutput.write(buffer, 0, length);
+            String certPath = context.getFilesDir().getAbsolutePath() + "/" + CERT_FILE_NAME;
+            String keyPath = context.getFilesDir().getAbsolutePath() + "/" + KEY_FILE_NAME;
+            File certFile = new File(certPath);
+            File keyFile = new File(keyPath);
+            if (!certFile.exists() || !keyFile.exists()) {
+                if (!copyBundledCertAndKeyIfPresent(context, certFile, keyFile)) {
+                    generateCertAndKey(certFile, keyFile);
                 }
-                SunshineServer.setCertPath(context.getFilesDir().getAbsolutePath() + "/cacert.pem");
             }
-
-            // 写入密钥文件
-            try (InputStream keyInput = context.getAssets().open("cakey.pem");
-                 FileOutputStream keyOutput = context.openFileOutput("cakey.pem", Context.MODE_PRIVATE)) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = keyInput.read(buffer)) > 0) {
-                    keyOutput.write(buffer, 0, length);
-                }
-                SunshineServer.setPkeyPath(context.getFilesDir().getAbsolutePath() + "/cakey.pem");
+            if (!certFile.exists() || certFile.length() == 0 || !keyFile.exists() || keyFile.length() == 0) {
+                throw new IOException("certificate/private key file is missing or empty");
             }
-
-            android.util.Log.i(TAG, "证书和密钥文件写入成功: " + context.getFilesDir().getAbsolutePath());
-        } catch (IOException e) {
-            android.util.Log.e("TAG", "写入证书文件失败", e);
+            SunshineServer.setCertPath(certPath);
+            SunshineServer.setPkeyPath(keyPath);
+            Log.i(TAG, "certificate and private key ready: " + context.getFilesDir().getAbsolutePath());
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "failed to prepare certificate and key", e);
+            return false;
         }
+    }
+
+    private static boolean copyBundledCertAndKeyIfPresent(Context context, File certFile, File keyFile) {
+        try (InputStream certInput = context.getAssets().open(CERT_FILE_NAME);
+             FileOutputStream certOutput = context.openFileOutput(CERT_FILE_NAME, Context.MODE_PRIVATE);
+             InputStream keyInput = context.getAssets().open(KEY_FILE_NAME);
+             FileOutputStream keyOutput = context.openFileOutput(KEY_FILE_NAME, Context.MODE_PRIVATE)) {
+            copyStream(certInput, certOutput);
+            copyStream(keyInput, keyOutput);
+            Log.i(TAG, "copied bundled certificate and private key from assets");
+            return true;
+        } catch (IOException e) {
+            if (certFile.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                certFile.delete();
+            }
+            if (keyFile.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                keyFile.delete();
+            }
+            Log.i(TAG, "bundled certificate/private key not found, generating runtime pair");
+            return false;
+        }
+    }
+
+    private static void generateCertAndKey(File certFile, File keyFile) throws Exception {
+        SecureRandom secureRandom = new SecureRandom();
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048, secureRandom);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        long now = System.currentTimeMillis();
+        Date notBefore = new Date(now - TimeUnit.DAYS.toMillis(1));
+        Date notAfter = new Date(now + TimeUnit.DAYS.toMillis(3650));
+        X500Name subject = new X500Name("CN=TNT Shaker,O=TNT Shaker,OU=Sunshine Android");
+        BigInteger serialNumber = new BigInteger(64, secureRandom).abs();
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                subject,
+                serialNumber,
+                notBefore,
+                notAfter,
+                subject,
+                keyPair.getPublic());
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
+                .build(keyPair.getPrivate());
+        X509Certificate certificate = new JcaX509CertificateConverter()
+                .getCertificate(certBuilder.build(signer));
+
+        writePemFile(certFile, "CERTIFICATE", certificate.getEncoded());
+        writePemFile(keyFile, "PRIVATE KEY", keyPair.getPrivate().getEncoded());
+        Log.i(TAG, "generated runtime self-signed certificate and private key");
+    }
+
+    private static void writePemFile(File file, String type, byte[] derBytes) throws IOException {
+        String base64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII))
+                .encodeToString(derBytes);
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file, false), StandardCharsets.US_ASCII)) {
+            writer.write("-----BEGIN " + type + "-----\n");
+            writer.write(base64);
+            writer.write("\n-----END " + type + "-----\n");
+        }
+    }
+
+    private static void copyStream(InputStream inputStream, FileOutputStream outputStream) throws IOException {
+        byte[] buffer = new byte[4096];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0) {
+            outputStream.write(buffer, 0, length);
+        }
+        outputStream.flush();
     }
 }

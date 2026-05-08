@@ -31,6 +31,7 @@ public class Pref {
     public static final String KEY_TNT_OVERLAY_WIDTH = "tnt_overlay_width";
     public static final String KEY_TNT_OVERLAY_HEIGHT = "tnt_overlay_height";
     public static final String KEY_TNT_OVERLAY_DPI = "tnt_overlay_dpi";
+    public static final String KEY_ENCODER_CODEC = "encoder_codec";
     public static final String KEY_ENCODER_BITRATE_PERCENT = "encoder_bitrate_percent";
     public static final String KEY_ENCODER_BITRATE_MODE = "encoder_bitrate_mode";
     public static final String KEY_ENCODER_COMPLEXITY = "encoder_complexity";
@@ -41,6 +42,8 @@ public class Pref {
     public static final String KEY_ENCODER_REALTIME_PRIORITY = "encoder_realtime_priority";
     public static final String KEY_STREAM_FEC_PERCENT = "stream_fec_percent";
     public static final String KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete";
+    public static final int ENCODER_CODEC_H264 = 0;
+    public static final int ENCODER_CODEC_H265 = 1;
     public static boolean doNotAutoStartMoonlight;
 
     public static boolean getAutoRotate() {
@@ -147,6 +150,10 @@ public class Pref {
         return getInt(KEY_TNT_OVERLAY_DPI, 216);
     }
 
+    public static int getEncoderCodec() {
+        return getInt(KEY_ENCODER_CODEC, ENCODER_CODEC_H264);
+    }
+
     public static int getEncoderBitratePercent() {
         return getInt(KEY_ENCODER_BITRATE_PERCENT, 100);
     }
@@ -164,7 +171,7 @@ public class Pref {
     }
 
     public static int getEncoderMaxFps() {
-        return getInt(KEY_ENCODER_MAX_FPS, 120);
+        return getInt(KEY_ENCODER_MAX_FPS, 60);
     }
 
     public static boolean getEncoderLowLatency() {
@@ -180,7 +187,7 @@ public class Pref {
     }
 
     public static int getStreamFecPercent() {
-        return getInt(KEY_STREAM_FEC_PERCENT, 20);
+        return getInt(KEY_STREAM_FEC_PERCENT, 0);
     }
 
     public static boolean isInitialSetupComplete() {

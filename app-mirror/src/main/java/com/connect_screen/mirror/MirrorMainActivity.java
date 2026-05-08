@@ -1,5 +1,6 @@
 package com.connect_screen.mirror;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -128,10 +129,23 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         State.uiState.observe(this, this::updateUI);
         initHomeControls();
+        requestRecordAudioPermissionIfNeeded();
         if (!Pref.isInitialSetupComplete()) {
             new android.os.Handler(android.os.Looper.getMainLooper())
                     .postDelayed(() -> InitializationGuideDialog.show(this), 400);
         }
+    }
+
+    private void requestRecordAudioPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        requestPermissions(
+                new String[]{Manifest.permission.RECORD_AUDIO},
+                REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
     private void ensureAccessibilityServiceStarted() {
@@ -198,6 +212,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private void startSunshineServiceWithPreflight() {
+        State.setCurrentActivity(this);
         SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
         if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
             State.startNewJob(new StartSunshineService());
@@ -265,14 +280,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (tntModeCheckbox != null) {
             tntModeCheckbox.setChecked(Pref.getSkipExternalActivity());
         }
-        refresh();
+        forceRefreshUi();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Shizuku.removeRequestPermissionResultListener(requestPermissionResultListener);
-        State.setCurrentActivity(null);
+        State.clearCurrentActivity(this);
     }
 
     @Override
@@ -359,13 +374,12 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             mirrorStatus.setVisibility(View.VISIBLE);
             settingsBtn.setVisibility(View.VISIBLE);
             exitBtn.setVisibility(View.VISIBLE);
-            exitBtn.setText(getSunshineServiceButtonText());
-            exitBtn.setEnabled(isSunshineServiceButtonEnabled());
             tntDesktopBtn.setVisibility(View.VISIBLE);
             tntDesktopBtn.setText(getTntDesktopButtonText());
             tntModeCheckbox.setVisibility(View.VISIBLE);
             screenOffBtn.setVisibility(View.GONE);
             touchScreenBtn.setVisibility(View.GONE);
+            updateServiceControls();
             return;
         }
 
@@ -373,8 +387,6 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         mirrorStatus.setVisibility(View.VISIBLE);
         settingsBtn.setVisibility(state.settingsBtnVisibility ? View.VISIBLE : View.GONE);
         exitBtn.setVisibility(View.VISIBLE);
-        exitBtn.setText(getSunshineServiceButtonText());
-        exitBtn.setEnabled(isSunshineServiceButtonEnabled());
         tntDesktopBtn.setVisibility(state.tntDesktopButtonVisibility ? View.VISIBLE : View.GONE);
         tntDesktopBtn.setText(state.tntDesktopButtonText);
         tntModeCheckbox.setVisibility(View.VISIBLE);
@@ -384,11 +396,18 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (state.touchScreenBtnVisibility && state.touchScreenBtnText != null) {
             touchScreenBtn.setText(state.touchScreenBtnText);
         }
+        updateServiceControls();
     }
 
     public void refresh() {
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
+            runOnUiThread(this::refresh);
+            return;
+        }
+
         MirrorUiState currentState = State.uiState.getValue();
         if (currentState != null && currentState.errorStatusText != null) {
+            updateServiceControls();
             return;
         }
 
@@ -425,7 +444,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         } else {
             StringBuilder status = new StringBuilder(
-                    "请连接屏幕。如果手机接口是 USB 2.0，可搭配 DisplayLink 扩展坞，或使用 Moonlight 无线串流。");
+                    "Sunshine Host 已启动，等待 Moonlight 客户端连接。\n可在 Moonlight 中搜索 TNT Shaker，或手动输入下方 IP。");
             try {
                 for (String ip : SunshineService.getAllWifiIpAddresses(this)) {
                     status.append("\n").append(ip);
@@ -439,6 +458,25 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
 
         State.uiState.setValue(newUiState);
+        updateServiceControls();
+    }
+
+    public void forceRefreshUi() {
+        refresh();
+        updateServiceControls();
+        if (exitBtn != null) {
+            exitBtn.post(this::updateServiceControls);
+        }
+    }
+
+    private void updateServiceControls() {
+        if (exitBtn != null) {
+            exitBtn.setText(getSunshineServiceButtonText());
+            exitBtn.setEnabled(isSunshineServiceButtonEnabled());
+        }
+        if (tntDesktopBtn != null) {
+            tntDesktopBtn.setText(getTntDesktopButtonText());
+        }
     }
 
     private String getTntDesktopButtonText() {

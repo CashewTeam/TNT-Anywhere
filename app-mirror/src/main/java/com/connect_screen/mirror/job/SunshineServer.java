@@ -66,6 +66,7 @@ public class SunshineServer {
     public static native void setPkeyPath(String path);
     public static native void setCertPath(String path);
     public static native void setFileStatePath(String path);
+    public static native void setVideoCodec(int codec);
     public static native void setEncoderSettings(
             int bitratePercent,
             int bitrateMode,
