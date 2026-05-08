@@ -404,6 +404,11 @@ namespace rtsp_stream {
     }
 
     int bind(net::af_e af, std::uint16_t port, boost::system::error_code &ec) {
+      if (acceptor.is_open()) {
+        acceptor.close(ec);
+        ec.clear();
+      }
+      io_context.restart();
       acceptor.open(af == net::IPV4 ? tcp::v4() : tcp::v6(), ec);
       if (ec) {
         return -1;
@@ -562,6 +567,21 @@ namespace rtsp_stream {
           i++;
         }
       }
+    }
+
+    void stop() {
+      boost::system::error_code ec;
+      if (next_socket) {
+        next_socket->sock.close(ec);
+        ec.clear();
+      }
+      if (acceptor.is_open()) {
+        acceptor.cancel(ec);
+        ec.clear();
+        acceptor.close(ec);
+        ec.clear();
+      }
+      io_context.stop();
     }
 
     /**
@@ -1103,6 +1123,7 @@ namespace rtsp_stream {
     if (server.bind(net::af_from_enum_string(config::sunshine.address_family), net::map_port(rtsp_stream::RTSP_SETUP_PORT), ec)) {
       BOOST_LOG(fatal) << "Couldn't bind RTSP server to port ["sv << net::map_port(rtsp_stream::RTSP_SETUP_PORT) << "], " << ec.message();
       shutdown_event->raise(true);
+      server.stop();
 
       return;
     }
@@ -1119,6 +1140,7 @@ namespace rtsp_stream {
     }
 
     server.clear();
+    server.stop();
   }
 
   void print_msg(PRTSP_MESSAGE msg) {

@@ -46,6 +46,9 @@ public final class DisplayControl {
     }
 
     private static Method getGetPhysicalDisplayTokenMethod() throws NoSuchMethodException {
+        if (CLASS == null) {
+            throw new NoSuchMethodException("DisplayControl class is unavailable");
+        }
         if (getPhysicalDisplayTokenMethod == null) {
             getPhysicalDisplayTokenMethod = CLASS.getMethod("getPhysicalDisplayToken", long.class);
         }
@@ -63,6 +66,9 @@ public final class DisplayControl {
     }
 
     private static Method getGetPhysicalDisplayIdsMethod() throws NoSuchMethodException {
+        if (CLASS == null) {
+            throw new NoSuchMethodException("DisplayControl class is unavailable");
+        }
         if (getPhysicalDisplayIdsMethod == null) {
             getPhysicalDisplayIdsMethod = CLASS.getMethod("getPhysicalDisplayIds");
         }

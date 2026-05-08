@@ -37,6 +37,7 @@ public class State {
     // 弱引用保存当前的 MainActivity 实例
     private static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
+    public static final MutableLiveData<String> streamingDebugInfo = new MutableLiveData<>("串流未启动");
     public static FloatingButtonService floatingButtonService;
     public static String serverUuid;
     private static Job currentJob;
@@ -45,8 +46,13 @@ public class State {
     private static MediaProjection mediaProjection;
     public static MediaProjection mediaProjectionInUse;
     public static int lastSingleAppDisplay;
+    public static int externalDisplayId = -1;
+    public static int externalControlDisplayId = -1;
+    public static int externalDisplayWidth;
+    public static int externalDisplayHeight;
     public static String displaylinkDeviceName;
     public static VirtualDisplay mirrorVirtualDisplay;
+    public static IBinder mirrorExternalToken;
     public static Activity isInPureBlackActivity = null;
     public static volatile IUserService userService;
     public static Set<String> discoveredConnectScreenClients = new HashSet<>();
@@ -89,6 +95,19 @@ public class State {
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             State.log("user service disconnected");
+            State.userService = null;
+        }
+
+        @Override
+        public void onBindingDied(ComponentName componentName) {
+            State.log("user service binding died");
+            State.userService = null;
+        }
+
+        @Override
+        public void onNullBinding(ComponentName componentName) {
+            State.log("user service null binding");
+            State.userService = null;
         }
     };
 
@@ -229,5 +248,25 @@ public class State {
     public static void bindUserService() {
         Shizuku.peekUserService(State.userServiceArgs, State.userServiceConnection);
         Shizuku.bindUserService(State.userServiceArgs, State.userServiceConnection);
+    }
+
+    public static boolean isUserServiceAlive() {
+        IUserService service = State.userService;
+        if (service == null) {
+            return false;
+        }
+        IBinder binder = service.asBinder();
+        return binder != null && binder.isBinderAlive();
+    }
+
+    public static void ensureUserServiceBound() {
+        if (!ShizukuUtils.hasPermission()) {
+            return;
+        }
+        if (isUserServiceAlive()) {
+            return;
+        }
+        State.unbindUserService();
+        State.bindUserService();
     }
 }

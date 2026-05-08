@@ -5,6 +5,7 @@ import android.hardware.input.IInputManager;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.InputDevice;
+import android.view.Display;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.KeyEventHidden;
@@ -100,6 +101,9 @@ public class SunshineKeyboard {
     public static final byte MODIFIER_META = 0x08;
     private static IInputManager inputManager;
     private static boolean singleAppMode;
+    private static boolean externalMirrorMode;
+    private static int externalMirrorDisplayId = Display.DEFAULT_DISPLAY;
+    private static int lastFocusedDisplayId = Integer.MIN_VALUE;
 
     // 添加修饰键状态跟踪
     private static int currentMetaState = 0;
@@ -149,6 +153,9 @@ public class SunshineKeyboard {
             inputManager = ServiceUtils.getInputManager();
         }
         singleAppMode = Pref.getSingleAppMode();
+        externalMirrorMode = !singleAppMode && Pref.getSkipExternalActivity() && State.externalDisplayId > 0;
+        externalMirrorDisplayId = externalMirrorMode ? getExternalControlDisplayId() : Display.DEFAULT_DISPLAY;
+        lastFocusedDisplayId = Integer.MIN_VALUE;
     }
 
     public static void handleKeyboardEvent(int modcode, boolean release, int _notUsed) {
@@ -166,15 +173,37 @@ public class SunshineKeyboard {
                 androidKeyCode, 0, currentMetaState, // 使用当前的修饰键状态
                 KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0,
                 InputDevice.SOURCE_KEYBOARD);
-        if (singleAppMode) {
-            if (State.mirrorVirtualDisplay == null) {
-                return;
-            }
+        int targetDisplayId = getTargetDisplayId();
+        if (targetDisplayId < 0) {
+            return;
+        }
+        if (targetDisplayId != Display.DEFAULT_DISPLAY) {
             KeyEventHidden keyEventHidden = Refine.unsafeCast(keyEvent);
-            keyEventHidden.setDisplayId(State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            keyEventHidden.setDisplayId(targetDisplayId);
+            if (lastFocusedDisplayId != targetDisplayId) {
+                TouchpadActivity.setFocus(inputManager, targetDisplayId);
+                lastFocusedDisplayId = targetDisplayId;
+            }
         }
         Log.d(TAG, "handleKeyboardEvent: " + modcode + " translated to " + keyEvent);
         inputManager.injectInputEvent(keyEvent, 0);
+    }
+
+    private static int getTargetDisplayId() {
+        if (singleAppMode) {
+            if (State.mirrorVirtualDisplay == null) {
+                return -1;
+            }
+            return State.mirrorVirtualDisplay.getDisplay().getDisplayId();
+        }
+        if (externalMirrorMode) {
+            return externalMirrorDisplayId;
+        }
+        return Display.DEFAULT_DISPLAY;
+    }
+
+    private static int getExternalControlDisplayId() {
+        return State.externalControlDisplayId > 0 ? State.externalControlDisplayId : State.externalDisplayId;
     }
 
 

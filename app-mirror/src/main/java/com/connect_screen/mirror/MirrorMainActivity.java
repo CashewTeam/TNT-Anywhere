@@ -1,9 +1,8 @@
 package com.connect_screen.mirror;
 
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.content.pm.PackageManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
@@ -11,13 +10,14 @@ import android.media.projection.MediaProjectionConfig;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.widget.CompoundButtonCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,41 +25,40 @@ import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.ExitAll;
+import com.connect_screen.mirror.job.StartSunshineService;
+import com.connect_screen.mirror.job.TntOverlayHelper;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.topjohnwu.superuser.Shell;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
-import java.lang.ref.WeakReference;
-
 import rikka.shizuku.Shizuku;
-import com.topjohnwu.superuser.Shell;
 
 public class MirrorMainActivity extends AppCompatActivity implements IMainActivity {
 
     static {
-        // Set settings before the main shell can be created
         Shell.enableVerboseLogging = BuildConfig.DEBUG;
         Shell.setDefaultBuilder(Shell.Builder.create()
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(10));
     }
 
-    public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001; // 定义一个请求码
+    public static final int REQUEST_CODE_MEDIA_PROJECTION = 1001;
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
     public static final String TAG = "MirrorMainActivity";
 
     private RecyclerView logRecyclerView;
     private LogAdapter logAdapter;
-
-    // 添加时间戳和延迟常量
-    private static final long MONITOR_INIT_DELAY = 3000; // 5秒延迟
-    private long lastCheckTime = 0;
+    private long lastCheckTime;
 
     Button settingsBtn;
     Button screenOffBtn;
     Button touchScreenBtn;
     Button exitBtn;
+    Button tntDesktopBtn;
+    SwitchCompat tntModeCheckbox;
     TextView mirrorStatus;
+    TextView streamingDebugPanel;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -73,15 +72,16 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
     private void onRequestShizukuPermissionsResult(int requestCode, int grantResult) {
         if (requestCode == AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE) {
-            State.log("Shizuku 权限请求结果: " + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
+            State.log("Shizuku 权限请求结果: "
+                    + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
             State.resumeJob();
         } else {
             State.log("未知 Shizuku 请求代码: " + requestCode);
         }
     }
 
-    private final Shizuku.OnRequestPermissionResultListener REQUEST_PERMISSION_RESULT_LISTENER =
-        this::onRequestShizukuPermissionsResult;
+    private final Shizuku.OnRequestPermissionResultListener requestPermissionResultListener =
+            this::onRequestShizukuPermissionsResult;
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -89,9 +89,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 HiddenApiBypass.addHiddenApiExemptions("");
-                android.util.Log.i("MainActivity", "成功添加隐藏API豁免");
+                android.util.Log.i(TAG, "已启用 HiddenApiBypass");
             } catch (Exception e) {
-                android.util.Log.e("MainActivity", "添加隐藏API豁免失败: " + e.getMessage());
+                android.util.Log.e(TAG, "HiddenApiBypass 初始化失败: " + e.getMessage());
             }
         }
     }
@@ -99,81 +99,79 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 设置 State.currentActivity 为当前的 MainActivity 实例
         State.setCurrentActivity(this);
-
-        // 添加保持屏幕常亮的标志
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // 获取 DoNotAutoStartMoonlight 参数
         boolean doNotAutoStartMoonlight = getIntent().getBooleanExtra("DoNotAutoStartMoonlight", false);
         if (doNotAutoStartMoonlight) {
-            Pref.doNotAutoStartMoonlight = doNotAutoStartMoonlight;
+            Pref.doNotAutoStartMoonlight = true;
         }
 
-        AcquireShizuku.fixRootShizuku();
-        if (!Pref.getDisableAccessibility()) {
-            ensureAccessiblityServiceStarted();
-        }
-
-        // 检查 SunshineService 是否已经在运行，如果没有运行才启动
-        if (SunshineService.instance == null) {
-            startMediaProjectionService();
+        if (SunshineService.getLifecycleState() == SunshineService.LifecycleState.STOPPED) {
+            State.log("SunshineService 未启动，请点击启动服务");
         } else {
-            State.log("SunshineService 服务已在运行");
+            State.log("SunshineService 正在运行");
         }
-        
-        Shizuku.addRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
 
-        // 移除默认的 ActionBar
+        Shizuku.addRequestPermissionResultListener(requestPermissionResultListener);
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
 
         setContentView(R.layout.activity_main);
 
-        // 初始化日志列表
         logRecyclerView = findViewById(R.id.logRecyclerView);
         logAdapter = new LogAdapter(State.logs);
         logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         logRecyclerView.setAdapter(logAdapter);
 
-
-        // 观察 UI 状态变化
         State.uiState.observe(this, this::updateUI);
-
-        // 初始化主界面控件
         initHomeControls();
-    }
-
-    private void ensureAccessiblityServiceStarted() {
-        if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
-            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
-            this.startService(serviceIntent);
+        if (!Pref.isInitialSetupComplete()) {
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .postDelayed(() -> InitializationGuideDialog.show(this), 400);
         }
     }
 
-    // 添加初始化主界面控件的方法
+    private void ensureAccessibilityServiceStarted() {
+        if (TouchpadAccessibilityService.isAccessibilityServiceEnabled(this)) {
+            Intent serviceIntent = new Intent(this, TouchpadAccessibilityService.class);
+            startService(serviceIntent);
+        }
+    }
+
     private void initHomeControls() {
         settingsBtn = findViewById(R.id.settingsBtn);
         screenOffBtn = findViewById(R.id.screenOffBtn);
         touchScreenBtn = findViewById(R.id.touchScreenBtn);
         exitBtn = findViewById(R.id.exitBtn);
+        tntDesktopBtn = findViewById(R.id.tntDesktopBtn);
+        tntModeCheckbox = findViewById(R.id.tntModeCheckbox);
         mirrorStatus = findViewById(R.id.mirrorStatus);
-        
-        // 获取设置
-        
+        streamingDebugPanel = findViewById(R.id.streamingDebugPanel);
+        styleSwitch(tntModeCheckbox);
+
+        State.streamingDebugInfo.observe(this, info -> {
+            if (streamingDebugPanel != null) {
+                streamingDebugPanel.setText(info);
+            }
+        });
+
         refresh();
 
-        // 设置按钮点击事件
-        settingsBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MirrorSettingsActivity.class);
-            startActivity(intent);
+        settingsBtn.setOnClickListener(v -> startActivity(new Intent(this, MirrorSettingsActivity.class)));
+
+        tntModeCheckbox.setChecked(Pref.getSkipExternalActivity());
+        tntModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (Pref.getPreferences() != null) {
+                Pref.getPreferences().edit().putBoolean(Pref.KEY_SKIP_EXTERNAL_ACTIVITY, isChecked).apply();
+            }
+            State.log("TNT模式" + (isChecked ? "已开启" : "已关闭"));
+            refresh();
         });
 
-        screenOffBtn.setOnClickListener(v -> {
-            CreateVirtualDisplay.doPowerOffScreen(this);
-        });
+        screenOffBtn.setOnClickListener(v -> CreateVirtualDisplay.doPowerOffScreen(this));
 
         touchScreenBtn.setOnClickListener(v -> {
             boolean useTouchscreen = Pref.getUseTouchscreen();
@@ -195,41 +193,96 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         });
 
-        exitBtn.setOnClickListener(v -> {
-            if (AutoRotateAndScaleForDisplaylink.instance != null) {
-                AutoRotateAndScaleForDisplaylink.instance.release();
-            }
-            ExitAll.execute(this, false);
-        });
+        exitBtn.setOnClickListener(v -> startSunshineServiceWithPreflight());
+        tntDesktopBtn.setOnClickListener(v -> toggleTntDesktop());
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void startSunshineServiceWithPreflight() {
+        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
+        if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
+            State.startNewJob(new StartSunshineService());
+            return;
+        }
+        if (lifecycleState == SunshineService.LifecycleState.STARTING
+                || lifecycleState == SunshineService.LifecycleState.STOPPING) {
+            State.log("SunshineService 正在切换状态，请稍候");
+            refresh();
+            return;
+        }
+        State.log("手动停止 SunshineService");
+        SunshineService.markStopping();
+        refresh();
+        if (AutoRotateAndScaleForDisplaylink.instance != null) {
+            AutoRotateAndScaleForDisplaylink.instance.release();
+        }
+        ExitAll.stopServices(this);
+        refresh();
+    }
+
+    private void toggleSunshineService() {
+        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
+        if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
+            State.log("手动启动 SunshineService");
+            SunshineService.markStarting();
+            refresh();
+            startMediaProjectionService();
+            return;
+        }
+        if (lifecycleState == SunshineService.LifecycleState.STARTING
+                || lifecycleState == SunshineService.LifecycleState.STOPPING) {
+            State.log("SunshineService 正在切换状态，请稍候");
+            refresh();
+            return;
+        }
+        State.log("手动停止 SunshineService");
+        SunshineService.markStopping();
+        refresh();
+        if (AutoRotateAndScaleForDisplaylink.instance != null) {
+            AutoRotateAndScaleForDisplaylink.instance.release();
+        }
+        ExitAll.stopServices(this);
+        refresh();
+    }
+
+    private void toggleTntDesktop() {
+        if (TntOverlayHelper.isOverlayOwnedByApp()) {
+            TntOverlayHelper.clearOverlayDisplay();
+            State.log("已关闭 TNT overlay 调试显示器");
+            refresh();
+            return;
+        }
+        if (TntOverlayHelper.ensureHeadlessOverlayDisplayFromPreferences()) {
+            State.log("已请求开启 TNT 桌面，请稍候让系统拉起桌面");
+            refresh();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         State.setCurrentActivity(this);
+        ensureAccessibilityServiceStarted();
+        if (tntModeCheckbox != null) {
+            tntModeCheckbox.setChecked(Pref.getSkipExternalActivity());
+        }
         refresh();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Shizuku.removeRequestPermissionResultListener(REQUEST_PERMISSION_RESULT_LISTENER);
+        Shizuku.removeRequestPermissionResultListener(requestPermissionResultListener);
         State.setCurrentActivity(null);
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-       
+
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
-                lastCheckTime = System.currentTimeMillis(); // 记录时间戳
+                lastCheckTime = System.currentTimeMillis();
                 if (SunshineService.instance == null) {
                     Intent sunshineServiceIntent = new Intent(this, SunshineService.class);
                     sunshineServiceIntent.putExtra("data", data);
@@ -239,8 +292,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                         startService(sunshineServiceIntent);
                     }
                     State.log("启动 SunshineService 服务");
+                    refresh();
                 } else {
-                    MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+                    MediaProjectionManager mediaProjectionManager =
+                            (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
                     State.setMediaProjection(mediaProjectionManager.getMediaProjection(RESULT_OK, data));
                     State.getMediaProjection().registerCallback(new MediaProjection.Callback() {
                         @Override
@@ -253,24 +308,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 }
             } else {
                 State.log("用户拒绝了投屏权限");
+                SunshineService.markStopped();
                 refresh();
                 State.resumeJob();
             }
         }
     }
 
-    // 添加一个方法来检查服务是否在运行
-    private boolean isServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    // 更新日志列表的方法
+    @Override
     public void updateLogs() {
         try {
             if (logAdapter != null) {
@@ -283,91 +328,166 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     public void startMediaProjectionService() {
-        MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) this.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        if (mediaProjectionManager != null) {
-            Intent captureIntent = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay());
-            } else {
-                captureIntent = mediaProjectionManager.createScreenCaptureIntent();
-            }
-            MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
-            if (mirrorMainActivity != null) {
-                mirrorMainActivity.startActivityForResult(captureIntent, MirrorMainActivity.REQUEST_CODE_MEDIA_PROJECTION);
-                TouchpadAccessibilityService.grantPermissionByClick(mirrorMainActivity);
-            }
-        } else {
+        if (SunshineService.getLifecycleState() == SunshineService.LifecycleState.STOPPING) {
+            State.log("SunshineService 正在停止，请稍候再启动");
+            refresh();
+            return;
+        }
+        MediaProjectionManager mediaProjectionManager =
+                (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        if (mediaProjectionManager == null) {
             throw new RuntimeException("无法获取 MediaProjectionManager 服务");
+        }
+
+        Intent captureIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            captureIntent = mediaProjectionManager.createScreenCaptureIntent(
+                    MediaProjectionConfig.createConfigForDefaultDisplay());
+        } else {
+            captureIntent = mediaProjectionManager.createScreenCaptureIntent();
+        }
+
+        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
+        if (mirrorMainActivity != null) {
+            mirrorMainActivity.startActivityForResult(captureIntent, REQUEST_CODE_MEDIA_PROJECTION);
         }
     }
 
-    // 修改 updateUI 方法
     private void updateUI(MirrorUiState state) {
         if (state.errorStatusText != null) {
             mirrorStatus.setText(state.errorStatusText);
+            mirrorStatus.setVisibility(View.VISIBLE);
             settingsBtn.setVisibility(View.VISIBLE);
+            exitBtn.setVisibility(View.VISIBLE);
+            exitBtn.setText(getSunshineServiceButtonText());
+            exitBtn.setEnabled(isSunshineServiceButtonEnabled());
+            tntDesktopBtn.setVisibility(View.VISIBLE);
+            tntDesktopBtn.setText(getTntDesktopButtonText());
+            tntModeCheckbox.setVisibility(View.VISIBLE);
             screenOffBtn.setVisibility(View.GONE);
             touchScreenBtn.setVisibility(View.GONE);
             return;
         }
-        // 根据状态设置 UI
+
         mirrorStatus.setText(state.mirrorStatusText);
         mirrorStatus.setVisibility(View.VISIBLE);
-        
         settingsBtn.setVisibility(state.settingsBtnVisibility ? View.VISIBLE : View.GONE);
+        exitBtn.setVisibility(View.VISIBLE);
+        exitBtn.setText(getSunshineServiceButtonText());
+        exitBtn.setEnabled(isSunshineServiceButtonEnabled());
+        tntDesktopBtn.setVisibility(state.tntDesktopButtonVisibility ? View.VISIBLE : View.GONE);
+        tntDesktopBtn.setText(state.tntDesktopButtonText);
+        tntModeCheckbox.setVisibility(View.VISIBLE);
         screenOffBtn.setText("熄屏");
         screenOffBtn.setVisibility(state.screenOffBtnVisibility ? View.VISIBLE : View.GONE);
         touchScreenBtn.setVisibility(state.touchScreenBtnVisibility ? View.VISIBLE : View.GONE);
-        
-        if (state.touchScreenBtnVisibility) {
+        if (state.touchScreenBtnVisibility && state.touchScreenBtnText != null) {
             touchScreenBtn.setText(state.touchScreenBtnText);
         }
     }
 
-    // 修改 refresh 方法
     public void refresh() {
-        if (State.uiState.getValue().errorStatusText != null) {
+        MirrorUiState currentState = State.uiState.getValue();
+        if (currentState != null && currentState.errorStatusText != null) {
             return;
         }
+
         boolean singleAppMode = Pref.getSingleAppMode();
         boolean useTouchscreen = Pref.getUseTouchscreen();
-        
-        // 更新 ViewModel 中的状态
-        boolean isScreenMirroring = State.mirrorVirtualDisplay != null || 
-                                   State.displaylinkState.getVirtualDisplay() != null || 
-                                   State.lastSingleAppDisplay != 0;
+        boolean isScreenMirroring = State.mirrorVirtualDisplay != null
+                || State.displaylinkState.getVirtualDisplay() != null
+                || State.lastSingleAppDisplay != 0;
 
         MirrorUiState newUiState = new MirrorUiState();
+        newUiState.settingsBtnVisibility = true;
+        newUiState.tntDesktopButtonVisibility = true;
+        newUiState.tntDesktopButtonText = getTntDesktopButtonText();
 
-        if (SunshineService.instance == null) {
-            newUiState.mirrorStatusText = "未获得投屏权限，请手工点击退出按钮";
-            newUiState.settingsBtnVisibility = true;
+        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
+        if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
+            newUiState.mirrorStatusText = "Sunshine 服务未启动，请点击启动服务";
+            newUiState.screenOffBtnVisibility = false;
+            newUiState.touchScreenBtnVisibility = false;
+        } else if (lifecycleState == SunshineService.LifecycleState.STARTING) {
+            newUiState.mirrorStatusText = "Sunshine 服务正在启动，请稍候";
+            newUiState.screenOffBtnVisibility = false;
+            newUiState.touchScreenBtnVisibility = false;
+        } else if (lifecycleState == SunshineService.LifecycleState.STOPPING) {
+            newUiState.mirrorStatusText = "Sunshine 服务正在停止，请稍候";
             newUiState.screenOffBtnVisibility = false;
             newUiState.touchScreenBtnVisibility = false;
         } else if (isScreenMirroring) {
-            newUiState.mirrorStatusText = "投屏中，请在系统设置中为屏易连关闭省电，并在任务列表中锁定任务防止被杀。如果没有 shizuku 权限可能无法触摸";
-            newUiState.settingsBtnVisibility = false;
+            newUiState.mirrorStatusText = "Sunshine Host 运行中。建议在系统设置中为 TNT Shaker 关闭省电限制，并在任务列表中锁定任务防止被杀。控制链路推荐使用 Shizuku。";
             newUiState.screenOffBtnVisibility = ShizukuUtils.hasPermission();
             newUiState.touchScreenBtnVisibility = singleAppMode;
-
             if (singleAppMode) {
                 newUiState.touchScreenBtnText = useTouchscreen ? "触摸屏" : "触控板";
             }
         } else {
-            newUiState.mirrorStatusText = "请连接屏幕，如果接口是USB2.0的手机需要Displaylink扩展坞或者Moonlight无线投屏";
+            StringBuilder status = new StringBuilder(
+                    "请连接屏幕。如果手机接口是 USB 2.0，可搭配 DisplayLink 扩展坞，或使用 Moonlight 无线串流。");
             try {
                 for (String ip : SunshineService.getAllWifiIpAddresses(this)) {
-                    newUiState.mirrorStatusText += "\n";
-                    newUiState.mirrorStatusText += ip;
+                    status.append("\n").append(ip);
                 }
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 // ignore
             }
-            newUiState.settingsBtnVisibility = true;
+            newUiState.mirrorStatusText = status.toString();
             newUiState.screenOffBtnVisibility = false;
             newUiState.touchScreenBtnVisibility = false;
         }
 
         State.uiState.setValue(newUiState);
+    }
+
+    private String getTntDesktopButtonText() {
+        return TntOverlayHelper.isOverlayOwnedByApp() ? "关闭 TNT" : "开启 TNT";
+    }
+
+    private String getSunshineServiceButtonText() {
+        switch (SunshineService.getLifecycleState()) {
+            case STARTING:
+                return "启动中...";
+            case RUNNING:
+                return "停止服务";
+            case STOPPING:
+                return "停止中...";
+            case STOPPED:
+            default:
+                return "启动服务";
+        }
+    }
+
+    private boolean isSunshineServiceButtonEnabled() {
+        SunshineService.LifecycleState state = SunshineService.getLifecycleState();
+        return state == SunshineService.LifecycleState.STOPPED
+                || state == SunshineService.LifecycleState.RUNNING;
+    }
+
+    private void styleSwitch(SwitchCompat switchCompat) {
+        if (switchCompat == null) {
+            return;
+        }
+        int textColor = 0xFF202020;
+        int[][] states = new int[][]{
+                new int[]{-android.R.attr.state_enabled},
+                new int[]{android.R.attr.state_checked},
+                new int[]{-android.R.attr.state_checked}
+        };
+        ColorStateList thumbColors = new ColorStateList(states, new int[]{
+                0xFFD0D4D8,
+                0xFF4CAF50,
+                0xFF9EA4AA
+        });
+        ColorStateList trackColors = new ColorStateList(states, new int[]{
+                0x223F454A,
+                0x664CAF50,
+                0x553F454A
+        });
+        switchCompat.setTextColor(textColor);
+        switchCompat.setThumbTintList(thumbColors);
+        switchCompat.setTrackTintList(trackColors);
+        CompoundButtonCompat.setButtonTintList(switchCompat, null);
     }
 }

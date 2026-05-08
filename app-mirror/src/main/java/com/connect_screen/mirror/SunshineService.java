@@ -50,9 +50,19 @@ import javax.jmdns.ServiceInfo;
 public class SunshineService extends Service {
     public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
     public static SunshineService instance;
+    public enum LifecycleState {
+        STOPPED,
+        STARTING,
+        RUNNING,
+        STOPPING
+    }
+
+    private static volatile LifecycleState lifecycleState = LifecycleState.STOPPED;
     private static final String CHANNEL_ID = "SunshineServiceChannel";
     private static final int NOTIFICATION_ID = 2;
     private static final String TAG = "SunshineService";
+    private boolean usbPermissionRegistered = false;
+    private Thread nativeThread;
 
     private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
@@ -67,10 +77,40 @@ public class SunshineService extends Service {
 
     private int currentTimeout;
 
+    public static LifecycleState getLifecycleState() {
+        return lifecycleState;
+    }
+
+    public static boolean canRequestStart() {
+        return lifecycleState == LifecycleState.STOPPED;
+    }
+
+    public static boolean canRequestStop() {
+        return lifecycleState == LifecycleState.STARTING || lifecycleState == LifecycleState.RUNNING;
+    }
+
+    public static void markStarting() {
+        setLifecycleState(LifecycleState.STARTING);
+    }
+
+    public static void markStopping() {
+        setLifecycleState(LifecycleState.STOPPING);
+    }
+
+    public static void markStopped() {
+        setLifecycleState(LifecycleState.STOPPED);
+    }
+
+    private static void setLifecycleState(LifecycleState state) {
+        lifecycleState = state;
+        State.refreshMainActivity();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         instance = this;
+        setLifecycleState(LifecycleState.STARTING);
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
     }
@@ -79,12 +119,21 @@ public class SunshineService extends Service {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
+        if (nativeThread != null && nativeThread.isAlive()) {
+            setLifecycleState(LifecycleState.STOPPING);
+        } else {
+            setLifecycleState(LifecycleState.STOPPED);
+        }
         releaseWakeLock();
         try {
-            unregisterReceiver(usbPermissionReceiver);
+            if (usbPermissionRegistered) {
+                unregisterReceiver(usbPermissionReceiver);
+                usbPermissionRegistered = false;
+            }
         } catch (Exception e) {
             // ignore
         }
+        MirrorDisplaylinkMonitor.release();
         State.unbindUserService();
     }
 
@@ -97,6 +146,12 @@ public class SunshineService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (nativeThread != null && nativeThread.isAlive()) {
+            State.log("SunshineService 已在运行，忽略重复启动请求");
+            State.refreshMainActivity();
+            return START_NOT_STICKY;
+        }
+        setLifecycleState(LifecycleState.STARTING);
         if (intent != null && intent.hasExtra("data")) {
             MediaProjectionManager mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             Intent data = intent.getParcelableExtra("data");
@@ -117,7 +172,7 @@ public class SunshineService extends Service {
             preventAutoLock();
         }
         // 在后台线程中启动 Sunshine 服务器
-        String sunshineName = "屏易连-"  + Build.MANUFACTURER + "-" + Build.MODEL;
+        String sunshineName = "TNT Shaker-"  + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         Set<String> ipAddresses = getAllWifiIpAddresses(this);
         probeH265();
@@ -126,6 +181,7 @@ public class SunshineService extends Service {
         new Thread(() -> {
             try {
                 SunshineServer.setFileStatePath(SunshineService.this.getFilesDir().getAbsolutePath() + "/sunshine_state.json");
+                SunshineServer.setEncoderSettingsFromPreferences();
                 writeCertAndKey(SunshineService.this);
                 List<JmDNS> dnsServers = new ArrayList<>();
                 if(!ipAddresses.isEmpty()) {
@@ -135,9 +191,9 @@ public class SunshineService extends Service {
                             dnsServers.add(jmdns);
                             ServiceInfo serviceInfo = ServiceInfo.create(
                                     "_nvstream._tcp.local.",
-                                    "ConnectScreen",
+                                    "TNT Shaker",
                                     47989,
-                                    "ConnectScreen"
+                                    "TNT Shaker"
                             );
 
                             jmdns.registerService(serviceInfo);
@@ -147,16 +203,25 @@ public class SunshineService extends Service {
                         }
                     }
                 }
-                new Thread(() -> { 
+                nativeThread = new Thread(() -> {
                     try {
+                        setLifecycleState(LifecycleState.RUNNING);
                         SunshineServer.start();
-                        for (JmDNS server : dnsServers) {
-                            server.close();
-                        }
                     } catch(Throwable e) {
                         Log.e("SunshineService", "thread quit", e);
+                    } finally {
+                        for (JmDNS server : dnsServers) {
+                            try {
+                                server.close();
+                            } catch (IOException e) {
+                                Log.w("SunshineService", "JmDNS 服务关闭失败", e);
+                            }
+                        }
+                        setLifecycleState(LifecycleState.STOPPED);
+                        stopSelf();
                     }
-                }).start();
+                }, "SunshineNativeThread");
+                nativeThread.start();
                 if (ipAddresses.isEmpty()) {
                     State.log("无法获取WiFi IP地址");
                 } else {
@@ -167,12 +232,17 @@ public class SunshineService extends Service {
                 }
             } catch (Exception e) {
                 Log.e("SunshineService", "初始化网络服务失败", e);
+                setLifecycleState(LifecycleState.STOPPED);
+                stopSelf();
             }
         }).start();
 
         // 注册 USB 权限广播接收器
         IntentFilter permissionFilter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
+        if (!usbPermissionRegistered) {
+            registerReceiver(usbPermissionReceiver, permissionFilter, null, null, Context.RECEIVER_EXPORTED);
+            usbPermissionRegistered = true;
+        }
 
         // 监听显示器变化
         DisplayManager displayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
@@ -181,11 +251,12 @@ public class SunshineService extends Service {
         State.refreshMainActivity();
         Handler handler = new Handler();
         handler.postDelayed(() -> {
-            if (ShizukuUtils.hasPermission() && State.userService == null) {
+            if (ShizukuUtils.hasPermission() && !State.isUserServiceAlive()) {
                 State.log("try start shizuku user service");
+                State.unbindUserService();
                 State.bindUserService();
                 handler.postDelayed(() -> {
-                    if (ShizukuUtils.hasPermission() && State.userService == null) {
+                    if (ShizukuUtils.hasPermission() && !State.isUserServiceAlive()) {
                         State.log("shizuku user service 启动失败，请取消 shizuku 授权并再次授予。try start user service again");
                         State.unbindUserService();
                         State.bindUserService();
@@ -232,8 +303,8 @@ public class SunshineService extends Service {
 
     private Notification createNotification() {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("屏易连")
-            .setContentText("Sunshine 服务正在运行")
+            .setContentTitle("TNT Shaker")
+            .setContentText("Sunshine Host 正在运行")
             .setSmallIcon(R.mipmap.ic_mirror)
             .build();
     }
@@ -350,4 +421,4 @@ public class SunshineService extends Service {
             android.util.Log.e("TAG", "写入证书文件失败", e);
         }
     }
-} 
+}

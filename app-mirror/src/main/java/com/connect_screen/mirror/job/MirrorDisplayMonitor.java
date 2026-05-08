@@ -1,11 +1,8 @@
 package com.connect_screen.mirror.job;
 
-import static android.app.PendingIntent.getActivity;
-
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceAttributes;
@@ -16,23 +13,19 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Display;
-import android.view.Surface;
 
 import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.TouchpadActivity;
-import com.connect_screen.mirror.shizuku.DisplayControl;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class MirrorDisplayMonitor {
     private static boolean registered = false;
+
     public static void init(DisplayManager displayManager) {
         for (Display display : displayManager.getDisplays()) {
             handleNewDisplay(display);
@@ -48,6 +41,9 @@ public class MirrorDisplayMonitor {
                 Display display = displayManager.getDisplay(displayId);
                 if (display != null) {
                     handleNewDisplay(display);
+                }
+                if (Pref.getSkipExternalActivity()) {
+                    return;
                 }
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
                     if (SunshineService.instance == null) {
@@ -67,6 +63,12 @@ public class MirrorDisplayMonitor {
             @Override
             public void onDisplayRemoved(int displayId) {
                 State.log("移除显示器，displayId: " + displayId);
+                if (displayId == State.externalDisplayId) {
+                    State.externalDisplayId = -1;
+                }
+                if (displayId == State.externalControlDisplayId) {
+                    State.externalControlDisplayId = -1;
+                }
             }
 
             @Override
@@ -104,10 +106,13 @@ public class MirrorDisplayMonitor {
         if (context == null) {
             return;
         }
+        if (Pref.getSkipExternalActivity()) {
+            return;
+        }
         State.startNewJob(new ProjectViaMirror(display));
         handleDisableUsbAudio(context);
     }
-    
+
     private static void handleDisableUsbAudio(Context context) {
         if (!ShizukuUtils.hasPermission()) {
             return;
@@ -123,8 +128,8 @@ public class MirrorDisplayMonitor {
                 if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
                     try {
                         audioManager.setWiredDeviceConnectionState(device, 0, "com.android.shell");
-                        State.log("禁用音频输出设备：" + device);
-                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备: " + device);
+                    } catch (Throwable e) {
                         State.log("禁用音频输出设备失败: " + e);
                     }
                 }
@@ -135,15 +140,15 @@ public class MirrorDisplayMonitor {
                 if (device.getType() == AudioDeviceInfo.TYPE_HDMI) {
                     try {
                         audioManager.setWiredDeviceConnectionState(device.getType(), 0, device.getAddress(), "", "com.android.shell");
-                        State.log("禁用音频输出设备：" + device.getType() + ", " + device.getProductName());
-                    } catch(Throwable e) {
+                        State.log("禁用音频输出设备: " + device.getType() + ", " + device.getProductName());
+                    } catch (Throwable e) {
                         State.log("禁用音频输出设备失败: " + e);
                     }
                 } else if (device.getType() == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER) {
                     try {
                         audioManager.setWiredDeviceConnectionState(device.getType(), 1, device.getAddress(), "", "com.android.shell");
-                        State.log("启用音频输出设备：" + device.getType() + ", " + device.getProductName());
-                    } catch(Throwable e) {
+                        State.log("启用音频输出设备: " + device.getType() + ", " + device.getProductName());
+                    } catch (Throwable e) {
                         State.log("启用音频输出设备失败: " + e);
                     }
                 }

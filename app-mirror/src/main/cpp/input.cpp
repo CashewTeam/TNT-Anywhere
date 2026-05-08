@@ -798,13 +798,13 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
     }
 
     if (config::input.high_resolution_scrolling) {
-//      platf::scroll(platf_input, util::endian::big(packet->scrollAmt1));
+      sunshine_callbacks::callJavaOnMouseScroll(util::endian::big(packet->scrollAmt1), 0);
     } else {
       input->accumulated_vscroll_delta += util::endian::big(packet->scrollAmt1);
       auto full_ticks = input->accumulated_vscroll_delta / WHEEL_DELTA;
       if (full_ticks) {
         // Send any full ticks that have accumulated and store the rest
-//        platf::scroll(platf_input, full_ticks * WHEEL_DELTA);
+        sunshine_callbacks::callJavaOnMouseScroll(full_ticks * WHEEL_DELTA, 0);
         input->accumulated_vscroll_delta -= full_ticks * WHEEL_DELTA;
       }
     }
@@ -821,13 +821,13 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
     }
 
     if (config::input.high_resolution_scrolling) {
-//      platf::hscroll(platf_input, util::endian::big(packet->scrollAmount));
+      sunshine_callbacks::callJavaOnMouseScroll(0, util::endian::big(packet->scrollAmount));
     } else {
       input->accumulated_hscroll_delta += util::endian::big(packet->scrollAmount);
       auto full_ticks = input->accumulated_hscroll_delta / WHEEL_DELTA;
       if (full_ticks) {
         // Send any full ticks that have accumulated and store the rest
-//        platf::hscroll(platf_input, full_ticks * WHEEL_DELTA);
+        sunshine_callbacks::callJavaOnMouseScroll(0, full_ticks * WHEEL_DELTA);
         input->accumulated_hscroll_delta -= full_ticks * WHEEL_DELTA;
       }
     }

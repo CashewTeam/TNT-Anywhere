@@ -11,4 +11,5 @@ public class DisplayInfo {
     public Display.Mode[] appsSupportedModes;
     public float refreshRateOverride;
     public int installOrientation;
+    public int layerStack;
 }

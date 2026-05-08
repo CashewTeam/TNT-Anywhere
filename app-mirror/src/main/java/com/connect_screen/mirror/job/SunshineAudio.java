@@ -10,6 +10,7 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.AudioRecord;
+import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
@@ -139,15 +140,26 @@ public class SunshineAudio {
                     .setSampleRate(sampleRate)
                     .setChannelMask(channelConfig)
                     .build();
-            AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(State.getMediaProjection())
-                    .excludeUsage(AudioAttributes.USAGE_ALARM)
-                    .build();
-            AudioRecord audioRecord = new AudioRecord.Builder()
-                    .setAudioPlaybackCaptureConfig(config)
-                    .setAudioFormat(audioFormat)
-                    .setBufferSizeInBytes(bufferSize)
-                    .build();
-            audioRecord.startRecording();
+            MediaProjection mediaProjection = State.getMediaProjection();
+            if (mediaProjection == null) {
+                State.log("没有可用 MediaProjection，跳过系统音频捕获");
+                return false;
+            }
+            AudioRecord audioRecord;
+            try {
+                AudioPlaybackCaptureConfiguration config = new AudioPlaybackCaptureConfiguration.Builder(mediaProjection)
+                        .excludeUsage(AudioAttributes.USAGE_ALARM)
+                        .build();
+                audioRecord = new AudioRecord.Builder()
+                        .setAudioPlaybackCaptureConfig(config)
+                        .setAudioFormat(audioFormat)
+                        .setBufferSizeInBytes(bufferSize)
+                        .build();
+                audioRecord.startRecording();
+            } catch (Throwable e) {
+                State.log("系统音频捕获启动失败，继续视频投屏: " + e.getMessage());
+                return false;
+            }
 
             // 将 AudioRecord 传递给 SunshineServer 进行处理
             SunshineServer.startAudioRecording(audioRecord, framesPerPacket);

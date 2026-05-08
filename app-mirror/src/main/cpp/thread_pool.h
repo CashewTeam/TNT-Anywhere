@@ -92,7 +92,9 @@ namespace thread_pool_util {
 
         void join() {
             for (auto &t : _thread) {
-                t.join();
+                if (t.joinable()) {
+                    t.join();
+                }
             }
         }
 

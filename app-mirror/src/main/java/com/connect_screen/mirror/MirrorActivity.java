@@ -81,6 +81,14 @@ public class MirrorActivity extends AppCompatActivity {
         return instance;
     }
 
+    private boolean isDefaultDisplayLandscape() {
+        Context context = State.getContext();
+        if (context == null) {
+            context = this;
+        }
+        return context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+    }
+
     private class OrientationChangeCallback implements DisplayManager.DisplayListener {
         @Override
         public void onDisplayAdded(int displayId) {
@@ -93,7 +101,7 @@ public class MirrorActivity extends AppCompatActivity {
         @Override
         public void onDisplayChanged(int displayId) {
             if (displayId == Display.DEFAULT_DISPLAY) {
-                boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+                boolean isLandscape = isDefaultDisplayLandscape();
                 Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
                 if (State.mirrorVirtualDisplay != null) {
@@ -275,7 +283,7 @@ public class MirrorActivity extends AppCompatActivity {
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
                         stopVirtualDisplay();
-                        boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+                        boolean isLandscape = isDefaultDisplayLandscape();
                         if (!autoRotate) {
                             isLandscape = true;
                         }
@@ -341,7 +349,7 @@ public class MirrorActivity extends AppCompatActivity {
                         });
                         CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
-                        boolean isLandscape = SunshineService.instance.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+                        boolean isLandscape = isDefaultDisplayLandscape();
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
 
                         State.mirrorVirtualDisplay.setSurface(targetSurface);

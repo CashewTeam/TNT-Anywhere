@@ -34,6 +34,7 @@ import com.connect_screen.mirror.TouchpadAccessibilityService;
 import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.connect_screen.mirror.shizuku.SurfaceControl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import dev.rikka.tools.refine.Refine;
 
@@ -48,6 +52,9 @@ import dev.rikka.tools.refine.Refine;
 public class SunshineServer {
     public static String suppressPin;
     public static String pinCandidate;
+    private static final AtomicBoolean stoppingVirtualDisplay = new AtomicBoolean(false);
+    private static final String MOONLIGHT_CONTROL_HINT =
+            "按 Ctrl+Alt+Shift+C 打开光标\n如果不可操控，请在 Moonlight 切换一下控制模式";
 
     static {
         System.loadLibrary("sunshine");
@@ -59,6 +66,29 @@ public class SunshineServer {
     public static native void setPkeyPath(String path);
     public static native void setCertPath(String path);
     public static native void setFileStatePath(String path);
+    public static native void setEncoderSettings(
+            int bitratePercent,
+            int bitrateMode,
+            int complexity,
+            int iFrameInterval,
+            int maxFps,
+            boolean lowLatency,
+            boolean disableBFrames,
+            boolean realtimePriority,
+            int fecPercent);
+
+    public static void setEncoderSettingsFromPreferences() {
+        setEncoderSettings(
+                Pref.getEncoderBitratePercent(),
+                Pref.getEncoderBitrateMode(),
+                Pref.getEncoderComplexity(),
+                Pref.getEncoderIFrameInterval(),
+                Pref.getEncoderMaxFps(),
+                Pref.getEncoderLowLatency(),
+                Pref.getEncoderDisableBFrames(),
+                Pref.getEncoderRealtimePriority(),
+                Pref.getStreamFecPercent());
+    }
     
     // 添加新的回调方法，当需要 PIN 码时被 C++ 代码调用
     public static void onPinRequested() {
@@ -123,23 +153,82 @@ public class SunshineServer {
         });
     }
 
+    public static void updateStreamingDebugInfo(String info) {
+        new Handler(Looper.getMainLooper()).post(() -> State.streamingDebugInfo.setValue(info));
+    }
+
+    public static void showMoonlightControlHint() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Context context = State.getContext();
+            if (context == null) {
+                return;
+            }
+            Toast.makeText(context, MOONLIGHT_CONTROL_HINT, Toast.LENGTH_LONG).show();
+            new Handler(Looper.getMainLooper()).postDelayed(() ->
+                    Toast.makeText(context, MOONLIGHT_CONTROL_HINT, Toast.LENGTH_LONG).show(), 3500);
+        });
+    }
 
     public static void stopVirtualDisplay() {
+        if (!stoppingVirtualDisplay.compareAndSet(false, true)) {
+            State.log("Moonlight 投屏正在停止，跳过重复停止请求");
+            return;
+        }
+        Runnable cleanup = () -> {
+            try {
+                cleanupMoonlightProjection();
+            } finally {
+                stoppingVirtualDisplay.set(false);
+            }
+        };
+
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            cleanup.run();
+            return;
+        }
+
+        CountDownLatch done = new CountDownLatch(1);
         new Handler(Looper.getMainLooper()).post(() -> {
-            State.log("停止 Moonlight 投屏");
-            CreateVirtualDisplay.powerOnScreen();
-            CreateVirtualDisplay.restoreAspectRatio();
-            if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
-                SunshineMouse.autoRotateAndScaleForMoonlight.stop();
-                SunshineMouse.autoRotateAndScaleForMoonlight = null;
+            try {
+                cleanup.run();
+            } finally {
+                done.countDown();
             }
-            if (State.mirrorVirtualDisplay != null) {
-                State.mirrorVirtualDisplay.release();
-                State.mirrorVirtualDisplay = null;
-            }
-            Context context = State.getContext();
-            ExitAll.execute(context, true);
         });
+        try {
+            if (!done.await(5, TimeUnit.SECONDS)) {
+                State.log("Moonlight 投屏停止等待超时，继续释放编码器");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            State.log("Moonlight 投屏停止等待被中断");
+        }
+    }
+
+    private static void cleanupMoonlightProjection() {
+        State.log("停止 Moonlight 投屏");
+        State.streamingDebugInfo.setValue("串流未启动");
+        SunshineMouse.cleanupCursorOverlay();
+        CreateVirtualDisplay.powerOnScreen();
+        CreateVirtualDisplay.restoreAspectRatio();
+        if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
+            SunshineMouse.autoRotateAndScaleForMoonlight.stop();
+            SunshineMouse.autoRotateAndScaleForMoonlight = null;
+        }
+        if (State.mirrorVirtualDisplay != null) {
+            State.mirrorVirtualDisplay.release();
+            State.mirrorVirtualDisplay = null;
+        }
+        if (State.isUserServiceAlive()) {
+            try {
+                State.userService.destroyExternalMirror();
+            } catch (RemoteException e) {
+                State.log("destroyExternalMirror failed: " + e.getMessage());
+                State.userService = null;
+            }
+        } else if (State.userService != null) {
+            State.userService = null;
+        }
     }
 
     // 添加新方法用于启动音频录制

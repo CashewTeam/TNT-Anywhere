@@ -1266,6 +1266,10 @@ namespace stream {
       frame_network_latency_logger.first_point_now();
 
       auto session = (session_t *) packet->channel_data;
+      if (!session || session->state.load(std::memory_order_acquire) != session::state_e::RUNNING) {
+        continue;
+      }
+
       auto lowseq = session->video.lowseq;
 
       std::string_view payload {(char *) packet->data(), packet->data_size()};
@@ -1389,6 +1393,10 @@ namespace stream {
         size_t ratecontrol_frame_packets_sent = 0;
         size_t ratecontrol_group_packets_sent = 0;
 
+        // RTP video timestamps use a 90 KHz clock. All packets for this frame share it.
+        auto frame_rtp_now = boost::posix_time::microsec_clock::universal_time();
+        auto frame_rtp_timestamp = (frame_rtp_now - timebase).total_microseconds() / (1000 / 90);
+
         auto blockIndex = 0;
         std::for_each(fec_blocks_begin, fec_blocks_end, [&](std::string_view &current_payload) {
           auto packets = (current_payload.size() + (blocksize - 1)) / blocksize;
@@ -1437,10 +1445,6 @@ namespace stream {
           for (auto x = 0; x < shards.size(); ++x) {
             auto *inspect = (video_packet_raw_t *) shards.data(x);
 
-            // RTP video timestamps use a 90 KHz clock
-            auto now = boost::posix_time::microsec_clock::universal_time();
-            auto timestamp = (now - timebase).total_microseconds() / (1000 / 90);
-
             inspect->packet.fecInfo =
               (x << 12 |
                shards.data_shards << 22 |
@@ -1448,7 +1452,7 @@ namespace stream {
 
             inspect->rtp.header = 0x80 | FLAG_EXTENSION;
             inspect->rtp.sequenceNumber = util::endian::big<uint16_t>(lowseq + x);
-            inspect->rtp.timestamp = util::endian::big<uint32_t>(timestamp);
+            inspect->rtp.timestamp = util::endian::big<uint32_t>(frame_rtp_timestamp);
 
             inspect->packet.multiFecBlocks = (blockIndex << 4) | ((fec_blocks_needed - 1) << 6);
             inspect->packet.frameIndex = packet->frame_index();
@@ -1582,6 +1586,9 @@ namespace stream {
 
       TUPLE_2D_REF(channel_data, packet_data, *packet);
       auto session = (session_t *) channel_data;
+      if (!session || session->state.load(std::memory_order_acquire) != session::state_e::RUNNING) {
+        continue;
+      }
 
       auto sequenceNumber = session->audio.sequenceNumber;
       auto timestamp = session->audio.timestamp;
@@ -1823,10 +1830,15 @@ namespace stream {
       currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
     BOOST_LOG(debug) << "Start capturing Video"sv;
     sunshine_callbacks::captureVideoLoop(session, session->mail, session->config.monitor, session->config.audio);
+    currentSessionVideoQueue = {};
 //    video::capture(session->mail, session->config.monitor, session);
   }
 
     void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr, void* channel_data)  {
+        auto session = static_cast<session_t *>(channel_data);
+        if (!session || session->state.load(std::memory_order_acquire) != session::state_e::RUNNING) {
+            return;
+        }
         if(currentSessionVideoQueue) {
             auto packet = std::make_unique<video::packet_raw_generic>(
                     std::move(frame_data),

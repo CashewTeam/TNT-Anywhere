@@ -15,4 +15,9 @@ interface IUserService {
     void startListenVolumeKey() = 5;
 
     void stopListenVolumeKey() = 6;
+
+    IBinder createDisplay(String name, boolean secure) = 7;
+
+    int createExternalMirror(String name, int width, int height, int displayIdToMirror, in Surface surface) = 8;
+    void destroyExternalMirror() = 9;
 }

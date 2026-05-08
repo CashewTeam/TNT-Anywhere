@@ -1,10 +1,44 @@
 #include "common.h"
 
+#include <cerrno>
+#include <cstring>
+#include <sys/resource.h>
+
 namespace fs = std::filesystem;
 
 namespace platf {
     void adjust_thread_priority(thread_priority_e priority) {
-        // TODO
+        int niceValue = 0;
+        switch (priority) {
+            case thread_priority_e::low:
+                niceValue = 5;
+                break;
+            case thread_priority_e::normal:
+                niceValue = 0;
+                break;
+            case thread_priority_e::high:
+                niceValue = -4;
+                break;
+            case thread_priority_e::critical:
+                niceValue = -6;
+                break;
+        }
+
+        errno = 0;
+        if (setpriority(PRIO_PROCESS, 0, niceValue) == 0) {
+            return;
+        }
+
+        const int priorityError = errno;
+        if (niceValue < 0 && (priorityError == EACCES || priorityError == EPERM)) {
+            // Android app UIDs may be denied negative nice values. Keep streaming alive.
+            errno = 0;
+            setpriority(PRIO_PROCESS, 0, 0);
+            return;
+        }
+
+        BOOST_LOG(verbose) << "setpriority("sv << niceValue << ") failed: "sv << priorityError
+                           << " ("sv << std::strerror(priorityError) << ")"sv;
     }
     fs::path appdata() {
         // TODO

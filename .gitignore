@@ -1,12 +1,39 @@
 *.iml
-.gradle
-/local.properties
-/.idea
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+
+# IDE
+/.idea/
+/.vscode/
+
+# Local Android/Gradle environment
+/.gradle/
+/.gradle-user-home/
+/.android-home/
+/.android-user-home/
+/.fakehome/
+/local.properties
 local.properties
-/app/release
-/hidden-api-stub/bin
+
+# Build outputs
+/build/
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+**/.cxx/
+/app/release/
+/hidden-api-stub/bin/
+*.apk
+*.aab
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+
+# Local/private signing material
+app-mirror/src/main/assets/cakey.pem
+
+# Local reference copies not intended for the main repo
+/scrcpy-master/

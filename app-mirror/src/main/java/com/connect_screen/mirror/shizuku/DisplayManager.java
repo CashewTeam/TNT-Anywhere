@@ -41,10 +41,9 @@ public final class DisplayManager {
     }
 
     private final Object manager; // instance of hidden class android.hardware.display.DisplayManagerGlobal
-    private Method createVirtualDisplayMethod;
     private Method requestDisplayPowerMethod;
 
-    static DisplayManager create() {
+    public static DisplayManager create() {
         try {
             Class<?> clazz = Class.forName("android.hardware.display.DisplayManagerGlobal");
             Method getInstanceMethod = clazz.getDeclaredMethod("getInstance");
@@ -107,7 +106,9 @@ public final class DisplayManager {
         }
     }
 
-    private Method getCreateVirtualDisplayMethod() throws NoSuchMethodException {
+    private static Method createVirtualDisplayMethod;
+
+    private static Method getCreateVirtualDisplayMethod() throws NoSuchMethodException {
         if (createVirtualDisplayMethod == null) {
             createVirtualDisplayMethod = android.hardware.display.DisplayManager.class
                     .getMethod("createVirtualDisplay", String.class, int.class, int.class, int.class, Surface.class);
@@ -117,7 +118,11 @@ public final class DisplayManager {
 
     public VirtualDisplay createVirtualDisplay(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
         Method method = getCreateVirtualDisplayMethod();
-        return (VirtualDisplay) method.invoke(null, name, width, height, displayIdToMirror, surface);
+        Constructor<android.hardware.display.DisplayManager> ctor = android.hardware.display.DisplayManager.class.getDeclaredConstructor(
+                Context.class);
+        ctor.setAccessible(true);
+        android.hardware.display.DisplayManager dm = ctor.newInstance(FakeContext.get());
+        return (VirtualDisplay) method.invoke(dm, name, width, height, displayIdToMirror, surface);
     }
 
     public VirtualDisplay createNewVirtualDisplay(String name, int width, int height, int dpi, Surface surface, int flags) throws Exception {

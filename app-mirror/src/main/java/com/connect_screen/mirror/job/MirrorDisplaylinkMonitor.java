@@ -15,6 +15,7 @@ import com.connect_screen.mirror.SunshineService;
 public class MirrorDisplaylinkMonitor {
 
     private static boolean registered = false;
+    private static Context registeredContext;
     private static final BroadcastReceiver usbDetachedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -41,22 +42,43 @@ public class MirrorDisplaylinkMonitor {
     };
 
     public static void init(Context context) {
-        UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        Context appContext = context.getApplicationContext();
+        UsbManager usbManager = (UsbManager) appContext.getSystemService(Context.USB_SERVICE);
         for (UsbDevice usbDevice : usbManager.getDeviceList().values()) {
-            handleDisplaylink(context, usbDevice);
+            handleDisplaylink(appContext, usbDevice);
         }
         if (registered) {
             return;
         }
         registered = true;
+        registeredContext = appContext;
         // 注册 USB 设备断开广播接收器
         IntentFilter detachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        context.registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
+        appContext.registerReceiver(usbDetachedReceiver, detachedFilter, null, null, Context.RECEIVER_EXPORTED);
 
         // 注册 USB 设备连接广播接收器
         IntentFilter attachedFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        context.registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
+        appContext.registerReceiver(usbAttachedReceiver, attachedFilter, null, null, Context.RECEIVER_EXPORTED);
     }
+
+    public static void release() {
+        if (!registered || registeredContext == null) {
+            return;
+        }
+        try {
+            registeredContext.unregisterReceiver(usbDetachedReceiver);
+        } catch (Exception e) {
+            // ignore
+        }
+        try {
+            registeredContext.unregisterReceiver(usbAttachedReceiver);
+        } catch (Exception e) {
+            // ignore
+        }
+        registered = false;
+        registeredContext = null;
+    }
+
     public static void handleDisplaylink(Context context, UsbDevice device) {
         if (device == null) {
             return;
@@ -96,7 +118,6 @@ public class MirrorDisplaylinkMonitor {
             State.displaylinkDeviceName = null;
             State.displaylinkState.device = null;
             CreateVirtualDisplay.powerOnScreen();
-            InputRouting.moveImeToDefault();
         }
     }
 

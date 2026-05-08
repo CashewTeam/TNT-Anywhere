@@ -6,5 +6,7 @@ public class MirrorUiState {
     public boolean screenOffBtnVisibility;
     public boolean touchScreenBtnVisibility;
     public String touchScreenBtnText;
+    public boolean tntDesktopButtonVisibility;
+    public String tntDesktopButtonText;
     public String errorStatusText;
 } 

@@ -111,7 +111,6 @@ public class ProjectViaDisplaylink implements Job {
             virtualDisplay.setSurface(surface);
         }
         int displayId = virtualDisplay.getDisplay().getDisplayId();
-        InputRouting.moveImeToExternal(displayId);
         InputRouting.bindAllExternalInputToDisplay(displayId);
         new Handler().postDelayed(() -> {
             InputRouting.bindAllExternalInputToDisplay(displayId);

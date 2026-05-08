@@ -2,13 +2,20 @@ package com.connect_screen.extend.shizuku;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.hardware.display.IDisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import android.os.RemoteException;
 import android.view.Display;
+import android.view.Surface;
+
+import java.lang.reflect.Method;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import androidx.annotation.Keep;
 
@@ -19,6 +26,8 @@ public class UserService extends IUserService.Stub  {
     private boolean listenVolumeKey = false;
     private Process listenVolumeKeyProcess;
     private Thread volumeKeyThread;
+    private VirtualDisplay mirrorVirtualDisplay;
+    private IBinder mirrorExternalToken;
 
     public UserService() {
         Log.i("UserService", "constructor");
@@ -189,6 +198,139 @@ public class UserService extends IUserService.Stub  {
         if (volumeKeyThread != null) {
             volumeKeyThread.interrupt();
             volumeKeyThread = null;
+        }
+    }
+
+    @Override
+    public IBinder createDisplay(String name, boolean secure) throws RemoteException {
+        try {
+            return SurfaceControl.createDisplay(name, secure);
+        } catch (Exception e) {
+            Log.e("UserService", "createDisplay failed", e);
+            return null;
+        }
+    }
+
+    @Override
+    public int createExternalMirror(String name, int width, int height, int displayIdToMirror, Surface surface) throws RemoteException {
+        Log.i("UserService", "createExternalMirror: name=" + name + " mirroring displayId=" + displayIdToMirror + " sdk=" + Build.VERSION.SDK_INT);
+        try {
+            if (context == null) {
+                Log.e("UserService", "createExternalMirror: context is null");
+                return -1;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                return createExternalMirrorApi31(name, width, height, displayIdToMirror, surface);
+            } else {
+                return createExternalMirrorApi30(name, width, height, displayIdToMirror, surface);
+            }
+        } catch (Exception e) {
+            Log.e("UserService", "createExternalMirror failed", e);
+            return -1;
+        }
+    }
+
+    private int createExternalMirrorApi31(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
+        android.hardware.display.DisplayManager dm =
+                (android.hardware.display.DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        Method method = android.hardware.display.DisplayManager.class
+                .getMethod("createVirtualDisplay", String.class, int.class, int.class, int.class, Surface.class);
+        if (mirrorVirtualDisplay != null) {
+            mirrorVirtualDisplay.release();
+            mirrorVirtualDisplay = null;
+        }
+        mirrorVirtualDisplay = (VirtualDisplay) method.invoke(dm, name, width, height, displayIdToMirror, surface);
+        int vdId = mirrorVirtualDisplay.getDisplay().getDisplayId();
+        Log.i("UserService", "createExternalMirror [API31+] success, virtualDisplayId=" + vdId);
+        return vdId;
+    }
+
+    private int createExternalMirrorApi30(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
+        Log.i("UserService", "createExternalMirror [API30] 开始, name=" + name + " w=" + width + " h=" + height + " displayId=" + displayIdToMirror);
+        IDisplayManager dm = IDisplayManager.Stub.asInterface(
+                SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
+        android.view.DisplayInfo extInfo = dm.getDisplayInfo(displayIdToMirror);
+        if (extInfo == null) {
+            Log.e("UserService", "createExternalMirror [API30]: getDisplayInfo(" + displayIdToMirror + ") 返回 null");
+            return -1;
+        }
+        Log.d("UserService", "createExternalMirror [API30] getDisplayInfo 成功");
+        int layerStack;
+        try {
+            layerStack = extInfo.layerStack;
+            Log.d("UserService", "createExternalMirror [API30] layerStack=" + layerStack);
+        } catch (NoSuchFieldError e) {
+            Log.w("UserService", "createExternalMirror [API30] layerStack字段不存在, 尝试 dumpsys");
+            layerStack = getLayerStackFromDumpsys(displayIdToMirror);
+            Log.d("UserService", "createExternalMirror [API30] dumpsys layerStack=" + layerStack);
+        }
+        if (layerStack <= 0) {
+            Log.e("UserService", "createExternalMirror [API30]: layerStack=" + layerStack);
+            return -1;
+        }
+        Log.d("UserService", "createExternalMirror [API30] 准备 SurfaceControl.createDisplay...");
+        IBinder token = SurfaceControl.createDisplay(name, false);
+        Log.d("UserService", "createExternalMirror [API30] token=" + token);
+        if (token == null) {
+            Log.e("UserService", "createExternalMirror [API30]: SurfaceControl.createDisplay 返回 null");
+            return -1;
+        }
+        Rect r = new Rect(0, 0, width, height);
+        Log.d("UserService", "createExternalMirror [API30] 事务: surface→projection→layerStack, displayRect=" + r);
+        SurfaceControl.openTransaction();
+        try {
+            SurfaceControl.setDisplaySurface(token, surface);
+            Log.d("UserService", "createExternalMirror [API30] setDisplaySurface 完成");
+            SurfaceControl.setDisplayProjection(token, 0, r, r);
+            Log.d("UserService", "createExternalMirror [API30] setDisplayProjection 完成");
+            SurfaceControl.setDisplayLayerStack(token, layerStack);
+            Log.d("UserService", "createExternalMirror [API30] setDisplayLayerStack 完成");
+        } finally {
+            SurfaceControl.closeTransaction();
+        }
+        Log.d("UserService", "createExternalMirror [API30] 事务已提交");
+        mirrorExternalToken = token;
+        SurfaceControl.setDisplayPowerMode(token, SurfaceControl.POWER_MODE_NORMAL);
+        Log.d("UserService", "createExternalMirror [API30] setDisplayPowerMode NORMAL 完成");
+        Log.i("UserService", "createExternalMirror [API30] 全部完成, layerStack=" + layerStack);
+        return 0;
+    }
+
+    private int getLayerStackFromDumpsys(int displayId) {
+        try {
+            Process process = Runtime.getRuntime().exec("dumpsys display");
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            process.waitFor();
+            Pattern regex = Pattern.compile(
+                    "^    mOverrideDisplayInfo=DisplayInfo\\{\".*?, displayId " + displayId + ".*?(, FLAG_.*)?, real ([0-9]+) x ([0-9]+).*?, "
+                            + "rotation ([0-9]+).*?, density ([0-9]+).*?, layerStack ([0-9]+)",
+                    Pattern.MULTILINE);
+            Matcher m = regex.matcher(output.toString());
+            if (m.find()) {
+                return Integer.parseInt(m.group(6));
+            }
+        } catch (Exception e) {
+            Log.e("UserService", "dumpsys display parse layerStack failed", e);
+        }
+        return -1;
+    }
+
+    @Override
+    public void destroyExternalMirror() throws RemoteException {
+        Log.i("UserService", "destroyExternalMirror");
+        if (mirrorVirtualDisplay != null) {
+            mirrorVirtualDisplay.release();
+            mirrorVirtualDisplay = null;
+        }
+        if (mirrorExternalToken != null) {
+            SurfaceControl.destroyDisplay(mirrorExternalToken);
+            mirrorExternalToken = null;
         }
     }
 }

@@ -27,4 +27,10 @@ interface IUserService {
     boolean startRecordingAudio() = 10;
 
     boolean stopRecordingAudio() = 11;
+
+    IBinder createDisplay(String name, boolean secure) = 12;
+
+    int createExternalMirror(String name, int width, int height, int displayIdToMirror, in Surface surface) = 13;
+    void destroyExternalMirror() = 14;
+    String executeShellCommand(String command) = 15;
 }

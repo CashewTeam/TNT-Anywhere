@@ -1,29 +1,27 @@
 package com.connect_screen.mirror;
 
+import android.app.AlertDialog;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
+import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.app.AlertDialog;
+import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.ConnectToClient;
@@ -33,318 +31,229 @@ import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MirrorSettingsActivity extends AppCompatActivity {
-    private SharedPreferences preferences;
     public static final String PREF_NAME = "mirror_settings";
+    private static final String MANUAL_INPUT_LABEL = "Manual input";
+    private static final int[] ENCODER_BITRATE_MODE_VALUES = new int[]{2, 1, 0};
+    private static final TntOverlayPreset[] TNT_OVERLAY_PRESETS = new TntOverlayPreset[]{
+            new TntOverlayPreset("Default 1080P (1920 x 1080 / 216dpi)", 1920, 1080, 216, false),
+            new TntOverlayPreset("4K (3840 x 2160 / 320dpi)", 3840, 2160, 320, false),
+            new TntOverlayPreset("iPad mini 6 (2266 x 1488 / 320dpi)", 2266, 1488, 320, false),
+            new TntOverlayPreset("iPad Pro 11 (2420 x 1668 / 320dpi)", 2420, 1668, 320, false),
+            new TntOverlayPreset("Xiaomi Pad 6 Pro (2880 x 1800 / 320dpi)", 2880, 1800, 320, false),
+            new TntOverlayPreset("Custom", 0, 0, 0, true)
+    };
+
+    private static final class TntOverlayPreset {
+        final String label;
+        final int width;
+        final int height;
+        final int dpi;
+        final boolean custom;
+
+        TntOverlayPreset(String label, int width, int height, int dpi, boolean custom) {
+            this.label = label;
+            this.width = width;
+            this.height = height;
+            this.dpi = dpi;
+            this.custom = custom;
+        }
+
+        boolean matches(int targetWidth, int targetHeight, int targetDpi) {
+            return width == targetWidth && height == targetHeight && dpi == targetDpi;
+        }
+    }
+
+    private SharedPreferences preferences;
+    private TextView currentTntOverlaySettingsText;
+    private EditText encoderBitratePercentEditText;
+    private EditText encoderComplexityEditText;
+    private EditText encoderIFrameIntervalEditText;
+    private EditText encoderMaxFpsEditText;
+    private EditText streamFecPercentEditText;
+    private Spinner encoderBitrateModeSpinner;
+    private SwitchCompat encoderLowLatencyCheckbox;
+    private SwitchCompat encoderDisableBFramesCheckbox;
+    private SwitchCompat encoderRealtimePriorityCheckbox;
+    private TextView currentEncoderSettingsText;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mirror_settings);
         preferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        
+
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("修改在下次应用启动才生效");
+            getSupportActionBar().setTitle("Settings take effect next time the feature starts");
         }
-        
-        // 初始化视图和设置监听器
-        CheckBox singleAppModeCheckbox = findViewById(R.id.singleAppModeCheckbox);
-        Button selectAppButton = findViewById(R.id.selectAppButton);
-        View singleAppContainer = findViewById(R.id.singleAppContainer);
-        CheckBox autoRotateCheckbox = findViewById(R.id.autoRotateCheckbox);
-        CheckBox autoScaleCheckbox = findViewById(R.id.autoScaleCheckbox);
-        EditText dpiEditText = findViewById(R.id.dpiEditText);
-        LinearLayout dpiLayout = findViewById(R.id.dpiLayout);
-        CheckBox autoHideFloatingCheckbox = findViewById(R.id.autoHideFloatingCheckbox);
-        CheckBox autoScreenOffCheckbox = findViewById(R.id.autoScreenOffCheckbox);
-        CheckBox autoBindInputCheckbox = findViewById(R.id.autoBindInputCheckbox);
-        CheckBox autoMoveImeCheckbox = findViewById(R.id.autoMoveImeCheckbox);
-        CheckBox disableUsbAudioCheckbox = findViewById(R.id.disableUsbAudioCheckbox);
-        CheckBox useTouchscreenCheckbox = findViewById(R.id.useTouchscreenCheckbox);
-        CheckBox autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
-        CheckBox showFloatingInMirrorModeCheckbox = findViewById(R.id.showFloatingInMirrorModeCheckbox);
-        CheckBox autoConnectClientCheckbox = findViewById(R.id.autoConnectClientCheckbox);
+
+        SwitchCompat autoRotateCheckbox = findViewById(R.id.autoRotateCheckbox);
+        SwitchCompat autoScaleCheckbox = findViewById(R.id.autoScaleCheckbox);
+        SwitchCompat autoHideFloatingCheckbox = findViewById(R.id.autoHideFloatingCheckbox);
+        SwitchCompat autoScreenOffCheckbox = findViewById(R.id.autoScreenOffCheckbox);
+        SwitchCompat disableUsbAudioCheckbox = findViewById(R.id.disableUsbAudioCheckbox);
+        SwitchCompat autoMatchAspectRatioCheckbox = findViewById(R.id.autoMatchAspectRatioCheckbox);
+        SwitchCompat showFloatingInMirrorModeCheckbox = findViewById(R.id.showFloatingInMirrorModeCheckbox);
+        SwitchCompat autoConnectClientCheckbox = findViewById(R.id.autoConnectClientCheckbox);
+        SwitchCompat useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
+        SwitchCompat preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
+        SwitchCompat disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
+        SwitchCompat useAndroidCursorOverlayCheckbox = findViewById(R.id.useAndroidCursorOverlayCheckbox);
+        SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
+
+        styleSwitch(autoRotateCheckbox);
+        styleSwitch(autoScaleCheckbox);
+        styleSwitch(autoHideFloatingCheckbox);
+        styleSwitch(autoScreenOffCheckbox);
+        styleSwitch(disableUsbAudioCheckbox);
+        styleSwitch(autoMatchAspectRatioCheckbox);
+        styleSwitch(showFloatingInMirrorModeCheckbox);
+        styleSwitch(autoConnectClientCheckbox);
+        styleSwitch(useBlackImageCheckbox);
+        styleSwitch(preventAutoLockCheckbox);
+        styleSwitch(disableRemoteSubmixCheckbox);
+        styleSwitch(useAndroidCursorOverlayCheckbox);
+        styleSwitch(disableAccessibilityCheckbox);
+
         LinearLayout clientConnectionContainer = findViewById(R.id.clientConnectionContainer);
         Spinner clientSpinner = findViewById(R.id.clientSpinner);
         Button connectClientButton = findViewById(R.id.connectClientButton);
-        CheckBox useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
-        CheckBox preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
-        CheckBox disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
-        
-        // 加载保存的设置
-        boolean singleAppMode = Pref.getSingleAppMode();
-        boolean autoRotate = Pref.getAutoRotate();
-        boolean autoScale = Pref.getAutoScale();
-        int singleAppDpi = Pref.getSingleAppDpi();
-        boolean floatingBackButton = Pref.getAutoHideFloatingBackButton();
-        boolean autoScreenOff = Pref.getAutoScreenOff();
-        boolean autoBindInput = Pref.getAutoBindInput();
-        boolean autoMoveIme = Pref.getAutoMoveIme();
-        boolean disableUsbAudio = Pref.getDisableUsbAudio();
-        boolean useTouchscreen = Pref.getUseTouchscreen();
-        boolean autoMatchAspectRatio = Pref.getAutoMatchAspectRatio();
-        boolean showFloatingInMirrorMode = Pref.getShowFloatingInMirrorMode();
-        boolean autoConnectClient = Pref.getAutoConnectClient();
-        boolean useBlackImage = Pref.getUseBlackImage();
-        boolean preventAutoLock = Pref.getPreventAutoLock();
-        boolean disableRemoteSubmix = Pref.getDisableRemoteSubmix();
-        
-        singleAppModeCheckbox.setChecked(singleAppMode);
-        autoRotateCheckbox.setChecked(autoRotate);
-        autoScaleCheckbox.setChecked(autoScale);
-        dpiEditText.setText(String.valueOf(singleAppDpi));
-        autoHideFloatingCheckbox.setChecked(floatingBackButton);
-        autoScreenOffCheckbox.setChecked(autoScreenOff);
-        autoBindInputCheckbox.setChecked(autoBindInput);
-        autoMoveImeCheckbox.setChecked(autoMoveIme);
-        disableUsbAudioCheckbox.setChecked(disableUsbAudio);
-        useTouchscreenCheckbox.setChecked(useTouchscreen);
-        autoMatchAspectRatioCheckbox.setChecked(autoMatchAspectRatio);
-        showFloatingInMirrorModeCheckbox.setChecked(showFloatingInMirrorMode);
-        autoConnectClientCheckbox.setChecked(autoConnectClient);
-        useBlackImageCheckbox.setChecked(useBlackImage);
-        preventAutoLockCheckbox.setChecked(preventAutoLock);
-        disableRemoteSubmixCheckbox.setChecked(disableRemoteSubmix);
-        if (ShizukuUtils.hasPermission()) {
-            autoScreenOffCheckbox.setText("自动熄屏（用音量键唤醒，如果无法唤醒长按电源键强制关机）");
-        }
-
-        // 显示已选择的应用名称（如果有）
-        String selectedAppName = preferences.getString(Pref.KEY_SELECTED_APP_NAME, "");
-        if (!selectedAppName.isEmpty() && singleAppMode) {
-            singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
-        } else {
-            singleAppModeCheckbox.setText("单应用投屏（可以投微软桌面这类启动器类型的应用）");
-        }
-        
-        // 监听复选框变化
-        singleAppModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_SINGLE_APP_MODE, isChecked).apply();
-            autoScaleCheckbox.setEnabled(!isChecked);
-            autoMatchAspectRatioCheckbox.setEnabled(!isChecked);
-            showFloatingInMirrorModeCheckbox.setEnabled(!isChecked);
-            singleAppContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            
-            if (!isChecked) {
-                singleAppModeCheckbox.setText("单应用投屏（可以投微软桌面这类启动器类型的应用）");
-            } else if (!selectedAppName.isEmpty()) {
-                singleAppModeCheckbox.setText("单应用投屏: " + selectedAppName);
-            }
-        });
-        autoScaleCheckbox.setEnabled(!singleAppMode);
-        autoMatchAspectRatioCheckbox.setEnabled(!singleAppMode);
-        showFloatingInMirrorModeCheckbox.setEnabled(!singleAppMode);
-        
-        autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_ROTATE, isChecked).apply();
-        });
-
-        autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_SCALE, isChecked).apply();
-        });
-        autoScaleCheckbox.setEnabled(!singleAppMode);
-
-        // 将分辨率相关控件替换为单个按钮和显示当前分辨率的文本视图
-        Button resolutionButton = findViewById(R.id.resolutionButton);
-        TextView currentResolutionText = findViewById(R.id.currentResolutionText);
-        
-        // 显示当前分辨率
-        updateResolutionText(currentResolutionText);
-        
-        resolutionButton.setOnClickListener(v -> {
-            showResolutionDialog(currentResolutionText);
-        });
-
-        // 添加关于按钮点击事件
-        Button aboutButton = findViewById(R.id.aboutButton);
-        aboutButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, AboutActivity.class);
-            startActivity(intent);
-        });
-
-        
-        // 添加授权按钮
-        Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
-        shizukuPermissionBtn.setOnClickListener(v -> {
-            State.startNewJob(new AcquireShizuku());
-        });
-
-        // 更新Shizuku状态
         TextView shizukuStatus = findViewById(R.id.shizukuStatus);
         TextView accessibilityStatus = findViewById(R.id.accessibilityStatus);
         TextView overlayStatus = findViewById(R.id.overlayStatus);
+        Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
+        currentTntOverlaySettingsText = findViewById(R.id.currentTntOverlaySettingsText);
+
+        autoRotateCheckbox.setChecked(Pref.getAutoRotate());
+        autoScaleCheckbox.setChecked(Pref.getAutoScale());
+        autoHideFloatingCheckbox.setChecked(Pref.getAutoHideFloatingBackButton());
+        autoScreenOffCheckbox.setChecked(Pref.getAutoScreenOff());
+        disableUsbAudioCheckbox.setChecked(Pref.getDisableUsbAudio());
+        autoMatchAspectRatioCheckbox.setChecked(Pref.getAutoMatchAspectRatio());
+        showFloatingInMirrorModeCheckbox.setChecked(Pref.getShowFloatingInMirrorMode());
+        autoConnectClientCheckbox.setChecked(Pref.getAutoConnectClient());
+        useBlackImageCheckbox.setChecked(Pref.getUseBlackImage());
+        preventAutoLockCheckbox.setChecked(Pref.getPreventAutoLock());
+        disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
+        useAndroidCursorOverlayCheckbox.setChecked(Pref.getUseAndroidCursorOverlay());
+        disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
+        disableAccessibilityCheckbox.setText("Accessibility compatibility mode");
+
+        if (ShizukuUtils.hasPermission()) {
+            autoScreenOffCheckbox.setText("Auto screen off");
+        }
+
         updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
         updateAccessibilityStatus(accessibilityStatus);
         updateOverlayStatus(overlayStatus);
+        updateTntOverlaySettingsText();
 
-        // 添加选择应用按钮点击事件
-        selectAppButton.setOnClickListener(v -> {
-            showAppSelectionDialog();
-        });
+        shizukuPermissionBtn.setOnClickListener(v -> State.startNewJob(new AcquireShizuku()));
 
-        // 监听DPI输入变化
-        dpiEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                saveDpiSetting(dpiEditText);
-            }
-        });
+        Button initializationGuideButton = findViewById(R.id.initializationGuideButton);
+        initializationGuideButton.setOnClickListener(v -> InitializationGuideDialog.show(this));
 
-        // 添加DPI确认按钮
-        Button dpiConfirmButton = findViewById(R.id.dpiConfirmButton);
-        dpiConfirmButton.setOnClickListener(v -> {
-            saveDpiSetting(dpiEditText);
-        });
+        Button aboutButton = findViewById(R.id.aboutButton);
+        aboutButton.setOnClickListener(v -> startActivity(new Intent(this, AboutActivity.class)));
 
-        // 添加悬浮返回键复选框监听器
-        autoHideFloatingCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, isChecked).apply();
-        });
+        Button screenSettingsButton = findViewById(R.id.screenSettingsButton);
+        screenSettingsButton.setOnClickListener(v -> startActivity(new Intent(this, ScreenSettingsActivity.class)));
 
-        // 设置单应用模式容器的可见性
-        singleAppContainer.setVisibility(singleAppMode ? View.VISIBLE : View.GONE);
+        Button editTntOverlaySettingsButton = findViewById(R.id.editTntOverlaySettingsButton);
+        editTntOverlaySettingsButton.setOnClickListener(v -> showTntOverlaySettingsDialog());
 
-        // 添加自动熄屏复选框监听器
-        autoScreenOffCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_SCREEN_OFF, isChecked).apply();
-        });
+        autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_ROTATE, isChecked).apply());
+        autoScaleCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_SCALE, isChecked).apply());
+        autoHideFloatingCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_HIDE_FLOATING_BACK_BUTTON, isChecked).apply());
+        autoScreenOffCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_SCREEN_OFF, isChecked).apply());
+        autoMatchAspectRatioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, isChecked).apply());
+        showFloatingInMirrorModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, isChecked).apply());
+        useBlackImageCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_USE_BLACK_IMAGE, isChecked).apply());
+        preventAutoLockCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_PREVENT_AUTO_LOCK, isChecked).apply());
+        disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
+        useAndroidCursorOverlayCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_USE_ANDROID_CURSOR_OVERLAY, isChecked).apply());
 
-        // 添加自动绑定输入复选框监听器
-        autoBindInputCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_BIND_INPUT, isChecked).apply();
-        });
-        
-        // 如果没有 Shizuku 权限
-        if (!ShizukuUtils.hasPermission()) {
-            autoBindInputCheckbox.setEnabled(false);
-        }
-
-        // 添加自动移动输入法复选框监听器
-        autoMoveImeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_MOVE_IME, isChecked).apply();
-        });
-        
-        // 如果没有 Shizuku 权限，禁用该选项
-        if (!ShizukuUtils.hasPermission()) {
-            autoMoveImeCheckbox.setEnabled(false);
-        }
-
-        // 添加停用USB音频复选框监听器
         disableUsbAudioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_DISABLE_USB_AUDIO, isChecked).apply();
-            
-            // 如果有Shizuku权限，则更新系统设置
-            if (ShizukuUtils.hasPermission()) {
-                if (PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
-                    try {
-                        Settings.Secure.putInt(getContentResolver(),
-                                "usb_audio_automatic_routing_disabled", isChecked ? 1 : 0);
-                    } catch (SecurityException e) {
-                        State.log("failed to set usb_audio_automatic_routing_disabled: " + e);
-                    }
+            if (ShizukuUtils.hasPermission() && PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {
+                try {
+                    Settings.Secure.putInt(
+                            getContentResolver(),
+                            "usb_audio_automatic_routing_disabled",
+                            isChecked ? 1 : 0);
+                } catch (SecurityException e) {
+                    State.log("failed to set usb_audio_automatic_routing_disabled: " + e);
                 }
             }
         });
-        
-        // 如果没有Shizuku权限，禁用该选项
-        if (!ShizukuUtils.hasPermission()) {
-            disableUsbAudioCheckbox.setEnabled(false);
-        }
 
-        // 添加触摸屏控制复选框监听器
-        useTouchscreenCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_USE_TOUCHSCREEN, isChecked).apply();
-        });
-        
-        // 如果没有 Shizuku 权限，禁用该选项
-        if (!ShizukuUtils.hasPermission()) {
-            useTouchscreenCheckbox.setEnabled(false);
-        }
-
-        // 添加自动匹配宽高比复选框监听器
-        autoMatchAspectRatioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_AUTO_MATCH_ASPECT_RATIO, isChecked).apply();
-        });
-        
-        // 如果没有 Shizuku 权限，禁用该选项
-        if (!ShizukuUtils.hasPermission()) {
-            autoMatchAspectRatioCheckbox.setEnabled(false);
-        }
-
-        // 添加镜像模式下显示悬浮返回键复选框监听器
-        showFloatingInMirrorModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_SHOW_FLOATING_IN_MIRROR_MODE, isChecked).apply();
+        disableAccessibilityCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, !isChecked).apply();
+            updateAccessibilityStatus(accessibilityStatus);
+            if (!isChecked && ShizukuUtils.hasPermission()) {
+                TouchpadAccessibilityService.disableAll(this);
+            }
         });
 
-        // 显示或隐藏客户端连接容器
+        boolean autoConnectClient = Pref.getAutoConnectClient();
         clientConnectionContainer.setVisibility(autoConnectClient ? View.VISIBLE : View.GONE);
-        
-        // 设置自动连接客户端复选框监听器
         autoConnectClientCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_AUTO_CONNECT_CLIENT, isChecked).apply();
             clientConnectionContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            
-            // 如果选中，加载客户端列表
             if (isChecked) {
                 loadClientList(clientSpinner);
             }
         });
-        
-        // 如果自动连接客户端已启用，加载客户端列表
         if (autoConnectClient) {
             loadClientList(clientSpinner);
         }
-        
-        // 设置连接按钮点击事件
+
         connectClientButton.setOnClickListener(v -> {
             String selectedClient = (String) clientSpinner.getSelectedItem();
-            if (selectedClient != null && !selectedClient.isEmpty()) {
-                if (selectedClient.equals("手工输入")) {
-                    // 显示手工输入对话框
-                    showManualInputDialog();
-                } else {
-                    // 保存选中的客户端
-                    preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
-                    int pin = (int)(Math.random() * 9000) + 1000;
-                    SunshineServer.suppressPin = String.valueOf(pin);
-                    ConnectToClient.connect(pin);
-                }
+            if (selectedClient == null || selectedClient.isEmpty()) {
+                return;
             }
-        });
-
-        // 初始化无障碍禁用复选框
-        CheckBox disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
-        boolean disableAccessibility = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
-        disableAccessibilityCheckbox.setChecked(disableAccessibility);
-        
-        // 添加无障碍禁用复选框监听器
-        disableAccessibilityCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, isChecked).apply();
-            updateAccessibilityStatus(accessibilityStatus);
-            if (isChecked) {
-                if (ShizukuUtils.hasPermission()) {
-                    TouchpadAccessibilityService.disableAll(MirrorSettingsActivity.this);
-                }
+            if (MANUAL_INPUT_LABEL.equals(selectedClient)) {
+                showManualInputDialog();
+                return;
             }
+            preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, selectedClient).apply();
+            int pin = (int) (Math.random() * 9000) + 1000;
+            SunshineServer.suppressPin = String.valueOf(pin);
+            ConnectToClient.connect(pin);
         });
 
-        // 添加使用黑色图片复选框监听器
-        useBlackImageCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_USE_BLACK_IMAGE, isChecked).apply();
-        });
-
-        // 添加阻止自动锁屏复选框监听器
-        preventAutoLockCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_PREVENT_AUTO_LOCK, isChecked).apply();
-        });
         if (!ShizukuUtils.hasPermission()) {
+            disableUsbAudioCheckbox.setEnabled(false);
+            autoMatchAspectRatioCheckbox.setEnabled(false);
             preventAutoLockCheckbox.setEnabled(false);
         }
 
-        // 添加禁用 REMOTE_SUBMIX 复选框监听器
-        disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply();
-        });
+        setupEncoderSettings();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateShizukuStatus(findViewById(R.id.shizukuStatus), findViewById(R.id.shizukuPermissionBtn));
+        updateAccessibilityStatus(findViewById(R.id.accessibilityStatus));
+        updateOverlayStatus(findViewById(R.id.overlayStatus));
+        updateTntOverlaySettingsText();
+
+        SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
+        disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
     }
 
     @Override
@@ -353,311 +262,310 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         SunshineServer.suppressPin = null;
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        
-        // 更新权限状态
-        TextView shizukuStatus = findViewById(R.id.shizukuStatus);
-        Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
-        TextView accessibilityStatus = findViewById(R.id.accessibilityStatus);
-        TextView overlayStatus = findViewById(R.id.overlayStatus);
-        
-        updateShizukuStatus(shizukuStatus, shizukuPermissionBtn);
-        updateAccessibilityStatus(accessibilityStatus);
-        updateOverlayStatus(overlayStatus);
-
-        // 更新无障碍状态显示
-        CheckBox disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
-        boolean disableAccessibility = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
-        disableAccessibilityCheckbox.setChecked(disableAccessibility);
-    }
-
     private void updateShizukuStatus(TextView statusView, Button permissionBtn) {
         boolean started = ShizukuUtils.hasShizukuStarted();
         boolean hasPermission = ShizukuUtils.hasPermission();
-        
-        String status;
         if (!started) {
-            status = "未启动";
+            statusView.setText("Not started");
             permissionBtn.setVisibility(View.GONE);
         } else if (!hasPermission) {
-            status = "已启动未授权";
+            statusView.setText("Started, permission required");
             permissionBtn.setVisibility(View.VISIBLE);
         } else {
-            status = "已授权";
+            statusView.setText("Authorized");
             permissionBtn.setVisibility(View.GONE);
         }
-        
-        statusView.setText(status);
     }
 
     private void updateAccessibilityStatus(TextView statusView) {
-        boolean isEnabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(this);
-        boolean isDisabled = preferences.getBoolean(Pref.KEY_DISABLE_ACCESSIBILITY, false);
-        
-        if (isDisabled) {
-            statusView.setText("已禁用");
+        boolean enabled = TouchpadAccessibilityService.isAccessibilityServiceEnabled(this);
+        boolean disabled = Pref.getDisableAccessibility();
+        if (disabled) {
+            statusView.setText("Disabled");
         } else {
-            statusView.setText(isEnabled ? "已授权" : "未授权");
+            statusView.setText(enabled ? "Authorized" : "Permission required");
         }
-        
-        // 获取或创建授权按钮
+
         View parent = (View) statusView.getParent();
         Button accessibilityPermissionBtn = parent.findViewById(R.id.accessibilityPermissionBtn);
-        
-        // 根据授权状态显示或隐藏按钮
         if (accessibilityPermissionBtn != null) {
-            accessibilityPermissionBtn.setVisibility((isEnabled || isDisabled) ? View.GONE : View.VISIBLE);
-            accessibilityPermissionBtn.setOnClickListener(v -> {
-                // 跳转到系统无障碍设置页面
-                Intent intent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                startActivity(intent);
-            });
+            accessibilityPermissionBtn.setText("Grant");
+            accessibilityPermissionBtn.setVisibility((enabled || disabled) ? View.GONE : View.VISIBLE);
+            accessibilityPermissionBtn.setOnClickListener(v ->
+                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         }
     }
 
     private void updateOverlayStatus(TextView statusView) {
         boolean hasPermission = Settings.canDrawOverlays(this);
-        statusView.setText(hasPermission ? "已授权" : "未授权");
-        
-        // 获取或创建授权按钮
+        statusView.setText(hasPermission ? "Authorized" : "Permission required");
+
         View parent = (View) statusView.getParent();
         Button overlayPermissionBtn = parent.findViewById(R.id.overlayPermissionBtn);
-        
-        // 根据授权状态显示或隐藏按钮
         if (overlayPermissionBtn != null) {
             overlayPermissionBtn.setVisibility(hasPermission ? View.GONE : View.VISIBLE);
             overlayPermissionBtn.setOnClickListener(v -> {
-                // 跳转到悬浮窗权限设置页面
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Intent intent = new Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()));
                 startActivity(intent);
             });
         }
     }
 
-    private void showAppSelectionDialog() {
-        // 获取所有桌面应用
-        PackageManager pm = getPackageManager();
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> launcherApps = pm.queryIntentActivities(intent, 0);
-        
-        // 按应用名称排序
-        launcherApps.sort((a, b) -> {
-            String labelA = a.loadLabel(pm).toString();
-            String labelB = b.loadLabel(pm).toString();
-            return labelA.compareToIgnoreCase(labelB);
-        });
-        
-        // 创建自定义适配器来显示应用图标和名称
-        AppListAdapter adapter = new AppListAdapter(this, launcherApps, pm);
-        
-        // 创建并显示选择对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("请固定设置为微软桌面，ATV Launcher这类应用，一劳永逸");
-        builder.setAdapter(adapter, (dialog, which) -> {
-            ResolveInfo selectedApp = launcherApps.get(which);
-            String selectedPackage = selectedApp.activityInfo.packageName;
-            String selectedName = selectedApp.loadLabel(pm).toString();
-            
-            // 保存选择的应用
-            preferences.edit()
-                    .putString(Pref.KEY_SELECTED_APP_PACKAGE, selectedPackage)
-                    .putString(Pref.KEY_SELECTED_APP_NAME, selectedName)
-                    .apply();
-            
-            // 更新UI显示
-            CheckBox singleAppModeCheckbox = findViewById(R.id.singleAppModeCheckbox);
-            singleAppModeCheckbox.setText("单应用投屏: " + selectedName);
-        });
-        
-        builder.show();
-    }
-
-    // 自定义适配器用于显示应用图标和名称
-    private static class AppListAdapter extends ArrayAdapter<ResolveInfo> {
-        private final PackageManager pm;
-        private final int ICON_SIZE_DP = 36; // 统一图标大小为36dp
-        
-        public AppListAdapter(Context context, List<ResolveInfo> apps, PackageManager pm) {
-            super(context, android.R.layout.simple_list_item_2, android.R.id.text1, apps);
-            this.pm = pm;
+    private void updateTntOverlaySettingsText() {
+        if (currentTntOverlaySettingsText == null) {
+            return;
         }
-        
-        @NonNull
-        @Override
-        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-            if (convertView == null) {
-                convertView = LayoutInflater.from(getContext()).inflate(
-                        android.R.layout.simple_list_item_2, parent, false);
-            }
-            
-            ResolveInfo app = getItem(position);
-            if (app != null) {
-                TextView text1 = convertView.findViewById(android.R.id.text1);
-                TextView text2 = convertView.findViewById(android.R.id.text2);
-                
-                text1.setText(app.loadLabel(pm));
-                text2.setText(app.activityInfo.packageName);
-                
-                // 设置应用图标并统一大小
-                try {
-                    // 获取图标
-                    android.graphics.drawable.Drawable icon = app.loadIcon(pm);
-                    
-                    // 计算图标大小（dp转px）
-                    float density = getContext().getResources().getDisplayMetrics().density;
-                    int iconSizePx = Math.round(ICON_SIZE_DP * density);
-                    
-                    // 设置图标大小
-                    icon.setBounds(0, 0, iconSizePx, iconSizePx);
-                    
-                    // 设置图标到TextView
-                    text1.setCompoundDrawables(icon, null, null, null);
-                    text1.setCompoundDrawablePadding(10);
-                } catch (Exception e) {
-                    // 如果加载图标失败，忽略错误
-                }
-            }
-            
-            return convertView;
+        int width = Pref.getTntOverlayWidth();
+        int height = Pref.getTntOverlayHeight();
+        int dpi = Pref.getTntOverlayDpi();
+        int presetIndex = findMatchingTntOverlayPresetIndex(width, height, dpi);
+        String presetName = TNT_OVERLAY_PRESETS[presetIndex].custom
+                ? "Custom"
+                : TNT_OVERLAY_PRESETS[presetIndex].label;
+        currentTntOverlaySettingsText.setText(String.format(
+                Locale.US,
+                "Current: %d x %d / %ddpi | Preset: %s",
+                width,
+                height,
+                dpi,
+                presetName));
+    }
+
+    private void showTntOverlaySettingsDialog() {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_tnt_overlay_settings, null);
+
+        Spinner presetSpinner = dialogView.findViewById(R.id.tntOverlayPresetSpinner);
+        EditText widthEditText = dialogView.findViewById(R.id.tntOverlayWidthEditText);
+        EditText heightEditText = dialogView.findViewById(R.id.tntOverlayHeightEditText);
+        EditText dpiEditText = dialogView.findViewById(R.id.tntOverlayDpiEditText);
+
+        List<String> presetLabels = new ArrayList<>();
+        for (TntOverlayPreset preset : TNT_OVERLAY_PRESETS) {
+            presetLabels.add(preset.label);
         }
-    }
+        ArrayAdapter<String> presetAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                presetLabels);
+        presetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        presetSpinner.setAdapter(presetAdapter);
 
-    private void saveDpiSetting(EditText dpiEditText) {
-        try {
-            int dpi = Integer.parseInt(dpiEditText.getText().toString());
-            // 限制DPI的合理范围，例如60-600
-            if (dpi < 60) dpi = 60;
-            if (dpi > 600) dpi = 600;
-            dpiEditText.setText(String.valueOf(dpi)); // 更新显示值
-            preferences.edit().putInt(Pref.KEY_SINGLE_APP_DPI, dpi).apply(); // 保存DPI设置
-        } catch (NumberFormatException e) {
-            // 如果输入无效，恢复为默认值或上次保存的值
-            dpiEditText.setText(Pref.getSingleAppDpi());
-        }
-    }
+        int currentWidth = Pref.getTntOverlayWidth();
+        int currentHeight = Pref.getTntOverlayHeight();
+        int currentDpi = Pref.getTntOverlayDpi();
+        widthEditText.setText(String.valueOf(currentWidth));
+        heightEditText.setText(String.valueOf(currentHeight));
+        dpiEditText.setText(String.valueOf(currentDpi));
 
-    private void updateResolutionText(TextView textView) {
-        String resolutionText = String.format("Displaylink 输出: %dx%d@%dHz", 
-                Pref.getDisplaylinkWidth(), 
-                Pref.getDisplaylinkHeight(),
-                Pref.getDisplaylinkRefreshRate());
-        textView.setText(resolutionText);
-    }
-
-    private void showResolutionDialog(TextView currentResolutionText) {
-        // 创建对话框布局
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_resolution_settings, null);
-        
-        // 获取对话框中的控件
-        EditText widthEditText = dialogView.findViewById(R.id.widthEditText);
-        EditText heightEditText = dialogView.findViewById(R.id.heightEditText);
-        EditText refreshRateEditText = dialogView.findViewById(R.id.refreshRateEditText);
-        Spinner resolutionPresetSpinner = dialogView.findViewById(R.id.resolutionPresetSpinner);
-        
-        // 设置当前值
-        widthEditText.setText(String.valueOf(Pref.getDisplaylinkWidth()));
-        heightEditText.setText(String.valueOf(Pref.getDisplaylinkHeight()));
-        refreshRateEditText.setText(String.valueOf(Pref.getDisplaylinkRefreshRate()));
-        
-        // 添加分辨率预设选项
-        String[] resolutionPresets = new String[]{"快捷设置", "1080p", "1440p", "2160p", "ipad4"};
-        ArrayAdapter<String> resolutionAdapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            resolutionPresets
-        );
-        resolutionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        resolutionPresetSpinner.setAdapter(resolutionAdapter);
-        
-        // 设置预设选项的监听器
-        resolutionPresetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        presetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    switch (position) {
-                        case 1: // 1080p
-                            widthEditText.setText("1920");
-                            heightEditText.setText("1080");
-                            refreshRateEditText.setText("60");
-                            break;
-                        case 2: // 1440p
-                            widthEditText.setText("2560");
-                            heightEditText.setText("1440");
-                            refreshRateEditText.setText("60");
-                            break;
-                        case 3: // 2160p
-                            widthEditText.setText("3840");
-                            heightEditText.setText("2160");
-                            refreshRateEditText.setText("60");
-                            break;
-                        case 4: // ipad4
-                            widthEditText.setText("2048");
-                            heightEditText.setText("1536");
-                            refreshRateEditText.setText("60");
-                            break;
-                    }
-                } catch (NumberFormatException e) {
-                    // ignore
+                TntOverlayPreset preset = TNT_OVERLAY_PRESETS[position];
+                if (preset.custom) {
+                    return;
                 }
+                widthEditText.setText(String.valueOf(preset.width));
+                heightEditText.setText(String.valueOf(preset.height));
+                dpiEditText.setText(String.valueOf(preset.dpi));
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // 不做任何操作
             }
         });
-        
-        // 创建并显示对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Displaylink 输出分辨率");
-        builder.setView(dialogView);
-        builder.setPositiveButton("确定", (dialog, which) -> {
-            try {
-                int width = Integer.parseInt(widthEditText.getText().toString());
-                int height = Integer.parseInt(heightEditText.getText().toString());
-                int refreshRate = Integer.parseInt(refreshRateEditText.getText().toString());
-                
-                // 限制刷新率范围在24-240之间
-                refreshRate = Math.max(24, Math.min(240, refreshRate));
-                
-                preferences.edit()
-                        .putInt(Pref.KEY_DISPLAYLINK_WIDTH, width)
-                        .putInt(Pref.KEY_DISPLAYLINK_HEIGHT, height)
-                        .putInt(Pref.KEY_DISPLAYLINK_REFRESH_RATE, refreshRate)
-                        .apply();
-                
-                // 更新显示的分辨率文本
-                updateResolutionText(currentResolutionText);
-            } catch (NumberFormatException e) {
-                // ignore
-            }
-        });
-        builder.setNegativeButton("取消", null);
-        builder.show();
+        presetSpinner.setSelection(findMatchingTntOverlayPresetIndex(currentWidth, currentHeight, currentDpi));
+
+        new AlertDialog.Builder(this)
+                .setTitle("TNT overlay resolution")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    int width = parseClampedInt(widthEditText, 1920, 100, 8192);
+                    int height = parseClampedInt(heightEditText, 1080, 100, 8192);
+                    int dpi = parseClampedInt(dpiEditText, 216, 72, 640);
+                    preferences.edit()
+                            .putInt(Pref.KEY_TNT_OVERLAY_WIDTH, width)
+                            .putInt(Pref.KEY_TNT_OVERLAY_HEIGHT, height)
+                            .putInt(Pref.KEY_TNT_OVERLAY_DPI, dpi)
+                            .apply();
+                    updateTntOverlaySettingsText();
+                    Toast.makeText(
+                            this,
+                            "TNT overlay resolution saved. It will apply next time TNT starts.",
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNeutralButton("Reset", (dialog, which) -> {
+                    preferences.edit()
+                            .putInt(Pref.KEY_TNT_OVERLAY_WIDTH, 1920)
+                            .putInt(Pref.KEY_TNT_OVERLAY_HEIGHT, 1080)
+                            .putInt(Pref.KEY_TNT_OVERLAY_DPI, 216)
+                            .apply();
+                    updateTntOverlaySettingsText();
+                    Toast.makeText(this, "TNT overlay resolution reset to default.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
-    // 加载客户端列表
+    private int findMatchingTntOverlayPresetIndex(int width, int height, int dpi) {
+        for (int i = 0; i < TNT_OVERLAY_PRESETS.length; i++) {
+            TntOverlayPreset preset = TNT_OVERLAY_PRESETS[i];
+            if (!preset.custom && preset.matches(width, height, dpi)) {
+                return i;
+            }
+        }
+        return TNT_OVERLAY_PRESETS.length - 1;
+    }
+
+    private void setupEncoderSettings() {
+        encoderBitratePercentEditText = findViewById(R.id.encoderBitratePercentEditText);
+        encoderComplexityEditText = findViewById(R.id.encoderComplexityEditText);
+        encoderIFrameIntervalEditText = findViewById(R.id.encoderIFrameIntervalEditText);
+        encoderMaxFpsEditText = findViewById(R.id.encoderMaxFpsEditText);
+        streamFecPercentEditText = findViewById(R.id.streamFecPercentEditText);
+        encoderBitrateModeSpinner = findViewById(R.id.encoderBitrateModeSpinner);
+        encoderLowLatencyCheckbox = findViewById(R.id.encoderLowLatencyCheckbox);
+        encoderDisableBFramesCheckbox = findViewById(R.id.encoderDisableBFramesCheckbox);
+        encoderRealtimePriorityCheckbox = findViewById(R.id.encoderRealtimePriorityCheckbox);
+        currentEncoderSettingsText = findViewById(R.id.currentEncoderSettingsText);
+
+        styleSwitch(encoderLowLatencyCheckbox);
+        styleSwitch(encoderDisableBFramesCheckbox);
+        styleSwitch(encoderRealtimePriorityCheckbox);
+
+        String[] bitrateModes = new String[]{
+                "CBR - Stable bandwidth",
+                "VBR - Variable bitrate",
+                "CQ - Constant quality (experimental)"
+        };
+        ArrayAdapter<String> bitrateModeAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                bitrateModes);
+        bitrateModeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        encoderBitrateModeSpinner.setAdapter(bitrateModeAdapter);
+
+        loadEncoderSettingsIntoViews();
+
+        Button saveEncoderSettingsButton = findViewById(R.id.saveEncoderSettingsButton);
+        saveEncoderSettingsButton.setOnClickListener(v -> {
+            saveEncoderSettingsFromViews();
+            SunshineServer.setEncoderSettingsFromPreferences();
+            Toast.makeText(this, "Encoder settings saved.", Toast.LENGTH_SHORT).show();
+        });
+
+        Button resetEncoderSettingsButton = findViewById(R.id.resetEncoderSettingsButton);
+        resetEncoderSettingsButton.setOnClickListener(v -> {
+            preferences.edit()
+                    .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, 100)
+                    .putInt(Pref.KEY_ENCODER_BITRATE_MODE, 2)
+                    .putInt(Pref.KEY_ENCODER_COMPLEXITY, 5)
+                    .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, 3)
+                    .putInt(Pref.KEY_ENCODER_MAX_FPS, 120)
+                    .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, true)
+                    .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, true)
+                    .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, true)
+                    .putInt(Pref.KEY_STREAM_FEC_PERCENT, 20)
+                    .apply();
+            loadEncoderSettingsIntoViews();
+            SunshineServer.setEncoderSettingsFromPreferences();
+            Toast.makeText(this, "Encoder settings reset.", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void loadEncoderSettingsIntoViews() {
+        encoderBitratePercentEditText.setText(String.valueOf(Pref.getEncoderBitratePercent()));
+        encoderComplexityEditText.setText(String.valueOf(Pref.getEncoderComplexity()));
+        encoderIFrameIntervalEditText.setText(String.valueOf(Pref.getEncoderIFrameInterval()));
+        encoderMaxFpsEditText.setText(String.valueOf(Pref.getEncoderMaxFps()));
+        streamFecPercentEditText.setText(String.valueOf(Pref.getStreamFecPercent()));
+        encoderLowLatencyCheckbox.setChecked(Pref.getEncoderLowLatency());
+        encoderDisableBFramesCheckbox.setChecked(Pref.getEncoderDisableBFrames());
+        encoderRealtimePriorityCheckbox.setChecked(Pref.getEncoderRealtimePriority());
+
+        int bitrateMode = Pref.getEncoderBitrateMode();
+        for (int i = 0; i < ENCODER_BITRATE_MODE_VALUES.length; i++) {
+            if (ENCODER_BITRATE_MODE_VALUES[i] == bitrateMode) {
+                encoderBitrateModeSpinner.setSelection(i);
+                break;
+            }
+        }
+        updateEncoderSettingsText();
+    }
+
+    private void saveEncoderSettingsFromViews() {
+        int bitrateModeIndex = encoderBitrateModeSpinner.getSelectedItemPosition();
+        int bitrateMode = ENCODER_BITRATE_MODE_VALUES[Math.max(
+                0,
+                Math.min(ENCODER_BITRATE_MODE_VALUES.length - 1, bitrateModeIndex))];
+        preferences.edit()
+                .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, parseClampedInt(encoderBitratePercentEditText, 100, 25, 200))
+                .putInt(Pref.KEY_ENCODER_BITRATE_MODE, bitrateMode)
+                .putInt(Pref.KEY_ENCODER_COMPLEXITY, parseClampedInt(encoderComplexityEditText, 5, 0, 10))
+                .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, parseClampedInt(encoderIFrameIntervalEditText, 3, 1, 10))
+                .putInt(Pref.KEY_ENCODER_MAX_FPS, parseClampedInt(encoderMaxFpsEditText, 120, 1, 240))
+                .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, encoderLowLatencyCheckbox.isChecked())
+                .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, encoderDisableBFramesCheckbox.isChecked())
+                .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, encoderRealtimePriorityCheckbox.isChecked())
+                .putInt(Pref.KEY_STREAM_FEC_PERCENT, parseClampedInt(streamFecPercentEditText, 20, 0, 50))
+                .apply();
+        loadEncoderSettingsIntoViews();
+    }
+
+    private int parseClampedInt(EditText editText, int defaultValue, int min, int max) {
+        try {
+            int value = Integer.parseInt(editText.getText().toString().trim());
+            return Math.max(min, Math.min(max, value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private void updateEncoderSettingsText() {
+        String modeName;
+        switch (Pref.getEncoderBitrateMode()) {
+            case 0:
+                modeName = "CQ";
+                break;
+            case 1:
+                modeName = "VBR";
+                break;
+            case 2:
+            default:
+                modeName = "CBR";
+                break;
+        }
+        String text = String.format(
+                Locale.US,
+                "Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | FEC %d%%",
+                Pref.getEncoderBitratePercent(),
+                modeName,
+                Pref.getEncoderComplexity(),
+                Pref.getEncoderIFrameInterval(),
+                Pref.getEncoderMaxFps(),
+                Pref.getStreamFecPercent());
+        currentEncoderSettingsText.setText(text);
+    }
+
     private void loadClientList(Spinner spinner) {
-        // 设置默认选中项
         String selectedClient = Pref.getSelectedClient();
-        // 示例数据
         List<String> clients = new ArrayList<>();
-        clients.add("手工输入");
-        if (!selectedClient.isEmpty()) {
+        clients.add(MANUAL_INPUT_LABEL);
+        if (!selectedClient.isEmpty() && !clients.contains(selectedClient)) {
             clients.add(selectedClient);
         }
-        clients.addAll(State.discoveredConnectScreenClients);
-        
-        // 创建适配器
+        for (String discovered : State.discoveredConnectScreenClients) {
+            if (!clients.contains(discovered)) {
+                clients.add(discovered);
+            }
+        }
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this,
-            android.R.layout.simple_spinner_item,
-            clients
-        );
+                this,
+                android.R.layout.simple_spinner_item,
+                clients);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
 
@@ -671,47 +579,55 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
     }
 
-    // 显示手工输入对话框
     private void showManualInputDialog() {
-        // 创建对话框布局
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_manual_client_input, null);
-        
-        // 获取对话框中的控件
         EditText ipEditText = dialogView.findViewById(R.id.ipEditText);
         EditText portEditText = dialogView.findViewById(R.id.portEditText);
-        
-        // 设置默认端口
         portEditText.setText("42515");
-        
-        // 创建并显示对话框
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("手工输入客户端");
-        builder.setView(dialogView);
-        builder.setPositiveButton("确定", (dialog, which) -> {
-            try {
-                String ip = ipEditText.getText().toString().trim();
-                String port = portEditText.getText().toString().trim();
-                
-                if (!ip.isEmpty()) {
-                    // 保存手工输入的客户端信息
-                    String clientAddress = ip;
-                    if (!port.isEmpty()) {
-                        clientAddress += ":" + port;
+
+        new AlertDialog.Builder(this)
+                .setTitle("Manual client address")
+                .setView(dialogView)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    String ip = ipEditText.getText().toString().trim();
+                    String port = portEditText.getText().toString().trim();
+                    if (ip.isEmpty()) {
+                        return;
                     }
+                    String clientAddress = port.isEmpty() ? ip : ip + ":" + port;
                     preferences.edit().putString(Pref.KEY_SELECTED_CLIENT, clientAddress).apply();
-                    
-                    // 刷新客户端列表
                     Spinner clientSpinner = findViewById(R.id.clientSpinner);
                     loadClientList(clientSpinner);
                     int pin = (int) (Math.random() * 9000) + 1000;
                     SunshineServer.suppressPin = String.valueOf(pin);
                     ConnectToClient.connect(pin);
-                }
-            } catch (Exception e) {
-                // 处理异常
-            }
-        });
-        builder.setNegativeButton("取消", null);
-        builder.show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
-} 
+
+    private void styleSwitch(SwitchCompat switchCompat) {
+        if (switchCompat == null) {
+            return;
+        }
+        int textColor = 0xFF202020;
+        int[][] states = new int[][]{
+                new int[]{-android.R.attr.state_enabled},
+                new int[]{android.R.attr.state_checked},
+                new int[]{-android.R.attr.state_checked}
+        };
+        ColorStateList thumbColors = new ColorStateList(states, new int[]{
+                0xFFD0D4D8,
+                0xFF4CAF50,
+                0xFF9EA4AA
+        });
+        ColorStateList trackColors = new ColorStateList(states, new int[]{
+                0x223F454A,
+                0x664CAF50,
+                0x553F454A
+        });
+        switchCompat.setTextColor(textColor);
+        switchCompat.setThumbTintList(thumbColors);
+        switchCompat.setTrackTintList(trackColors);
+    }
+}

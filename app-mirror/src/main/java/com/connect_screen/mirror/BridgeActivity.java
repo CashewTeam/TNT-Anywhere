@@ -132,7 +132,6 @@ public class BridgeActivity extends AppCompatActivity {
                 if (ShizukuUtils.hasPermission()) {
                     InputRouting.bindAllExternalInputToDisplay(mirrorDisplayId);
                 }
-                InputRouting.moveImeToExternal(mirrorDisplayId);
                 DisplayManager displayManager2 = (DisplayManager) BridgeActivity.this
                         .getSystemService(Context.DISPLAY_SERVICE);
                 displayManager2.registerDisplayListener(new DisplayManager.DisplayListener() {

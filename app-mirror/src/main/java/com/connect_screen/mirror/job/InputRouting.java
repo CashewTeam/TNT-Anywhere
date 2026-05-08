@@ -6,10 +6,8 @@ import android.hardware.input.IInputManager;
 import android.hardware.input.InputManager;
 import android.hardware.usb.UsbDevice;
 import android.os.RemoteException;
-import android.view.Display;
 import android.view.DisplayAddress;
 import android.view.DisplayInfo;
-import android.view.IWindowManager;
 import android.view.InputDevice;
 import android.widget.Toast;
 
@@ -115,41 +113,5 @@ public class InputRouting {
             // ignore
         }
         return true;
-    }
-
-    public static void moveImeToExternal(int displayId) {
-        if(!shouldMoveIme()) {
-            State.log("跳过移动输入法");
-            return;
-        }
-        try {
-            IWindowManager windowManager = ServiceUtils.getWindowManager();
-            windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 1);
-            try {
-                windowManager.setDisplayImePolicy(displayId, 0);
-            } catch (Throwable e) {
-                windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
-                State.log("在此屏幕显示输入法，设置失败" + e);
-            }
-        } catch(Throwable e) {
-            State.log("移动输入法失败: " + e);
-        }
-    }
-
-    private static boolean shouldMoveIme() {
-        try {
-            return Pref.getAutoMoveIme();
-        } catch(Exception e) {
-            // ignore
-        }
-        return true;
-    }
-
-    public static void moveImeToDefault() {
-        if (!ShizukuUtils.hasPermission()) {
-            return;
-        }
-        IWindowManager windowManager = ServiceUtils.getWindowManager();
-        windowManager.setDisplayImePolicy(Display.DEFAULT_DISPLAY, 0);
     }
 }

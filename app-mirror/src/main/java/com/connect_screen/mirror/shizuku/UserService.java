@@ -3,7 +3,9 @@ package com.connect_screen.mirror.shizuku;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.hardware.display.IDisplayManager;
+import android.hardware.display.VirtualDisplay;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
@@ -14,6 +16,11 @@ import android.util.Log;
 import android.os.RemoteException;
 import android.view.Display;
 import android.view.Surface;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
@@ -30,6 +37,8 @@ public class UserService extends IUserService.Stub  {
     private Thread volumeKeyThread;
     private AudioRecord audioRecord;
     private float[] buffer;
+    private VirtualDisplay mirrorVirtualDisplay;
+    private IBinder mirrorExternalToken;
 
     public UserService() {
         Ln.i("Start UserService without context: " + android.os.Process.myUid());
@@ -63,7 +72,7 @@ public class UserService extends IUserService.Stub  {
     @Override
     public String fetchLogs() throws RemoteException  {
         try {
-            Process process = Runtime.getRuntime().exec("logcat -d -f /sdcard/Download/安卓屏连.log");
+            Process process = Runtime.getRuntime().exec("logcat -d -f /sdcard/Download/瀹夊崜灞忚繛.log");
             java.io.BufferedReader reader = new java.io.BufferedReader(
                     new java.io.InputStreamReader(process.getInputStream()));
 
@@ -86,24 +95,43 @@ public class UserService extends IUserService.Stub  {
     @Override
     public String executeCommand(String command) throws RemoteException {
         try {
-            Process process = Runtime.getRuntime().exec(command);
-            java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream()));
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-
-            reader.close();
-            process.waitFor();
-
-            return output.toString();
+            return readProcessOutput(Runtime.getRuntime().exec(command), false);
         } catch (Exception e) {
             Log.e("UserService", "execute command failed: " + command, e);
             throw new RemoteException("Failed to execute command: " + command + " " + e.getMessage());
         }
+    }
+
+    @Override
+    public String executeShellCommand(String command) throws RemoteException {
+        try {
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+            return readProcessOutput(process, true);
+        } catch (Exception e) {
+            Log.e("UserService", "execute command failed: " + command, e);
+            throw new RemoteException("Failed to execute command: " + command + " " + e.getMessage());
+        }
+    }
+
+    private String readProcessOutput(Process process, boolean includeExitCode) throws Exception {
+        java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(process.getInputStream()));
+
+        StringBuilder output = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            output.append(line).append("\n");
+        }
+
+        reader.close();
+        int exitCode = process.waitFor();
+        if (includeExitCode) {
+            output.append("__EXIT_CODE=").append(exitCode).append("\n");
+        }
+
+        return output.toString();
     }
 
     public boolean setScreenPower(int powerMode) {
@@ -163,10 +191,12 @@ public class UserService extends IUserService.Stub  {
     private @Nullable IBinder getDisplayToken() {
         try {
             long[] physicalDisplayIds = DisplayControl.getPhysicalDisplayIds();
-            Ln.d("physicalDisplayIds count: " + physicalDisplayIds.length);
+            Ln.d("getDisplayToken: physicalDisplayIds count=" + physicalDisplayIds.length + " ids=" + java.util.Arrays.toString(physicalDisplayIds));
             if (physicalDisplayIds.length > 0) {
+                Ln.d("getDisplayToken: 浣跨敤 physicalDisplayIds[0]=" + physicalDisplayIds[0]);
                 return DisplayControl.getPhysicalDisplayToken(physicalDisplayIds[0]);
             }
+            Ln.d("getDisplayToken: physicalDisplayIds 涓虹┖, 浣跨敤 getBuiltInDisplay");
             return SurfaceControl.getBuiltInDisplay();
         } catch (Throwable e) {
             Ln.e("failed to getDisplayToken", e);
@@ -261,6 +291,7 @@ public class UserService extends IUserService.Stub  {
         return 0;
     }
 
+
     @Override
     public boolean isRooted() throws RemoteException {
         return android.os.Process.myUid() == 0;
@@ -313,6 +344,223 @@ public class UserService extends IUserService.Stub  {
         }
     }
 
+    @Override
+    public IBinder createDisplay(String name, boolean secure) throws RemoteException {
+        try {
+            return SurfaceControl.createDisplay(name, secure);
+        } catch (Exception e) {
+            Ln.e("createDisplay failed", e);
+            return null;
+        }
+    }
+
+    @Override
+    public int createExternalMirror(String name, int width, int height, int displayIdToMirror, Surface surface) throws RemoteException {
+        Ln.i("createExternalMirror: name=" + name + " mirroring displayId=" + displayIdToMirror + " sdk=" + Build.VERSION.SDK_INT);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                return createExternalMirrorApi31(name, width, height, displayIdToMirror, surface);
+            } else {
+                return createExternalMirrorApi30(name, width, height, displayIdToMirror, surface);
+            }
+        } catch (Exception e) {
+            Ln.e("createExternalMirror failed", e);
+            return -1;
+        }
+    }
+
+    private int createExternalMirrorApi31(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
+        android.hardware.display.DisplayManager dm;
+        if (context != null) {
+            dm = (android.hardware.display.DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        } else {
+            java.lang.reflect.Constructor<android.hardware.display.DisplayManager> ctor =
+                    android.hardware.display.DisplayManager.class.getDeclaredConstructor(Context.class);
+            ctor.setAccessible(true);
+            dm = ctor.newInstance(FakeContext.get());
+        }
+        Method method = android.hardware.display.DisplayManager.class
+                .getMethod("createVirtualDisplay", String.class, int.class, int.class, int.class, Surface.class);
+        if (mirrorVirtualDisplay != null) {
+            mirrorVirtualDisplay.release();
+            mirrorVirtualDisplay = null;
+        }
+        mirrorVirtualDisplay = (VirtualDisplay) method.invoke(dm, name, width, height, displayIdToMirror, surface);
+        int vdId = mirrorVirtualDisplay.getDisplay().getDisplayId();
+        Ln.i("createExternalMirror [API31+] success, virtualDisplayId=" + vdId);
+        return vdId;
+    }
+
+    private int createExternalMirrorApi30(String name, int width, int height, int displayIdToMirror, Surface surface) throws Exception {
+        Ln.i("createExternalMirror [API30] begin name=" + name + " w=" + width + " h=" + height + " displayId=" + displayIdToMirror + " surface=" + surface);
+        IDisplayManager dm = IDisplayManager.Stub.asInterface(
+                SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
+        Ln.d("createExternalMirror [API30] IDisplayManager=" + dm);
+        android.view.DisplayInfo extInfo = dm.getDisplayInfo(displayIdToMirror);
+        if (extInfo == null) {
+            Ln.e("createExternalMirror [API30]: getDisplayInfo(" + displayIdToMirror + ") 杩斿洖 null");
+            return -1;
+        }
+        Ln.d("createExternalMirror [API30] getDisplayInfo success, reading layerStack");
+        int layerStack;
+        try {
+            layerStack = extInfo.layerStack;
+            Ln.d("createExternalMirror [API30] layerStack from DisplayInfo=" + layerStack);
+        } catch (NoSuchFieldError e) {
+            Ln.w("createExternalMirror [API30] layerStack field missing, trying dumpsys");
+            layerStack = getLayerStackFromDumpsys(displayIdToMirror);
+            Ln.d("createExternalMirror [API30] layerStack from dumpsys=" + layerStack);
+        }
+        if (layerStack <= 0) {
+            Ln.e("createExternalMirror [API30]: layerStack=" + layerStack);
+            return -1;
+        }
+        Ln.d("createExternalMirror [API30] 鍑嗗璋冪敤 SurfaceControl.createDisplay...");
+        IBinder token = SurfaceControl.createDisplay(name, true);
+        Ln.d("createExternalMirror [API30] createDisplay token=" + token);
+        if (token == null) {
+            Ln.e("createExternalMirror [API30]: SurfaceControl.createDisplay 杩斿洖 null");
+            return -1;
+        }
+        Rect sourceRect = getSourceDisplayRect(extInfo, width, height);
+        Rect displayRect = getAspectFitRect(sourceRect, width, height);
+        Ln.d("createExternalMirror [API30] projection sourceRect=" + sourceRect
+                + " displayRect=" + displayRect + " encoder=" + width + "x" + height);
+        SurfaceControl.openTransaction();
+        try {
+            SurfaceControl.setDisplaySurface(token, surface);
+            Ln.d("createExternalMirror [API30] setDisplaySurface 瀹屾垚");
+            SurfaceControl.setDisplayProjection(token, 0, sourceRect, displayRect);
+            Ln.d("createExternalMirror [API30] setDisplayProjection 瀹屾垚");
+            SurfaceControl.setDisplayLayerStack(token, layerStack);
+            Ln.d("createExternalMirror [API30] setDisplayLayerStack 瀹屾垚");
+        } finally {
+            SurfaceControl.closeTransaction();
+        }
+        Ln.d("createExternalMirror [API30] transaction committed");
+        mirrorExternalToken = token;
+        SurfaceControl.setDisplayPowerMode(token, SurfaceControl.POWER_MODE_NORMAL);
+        Ln.d("createExternalMirror [API30] setDisplayPowerMode NORMAL 瀹屾垚");
+        Ln.i("createExternalMirror [API30] 鍏ㄩ儴瀹屾垚, layerStack=" + layerStack);
+        return 0;
+    }
+
+    private Rect getSourceDisplayRect(android.view.DisplayInfo displayInfo, int fallbackWidth, int fallbackHeight) {
+        int[] logicalSize = getDisplayInfoSizeFields(displayInfo, "logicalWidth", "logicalHeight");
+        if (isValidSize(logicalSize)) {
+            Ln.d("createExternalMirror [API30] source size from logical fields="
+                    + logicalSize[0] + "x" + logicalSize[1]);
+            return new Rect(0, 0, logicalSize[0], logicalSize[1]);
+        }
+
+        int[] realSize = parseRealSize(displayInfo.toString());
+        if (isValidSize(realSize)) {
+            Ln.d("createExternalMirror [API30] source size from DisplayInfo.toString="
+                    + realSize[0] + "x" + realSize[1]);
+            return new Rect(0, 0, realSize[0], realSize[1]);
+        }
+
+        int[] modeSize = getDefaultModeSize(displayInfo);
+        if (isValidSize(modeSize)) {
+            Ln.d("createExternalMirror [API30] source size from default mode="
+                    + modeSize[0] + "x" + modeSize[1]);
+            return new Rect(0, 0, modeSize[0], modeSize[1]);
+        }
+
+        Ln.w("createExternalMirror [API30] cannot read source display size, fallback to encoder size="
+                + fallbackWidth + "x" + fallbackHeight);
+        return new Rect(0, 0, fallbackWidth, fallbackHeight);
+    }
+
+    private int[] getDisplayInfoSizeFields(android.view.DisplayInfo displayInfo, String widthField, String heightField) {
+        try {
+            Field w = displayInfo.getClass().getDeclaredField(widthField);
+            Field h = displayInfo.getClass().getDeclaredField(heightField);
+            w.setAccessible(true);
+            h.setAccessible(true);
+            return new int[] {w.getInt(displayInfo), h.getInt(displayInfo)};
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private int[] parseRealSize(String displayInfoText) {
+        Matcher matcher = Pattern.compile("real ([0-9]+) x ([0-9]+)").matcher(displayInfoText);
+        if (!matcher.find()) {
+            return null;
+        }
+        return new int[] {Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2))};
+    }
+
+    private int[] getDefaultModeSize(android.view.DisplayInfo displayInfo) {
+        Display.Mode[] modes = displayInfo.supportedModes;
+        if (modes == null || modes.length == 0) {
+            return null;
+        }
+        for (Display.Mode mode : modes) {
+            if (mode != null && mode.getModeId() == displayInfo.defaultModeId) {
+                return new int[] {mode.getPhysicalWidth(), mode.getPhysicalHeight()};
+            }
+        }
+        Display.Mode first = modes[0];
+        return first == null ? null : new int[] {first.getPhysicalWidth(), first.getPhysicalHeight()};
+    }
+
+    private boolean isValidSize(int[] size) {
+        return size != null && size.length >= 2 && size[0] > 0 && size[1] > 0;
+    }
+
+    private Rect getAspectFitRect(Rect sourceRect, int width, int height) {
+        if (sourceRect.width() <= 0 || sourceRect.height() <= 0 || width <= 0 || height <= 0) {
+            return new Rect(0, 0, width, height);
+        }
+        long scaledWidthByHeight = (long) height * sourceRect.width();
+        long maxScaledWidth = (long) width * sourceRect.height();
+        if (scaledWidthByHeight <= maxScaledWidth) {
+            int displayWidth = (int) Math.max(1, scaledWidthByHeight / sourceRect.height());
+            int left = (width - displayWidth) / 2;
+            return new Rect(left, 0, left + displayWidth, height);
+        }
+        long scaledHeightByWidth = (long) width * sourceRect.height();
+        int displayHeight = (int) Math.max(1, scaledHeightByWidth / sourceRect.width());
+        int top = (height - displayHeight) / 2;
+        return new Rect(0, top, width, top + displayHeight);
+    }
+
+    private int getLayerStackFromDumpsys(int displayId) {
+        try {
+            Process process = Runtime.getRuntime().exec("dumpsys display");
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            process.waitFor();
+            DisplayInfo parsed = DisplayManager.parseDisplayInfo(output.toString(), displayId);
+            if (parsed != null && parsed.getLayerStack() > 0) {
+                return parsed.getLayerStack();
+            }
+        } catch (Exception e) {
+            Ln.e("dumpsys display parse layerStack failed", e);
+        }
+        return -1;
+    }
+
+    @Override
+    public void destroyExternalMirror() throws RemoteException {
+        Ln.i("destroyExternalMirror");
+        if (mirrorVirtualDisplay != null) {
+            mirrorVirtualDisplay.release();
+            mirrorVirtualDisplay = null;
+        }
+        if (mirrorExternalToken != null) {
+            SurfaceControl.destroyDisplay(mirrorExternalToken);
+            mirrorExternalToken = null;
+        }
+    }
+
     @SuppressLint({"WrongConstant", "MissingPermission"})
     private AudioRecord createAudioRecord() {
         AudioRecord.Builder builder = new AudioRecord.Builder();
@@ -321,7 +569,7 @@ public class UserService extends IUserService.Stub  {
             builder.setContext(context);
         }
         builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
-        int sampleRate = 48000; // 与您的Opus配置匹配
+        int sampleRate = 48000; // 涓庢偍鐨凮pus閰嶇疆鍖归厤
         int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
         int audioEncoding = AudioFormat.ENCODING_PCM_FLOAT;
         AudioFormat audioFormat = new AudioFormat.Builder()
