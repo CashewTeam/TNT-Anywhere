@@ -5,8 +5,6 @@ import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.State;
 
 public class StartSunshineService implements Job {
-    private final TntDisplaySelector tntDisplaySelector = new TntDisplaySelector();
-
     @Override
     public void start() throws YieldException {
         if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
@@ -17,10 +15,6 @@ public class StartSunshineService implements Job {
         MirrorMainActivity activity = State.getCurrentActivity();
         if (activity == null) {
             State.showErrorStatus("Cannot start SunshineService without an active UI");
-            return;
-        }
-
-        if (!tntDisplaySelector.ensureSelected()) {
             return;
         }
 
