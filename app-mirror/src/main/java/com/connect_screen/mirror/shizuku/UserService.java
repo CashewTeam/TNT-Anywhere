@@ -27,6 +27,7 @@ import androidx.annotation.Nullable;
 
 import com.connect_screen.mirror.job.AndroidVersions;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
+import com.connect_screen.mirror.BuildConfig;
 
 import rikka.shizuku.SystemServiceHelper;
 
@@ -233,7 +234,7 @@ public class UserService extends IUserService.Stub  {
                             setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
                             if (context != null) {
                                 Intent intent = new Intent("com.connect_screen.mirror.EXIT_PURE_BLACK");
-                                intent.setPackage("com.connect_screen.mirror");
+                                intent.setPackage(BuildConfig.APPLICATION_ID);
                                 context.sendBroadcast(intent);
                             } else {
                                 Ln.i("context is null, can not send EXIT_PURE_BLACK");

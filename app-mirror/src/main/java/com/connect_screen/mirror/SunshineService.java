@@ -212,7 +212,7 @@ public class SunshineService extends Service {
             preventAutoLock();
         }
 
-        String sunshineName = "TNT Shaker-" + Build.MANUFACTURER + "-" + Build.MODEL;
+        String sunshineName = "TNT Anywhere-" + Build.MANUFACTURER + "-" + Build.MODEL;
         SunshineServer.setSunshineName(sunshineName);
         Set<String> ipAddresses = getAllWifiIpAddresses(this);
 
@@ -235,9 +235,9 @@ public class SunshineService extends Service {
                             dnsServers.add(jmdns);
                             ServiceInfo serviceInfo = ServiceInfo.create(
                                     "_nvstream._tcp.local.",
-                                    "TNT Shaker",
+                                    "TNT Anywhere",
                                     47989,
-                                    "TNT Shaker"
+                                    "TNT Anywhere"
                             );
 
                             jmdns.registerService(serviceInfo);
@@ -357,7 +357,7 @@ public class SunshineService extends Service {
 
     private Notification createNotification() {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("TNT Shaker")
+                .setContentTitle("TNT Anywhere")
                 .setContentText("Sunshine Host is running")
                 .setSmallIcon(R.mipmap.ic_mirror)
                 .build();
@@ -507,7 +507,7 @@ public class SunshineService extends Service {
         long now = System.currentTimeMillis();
         Date notBefore = new Date(now - TimeUnit.DAYS.toMillis(1));
         Date notAfter = new Date(now + TimeUnit.DAYS.toMillis(3650));
-        X500Name subject = new X500Name("CN=TNT Shaker,O=TNT Shaker,OU=Sunshine Android");
+        X500Name subject = new X500Name("CN=TNT Anywhere,O=TNT Anywhere,OU=Sunshine Android");
         BigInteger serialNumber = new BigInteger(64, secureRandom).abs();
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
                 subject,

@@ -26,6 +26,7 @@ import androidx.appcompat.widget.SwitchCompat;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.ConnectToClient;
 import com.connect_screen.mirror.job.SunshineServer;
+import com.connect_screen.mirror.job.TntOverlayHelper;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -69,6 +70,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
     private SharedPreferences preferences;
     private TextView currentTntOverlaySettingsText;
+    private TextView backupTntRootStatus;
+    private TextView backupTntDebugStatus;
+    private Button checkBackupTntRootButton;
+    private Button backupTntOverlayButton;
+    private SwitchCompat backupTntDebugSwitch;
     private EditText encoderBitratePercentEditText;
     private EditText encoderComplexityEditText;
     private EditText encoderIFrameIntervalEditText;
@@ -80,6 +86,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     private SwitchCompat encoderDisableBFramesCheckbox;
     private SwitchCompat encoderRealtimePriorityCheckbox;
     private TextView currentEncoderSettingsText;
+    private boolean backupRootGranted;
+    private boolean backupRootChecked;
+    private boolean backupRootChecking;
+    private boolean suppressBackupTntDebugSwitchCallback;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -104,6 +114,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         SwitchCompat disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
         SwitchCompat useAndroidCursorOverlayCheckbox = findViewById(R.id.useAndroidCursorOverlayCheckbox);
         SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
+        SwitchCompat adaptTntResolutionToClientCheckbox = findViewById(R.id.adaptTntResolutionToClientCheckbox);
+        SwitchCompat autoCloseTntOnClientDisconnectCheckbox = findViewById(R.id.autoCloseTntOnClientDisconnectCheckbox);
 
         styleSwitch(autoRotateCheckbox);
         styleSwitch(autoScaleCheckbox);
@@ -118,6 +130,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         styleSwitch(disableRemoteSubmixCheckbox);
         styleSwitch(useAndroidCursorOverlayCheckbox);
         styleSwitch(disableAccessibilityCheckbox);
+        styleSwitch(adaptTntResolutionToClientCheckbox);
+        styleSwitch(autoCloseTntOnClientDisconnectCheckbox);
 
         LinearLayout clientConnectionContainer = findViewById(R.id.clientConnectionContainer);
         Spinner clientSpinner = findViewById(R.id.clientSpinner);
@@ -127,6 +141,11 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         TextView overlayStatus = findViewById(R.id.overlayStatus);
         Button shizukuPermissionBtn = findViewById(R.id.shizukuPermissionBtn);
         currentTntOverlaySettingsText = findViewById(R.id.currentTntOverlaySettingsText);
+        backupTntRootStatus = findViewById(R.id.backupTntRootStatus);
+        backupTntDebugStatus = findViewById(R.id.backupTntDebugStatus);
+        checkBackupTntRootButton = findViewById(R.id.checkBackupTntRootButton);
+        backupTntOverlayButton = findViewById(R.id.backupTntOverlayButton);
+        backupTntDebugSwitch = findViewById(R.id.backupTntDebugSwitch);
 
         autoRotateCheckbox.setChecked(Pref.getAutoRotate());
         autoScaleCheckbox.setChecked(Pref.getAutoScale());
@@ -141,6 +160,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
         useAndroidCursorOverlayCheckbox.setChecked(Pref.getUseAndroidCursorOverlay());
         disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
+        adaptTntResolutionToClientCheckbox.setChecked(Pref.getAdaptTntResolutionToClient());
+        autoCloseTntOnClientDisconnectCheckbox.setChecked(Pref.getAutoCloseTntOnClientDisconnect());
         disableAccessibilityCheckbox.setText("Accessibility compatibility mode");
 
         if (ShizukuUtils.hasPermission()) {
@@ -151,6 +172,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         updateAccessibilityStatus(accessibilityStatus);
         updateOverlayStatus(overlayStatus);
         updateTntOverlaySettingsText();
+        styleSwitch(backupTntDebugSwitch);
+        updateBackupTntSection();
 
         shizukuPermissionBtn.setOnClickListener(v -> State.startNewJob(new AcquireShizuku()));
 
@@ -165,6 +188,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         Button editTntOverlaySettingsButton = findViewById(R.id.editTntOverlaySettingsButton);
         editTntOverlaySettingsButton.setOnClickListener(v -> showTntOverlaySettingsDialog());
+        checkBackupTntRootButton.setOnClickListener(v -> runBackupTntRootCheck());
+        backupTntOverlayButton.setOnClickListener(v -> toggleBackupTntOverlay());
+        backupTntDebugSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (suppressBackupTntDebugSwitchCallback) {
+                return;
+            }
+            setBackupTntDebugEnabled(isChecked);
+        });
 
         autoRotateCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_AUTO_ROTATE, isChecked).apply());
@@ -186,6 +217,10 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
         useAndroidCursorOverlayCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_USE_ANDROID_CURSOR_OVERLAY, isChecked).apply());
+        adaptTntResolutionToClientCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT, isChecked).apply());
+        autoCloseTntOnClientDisconnectCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_AUTO_CLOSE_TNT_ON_CLIENT_DISCONNECT, isChecked).apply());
 
         disableUsbAudioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_DISABLE_USB_AUDIO, isChecked).apply();
@@ -253,6 +288,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         updateAccessibilityStatus(findViewById(R.id.accessibilityStatus));
         updateOverlayStatus(findViewById(R.id.overlayStatus));
         updateTntOverlaySettingsText();
+        updateBackupTntSection();
 
         SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
         disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
@@ -333,6 +369,122 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 height,
                 dpi,
                 presetName));
+    }
+
+    private void updateBackupTntSection() {
+        boolean overlayActive = TntOverlayHelper.isOverlayOwnedByApp();
+        boolean tntDebugEnabled = TntOverlayHelper.isOverlayDebugPropertyEnabled();
+
+        if (backupTntRootStatus != null) {
+            if (backupRootChecking) {
+                backupTntRootStatus.setText("检查中");
+                backupTntRootStatus.setTextColor(0xFF80868B);
+            } else if (!backupRootChecked) {
+                backupTntRootStatus.setText("未检查");
+                backupTntRootStatus.setTextColor(0xFF80868B);
+            } else if (backupRootGranted) {
+                backupTntRootStatus.setText("已授权");
+                backupTntRootStatus.setTextColor(0xFF2E7D32);
+            } else {
+                backupTntRootStatus.setText("未授权");
+                backupTntRootStatus.setTextColor(0xFF80868B);
+            }
+        }
+
+        if (checkBackupTntRootButton != null) {
+            checkBackupTntRootButton.setEnabled(!backupRootChecking);
+            checkBackupTntRootButton.setText(backupRootChecking ? "检查中" : "检查");
+        }
+
+        if (backupTntDebugStatus != null) {
+            backupTntDebugStatus.setText(tntDebugEnabled ? "已开启" : "未开启");
+            backupTntDebugStatus.setTextColor(tntDebugEnabled ? 0xFF2E7D32 : 0xFF80868B);
+        }
+
+        if (backupTntDebugSwitch != null) {
+            suppressBackupTntDebugSwitchCallback = true;
+            backupTntDebugSwitch.setChecked(tntDebugEnabled);
+            backupTntDebugSwitch.setEnabled(backupRootGranted && !backupRootChecking);
+            suppressBackupTntDebugSwitchCallback = false;
+        }
+
+        if (backupTntOverlayButton != null) {
+            backupTntOverlayButton.setEnabled(!backupRootChecking);
+            backupTntOverlayButton.setText(overlayActive ? "关闭备用 TNT overlay" : "启动备用 TNT overlay");
+        }
+    }
+
+    private void runBackupTntRootCheck() {
+        if (backupRootChecking) {
+            return;
+        }
+        backupRootChecking = true;
+        updateBackupTntSection();
+        new Thread(() -> {
+            boolean hasRoot = TntOverlayHelper.hasRootAccess();
+            runOnUiThread(() -> {
+                backupRootGranted = hasRoot;
+                backupRootChecked = true;
+                backupRootChecking = false;
+                updateBackupTntSection();
+            });
+        }, "TNTShakerBackupRootCheck").start();
+    }
+
+    private void setBackupTntDebugEnabled(boolean enabled) {
+        if (!backupRootGranted) {
+            Toast.makeText(this, "备用 overlay 方式需要先授予 Root 权限", Toast.LENGTH_SHORT).show();
+            updateBackupTntSection();
+            return;
+        }
+        if (backupTntDebugSwitch != null) {
+            backupTntDebugSwitch.setEnabled(false);
+        }
+        if (backupTntDebugStatus != null) {
+            backupTntDebugStatus.setText("设置中");
+            backupTntDebugStatus.setTextColor(0xFF80868B);
+        }
+        new Thread(() -> {
+            boolean success = TntOverlayHelper.setOverlayDebugPropertyEnabled(enabled);
+            runOnUiThread(() -> {
+                if (success) {
+                    backupRootChecked = true;
+                    backupRootGranted = true;
+                }
+                Toast.makeText(
+                        this,
+                        success ? "已写入 TNT 调试选项，重启系统后完全生效" : "TNT 调试选项写入失败",
+                        Toast.LENGTH_LONG).show();
+                updateBackupTntSection();
+            });
+        }, "TNTShakerBackupOverlayProp").start();
+    }
+
+    private void toggleBackupTntOverlay() {
+        if (backupRootChecking) {
+            return;
+        }
+        boolean overlayActive = TntOverlayHelper.isOverlayOwnedByApp();
+        if (backupTntOverlayButton != null) {
+            backupTntOverlayButton.setEnabled(false);
+        }
+        new Thread(() -> {
+            boolean success = overlayActive
+                    ? TntOverlayHelper.clearOverlayDisplay()
+                    : TntOverlayHelper.ensureHeadlessOverlayDisplayFromPreferences();
+            boolean hasRoot = success || TntOverlayHelper.hasRootAccess();
+            runOnUiThread(() -> {
+                backupRootChecked = true;
+                backupRootGranted = hasRoot;
+                Toast.makeText(
+                        this,
+                        success
+                                ? (overlayActive ? "已关闭备用 TNT overlay" : "已启动备用 TNT overlay")
+                                : "备用 TNT overlay 操作失败",
+                        Toast.LENGTH_SHORT).show();
+                updateBackupTntSection();
+            });
+        }, "TNTShakerBackupOverlayToggle").start();
     }
 
     private void showTntOverlaySettingsDialog() {

@@ -26,12 +26,12 @@ public class AboutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_about);
         
         TextView header = findViewById(R.id.header);
-        header.setText("TNT Shaker 是运行在 Android 设备上的 Sunshine Host。它通过 Shizuku、VirtualDisplay / MediaCodec 和 Moonlight 使用的 NVIDIA GameStream 协议，将手机镜像画面或 TNT 外接显示器画面串流到 Moonlight 客户端，并把键鼠、触摸等输入回流到设备。");
+        header.setText("TNT Anywhere 是运行在 Android 设备上的 Sunshine Host。它通过 Shizuku、VirtualDisplay / MediaCodec 和 Moonlight 使用的 NVIDIA GameStream 协议，将手机镜像画面或 TNT 外接显示器画面串流到 Moonlight 客户端，并把键鼠、触摸等输入回流到设备。");
 
         TextView aboutContent = findViewById(R.id.aboutContent);
         aboutContent.setText(
                 "项目作用\n"
-                        + "TNT Shaker 面向 SmartisanOS 8.5.3 / Android 11 这类设备，把手机变成可被 Moonlight 连接的串流主机。它支持本机镜像模式和 TNT 模式：前者串流手机主屏，后者串流外接显示器画面。\n\n"
+                        + "TNT Anywhere 面向 SmartisanOS 8.5.3 / Android 11 这类设备，把手机变成可被 Moonlight 连接的串流主机。它支持本机镜像模式和 TNT 模式：前者串流手机主屏，后者串流外接显示器画面。\n\n"
                         + "架构概要\n"
                         + "1. UI 与任务层：负责设置、状态、日志和 ProjectViaMoonlight 等投屏任务调度。\n"
                         + "2. 系统权限层：通过 Shizuku / UserService 调用系统级显示、输入和电源控制能力。\n"
@@ -43,7 +43,7 @@ public class AboutActivity extends AppCompatActivity {
                         + "- 参考 scrcpy 的 Android 屏幕采集/编码思路：https://github.com/Genymobile/scrcpy\n"
                         + "- 使用 moonlight-common-c 相关协议实现。\n\n"
                         + "原项目来源\n"
-                        + "TNT Shaker 继承自原项目“安卓屏连”的思路。原项目目标是让 Android 手机通过有线或无线方式连接屏幕、电脑和外接设备，补足部分厂商弱化掉的投屏、桌面模式和多显示能力。当前项目在此基础上聚焦 Moonlight / Sunshine Host 链路，面向 TNT 外接显示器与手机镜像串流。\n\n"
+                        + "TNT Anywhere 继承自原项目“安卓屏连”的思路。原项目目标是让 Android 手机通过有线或无线方式连接屏幕、电脑和外接设备，补足部分厂商弱化掉的投屏、桌面模式和多显示能力。当前项目在此基础上聚焦 Moonlight / Sunshine Host 链路，面向 TNT 外接显示器与手机镜像串流。\n\n"
                         + "原项目链接\n"
                         + "- 用户手册：https://connect-screen.com/\n"
                         + "- 小红书：安卓屏连\n"
@@ -78,7 +78,7 @@ public class AboutActivity extends AppCompatActivity {
             String versionName = getPackageManager()
                     .getPackageInfo(getPackageName(), 0).versionName;
             String androidVersion = android.os.Build.VERSION.RELEASE;
-            versionText.setText("TNT Shaker " + versionName + " (Android " + androidVersion + ")");
+            versionText.setText("TNT Anywhere " + versionName + " (Android " + androidVersion + ")");
         } catch (Exception e) {
             versionText.setText("版本：未知");
         }

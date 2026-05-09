@@ -313,7 +313,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="TNT overlay resolution"
+                android:text="TNT 启动与备用方案"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -325,11 +325,116 @@
                 android:textColor="#666666"
                 android:textSize="13sp" />
 
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/adaptTntResolutionToClientCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="适应客户端分辨率"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                app:showText="false"
+                app:switchMinWidth="48dp"
+                app:thumbTint="#4CAF50"
+                app:trackTint="#664CAF50" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoCloseTntOnClientDisconnectCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="客户端断开后自动关闭 TNT"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                app:showText="false"
+                app:switchMinWidth="48dp"
+                app:thumbTint="#4CAF50"
+                app:trackTint="#664CAF50" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Applies next time the TNT button is used. Default is 1080P/216. 4K and tablet presets use 320dpi."
+                android:text="主页 TNT 按钮默认已经使用免 Root 的原生方案。这里保留旧的 overlay 方式作为备用，仅在排障或兼容性需要时使用。"
+                android:textColor="#666666"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Root 状态：" />
+
+                <TextView
+                    android:id="@+id/backupTntRootStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="未检查" />
+
+                <Button
+                    android:id="@+id/checkBackupTntRootButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="检查" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TNT 调试选项：" />
+
+                <TextView
+                    android:id="@+id/backupTntDebugStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="待检查" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/backupTntDebugSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@android:color/black"
+                    app:showText="false"
+                    app:switchMinWidth="48dp"
+                    app:thumbTint="#4CAF50"
+                    app:trackTint="#664CAF50" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/backupTntOverlayButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="启动备用 TNT overlay" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="该方式会执行旧的 overlay_display_devices 与 persist.easycast.show_overlay_display 流程，通常需要 Root，且修改 TNT 调试选项后重启系统才能完全生效。"
+                android:textColor="#666666"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="主页默认方案和这里的备用 overlay 方案都会读取下方这组显示参数。默认是 1080P/216dpi，4K 和平板预设使用 320dpi。"
                 android:textColor="#666666"
                 android:textSize="13sp" />
 
@@ -338,7 +443,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="Edit TNT overlay resolution" />
+                android:text="编辑 TNT 显示分辨率" />
         </LinearLayout>
 
         <LinearLayout

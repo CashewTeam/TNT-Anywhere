@@ -91,8 +91,8 @@ public class State {
                 preferences.edit().putInt("AUTO_GRANT_PERMISSION", BuildConfig.VERSION_CODE).apply();
                 State.log("授予媒体投影权限和悬浮窗权限");
                 try {
-                    State.userService.executeCommand("appops set com.connect_screen.mirror PROJECT_MEDIA allow");
-                    State.userService.executeCommand("appops set com.connect_screen.mirror SYSTEM_ALERT_WINDOW allow");
+                    State.userService.executeCommand("appops set " + BuildConfig.APPLICATION_ID + " PROJECT_MEDIA allow");
+                    State.userService.executeCommand("appops set " + BuildConfig.APPLICATION_ID + " SYSTEM_ALERT_WINDOW allow");
                 } catch (Throwable e) {
                     // ignorepp
                 }

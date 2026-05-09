@@ -22,6 +22,7 @@ public class ProjectViaMoonlight implements Job {
     private final TntDisplaySelector tntDisplaySelector = new TntDisplaySelector();
     private boolean mediaProjectionRequested;
     private boolean userServiceRequested;
+    private int autoTntStartAttempts;
 
     public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldSendAudio) {
         this.width = width;
@@ -43,6 +44,9 @@ public class ProjectViaMoonlight implements Job {
             return;
         }
 
+        if (!ensureTntDisplayStartedForClient(context)) {
+            return;
+        }
         if (!tntDisplaySelector.ensureSelected()) {
             return;
         }
@@ -78,6 +82,55 @@ public class ProjectViaMoonlight implements Job {
         if (!mirrorExternal && State.getMediaProjection() != null) {
             State.setMediaProjection(null);
         }
+    }
+
+    private boolean ensureTntDisplayStartedForClient(Context context) throws YieldException {
+        if (!Pref.getSkipExternalActivity()) {
+            return true;
+        }
+        int targetWidth = Pref.getAdaptTntResolutionToClient() ? width : Pref.getTntOverlayWidth();
+        int targetHeight = Pref.getAdaptTntResolutionToClient() ? height : Pref.getTntOverlayHeight();
+        int targetDpi = Pref.getTntOverlayDpi();
+        boolean externalDisplayPresent = TntDisplaySelector.hasExternalDisplay(context);
+        boolean baseDisplayPresent = TntDebugVirtualDisplayHelper.isBaseDisplayPresent(context);
+        boolean helperActive = TntDebugVirtualDisplayHelper.isActive();
+        boolean helperMatchesTarget = TntDebugVirtualDisplayHelper.isActiveWithConfig(
+                targetWidth,
+                targetHeight,
+                targetDpi);
+
+        if (externalDisplayPresent && !baseDisplayPresent && !helperActive) {
+            State.log("[ProjectViaMoonlight] external display already present and is not TNT Anywhere base display");
+            return true;
+        }
+        if (externalDisplayPresent && helperActive && helperMatchesTarget) {
+            return true;
+        }
+
+        if (autoTntStartAttempts >= 4) {
+            State.log("[ProjectViaMoonlight] TNT auto start timed out, continue to display selection");
+            return true;
+        }
+
+        if (autoTntStartAttempts == 0) {
+            State.log("[ProjectViaMoonlight] ensuring TNT display before Moonlight mirror, externalPresent="
+                    + externalDisplayPresent
+                    + " basePresent=" + baseDisplayPresent
+                    + " helperActive=" + helperActive
+                    + " helperMatchesTarget=" + helperMatchesTarget
+                    + " target="
+                    + targetWidth + "x" + targetHeight + "/" + targetDpi
+                    + (Pref.getAdaptTntResolutionToClient() ? " from Moonlight client request" : " from TNT settings"));
+            if (!TntDebugVirtualDisplayHelper.ensureVirtualDisplay(targetWidth, targetHeight, targetDpi)) {
+                State.showErrorStatus("TNT auto start failed. Start TNT manually and reconnect Moonlight.");
+                return false;
+            }
+        } else {
+            State.log("[ProjectViaMoonlight] waiting for TNT display, attempt=" + (autoTntStartAttempts + 1));
+        }
+        autoTntStartAttempts++;
+        State.resumeJobLater(1500);
+        throw new YieldException("Waiting for TNT display auto start");
     }
 
     private boolean ensureMediaProjectionPermission() throws YieldException {

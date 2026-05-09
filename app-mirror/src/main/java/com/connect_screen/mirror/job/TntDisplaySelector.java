@@ -20,6 +20,17 @@ public final class TntDisplaySelector {
         return selectDisplay(context, Display.DEFAULT_DISPLAY, showError, "Mirror");
     }
 
+    public static boolean hasExternalDisplay(Context context) {
+        if (context == null) {
+            return false;
+        }
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        if (displayManager == null) {
+            return false;
+        }
+        return findLargestDisplayId(displayManager) > Display.DEFAULT_DISPLAY;
+    }
+
     private static boolean selectLargestDisplay(Context context, boolean showError) {
         if (context == null) {
             if (showError) {

@@ -230,6 +230,9 @@ public class SunshineServer {
         } else if (State.userService != null) {
             State.userService = null;
         }
+        if (Pref.getAutoCloseTntOnClientDisconnect()) {
+            TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+        }
     }
 
     // 添加新方法用于启动音频录制

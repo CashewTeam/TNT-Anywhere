@@ -1,34 +1,54 @@
-# TNT Shaker
+# TNT Anywhere
 
 ## 项目简介
 
-`TNT Shaker` 是一个运行在 Android 11 设备上的屏幕投屏与串流项目，面向 SmartisanOS 8.5.3 这类基于 Android 11 的系统环境。
+`TNT Anywhere` 项目的目标：完成 Smartisan OS 当年没有真正做完的 `TNT Anywhere` 体验，让 `TNT` 系统不再被固定硬件限制，而是可以在更多设备和更多连接场景里被投屏、启动和运行。
 
-它的核心目标是：
+项目把 `Shizuku`、`VirtualDisplay`、`MediaCodec`、隐藏 API，以及 `Moonlight` 使用的 Sunshine / GameStream 风格协议串在一起，让手机既能作为 `TNT` 运行入口，也能作为可被远程连接和操控的串流主机。
 
-1. 通过 `Shizuku` 获取更高权限，调用系统级接口完成虚拟显示、屏幕镜像、输入绑定等操作。
-2. 参考 `scrcpy` 在 Android 11 上的屏幕采集思路，使用 `MediaCodec` / `VirtualDisplay` 等方式拿到画面。
-3. 将手机镜像画面或外接显示器画面，通过 `Moonlight` 所使用的 NVIDIA GameStream 协议进行串流输出。
-4. 在接收端实现触控、键鼠等输入控制，让客户端既能看画面，也能反向操控手机。
+`TNT Anywhere` 想做的事情是：
 
-这个项目可以理解为一套“手机端自建的 Sunshine 风格服务端”，但它不是桌面端的 Sunshine 官方实现，而是针对 Android 设备做了适配和封装。
+1. 让 `TNT` 桌面不再只能依赖原本那套有限的官方接入方式。
+2. 让 `Smartisan OS` 设备可以把手机主屏或 `TNT` 屏幕稳定串流到 `Moonlight` 客户端。
+3. 让远端客户端不只是“看到画面”，还可以把键鼠、触摸等输入回注到手机或 `TNT` 显示。
+4. 在尽量免 Root 的前提下，把 `TNT` 启动、分辨率适配、自动开关等能力做成一条可用链路。
 
-## 软件作用
+## 功能说明
 
-`TNT Shaker` 主要解决三类需求：
+`TNT Anywhere` 目前主要提供以下能力：
 
 1. 手机画面串流到 Moonlight 客户端
    - 支持把当前手机屏幕编码后送给客户端。
    - 支持镜像模式下的本机显示画面输出。
    - 支持外接显示器画面的镜像输出。
 
-2. 基于权限能力的系统控制
+2. `TNT` 启动与串流联动
+   - 支持通过 Android 11 原生 `VirtualDisplay` 方式启动 `TNT`，作为当前默认方案。
+   - 支持在用户开启“串流 TNT 屏幕”后，于客户端连接时自动启动 `TNT`。
+   - 支持在客户端断开连接或服务停止时自动关闭 `TNT`。
+   - 保留旧版 overlay / Root 方案作为备用启动方式。
+
+3. 分辨率自动适配
+   - 支持“适应客户端分辨率”开关，默认开启。
+   - 当 `TNT` 是因 `Moonlight` 客户端连接而被动启动时，会优先采用客户端请求的分辨率创建显示。
+
+4. 基于权限能力的系统控制
    - 通过 `Shizuku` 间接获得 `ADB` 级别能力。
    - 调用隐藏 API / 系统服务完成虚拟显示创建、显示旋转、输入绑定、屏幕电源控制等动作。
 
-3. 输入回流
-   - 将 Moonlight 客户端发来的输入事件映射回 Android 设备。
+5. 输入回流
+   - 将 `Moonlight` 客户端发来的输入事件映射回 Android 设备。
    - 包括触摸、鼠标、键盘等输入通道。
+
+## 兼容性说明
+
+当前 `v0.7.0` 仅在以下环境完成实机测试：
+
+- `坚果 R2`
+- `SmartisanOS 8.5.3`
+- 基于 `Android 11`
+
+旧机型、老系统，以及其它 Smartisan / 锤子设备版本目前暂未完成适配或验证，现阶段不能保证可直接使用。
 
 ## 总体架构
 
@@ -40,11 +60,11 @@
 
 2. 投屏任务层
    - 以 `Job` 为抽象，把不同场景封装为任务。
-   - 例如本机镜像、外接显示器镜像、DisplayLink 投屏、Shizuku 权限获取等。
+   - 例如本机镜像、`TNT` 启动、外接显示器镜像、DisplayLink 投屏、Shizuku 权限获取等。
 
 3. 串流与编码层
    - `SunshineServer` 负责和 native 代码桥接。
-   - native 侧完成 Moonlight 协议、RTSP/HTTP、音视频编码、RTP 发送等工作。
+   - native 侧完成 `Moonlight` 协议、RTSP / HTTP、音视频编码、RTP 发送等工作。
 
 4. 系统权限与隐藏 API 层
    - `Shizuku` 绑定 `UserService`。
@@ -54,14 +74,15 @@
 
 ### `app-mirror`
 
-这是当前项目的核心模块，负责 Moonlight 投屏主链路。
+这是当前项目的核心模块，负责 `Moonlight` 投屏与 `TNT` 主链路。
 
 主要职责：
 
 1. 启动和维护串流服务。
-2. 创建镜像显示或外接显示器镜像。
-3. 建立 Moonlight 协议所需的服务器能力。
+2. 创建镜像显示或 `TNT` / 外接显示器镜像。
+3. 建立 `Moonlight` 协议所需的服务器能力。
 4. 处理客户端输入与设备侧响应。
+5. 协调 `TNT` 自动启动、自动关闭和分辨率适配。
 
 关键类：
 
@@ -69,12 +90,16 @@
   - 全局状态中心，维护当前任务、日志、`Shizuku` 服务、虚拟显示等。
 
 - `ProjectViaMoonlight`
-  - Moonlight 串流任务入口。
-  - 决定走本机镜像还是外接显示器镜像。
+  - `Moonlight` 串流任务入口。
+  - 决定走本机镜像还是 `TNT` 屏幕串流，并在需要时自动拉起 `TNT`。
 
 - `SunshineServer`
   - Java 与 native 的桥接入口。
   - 负责启动 native Sunshine 服务、创建虚拟显示、停止投屏等。
+
+- `TntDebugVirtualDisplayHelper`
+  - 当前默认的 `TNT` 启动辅助类。
+  - 负责使用 Android 11 原生 `VirtualDisplay` 路径创建 `TNT` 基础显示。
 
 - `UserService`
   - `Shizuku` 绑定后的系统服务实现。
@@ -86,7 +111,7 @@
 
 ### `app-extend`
 
-这是扩展屏相关模块，偏向“外接显示器/第二屏/输入绑定”能力。
+这是扩展屏相关模块，偏向“外接显示器 / 第二屏 / 输入绑定”能力。
 
 主要职责：
 
@@ -116,11 +141,11 @@
 1. App 启动后进入主界面。
 2. 通过 `Shizuku` 绑定 `UserService`。
 3. 按需申请或确认系统级权限。
-4. 初始化 Moonlight 串流所需的 native 服务。
+4. 初始化 `Moonlight` 串流所需的 native 服务。
 
 ### 2. 发起连接
 
-1. Moonlight 客户端连接到设备。
+1. `Moonlight` 客户端连接到设备。
 2. `SunshineServer` 在 native 层完成会话建立。
 3. 进入 `ProjectViaMoonlight` 任务。
 
@@ -132,30 +157,34 @@
    - 创建虚拟显示。
    - 把手机主屏内容编码后发送给客户端。
 
-2. 外接显示器镜像模式
-   - 通过 `Shizuku` 调用系统接口。
-   - 创建外接显示器的镜像输出。
+2. `TNT` 串流模式
+   - 检查当前是否已有可用 `TNT` / 外部显示。
+   - 如未启动，则按配置自动创建 `TNT` 基础显示。
+   - 如开启“适应客户端分辨率”，优先采用客户端请求分辨率。
 
 ### 4. 采集、编码、发送
 
 1. 屏幕内容进入 `MediaCodec` 编码器。
 2. native 层从编码器输出获取 H.264 / HEVC 数据。
-3. 数据被封装为 Moonlight / Sunshine 协议帧。
+3. 数据被封装为 `Moonlight` / Sunshine 协议帧。
 4. 通过 RTP / RTSP 相关网络通道发送给客户端。
 
-### 5. 输入回流
+### 5. 输入回流与清理
 
 1. 客户端输入事件到达服务端。
 2. native / Java 层根据事件类型分发。
 3. 触摸、键盘、鼠标输入被映射到 Android 输入系统。
+4. 在配置允许时，客户端断开或服务关闭后自动回收 `TNT` 显示。
 
 ## 架构上的关键点
 
-1. `TNT Shaker` 的核心不是“纯应用层投屏”，而是“应用层 + 系统权限 + native 串流”的混合架构。
+1. `TNT Anywhere` 的核心不是“纯应用层投屏”，而是“应用层 + 系统权限 + native 串流”的混合架构。
 2. `Shizuku` 是系统能力的开关，没有它，很多显示和输入操作会降级或失败。
 3. `Moonlight` 只是客户端协议名，服务端实际上是 Android 端自己实现的一套 Sunshine 风格串流服务。
-4. 视频链路最敏感的部分是：
+4. 当前默认 `TNT` 启动方案已经可以在目标设备上实现免 Root 激活，但仍保留旧 overlay / Root 路线作为备用调试能力。
+5. 视频链路最敏感的部分是：
    - 虚拟显示是否创建成功
+   - `TNT` 是否被系统正确激活
    - 编码器是否启动成功
    - 首帧是否成功送出
    - JNI 线程生命周期是否正确
@@ -166,10 +195,13 @@
   - 全局状态和任务调度中心。
 
 - `app-mirror/src/main/java/com/connect_screen/mirror/job/ProjectViaMoonlight.java`
-  - Moonlight 串流任务入口。
+  - `Moonlight` 串流任务入口。
 
 - `app-mirror/src/main/java/com/connect_screen/mirror/job/SunshineServer.java`
   - Java 到 native 的桥接层。
+
+- `app-mirror/src/main/java/com/connect_screen/mirror/job/TntDebugVirtualDisplayHelper.java`
+  - 当前默认 `TNT` 启动辅助实现。
 
 - `app-mirror/src/main/java/com/connect_screen/mirror/shizuku/UserService.java`
   - Shizuku 系统服务实现。
@@ -182,11 +214,11 @@
 
 ## 简短结论
 
-`TNT Shaker` 的本质，是把 Android 设备当成一个可被 Moonlight 连接的串流主机：用 `Shizuku` 提供系统权限，用 `VirtualDisplay` / `MediaCodec` 获取画面，用 native Sunshine 风格协议把画面送出去，再把输入送回来。
+`TNT Anywhere` 的本质，是把 Android 设备当成一个可被 `Moonlight` 连接的 `TNT` / 手机串流主机：用 `Shizuku` 提供系统权限，用 `VirtualDisplay` / `MediaCodec` 获取画面，用 native Sunshine 风格协议把画面送出去，再把输入送回来，并补上 `Smartisan OS` 当年没有真正完成的 `TNT Anywhere` 使用体验。
 
 ## 原项目简介
 
-`TNT Shaker` 继承自原始项目“安卓屏连”的思路。原项目的定位是让 Android 手机通过有线或无线方式连接屏幕、电脑和外接设备，补足部分厂商阉割掉的投屏与显示能力。
+`TNT Anywhere` 继承自原始项目“安卓屏连”的思路。原项目的定位是让 Android 手机通过有线或无线方式连接屏幕、电脑和外接设备，补足部分厂商阉割掉的投屏与显示能力。
 
 它解决的典型问题包括：
 
@@ -194,7 +226,7 @@
 2. 某些系统删除或限制了原生桌面模式、双屏异显等能力。
 3. 很多手机自带的投屏方案偏向同品牌或固定场景，跨设备兼容性不够好。
 
-原项目的思路很直接，就是把厂商弱化掉的“接屏幕能力”尽量补回来。
+原项目的思路很直接，就是把厂商弱化掉的“接屏幕能力”尽量补回来；而当前项目则进一步聚焦到了 `Smartisan TNT` 的启动、显示和远程串流链路上。
 
 ## 参考链接
 

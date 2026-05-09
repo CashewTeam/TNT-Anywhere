@@ -1,6 +1,5 @@
 package com.connect_screen.mirror;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -27,7 +26,7 @@ import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.StartSunshineService;
-import com.connect_screen.mirror.job.TntOverlayHelper;
+import com.connect_screen.mirror.job.TntDebugVirtualDisplayHelper;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.topjohnwu.superuser.Shell;
 
@@ -58,6 +57,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     Button exitBtn;
     Button tntDesktopBtn;
     SwitchCompat tntModeCheckbox;
+    TextView versionTitle;
     TextView mirrorStatus;
     TextView streamingDebugPanel;
 
@@ -129,23 +129,10 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         State.uiState.observe(this, this::updateUI);
         initHomeControls();
-        requestRecordAudioPermissionIfNeeded();
         if (!Pref.isInitialSetupComplete()) {
             new android.os.Handler(android.os.Looper.getMainLooper())
                     .postDelayed(() -> InitializationGuideDialog.show(this), 400);
         }
-    }
-
-    private void requestRecordAudioPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return;
-        }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        requestPermissions(
-                new String[]{Manifest.permission.RECORD_AUDIO},
-                REQUEST_RECORD_AUDIO_PERMISSION);
     }
 
     private void ensureAccessibilityServiceStarted() {
@@ -162,9 +149,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         exitBtn = findViewById(R.id.exitBtn);
         tntDesktopBtn = findViewById(R.id.tntDesktopBtn);
         tntModeCheckbox = findViewById(R.id.tntModeCheckbox);
+        versionTitle = findViewById(R.id.versionTitle);
         mirrorStatus = findViewById(R.id.mirrorStatus);
         streamingDebugPanel = findViewById(R.id.streamingDebugPanel);
         styleSwitch(tntModeCheckbox);
+        if (versionTitle != null) {
+            versionTitle.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
+        }
 
         State.streamingDebugInfo.observe(this, info -> {
             if (streamingDebugPanel != null) {
@@ -260,14 +251,14 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private void toggleTntDesktop() {
-        if (TntOverlayHelper.isOverlayOwnedByApp()) {
-            TntOverlayHelper.clearOverlayDisplay();
-            State.log("已关闭 TNT overlay 调试显示器");
+        if (TntDebugVirtualDisplayHelper.isActive()) {
+            TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+            State.log("已关闭 TNT 原生虚拟显示");
             refresh();
             return;
         }
-        if (TntOverlayHelper.ensureHeadlessOverlayDisplayFromPreferences()) {
-            State.log("已请求开启 TNT 桌面，请稍候让系统拉起桌面");
+        if (TntDebugVirtualDisplayHelper.ensureVirtualDisplayFromPreferences()) {
+            State.log("已创建 TNT 原生虚拟显示，请稍候等待系统激活 TNT");
             refresh();
         }
     }
@@ -436,7 +427,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             newUiState.screenOffBtnVisibility = false;
             newUiState.touchScreenBtnVisibility = false;
         } else if (isScreenMirroring) {
-            newUiState.mirrorStatusText = "Sunshine Host 运行中。建议在系统设置中为 TNT Shaker 关闭省电限制，并在任务列表中锁定任务防止被杀。控制链路推荐使用 Shizuku。";
+            newUiState.mirrorStatusText = "Sunshine Host 运行中。建议在系统设置中为 TNT Anywhere 关闭省电限制，并在任务列表中锁定任务防止被杀。控制链路推荐使用 Shizuku。";
             newUiState.screenOffBtnVisibility = ShizukuUtils.hasPermission();
             newUiState.touchScreenBtnVisibility = singleAppMode;
             if (singleAppMode) {
@@ -444,7 +435,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             }
         } else {
             StringBuilder status = new StringBuilder(
-                    "Sunshine Host 已启动，等待 Moonlight 客户端连接。\n可在 Moonlight 中搜索 TNT Shaker，或手动输入下方 IP。");
+                    "Sunshine Host 已启动，等待 Moonlight 客户端连接。\n可在 Moonlight 中搜索 TNT Anywhere，或手动输入下方 IP。");
             try {
                 for (String ip : SunshineService.getAllWifiIpAddresses(this)) {
                     status.append("\n").append(ip);
@@ -480,7 +471,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private String getTntDesktopButtonText() {
-        return TntOverlayHelper.isOverlayOwnedByApp() ? "关闭 TNT" : "开启 TNT";
+        return TntDebugVirtualDisplayHelper.isActive() ? "关闭 TNT" : "开启 TNT";
     }
 
     private String getSunshineServiceButtonText() {

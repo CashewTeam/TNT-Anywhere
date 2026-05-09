@@ -31,6 +31,8 @@ public class Pref {
     public static final String KEY_TNT_OVERLAY_WIDTH = "tnt_overlay_width";
     public static final String KEY_TNT_OVERLAY_HEIGHT = "tnt_overlay_height";
     public static final String KEY_TNT_OVERLAY_DPI = "tnt_overlay_dpi";
+    public static final String KEY_AUTO_CLOSE_TNT_ON_CLIENT_DISCONNECT = "auto_close_tnt_on_client_disconnect";
+    public static final String KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT = "adapt_tnt_resolution_to_client";
     public static final String KEY_ENCODER_CODEC = "encoder_codec";
     public static final String KEY_ENCODER_BITRATE_PERCENT = "encoder_bitrate_percent";
     public static final String KEY_ENCODER_BITRATE_MODE = "encoder_bitrate_mode";
@@ -148,6 +150,14 @@ public class Pref {
 
     public static int getTntOverlayDpi() {
         return getInt(KEY_TNT_OVERLAY_DPI, 216);
+    }
+
+    public static boolean getAutoCloseTntOnClientDisconnect() {
+        return getBoolean(KEY_AUTO_CLOSE_TNT_ON_CLIENT_DISCONNECT, true);
+    }
+
+    public static boolean getAdaptTntResolutionToClient() {
+        return getBoolean(KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT, true);
     }
 
     public static int getEncoderCodec() {

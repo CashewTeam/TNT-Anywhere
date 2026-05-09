@@ -12,7 +12,7 @@
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TNT Shaker 是运行在 Android 设备上的 Sunshine Host，可将手机镜像或 TNT 外接显示器画面串流到 Moonlight 客户端。"
+        android:text="TNT Anywhere 是运行在 Android 设备上的 Sunshine Host，可将手机镜像或 TNT 外接显示器画面串流到 Moonlight 客户端。"
         android:textSize="16sp"
         android:textColor="@color/black"
         android:layout_marginBottom="16dp"/>
