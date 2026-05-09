@@ -28,6 +28,7 @@ public class Pref {
     public static final String KEY_DISABLE_REMOTE_SUBMIX = "disable_remote_submix";
     public static final String KEY_SKIP_EXTERNAL_ACTIVITY = "skip_external_activity";
     public static final String KEY_USE_ANDROID_CURSOR_OVERLAY = "use_android_cursor_overlay";
+    public static final String KEY_MAP_MOUSE_TO_TOUCH = "map_mouse_to_touch";
     public static final String KEY_TNT_OVERLAY_WIDTH = "tnt_overlay_width";
     public static final String KEY_TNT_OVERLAY_HEIGHT = "tnt_overlay_height";
     public static final String KEY_TNT_OVERLAY_DPI = "tnt_overlay_dpi";
@@ -138,6 +139,10 @@ public class Pref {
 
     public static boolean getUseAndroidCursorOverlay() {
         return getBoolean(KEY_USE_ANDROID_CURSOR_OVERLAY, false);
+    }
+
+    public static boolean getMapMouseToTouch() {
+        return getBoolean(KEY_MAP_MOUSE_TO_TOUCH, false);
     }
 
     public static int getTntOverlayWidth() {

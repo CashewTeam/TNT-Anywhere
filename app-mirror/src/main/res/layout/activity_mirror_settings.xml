@@ -253,6 +253,19 @@
             app:trackTint="#664CAF50" />
 
         <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/mapMouseToTouchCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="将鼠标事件映射为触控（兼容模式）"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:showText="false"
+            app:switchMinWidth="48dp"
+            app:thumbTint="#4CAF50"
+            app:trackTint="#664CAF50" />
+
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/autoHideFloatingCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

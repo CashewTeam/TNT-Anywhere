@@ -64,6 +64,8 @@ public class SunshineMouse {
     private static float externalMirrorHeight;
     private static boolean leftMouseDown;
     private static long mouseDownTime;
+    private static long mouseTouchDownTime;
+    private static boolean mapMouseToTouch;
     private static Method setActionButtonMethod;
     private static int lastFocusedDisplayId = Integer.MIN_VALUE;
     private static final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -74,6 +76,7 @@ public class SunshineMouse {
     private static int cursorHotspotX;
     private static int cursorHotspotY;
     private static boolean useAndroidCursorOverlay;
+    private static final int MOUSE_TOUCH_POINTER_ID = 0;
 
     public static void initialize(int width, int height) {
         Context context = State.getContext();
@@ -92,11 +95,16 @@ public class SunshineMouse {
         externalMirrorDisplayId = externalMirrorMode ? getExternalControlDisplayId() : Display.DEFAULT_DISPLAY;
         externalMirrorWidth = Math.max(1, State.externalDisplayWidth);
         externalMirrorHeight = Math.max(1, State.externalDisplayHeight);
+        mapMouseToTouch = Pref.getMapMouseToTouch();
         useAndroidCursorOverlay = Pref.getUseAndroidCursorOverlay();
         singlePoint = null;
         leftMouseDown = false;
         mouseDownTime = 0;
+        mouseTouchDownTime = 0;
         lastFocusedDisplayId = Integer.MIN_VALUE;
+        pointers.clear();
+        bufferedMove.clear();
+        gesture.clear();
         if (useAndroidCursorOverlay) {
             showCursorOverlay();
         } else {
@@ -318,6 +326,12 @@ public class SunshineMouse {
         if (useAndroidCursorOverlay) {
             updateCursorOverlay(singlePoint.x, singlePoint.y);
         }
+        if (mapMouseToTouch) {
+            if (leftMouseDown) {
+                handleTouchEventMove(MOUSE_TOUCH_POINTER_ID, singlePoint.x, singlePoint.y);
+            }
+            return;
+        }
         if (leftMouseDown) {
             injectMouseMove(singlePoint.x, singlePoint.y);
         } else {
@@ -327,6 +341,20 @@ public class SunshineMouse {
 
     public static void handleLeftMouseButton(boolean release) {
         if (singlePoint == null) {
+            return;
+        }
+        if (mapMouseToTouch) {
+            if (release) {
+                if (leftMouseDown) {
+                    handleTouchEventUp(MOUSE_TOUCH_POINTER_ID, singlePoint.x, singlePoint.y, false);
+                }
+                leftMouseDown = false;
+                mouseTouchDownTime = 0;
+            } else if (!leftMouseDown) {
+                leftMouseDown = true;
+                mouseTouchDownTime = SystemClock.uptimeMillis();
+                handleTouchEventDown(MOUSE_TOUCH_POINTER_ID, singlePoint.x, singlePoint.y);
+            }
             return;
         }
         if (release) {
@@ -342,6 +370,9 @@ public class SunshineMouse {
 
     // 添加处理触摸事件的静态方法
     public static void handleMouseScroll(int verticalAmount, int horizontalAmount) {
+        if (mapMouseToTouch) {
+            return;
+        }
         Point point = singlePoint;
         if (point == null) {
             point = new Point();
@@ -895,5 +926,22 @@ public class SunshineMouse {
                 0
         );
         injectEvent("inject move", event);
+    }
+
+    public static void resetInjectedInputState() {
+        if (mouseTouchDownTime != 0 && singlePoint != null) {
+            handleTouchEventUp(MOUSE_TOUCH_POINTER_ID, singlePoint.x, singlePoint.y, true);
+        }
+        if (!pointers.isEmpty()) {
+            handleTouchEventCancelAll();
+        }
+        pointers.clear();
+        bufferedMove.clear();
+        gesture.clear();
+        leftMouseDown = false;
+        mouseDownTime = 0;
+        mouseTouchDownTime = 0;
+        singlePoint = null;
+        lastFocusedDisplayId = Integer.MIN_VALUE;
     }
 }

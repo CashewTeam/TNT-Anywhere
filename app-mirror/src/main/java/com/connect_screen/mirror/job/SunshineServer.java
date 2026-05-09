@@ -209,6 +209,7 @@ public class SunshineServer {
     private static void cleanupMoonlightProjection() {
         State.log("停止 Moonlight 投屏");
         State.streamingDebugInfo.setValue("串流未启动");
+        SunshineMouse.resetInjectedInputState();
         SunshineMouse.cleanupCursorOverlay();
         CreateVirtualDisplay.powerOnScreen();
         CreateVirtualDisplay.restoreAspectRatio();

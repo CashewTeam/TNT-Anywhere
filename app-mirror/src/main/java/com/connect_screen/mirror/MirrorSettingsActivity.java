@@ -113,6 +113,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         SwitchCompat preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
         SwitchCompat disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
         SwitchCompat useAndroidCursorOverlayCheckbox = findViewById(R.id.useAndroidCursorOverlayCheckbox);
+        SwitchCompat mapMouseToTouchCheckbox = findViewById(R.id.mapMouseToTouchCheckbox);
         SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
         SwitchCompat adaptTntResolutionToClientCheckbox = findViewById(R.id.adaptTntResolutionToClientCheckbox);
         SwitchCompat autoCloseTntOnClientDisconnectCheckbox = findViewById(R.id.autoCloseTntOnClientDisconnectCheckbox);
@@ -129,6 +130,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         styleSwitch(preventAutoLockCheckbox);
         styleSwitch(disableRemoteSubmixCheckbox);
         styleSwitch(useAndroidCursorOverlayCheckbox);
+        styleSwitch(mapMouseToTouchCheckbox);
         styleSwitch(disableAccessibilityCheckbox);
         styleSwitch(adaptTntResolutionToClientCheckbox);
         styleSwitch(autoCloseTntOnClientDisconnectCheckbox);
@@ -159,6 +161,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         preventAutoLockCheckbox.setChecked(Pref.getPreventAutoLock());
         disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
         useAndroidCursorOverlayCheckbox.setChecked(Pref.getUseAndroidCursorOverlay());
+        mapMouseToTouchCheckbox.setChecked(Pref.getMapMouseToTouch());
         disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
         adaptTntResolutionToClientCheckbox.setChecked(Pref.getAdaptTntResolutionToClient());
         autoCloseTntOnClientDisconnectCheckbox.setChecked(Pref.getAutoCloseTntOnClientDisconnect());
@@ -217,6 +220,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
         useAndroidCursorOverlayCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_USE_ANDROID_CURSOR_OVERLAY, isChecked).apply());
+        mapMouseToTouchCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
+                preferences.edit().putBoolean(Pref.KEY_MAP_MOUSE_TO_TOUCH, isChecked).apply());
         adaptTntResolutionToClientCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT, isChecked).apply());
         autoCloseTntOnClientDisconnectCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
