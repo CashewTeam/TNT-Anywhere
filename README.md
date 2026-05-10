@@ -52,11 +52,11 @@
 ## 连接教程
 1. 下载 [Shizuku](https://github.com/RikkaApps/Shizuku/releases) 并安装，测试时使用的版本为 [v13.6.0](https://github.com/RikkaApps/Shizuku/releases/tag/v13.6.0)；
 2. 在系统设置-关于本机-软件版本多次点击，打开系统开发者选项，在全局高级设置-开发者详细中开启 USB 调试并连接电脑；
-3. 手机上打开 Shizuku，连接电脑 ⚠️USB 模式需要选择 MTP 模式，如果在仅充电模式下连接过请重启后再激活 Shizuku，不然断开数据线后 Shizuku 服务会被关闭；
+3. 手机上打开 Shizuku，连接电脑 ⚠️ USB 模式需要选择 MTP 模式，如果在仅充电模式下连接过请重启后再激活 Shizuku，不然断开数据线后 Shizuku 服务会被关闭；
 3. 电脑上使用 ADB 启动 Shizuku 服务，如果没有配置过环境可以在 Handshaker 所在目录下运行 Shizuku 启动指令
 4. 开启 `TNT Anywhere` 进行初始化授权并开启服务；
 5. 在需要被投屏的设备安装并开启 Moonlight，搜索设备时进行连接，首次使用需要在手机上输入客户端的 Pin 码进行配对。
-不出意外就可以正常连接使用了，有需要可以在设置页面调整各种选项。
+不出意外就可以正常连接使用了，有需要可以在设置页面调整各种选项。⚠️ 系统设置内需要关闭 App 的省电优化
 
 ## 兼容性说明
 
