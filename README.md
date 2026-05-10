@@ -1,12 +1,19 @@
 # TNT Anywhere
 
-更新日志见 [CHANGELOG.md](/Users/con11/Documents/GitHub/TNT-Shaker/CHANGELOG.md)。
+## 项目附带文档
+
+- [更新日志 CHANGELOG.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/CHANGELOG.md)
+- [TNT 启动流程逆向记录 TNT_ACTIVATION_INVESTIGATION.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/TNT_ACTIVATION_INVESTIGATION.md)
+- [TNT Overlay 调试说明 TNT_OVERLAY_DISPLAY_DEBUG_GUIDE.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/TNT_OVERLAY_DISPLAY_DEBUG_GUIDE.md)
+- [SmartisanOS 私有 API 与状态检测汇总 SMARTISANOS_PRIVATE_API_SUMMARY.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/SMARTISANOS_PRIVATE_API_SUMMARY.md)
 
 ## 项目简介
 
 `TNT Anywhere` 项目的目标：完成 Smartisan OS 当年没有真正做完的 `TNT Anywhere` 体验，让 `TNT` 系统不再被固定硬件限制，而是可以在更多设备和更多连接场景里被投屏、启动和运行。
 
 项目把 `Shizuku`、`VirtualDisplay`、`MediaCodec`、隐藏 API，以及 `Moonlight` 使用的 Sunshine / GameStream 风格协议串在一起，让手机既能作为 `TNT` 运行入口，也能作为可被远程连接和操控的串流主机。
+
+项目当前大部分新增代码由 `GPT-5.5`、`GPT-5.4` 协助编写，小部分由 `DeepSeek V4` 编写。
 
 `TNT Anywhere` 想做的事情是：
 
