@@ -1,397 +1,398 @@
-# TNT Activation Investigation
+# TNT 激活机制调查
 
-## Purpose
+## 目的
 
-This note records the current reverse-engineering progress around how SmartisanOS TNT is actually activated, especially for the question:
+这份笔记用于记录当前围绕 `SmartisanOS TNT` 实际激活方式的逆向进展，重点回答以下问题：
 
-- can `app-mirror` trigger a real TNT desktop session without physical TNT hardware?
-- is writing `global_pc_mode_settings` enough?
-- what role do the `100000+` displays play?
+- `app-mirror` 能否在没有实体 TNT 硬件的情况下，触发一个真正的 TNT 桌面会话？
+- 仅写入 `global_pc_mode_settings` 是否足够？
+- `100000+` 这一批显示器 ID 在整个流程里到底扮演什么角色？
 
-The findings below are based on:
+以下结论基于：
 
 - `smartisanos/smartisan-framework-tnt`
 - `smartisanos/smartisan-services-tnt`
 
-## Current High-Level Conclusion
+## 当前高层结论
 
-At this stage, the evidence strongly suggests:
+现阶段证据强烈表明：
 
-1. `global_pc_mode_settings` is mainly a state output written by system services after TNT entry, not the real entry trigger.
-2. A real TNT session is orchestrated by system services, mainly `TntManagerService`, not by an ordinary app directly.
-3. SmartisanOS creates a dedicated TNT virtual display named `smt.tnt.virtual.display`, and remaps it to display IDs starting at `100000`.
-4. TNT entry logic reacts to the lifecycle of that `100000+` virtual display, not directly to a normal external display.
-5. The TNT virtual display appears to sit on top of a lower-level "base external display" that the system must first accept as valid.
-6. Therefore, simply creating an app-side virtual display or toggling a global setting is unlikely to reproduce the full official TNT activation path.
+1. `global_pc_mode_settings` 主要是系统服务在进入 TNT 后写出的状态结果，并不是真正的入口触发器。
+2. 真正的 TNT 会话是由系统服务统一编排的，核心是 `TntManagerService`，而不是普通 App 直接拉起。
+3. `SmartisanOS` 会创建一个专用 TNT 虚拟显示器，名称为 `smt.tnt.virtual.display`，并把它重新映射到从 `100000` 开始的显示 ID 空间。
+4. TNT 的进入逻辑响应的是这个 `100000+` 虚拟显示器的生命周期，而不是普通外接显示器本身。
+5. 这个 TNT 虚拟显示器看起来是建立在一个更底层的“基础外部显示会话”之上的，系统必须先认可这个基础显示。
+6. 因此，仅仅在应用侧创建一个虚拟显示器，或者只切换某个全局设置，基本不太可能完整复现官方 TNT 激活路径。
 
-## Key Findings
+## 关键发现
 
-### 1. `TntManagerService` is the real TNT mode controller
+### 1. `TntManagerService` 才是真正的 TNT 模式控制器
 
-File:
+文件：
 
 - [smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java)
 
-Important points:
+关键点：
 
-- `enterPCModeLocked(int displayId)` performs the real PC-mode enter sequence:
-  - power / observer setup
-  - wakeup
-  - service binding
+- `enterPCModeLocked(int displayId)` 才是真正的 PC 模式进入序列，内部会执行：
+  - 电源 / observer 初始化
+  - 唤醒
+  - 服务绑定
   - `mTntService.enterPcMode(displayId)`
-  - then writes `global_pc_mode_settings = 1`
-- `exitPCModeLocked(...)` performs the reverse and writes `global_pc_mode_settings = 0`
+  - 然后写入 `global_pc_mode_settings = 1`
+- `exitPCModeLocked(...)` 则执行反向流程，并写回 `global_pc_mode_settings = 0`
 
-Relevant references:
+相关引用：
 
 - [TntManagerService.java:1253](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1253)
 - [TntManagerService.java:1268](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1268)
 - [TntManagerService.java:1315](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1315)
 
-Interpretation:
+解释：
 
-- `global_pc_mode_settings` looks like a result flag written by `TntManagerService`, not the root cause that makes TNT start.
+- `global_pc_mode_settings` 看起来更像是 `TntManagerService` 写出的结果标志，而不是让 TNT 启动的根因。
 
-### 2. The system only treats `100000+` displays as TNT entry candidates
+### 2. 系统只把 `100000+` 显示器当成 TNT 进入候选
 
-Still in:
+仍在：
 
 - [TntManagerService.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java)
 
-Important points:
+关键点：
 
-- `scheduleDisplayAdded(...)` explicitly ignores display IDs below `100000`
-- `handleDisplayAdded(...)` is the actual branch that may enter TNT
-- `scheduleDisplayRemoved(...)` also ignores non-virtual display IDs
+- `scheduleDisplayAdded(...)` 会明确忽略小于 `100000` 的显示 ID
+- `handleDisplayAdded(...)` 才是真正可能触发 TNT 进入的分支
+- `scheduleDisplayRemoved(...)` 也会忽略非虚拟显示 ID
 
-Relevant references:
+相关引用：
 
 - [TntManagerService.java:1414](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1414)
 - [TntManagerService.java:1416](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1416)
 - [TntManagerService.java:1435](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1435)
 - [TntManagerService.java:1466](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1466)
 
-Interpretation:
+解释：
 
-- The system does not directly enter TNT on a raw lower-ID external display.
-- Instead, it waits for the TNT-layer virtual display in the `100000+` range.
+- 系统不会直接对一个底层、较小 ID 的外接显示器进入 TNT。
+- 它真正等待的是 `100000+` 这一层 TNT 虚拟显示器。
 
-### 3. `100000+` is the dedicated TNT virtual display space
+### 3. `100000+` 是专门的 TNT 虚拟显示器空间
 
-File:
+文件：
 
 - [smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java)
 
-Important points:
+关键点：
 
 - `mNextTntVirtualDisplayId = 100000`
-- the system creates a virtual display named `smt.tnt.virtual.display`
-- `assignTntVirtualDisplayIdIfNeeded(...)` remaps that display into the `100000+` range
+- 系统会创建一个名为 `smt.tnt.virtual.display` 的虚拟显示器
+- `assignTntVirtualDisplayIdIfNeeded(...)` 会把这个显示器重新映射到 `100000+` 区间
 
-Relevant references:
+相关引用：
 
 - [TntDisplayManagerServiceImpl.java:47](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:47)
 - [TntDisplayManagerServiceImpl.java:217](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:217)
 - [TntDisplayManagerServiceImpl.java:220](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:220)
 - [TntDisplayManagerServiceImpl.java:290](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:290)
 
-Interpretation:
+解释：
 
-- The `10000x` / `100000+` display IDs observed during debugging are expected and intentional.
+- 调试时观察到的 `10000x` / `100000+` 显示 ID，本来就是系统预期行为，不是异常。
 
-### 4. TNT virtual display is layered on top of a base display
+### 4. TNT 虚拟显示器是叠在基础显示之上的
 
-Still in:
+仍在：
 
 - [TntDisplayManagerServiceImpl.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java)
 
-Important points:
+关键点：
 
-- `addVirtualDisplayLocked(...)` first validates a base display with `SmtPCUtilsInner.isValidExtDisplayType(...)`
-- it records that display as `mBaseDisplayId`
-- then creates `smt.tnt.virtual.display`
-- `showVirtualDisplayIfNeededLocked(...)` decides whether to return default display, base display, or TNT virtual display
+- `addVirtualDisplayLocked(...)` 会先用 `SmtPCUtilsInner.isValidExtDisplayType(...)` 校验一个基础显示
+- 然后把它记录为 `mBaseDisplayId`
+- 再创建 `smt.tnt.virtual.display`
+- `showVirtualDisplayIfNeededLocked(...)` 决定当前应该返回默认显示、基础显示，还是 TNT 虚拟显示器
 
-Relevant references:
+相关引用：
 
 - [TntDisplayManagerServiceImpl.java:184](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:184)
 - [TntDisplayManagerServiceImpl.java:208](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:208)
 - [TntDisplayManagerServiceImpl.java:226](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:226)
 - [TntDisplayManagerServiceImpl.java:265](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:265)
 
-Interpretation:
+解释：
 
-- The architecture appears to be:
-  - first a valid base external display/session exists
-  - then system creates TNT virtual display on top
-  - then `TntManagerService` enters TNT based on that TNT virtual display
+- 当前看到的架构更像这样：
+  - 先存在一个有效的基础外接显示 / 会话
+  - 然后系统在其之上创建 TNT 虚拟显示器
+  - 再由 `TntManagerService` 基于这个 TNT 虚拟显示器进入 TNT
 
-This matches the observed logs:
+这和日志现象是一致的：
 
-- lower display ID: base display/session
-- `100000+`: TNT virtual display
+- 较小的显示 ID：基础显示 / 基础会话
+- `100000+`：TNT 虚拟显示器
 
-### 5. Real TNT entry also updates AMS/WMS state
+### 5. 真正的 TNT 进入还会同步更新 AMS / WMS 状态
 
-File:
+文件：
 
 - [smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java)
 
-Important points:
+关键点：
 
-- `enterPcMode(int displayId)` calls:
+- `enterPcMode(int displayId)` 会调用：
   - `SmtPCUtilsInner.setIsPcMode(displayId, true)`
   - `mTntWindowManager.enterPcMode(display, true)`
 
-Relevant references:
+相关引用：
 
 - [TntActivityTaskManagerServiceImpl.java:510](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java:510)
 - [TntActivityTaskManagerServiceImpl.java:519](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java:519)
 
-Interpretation:
+解释：
 
-- A real TNT session is not just "a display exists".
-- It also requires system window/activity policy to flip into PC mode for that display.
+- 真正的 TNT 会话不只是“有一个显示器存在”这么简单。
+- 它还要求系统级窗口 / Activity 策略一起切到该显示器对应的 PC 模式。
 
-### 6. The framework side also assumes TNT is already system-established
+### 6. framework 层同样假设 TNT 已经是系统已建立状态
 
-File:
+文件：
 
 - [smartisanos/smartisan-framework-tnt/sources/android/media/TntMediaRouterImpl.java](E:/Sunshine-android-master/smartisanos/smartisan-framework-tnt/sources/android/media/TntMediaRouterImpl.java)
 
-Important points:
+关键点：
 
-- `global_pc_mode_settings` is observed by framework code
-- for non-system apps, `adjustChoosePresentationDisplay(...)` filters out displays with `displayId >= 100000` unless PC mode is already on
+- framework 代码会观察 `global_pc_mode_settings`
+- 对于非系统 App，`adjustChoosePresentationDisplay(...)` 会在 PC 模式尚未开启时，把 `displayId >= 100000` 的显示器过滤掉
 
-Relevant references:
+相关引用：
 
 - [TntMediaRouterImpl.java:26](E:/Sunshine-android-master/smartisanos/smartisan-framework-tnt/sources/android/media/TntMediaRouterImpl.java:26)
 - [TntMediaRouterImpl.java:54](E:/Sunshine-android-master/smartisanos/smartisan-framework-tnt/sources/android/media/TntMediaRouterImpl.java:54)
 
-Interpretation:
+解释：
 
-- Even framework presentation behavior assumes `100000+` TNT displays are special and should be hidden from ordinary app flow until TNT is active.
+- 就连 framework 侧的 Presentation 行为，也是假设 `100000+` TNT 显示器是特殊对象，且在 TNT 真正激活前不应暴露给普通 App 流程。
 
-### 7. `tnt_display_connected` appears to be hardware-oriented
+### 7. `tnt_display_connected` 看起来更偏向硬件态
 
-Back in:
+回到：
 
 - [TntManagerService.java](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java)
 
-Important points:
+关键点：
 
-- `tnt_display_connected = 1` is written when TNT USB-related hardware is attached
-- `tnt_display_connected = 0` is written on disconnect
+- `tnt_display_connected = 1` 会在 TNT USB 相关硬件接入时写入
+- 断开时会写回 `tnt_display_connected = 0`
 
-Relevant references:
+相关引用：
 
 - [TntManagerService.java:3196](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:3196)
 - [TntManagerService.java:3358](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:3358)
 
-Interpretation:
+解释：
 
-- This setting looks related to official TNT hardware detection, not a general-purpose TNT activation switch.
+- 这个设置项更像是官方 TNT 硬件探测相关状态，而不是通用 TNT 激活开关。
 
-### 8. There is a dedicated "Boston / TNT Anywhere" special path
+### 8. 存在一条专门的 “Boston / TNT Anywhere” 特殊路径
 
-Relevant references:
+相关引用：
 
 - [TntDisplayManagerServiceImpl.java:478](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:478)
 - [TntPowerManagerServiceImpl.java:59](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/power/TntPowerManagerServiceImpl.java:59)
 
-Important points:
+关键点：
 
-- system code checks `SmtPCUtilsInner.isDisplayForTntAnywhere(ownerPackageName)`
-- there are explicit checks for `com.smartisanos.boston.phone`
+- 系统代码会检查 `SmtPCUtilsInner.isDisplayForTntAnywhere(ownerPackageName)`
+- 也存在针对 `com.smartisanos.boston.phone` 的显式判断
 
-Interpretation:
+解释：
 
-- Smartisan likely has a privileged internal display/session path for wireless TNT / Boston hardware/app flow.
-- That path is different from how a normal third-party app-created display would appear.
+- Smartisan 很可能为无线 TNT / Boston 硬件 / 专属 App 流程准备了一个带特权的内部显示 / 会话路径。
+- 这条路径和普通第三方 App 创建显示器的方式是不同的。
 
-## What This Means For `app-mirror`
+## 这对 `app-mirror` 意味着什么
 
-Based on the current evidence, `app-mirror` can likely:
+根据当前证据，`app-mirror` 很可能可以：
 
-- create capture / stream / control pipelines
-- create or work with app-side displays
-- possibly trigger TNT-like UI rendering on certain displays
+- 创建采集 / 串流 / 控制链路
+- 创建或使用应用侧显示器
+- 在某些显示器上触发类似 TNT 的 UI 渲染
 
-But `app-mirror` is unlikely to fully reproduce official TNT activation unless it can also satisfy the system-service side expectations, such as:
+但 `app-mirror` 不太可能完整复现官方 TNT 激活，除非它也能满足系统服务侧的预期条件，例如：
 
-- a valid base external display classification
-- TNT virtual display creation through system display service logic
-- `TntManagerService` / AMS / WMS PC-mode orchestration
-- possibly Boston / TNT Anywhere-specific conditions
+- 一个被系统认定为有效的基础外部显示分类
+- 通过系统显示服务逻辑创建 TNT 虚拟显示器
+- `TntManagerService` / AMS / WMS 的 PC 模式编排
+- 可能还包括 Boston / TNT Anywhere 专属条件
 
-## New Findings From `framework.jar`
+## 来自 `framework.jar` 的新发现
 
-We have now located the real framework-side implementations:
+我们现在已经定位到 framework 侧的真实实现：
 
 - [SmtPCUtilsInner.java](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java)
 - [SmtPCUtils.java](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java)
 - [SmtPCUtilsSmtBase.java](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsSmtBase.java)
 - [SmtPCUtilsInnerBase.java](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInnerBase.java)
 
-This confirms that `SmtPCUtilsInner` is not just referenced by services; it is a real Smartisan framework rule center.
+这确认了 `SmtPCUtilsInner` 不只是被服务层引用，它本身就是 Smartisan framework 里的规则中心。
 
-### 9. `SmtPCUtilsInner` is a rule center, not just a thin helper
+### 9. `SmtPCUtilsInner` 是规则中心，不只是一个薄封装 helper
 
-Important points:
+关键点：
 
-- `SmtPCUtilsInner` stores `sDisplayIdInPcMode`
-- `setIsPcMode(displayId, true/false)` only updates that framework-side state
-- `isPcMode()` in `SmtPCUtilsInnerBase` checks whether `sDisplayIdInPcMode` is a valid external display id
+- `SmtPCUtilsInner` 会保存 `sDisplayIdInPcMode`
+- `setIsPcMode(displayId, true/false)` 只是在 framework 侧更新这份状态
+- `SmtPCUtilsInnerBase` 里的 `isPcMode()` 本质上是检查 `sDisplayIdInPcMode` 是否是一个有效外接显示 ID
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtilsInner.java:278](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:278)
 - [SmtPCUtilsInnerBase.java:13](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInnerBase.java:13)
 - [SmtPCUtilsInnerBase.java:18](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInnerBase.java:18)
 
-Interpretation:
+解释：
 
-- Framework-side "pc mode working" is driven by a display-id-based state model.
-- The real display id in PC mode is a core piece of system state.
+- framework 侧“PC 模式是否工作中”是由一个基于 displayId 的状态模型驱动的。
+- 当前处于 PC 模式的真实显示 ID，是系统核心状态之一。
 
-### 10. `SmtPCUtils` framework code binds to the TNT system service `smt_pcm`
+### 10. `SmtPCUtils` framework 代码会绑定到 TNT 系统服务 `smt_pcm`
 
-Important points:
+关键点：
 
-- `SmtPCUtilsSmtBase.getSmtPCManager()` uses `ServiceManager.getService("smt_pcm")`
-- it wraps that binder as `android.pc.ISmtPCManager`
+- `SmtPCUtilsSmtBase.getSmtPCManager()` 会通过 `ServiceManager.getService("smt_pcm")` 获取服务
+- 然后把 binder 包装成 `android.pc.ISmtPCManager`
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtilsSmtBase.java:39](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsSmtBase.java:39)
 - [SmtPCUtilsSmtBase.java:44](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsSmtBase.java:44)
 
-Interpretation:
+解释：
 
-- App/framework-side `SmtPCUtils*` APIs are a client facade over the `smt_pcm` system service.
-- Earlier `SystemServer` findings and framework findings now line up cleanly.
+- App / framework 侧的 `SmtPCUtils*` API，本质上是 `smt_pcm` 系统服务的客户端 facade。
+- 现在 `SystemServer` 侧发现和 framework 侧发现已经可以完整对齐。
 
-### 11. `ISmtPCManager` is the binder contract implemented by `TntManagerService`
+### 11. `ISmtPCManager` 是由 `TntManagerService` 实现的 binder 协议
 
-Important points:
+关键点：
 
-- `TntManagerService` extends `ISmtPCManager.Stub`
-- `ISmtPCManager` includes methods such as:
+- `TntManagerService` 继承自 `ISmtPCManager.Stub`
+- `ISmtPCManager` 内含的方法包括：
   - `getCurrentExtDisplayId()`
   - `isTntDisplay()`
 
-Relevant references:
+相关引用：
 
 - [TntManagerService.java:130](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:130)
 - [ISmtPCManager.java:48](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/pc/ISmtPCManager.java:48)
 - [ISmtPCManager.java:112](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/pc/ISmtPCManager.java:112)
 
-Interpretation:
+解释：
 
-- `SmtPCUtils -> ISmtPCManager -> TntManagerService` is now a confirmed call path.
+- `SmtPCUtils -> ISmtPCManager -> TntManagerService` 现在已经是确认过的调用链。
 
-### 12. Framework external-display validation rules are now known
+### 12. framework 层的外接显示校验规则已经明确
 
-Important points:
+关键点：
 
-- `isValidExtDisplayType(int type, String pkgName)` accepts:
+- `isValidExtDisplayType(int type, String pkgName)` 接受以下情况：
   - `type == 2`
   - `type == 3`
-  - `type == 5` only if package is in Smartisan PC-mode allowlist
-  - `type == 4` only when overlay-display test property is enabled
+  - `type == 5` 仅当包名在 Smartisan PC 模式白名单内
+  - `type == 4` 仅当开启 overlay-display 测试属性
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtils.java:263](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:263)
 
-Interpretation:
+解释：
 
-- This is a major breakthrough for understanding why some displays are accepted and some are ignored.
-- A third-party-created display must match Smartisan's accepted type/package model to participate in TNT logic.
+- 这是理解“为什么有些显示器会被接受、有些会被忽略”的重大突破。
+- 第三方创建的显示器，必须符合 Smartisan 认可的 type / package 模型，才能参与 TNT 逻辑。
 
-### 13. The Smartisan PC-mode package allowlist is explicit
+### 13. Smartisan 的 PC 模式包名白名单是显式写死的
 
-Important points:
+关键点：
 
-- `isInPCModeList(...)` includes:
+- `isInPCModeList(...)` 包含：
   - `com.smartisanos.boston.phone`
   - `com.smartisanos.smartfolder.aoa`
   - `com.smartisanos.tntanywhere`
   - `smt.tnt.virtual.display`
-  - `com.bytedance.wirelesscast` (default virtual display package property)
+  - `com.bytedance.wirelesscast`（默认虚拟显示包名属性）
   - `ScreenCastThread-display`
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtils.java:144](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:144)
 - [SmtPCUtils.java:252](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:252)
 
-Interpretation:
+解释：
 
-- Smartisan explicitly recognizes a set of privileged display/session package names.
-- This strongly supports the idea that official wireless TNT and Boston flows are package-tagged and special-cased.
+- Smartisan 明确识别一组带特权的显示 / 会话包名。
+- 这进一步支持了一个判断：官方无线 TNT 和 Boston 流程是按包名打标签、再走特殊分支处理的。
 
-### 14. TNT Anywhere detection is package-name based
+### 14. TNT Anywhere 的识别是基于包名的
 
-Important points:
+关键点：
 
-- `isDisplayForTntAnywhere(pkgName)` returns true for:
+- `isDisplayForTntAnywhere(pkgName)` 对以下包名返回 true：
   - `HANDSHAKER_DISPLAY_PKG`
   - `TNT_ANYWHERE_DISPLAY_PKG`
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtilsInner.java:463](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:463)
 - [SmtPCUtils.java:64](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:64)
 - [SmtPCUtils.java:119](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:119)
 
-Interpretation:
+解释：
 
-- TNT Anywhere is not inferred from generic display behavior alone; it is tied to known package identities.
-- based on later manual product identification, `com.smartisanos.smartfolder.aoa` is the Smartisan Handshaker package (Android/PC/Mac file transfer tooling)
-- therefore `HANDSHAKER_DISPLAY_PKG` should currently be treated as a legacy/special whitelist identity, not as the primary target for reproducing TNT wireless desktop entry
-- the higher-priority package for continued TNT investigation is now `com.smartisanos.tntanywhere`
+- TNT Anywhere 不是仅凭“显示行为像不像”来推断的，它和已知包名身份直接绑定。
+- 根据后续手动产品识别，`com.smartisanos.smartfolder.aoa` 现在可以确认是 Smartisan Handshaker 包（安卓 / PC / Mac 文件传输工具）。
+- 因此 `HANDSHAKER_DISPLAY_PKG` 目前更应该被视作一种旧兼容 / 特殊白名单身份，而不是复现 TNT 无线桌面入口的首要目标。
+- 后续继续调查 TNT 时，优先级更高的包名应该是 `com.smartisanos.tntanywhere`。
 
-### 14A. `com.smartisanos.tntanywhere` is referenced by framework/services, but its own app code is not present in the current dump
+### 14A. `com.smartisanos.tntanywhere` 在 framework / services 里被引用，但它自己的 App 代码不在当前导出中
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtils.java:119](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:119)
 - [SmtPCUtils.java:253](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:253)
 - [SmtPCUtilsInner.java:463](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:463)
 
-Important points:
+关键点：
 
-- the current repository contains framework/service references to `com.smartisanos.tntanywhere`
-- but no decompiled package directory, manifest, activity, service, or explicit component launch path for that package has been found yet
-- no direct `startActivity(...)`, `startService(...)`, `bindService(...)`, or `sendBroadcast(...)` targeting `com.smartisanos.tntanywhere` has been identified in the currently imported sources
+- 当前仓库里可以看到 framework / service 对 `com.smartisanos.tntanywhere` 的引用
+- 但还没有找到这个包对应的反编译目录、manifest、activity、service，或显式组件启动路径
+- 在当前导入源码里，也还没有发现针对 `com.smartisanos.tntanywhere` 的直接 `startActivity(...)`、`startService(...)`、`bindService(...)` 或 `sendBroadcast(...)`
 
-Interpretation:
+解释：
 
-- `com.smartisanos.tntanywhere` is very likely a separate preinstalled/system package whose APK or jar has not yet been extracted into this workspace
-- therefore, current system-side code can tell us how the package is recognized after a display exists, but not yet how the package itself initiates the official wireless TNT flow
+- `com.smartisanos.tntanywhere` 很可能是一个独立的预装 / 系统包，只是它对应的 APK 或 jar 还没有被导出到当前工作区。
+- 因此，现有系统侧代码可以告诉我们：当某个显示已经存在后，系统会如何识别这个包；
+- 但还不能告诉我们：这个包本身是如何启动官方无线 TNT 流程的。
 
-### 15. External display discovery order is framework-defined
+### 15. 外接显示器的发现顺序由 framework 定义
 
-Important points:
+关键点：
 
-- `findExtDisplayIfPossible(Context)` enumerates all displays and keeps only those where:
-  - `isValidExtDisplayId(displayId)` is true
-  - `isValidExtDisplayType(type, ownerPackageName)` is true
-- `type == 2` displays are inserted at the head of the result list
+- `findExtDisplayIfPossible(Context)` 会枚举全部显示器，并仅保留满足以下条件的对象：
+  - `isValidExtDisplayId(displayId)` 为 true
+  - `isValidExtDisplayType(type, ownerPackageName)` 为 true
+- `type == 2` 的显示器会被插入结果列表头部
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtilsInner.java:286](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:286)
 
-Interpretation:
+解释：
 
-- This explains why display ordering and preferred display choice can depend on display type.
+- 这解释了为什么显示器顺序以及“优先选中哪个显示器”会受到 display type 的影响。
 
-### 16. Official Smartisan wireless entry is a dedicated service path
+### 16. 官方 Smartisan 无线入口其实是一条专门的服务路径
 
-Relevant references:
+相关引用：
 
 - [WifiDisplaySettings.java:240](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wfd/WifiDisplaySettings.java:240)
 - [WifiDisplaySettings.java:246](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wfd/WifiDisplaySettings.java:246)
@@ -400,22 +401,22 @@ Relevant references:
 - [WirelessCastService.java:290](E:/Sunshine-android-master/lebo/app/src/main/java/com/bytedance/wirelesscast/WirelessCastService.java:290)
 - [WirelessCastService.java:362](E:/Sunshine-android-master/lebo/app/src/main/java/com/bytedance/wirelesscast/WirelessCastService.java:362)
 
-Important points:
+关键点：
 
-- Smartisan Settings binds directly to `com.bytedance.wirelesscast/.WirelessCastService`
-- that service lives inside package `com.bytedance.wirelesscast`
-- `WirelessCastService` registers a `DisplayManager.DisplayListener`
-- when a display is added, it explicitly records only displays whose `ownerPackageName == getPackageName()`
+- Smartisan Settings 会直接绑定 `com.bytedance.wirelesscast/.WirelessCastService`
+- 这个服务属于 `com.bytedance.wirelesscast` 包
+- `WirelessCastService` 会注册一个 `DisplayManager.DisplayListener`
+- 当有显示器被添加时，它只记录 `ownerPackageName == getPackageName()` 的显示器
 
-Interpretation:
+解释：
 
-- the official wireless-cast path is not a generic Settings-to-MediaProjection flow
-- Smartisan ships a dedicated wireless-cast service package and that service itself treats display ownership identity as significant
-- this strengthens the idea that display/session identity is part of the expected contract
+- 官方无线投屏路径并不是一个通用的 `Settings -> MediaProjection` 流程。
+- Smartisan 内置了一个专门的无线投屏服务包，而这个服务本身就把显示所有权身份看得很重。
+- 这进一步强化了一个观点：显示 / 会话身份本身就是协议的一部分。
 
-### 16A. Miracast / Wi-Fi Display and Wireless TNT share one Settings entry surface, but diverge into different backend branches
+### 16A. Miracast / Wi-Fi Display 和 Wireless TNT 共享同一个 Settings 入口界面，但后端分支不同
 
-Relevant references:
+相关引用：
 
 - [WifiDisplaySettingsFragment.java:20](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wfd/WifiDisplaySettingsFragment.java:20)
 - [WifiDisplaySettingsFragment.java:29](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wfd/WifiDisplaySettingsFragment.java:29)
@@ -423,21 +424,21 @@ Relevant references:
 - [DatabaseHelper.java:323](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/settingitemsprovider/DatabaseHelper.java:323)
 - [DatabaseHelper.java:666](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/settingitemsprovider/DatabaseHelper.java:666)
 
-Important points:
+关键点：
 
-- Settings exposes one common `WifiDisplaySettings` UI component
-- that component is opened with `entry_from_wifi=true` for ordinary wireless display
-- the same component is opened with `entry_from_wifi=false` for `Wireless TNT`
-- when not entered from Wi-Fi, the page title and switch title are rewritten to `Wireless TNT`
+- Settings 暴露的是一个统一的 `WifiDisplaySettings` UI 组件
+- 该组件在普通无线显示场景下会以 `entry_from_wifi=true` 打开
+- 同一个组件在 `Wireless TNT` 场景下则以 `entry_from_wifi=false` 打开
+- 当不是从 Wi-Fi 普通入口进入时，页面标题和开关标题会被改写成 `Wireless TNT`
 
-Interpretation:
+解释：
 
-- Smartisan intentionally merged Miracast and wireless TNT into one front-end discovery/connection UI
-- the user-visible entry point is shared, but the backend path taken after device selection depends on the target device type and the current TNT/display state
+- Smartisan 是刻意把 Miracast 和 Wireless TNT 合并到同一个前端发现 / 连接界面里的。
+- 用户看到的入口是同一个，但设备选中后的后端分支，会根据目标设备类型和当前 TNT / 显示状态发生变化。
 
-### 16B. Miracast itself is a physical Wi-Fi Display chain: Wi-Fi P2P + RTSP + `RemoteDisplay.listen(...)`
+### 16B. Miracast 本身是一条物理 Wi-Fi Display 链：Wi-Fi P2P + RTSP + `RemoteDisplay.listen(...)`
 
-Relevant references:
+相关引用：
 
 - [DisplayManagerService.java:535](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:535)
 - [WifiDisplayAdapter.java:246](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/WifiDisplayAdapter.java:246)
@@ -451,29 +452,29 @@ Relevant references:
 - [WifiDisplayAdapter.java:573](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/WifiDisplayAdapter.java:573)
 - [WifiDisplayAdapter.java:626](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/WifiDisplayAdapter.java:626)
 
-Important points:
+关键点：
 
-- `DisplayManagerService.connectWifiDisplay(address)` delegates to `WifiDisplayAdapter.requestConnectLocked(address)`
-- `WifiDisplayAdapter` owns a `WifiDisplayController`
-- `WifiDisplayController` performs Wi-Fi P2P connection setup, including WPS config and group formation
-- after P2P setup, it starts listening for the Miracast RTSP stream using `RemoteDisplay.listen(...)`
-- when the RTSP session is established, `onDisplayConnected(surface, width, height, flags, session)` fires
-- the adapter then creates a `WifiDisplayDevice` from that `Surface`
-- that display device has:
+- `DisplayManagerService.connectWifiDisplay(address)` 会委托给 `WifiDisplayAdapter.requestConnectLocked(address)`
+- `WifiDisplayAdapter` 内部持有 `WifiDisplayController`
+- `WifiDisplayController` 负责 Wi-Fi P2P 建链，包括 WPS 配置和 group 建立
+- P2P 建立后，再通过 `RemoteDisplay.listen(...)` 开始监听 Miracast RTSP 流
+- 当 RTSP 会话建立后，会触发 `onDisplayConnected(surface, width, height, flags, session)`
+- 然后 adapter 会用这个 `Surface` 创建 `WifiDisplayDevice`
+- 这个显示设备会具备：
   - `uniqueId = "wifi:" + macAddress`
   - `type = 3`
   - `address = DisplayAddress.fromMacAddress(mac)`
-  - no explicit `ownerPackageName`
+  - 没有显式 `ownerPackageName`
 
-Interpretation:
+解释：
 
-- the Miracast path is fundamentally a physical external-display pipeline, not an app-owned virtual display pipeline
-- this matches runtime observations like `uniqueId` starting with `wifi:`
-- it also explains why physical Miracast displays usually do not carry the package-based owner identity that TNT Anywhere relies on
+- Miracast 路径本质上是一条物理外接显示链路，而不是应用拥有的虚拟显示链路。
+- 这和运行时观察到的 `uniqueId` 以 `wifi:` 开头是吻合的。
+- 这也解释了为什么物理 Miracast 显示器通常不带 TNT Anywhere 依赖的那种包名 owner 身份。
 
-### 16C. TNT hooks in only after the Miracast physical display has already been admitted as a display device
+### 16C. TNT 只会在 Miracast 物理显示已经被系统接纳为 display device 之后再接入
 
-Relevant references:
+相关引用：
 
 - [DisplayManagerService.java:722](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:722)
 - [DisplayManagerService.java:737](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:737)
@@ -482,27 +483,29 @@ Relevant references:
 - [TntDisplayManagerServiceImpl.java:217](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:217)
 - [TntDisplayManagerServiceImpl.java:258](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:258)
 
-Important points:
+关键点：
 
-- once any display device is added, `DisplayManagerService.handleDisplayDeviceAddedLocked(...)` runs
-- if PC/TNT support is active, that method forwards the newly added device into TNT display logic
-- TNT then decides whether the device is a valid base external display and whether to create `smt.tnt.virtual.display`
-- later, during display configuration, `showVirtualDisplayIfNeededLocked(...)` may route visible content to:
-  - the default display
-  - the base physical Miracast display
-  - or the TNT virtual display layered on top
+- 任何 display device 被添加后，`DisplayManagerService.handleDisplayDeviceAddedLocked(...)` 都会运行
+- 如果当前开启 TNT / PC 支持，这个方法会把新设备继续转给 TNT 显示逻辑
+- TNT 此后再决定：
+  - 这个设备是不是一个有效基础外接显示
+  - 是否需要创建 `smt.tnt.virtual.display`
+- 后续在显示配置阶段，`showVirtualDisplayIfNeededLocked(...)` 可能会把可见内容路由到：
+  - 默认显示器
+  - 基础物理 Miracast 显示器
+  - 或其上层 TNT 虚拟显示器
 
-Interpretation:
+解释：
 
-- TNT does not replace the Miracast transport layer
-- instead, Miracast first creates a normal external display, and TNT then opportunistically builds its own desktop layer on top of that admitted display
-- this strongly supports the model:
-  - Miracast/Wi-Fi Display is the transport and base-display admission layer
-  - TNT is the later desktop virtualization and routing layer
+- TNT 并不是替代了 Miracast 传输层。
+- 更准确地说，是 Miracast 先创建一个普通外接显示，然后 TNT 再择机在它上面叠出自己的桌面层。
+- 这非常支持以下模型：
+  - Miracast / Wi-Fi Display 负责传输和基础显示准入
+  - TNT 负责后续的桌面虚拟化与内容路由
 
-### 16D. Settings distinguishes "ordinary Miracast wireless connect" from TNT virtual modes in policy checks
+### 16D. Settings 会在策略层明确区分“普通 Miracast 无线连接”和 TNT 虚拟模式
 
-Relevant references:
+相关引用：
 
 - [SmtTntUtil.java:59](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/utils/SmtTntUtil.java:59)
 - [SmtTntUtil.java:68](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/utils/SmtTntUtil.java:68)
@@ -511,25 +514,25 @@ Relevant references:
 - [WifiEnabler.java:209](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wifi/WifiEnabler.java:209)
 - [WifiApEnablerEx.java:148](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/wifi/WifiApEnablerEx.java:148)
 
-Important points:
+关键点：
 
-- `isMiracastWirelessConnect(...)` checks for:
-  - current ext display type `== 3`
-  - a matching `MediaRouter` route name
+- `isMiracastWirelessConnect(...)` 会检查：
+  - 当前外接显示 type `== 3`
+  - 有匹配的 `MediaRouter` route name
   - route status code `== 6`
-- `isSmtDisplayVirtualMode(...)` treats display type `3` or `5` as virtual/wireless-TNT-related modes
-- several Settings policies use these helpers to gate Wi-Fi, hotspot, and TNT shutdown/reboot prompts
+- `isSmtDisplayVirtualMode(...)` 则把 display type `3` 或 `5` 视作虚拟 / 无线 TNT 相关模式
+- 多个 Settings 策略都会用这些 helper 去控制 Wi-Fi、热点，以及 TNT 关闭 / 重启提示
 
-Interpretation:
+解释：
 
-- Smartisan's Settings layer explicitly knows that:
-  - plain Miracast-connected physical displays are one class of state
-  - TNT-related virtual/desktop states are another class
-- so even though both states are exposed through the same UI surface, the policy layer still treats them differently
+- Smartisan 的 Settings 层明确知道：
+  - 纯 Miracast 接入的物理显示是一类状态
+  - TNT 相关虚拟 / 桌面状态是另一类状态
+- 所以即便前端 UI 共用一套界面，策略层依然会区别对待这两类状态。
 
-### 16E. A Miracast base display is accepted by TNT primarily through `displayId` and `type`, not through Miracast session metadata
+### 16E. Miracast 基础显示之所以能被 TNT 接纳，主要靠 `displayId` 和 `type`，而不是 Miracast 会话元数据
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtilsSmtBase.java:56](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsSmtBase.java:56)
 - [SmtPCUtilsInner.java:286](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:286)
@@ -540,51 +543,51 @@ Relevant references:
 - [TntDisplayManagerServiceImpl.java:287](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:287)
 - [TntManagerService.java:1438](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1438)
 
-Important points:
+关键点：
 
-- framework-level `isValidExtDisplayId(displayId)` only requires:
+- framework 层 `isValidExtDisplayId(displayId)` 只要求：
   - `displayId != -1`
   - `displayId != 0`
-- framework-level `isValidExtDisplayType(type, ownerPackageName)` accepts:
+- framework 层 `isValidExtDisplayType(type, ownerPackageName)` 接受：
   - `type == 2`
   - `type == 3`
-  - `type == 5` only when `ownerPackageName` is in `PC_MODE_LIST`
-  - `type == 4` only for overlay test mode
-- a physical Miracast `WifiDisplayDevice` is created with:
+  - `type == 5` 仅当 `ownerPackageName` 在 `PC_MODE_LIST` 中
+  - `type == 4` 仅 overlay 测试模式
+- 物理 Miracast `WifiDisplayDevice` 创建时具备：
   - `type = 3`
   - `uniqueId = "wifi:" + mac`
   - `address = DisplayAddress.fromMacAddress(mac)`
-  - no explicit `ownerPackageName`
-- therefore a normal Miracast display already satisfies the TNT base-display type gate:
+  - 没有显式 `ownerPackageName`
+- 因此，一个普通 Miracast 显示器天然就满足 TNT 的基础显示类型门槛：
   - `isValidExtDisplayType(3, null) == true`
-- `TntDisplayManagerServiceImpl.addVirtualDisplayLocked(...)` then additionally requires:
-  - device name is not already `smt.tnt.virtual.display`
-  - there is no existing base display already locked in, unless force-update is active
-  - a matching logical display can be found for the device
-- no current TNT admission check uses:
+- `TntDisplayManagerServiceImpl.addVirtualDisplayLocked(...)` 接下来额外要求：
+  - 设备名不能已经是 `smt.tnt.virtual.display`
+  - 当前不能已经锁定了一个基础显示，除非存在 force-update
+  - 必须能给这个设备找到对应的 logical display
+- 目前没有发现任何 TNT 准入检查使用了：
   - Miracast `WifiDisplaySessionInfo`
   - `groupId`
   - `sessionId`
   - `custom_key_wireless_cast_name`
-  - `wifi:` uniqueId prefix itself
-  - MAC address contents
+  - `wifi:` uniqueId 前缀本身
+  - MAC 地址内容
 
-Interpretation:
+解释：
 
-- a Miracast display is accepted as a TNT base display for surprisingly simple reasons:
-  - it is a non-default display
-  - and its display type is `3`
-- at the "can this become the TNT base display?" layer, Smartisan does not appear to require any special Miracast session metadata
-- the more restrictive conditions happen later, at actual TNT entry time:
-  - boot/provision state must be ready
-  - the display must already be tracked in the ext-display manager
-  - no display is currently in PC mode
-  - and either `pc_mode_enable == 1` or TNT Anywhere mode is active
-- this means the main gap between plain Miracast and real TNT entry is not the Miracast transport handshake itself, but the later system-mode transition conditions
+- Miracast 显示器之所以能成为 TNT 基础显示，原因比预想中简单很多：
+  - 它是一个非默认显示器
+  - 并且它的 display type 是 `3`
+- 在“这个显示器能不能成为 TNT 基础显示”这一层，Smartisan 看起来并不要求任何特殊的 Miracast 会话元数据。
+- 更严格的条件发生在后面的真正 TNT 进入阶段：
+  - boot / provision 状态必须就绪
+  - 该显示必须已经被 ext-display manager 跟踪
+  - 当前不能已有显示处于 PC 模式
+  - 同时还必须满足 `pc_mode_enable == 1`，或者 TNT Anywhere 模式已激活
+- 这意味着：普通 Miracast 和真正 TNT 之间的主要差距，不在 Miracast 传输握手本身，而在于后续系统模式切换条件。
 
-### 16F. `isValidExtDisplayType(...)` is really a filter over concrete Android display backends
+### 16F. `isValidExtDisplayType(...)` 本质上就是在过滤具体的 Android 显示后端类型
 
-Relevant references:
+相关引用：
 
 - [Display.java:56](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/view/Display.java:56)
 - [Display.java:550](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/view/Display.java:550)
@@ -595,47 +598,47 @@ Relevant references:
 - [OverlayDisplayAdapter.java:299](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/OverlayDisplayAdapter.java:299)
 - [VirtualDisplayAdapter.java:375](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/VirtualDisplayAdapter.java:375)
 
-Important points:
+关键点：
 
-- Android `Display` type constants are:
+- Android `Display` type 常量为：
   - `0 = UNKNOWN`
   - `1 = INTERNAL`
   - `2 = EXTERNAL`
   - `3 = WIFI`
   - `4 = OVERLAY`
   - `5 = VIRTUAL`
-- `LocalDisplayAdapter` assigns:
-  - `type = 1` for internal/local built-in displays
-  - `type = 2` for non-internal local physical displays
-- `WifiDisplayAdapter.WifiDisplayDevice` assigns:
+- `LocalDisplayAdapter` 会赋值：
+  - 内建本地显示为 `type = 1`
+  - 非内建本地物理显示为 `type = 2`
+- `WifiDisplayAdapter.WifiDisplayDevice` 会赋值：
   - `type = 3`
-- `OverlayDisplayAdapter.OverlayDisplayDevice` assigns:
+- `OverlayDisplayAdapter.OverlayDisplayDevice` 会赋值：
   - `type = 4`
-- `VirtualDisplayAdapter.VirtualDisplayDevice` assigns:
+- `VirtualDisplayAdapter.VirtualDisplayDevice` 会赋值：
   - `type = 5`
-- TNT's framework gate `isValidExtDisplayType(type, ownerPackageName)` then interprets them as:
-  - `type == 2`: wired physical external display, always accepted
-  - `type == 3`: Wi-Fi display / Miracast physical display, always accepted
-  - `type == 5`: app/system virtual display, accepted only when `ownerPackageName` is in Smartisan's PC-mode allowlist
-  - `type == 4`: overlay test display, accepted only when `persist.easycast.show_overlay_display=true`
-  - `type == 1` or `0`: not treated as TNT external-display candidates
+- TNT framework 门槛 `isValidExtDisplayType(type, ownerPackageName)` 则把它们解释为：
+  - `type == 2`：有线物理外接显示，始终接受
+  - `type == 3`：Wi-Fi Display / Miracast 物理显示，始终接受
+  - `type == 5`：App / 系统虚拟显示，仅当 `ownerPackageName` 在 Smartisan PC 模式白名单时才接受
+  - `type == 4`：overlay 调试显示，仅当 `persist.easycast.show_overlay_display=true` 时接受
+  - `type == 1` 或 `0`：不会被视为 TNT 外接显示候选
 
-Interpretation:
+解释：
 
-- in practice, `isValidExtDisplayType(...)` is not a vague policy hook; it is classifying real backend families:
-  - built-in phone/tablet panels
-  - wired HDMI/DP-style outputs
-  - Miracast/Wi-Fi Display outputs
-  - developer overlay test displays
-  - app-created virtual displays
-- this also explains why plain Miracast works with so little extra metadata:
-  - it already lands in the privileged physical-external bucket `type == 3`
-- and it explains why third-party virtual displays are much harder to use for TNT:
-  - they land in `type == 5`, which is gated by package identity
+- 实际上，`isValidExtDisplayType(...)` 并不是一个模糊的策略钩子，它是在对真实显示后端家族做分类：
+  - 手机 / 平板内建面板
+  - 有线 HDMI / DP 类输出
+  - Miracast / Wi-Fi Display 输出
+  - 开发者 overlay 调试显示
+  - 应用创建的虚拟显示
+- 这也解释了为什么普通 Miracast 几乎不需要额外元数据就能工作：
+  - 因为它天然落在带特权的物理外接桶 `type == 3`
+- 同时也解释了为什么第三方虚拟显示更难用于 TNT：
+  - 因为它落在 `type == 5`，而这一路是被包名身份严格限制的。
 
-### 17. HPPlay / Lelink mirror backend really creates `ScreenCastThread-display`
+### 17. HPPlay / 乐播镜像后端确实会创建 `ScreenCastThread-display`
 
-Relevant references:
+相关引用：
 
 - [PermissionBridgeActivity.java:150](E:/Sunshine-android-master/lebo/app/src/main/java/com/hpplay/sdk/source/permission/PermissionBridgeActivity.java:150)
 - [PermissionBridgeActivity.java:152](E:/Sunshine-android-master/lebo/app/src/main/java/com/hpplay/sdk/source/permission/PermissionBridgeActivity.java:152)
@@ -650,26 +653,26 @@ Relevant references:
 - [i.java:779](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/hpplay/sdk/source/mirror/i.java:779)
 - [SmtPCUtils.java:252](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:252)
 
-Important points:
+关键点：
 
-- the hpplay stack first obtains `MediaProjection` through `PermissionBridgeActivity`
-- it then starts and binds `ScreenCastService`
-- `ScreenCastService` converts the permission `Intent` into a real `MediaProjection`
-- that `MediaProjection` is passed into the mirror worker thread `g`
-- both the standalone wireless-cast app and the TNT Go app's Lebo path call:
+- hpplay 栈会先通过 `PermissionBridgeActivity` 申请 `MediaProjection`
+- 随后启动并绑定 `ScreenCastService`
+- `ScreenCastService` 会把权限 `Intent` 转成真实 `MediaProjection`
+- 这个 `MediaProjection` 会被传入镜像工作线程 `g`
+- 无论是独立无线投屏 App，还是 TNT Go App 中的 Lebo 路径，最终都会调用：
   - `MediaProjection.createVirtualDisplay("ScreenCastThread-display", ...)`
-- Smartisan's PC-mode allowlist explicitly contains `ScreenCastThread-display`
+- Smartisan 的 PC 模式白名单明确包含 `ScreenCastThread-display`
 
-Interpretation:
+解释：
 
-- `ScreenCastThread-display` is not an accidental string; it is a known official backend identity
-- Smartisan intentionally recognizes this mirror backend family
-- however, most framework/service validation sites still pass `ownerPackageName`, not display name, into `isValidExtDisplayType(...)`
-- therefore the display name is a recognized helper identity, but package ownership still appears to be the stronger admission signal in the framework
+- `ScreenCastThread-display` 不是一个偶然字符串，它是一个系统已知的官方后端身份。
+- Smartisan 是有意识地识别这一类镜像后端的。
+- 但大多数 framework / service 校验点，传入 `isValidExtDisplayType(...)` 的依然是 `ownerPackageName`，不是显示名。
+- 因此显示名可以看作一个已知辅助身份，但在 framework 侧，包名所有权仍然像是更强的准入信号。
 
-### 17A. In the official wireless virtual-display flow, `ownerPackageName` comes from the caller app package
+### 17A. 在官方无线虚拟显示流程中，`ownerPackageName` 来自调用者 App 包名
 
-Relevant references:
+相关引用：
 
 - [MediaProjection.java:72](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/media/projection/MediaProjection.java:72)
 - [MediaProjection.java:73](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/media/projection/MediaProjection.java:73)
@@ -681,30 +684,30 @@ Relevant references:
 - [VirtualDisplayAdapter.java:379](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/VirtualDisplayAdapter.java:379)
 - [WifiDisplayAdapter.java:613](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/WifiDisplayAdapter.java:613)
 
-Important points:
+关键点：
 
-- `MediaProjection.createVirtualDisplay(...)` eventually calls `DisplayManagerGlobal.createVirtualDisplay(context, ...)`
-- `DisplayManagerGlobal` passes `context.getPackageName()` into `IDisplayManager.createVirtualDisplay(...)`
-- `DisplayManagerService.createVirtualDisplayInternal(...)` forwards that package name into `VirtualDisplayAdapter.createVirtualDisplayLocked(...)`
-- `VirtualDisplayAdapter.VirtualDisplayDevice` stores that package string as `mOwnerPackageName`
-- `VirtualDisplayAdapter.getDisplayDeviceInfoLocked()` writes:
+- `MediaProjection.createVirtualDisplay(...)` 最终会调用 `DisplayManagerGlobal.createVirtualDisplay(context, ...)`
+- `DisplayManagerGlobal` 会把 `context.getPackageName()` 传给 `IDisplayManager.createVirtualDisplay(...)`
+- `DisplayManagerService.createVirtualDisplayInternal(...)` 再把这个包名继续转发给 `VirtualDisplayAdapter.createVirtualDisplayLocked(...)`
+- `VirtualDisplayAdapter.VirtualDisplayDevice` 会把这个字符串保存为 `mOwnerPackageName`
+- `VirtualDisplayAdapter.getDisplayDeviceInfoLocked()` 会写入：
   - `mInfo.ownerPackageName = mOwnerPackageName`
-- therefore, in the official `lebo/hpplay` wireless virtual-display path, the expected owner package is `com.bytedance.wirelesscast`
-- by contrast, the physical `WifiDisplayAdapter` display-info path does not populate `ownerPackageName`
+- 因此在官方 `lebo/hpplay` 无线虚拟显示路径里，预期 owner package 是 `com.bytedance.wirelesscast`
+- 相比之下，物理 `WifiDisplayAdapter` 这条显示信息路径则不会填充 `ownerPackageName`
 
-Interpretation:
+解释：
 
-- for Smartisan's official wireless virtual-display flow, `ownerPackageName` is not synthesized by TNT code later
-- it is inherited from the package context of the app/service that actually called `createVirtualDisplay(...)`
-- this means runtime observations such as `ownerPackageName = com.bytedance.wirelesscast`, `com.smartisanos.smartfolder.aoa`, or `com.smartisanos.tntanywhere` are strong clues about which high-level entry path really created the display
-- it also cleanly separates two classes of displays:
-  - physical Miracast / WifiDisplay displays, where `ownerPackageName` is typically not the main identity signal
-  - app-created virtual displays, where `ownerPackageName` is a first-class framework-visible identity
-- with the current product knowledge, `com.smartisanos.smartfolder.aoa` should be interpreted cautiously as a Handshaker-related compatibility identity, while `com.smartisanos.tntanywhere` remains the more likely package to represent the TNT wireless-desktop-specific path
+- 在 Smartisan 官方无线虚拟显示流程里，`ownerPackageName` 不是 TNT 后续逻辑临时伪造出来的。
+- 它是从真正调用 `createVirtualDisplay(...)` 的 App / Service 上下文继承下来的。
+- 这意味着：运行时看到 `ownerPackageName = com.bytedance.wirelesscast`、`com.smartisanos.smartfolder.aoa` 或 `com.smartisanos.tntanywhere`，都非常有助于判断到底是哪条高层入口路径创建了这个显示器。
+- 同时它也把两类显示器清晰地区分开：
+  - 物理 Miracast / WifiDisplay 显示器，此时 `ownerPackageName` 通常不是主身份信号
+  - App 创建的虚拟显示器，此时 `ownerPackageName` 是 framework 明确可见的一等身份信号
+- 结合当前产品知识，`com.smartisanos.smartfolder.aoa` 应更谨慎地理解为 Handshaker 相关兼容身份，而 `com.smartisanos.tntanywhere` 依旧是更像 TNT 无线桌面专属路径的包名。
 
-### 17B. `tntanywhere` changes TNT behavior at the system-service level even when `pc_mode_enable` is not set
+### 17B. 即使 `pc_mode_enable` 没有置位，`tntanywhere` 也会在系统服务层改变 TNT 行为
 
-Relevant references:
+相关引用：
 
 - [DisplayManagerService.java:739](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:739)
 - [DisplayManagerService.java:804](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:804)
@@ -718,28 +721,28 @@ Relevant references:
 - [TntManagerService.java:4063](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:4063)
 - [TntManagerService.java:4069](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:4069)
 
-Important points:
+关键点：
 
-- `DisplayManagerService` notifies TNT display logic whenever a display with some `ownerPackageName` is added or removed
-- `TntDisplayManagerServiceImpl.checkDisplayForTntAnywhere(...)` flips `mInTntAnywhereMode` when that owner package is recognized as TNT Anywhere
-- in mirror routing, `showVirtualDisplayIfNeededLocked(...)` returns the TNT virtual display instead of default display when the base display owner package is `tntanywhere`
-- in `TntManagerService.handleDisplayAdded(...)`, TNT entry is allowed when either:
+- `DisplayManagerService` 会在某个带 `ownerPackageName` 的显示器被添加 / 移除时通知 TNT 显示逻辑
+- `TntDisplayManagerServiceImpl.checkDisplayForTntAnywhere(...)` 会在包名被识别为 TNT Anywhere 时切换 `mInTntAnywhereMode`
+- 在镜像路由逻辑里，`showVirtualDisplayIfNeededLocked(...)` 会在基础显示 owner 为 `tntanywhere` 时，返回 TNT 虚拟显示器而不是默认显示器
+- 在 `TntManagerService.handleDisplayAdded(...)` 中，只要满足以下其一就允许进入 TNT：
   - `mDisplayMode == 1`
-  - or `mTntDisplayMS.getInTntAnywhereMode()` is true
-- `handleDisplayModeChanged(0)` also avoids the usual path reset when TNT Anywhere mode is active
-- keep-alive logic likewise treats TNT Anywhere as equivalent to active PC-mode for several decisions
+  - 或 `mTntDisplayMS.getInTntAnywhereMode()` 为 true
+- `handleDisplayModeChanged(0)` 在 TNT Anywhere 模式激活时，也会避免走通常的路径重置逻辑
+- keep-alive 相关逻辑同样会在若干决策里，把 TNT Anywhere 当成“等价于已进入 PC 模式”
 
-Interpretation:
+解释：
 
-- `com.smartisanos.tntanywhere` is not just a passive allowlist string
-- once a display owned by that package appears, system services treat it as a privileged TNT wireless-desktop identity
-- this is the strongest current evidence that reproducing the official TNT wireless path likely requires either:
-  - the actual `com.smartisanos.tntanywhere` package
-  - or faithfully emulating the package/display identity and the creation sequence that package uses
+- `com.smartisanos.tntanywhere` 不是一个被动存在的白名单字符串而已。
+- 一旦出现一个由该包拥有的显示器，系统服务会把它视作一种带特权的 TNT 无线桌面身份。
+- 这是当前最强的一组证据，表明如果要复现官方 TNT 无线入口，很可能需要满足以下之一：
+  - 真正拿到 `com.smartisanos.tntanywhere` 这个包
+  - 或足够精准地模拟这个包使用的包名 / 显示身份及其创建时序
 
-### 17C. `TntExtendDisplayManager` mostly tracks TNT virtual displays, not raw physical base displays
+### 17C. `TntExtendDisplayManager` 主要跟踪的是 TNT 虚拟显示器，而不是底层物理基础显示器
 
-Relevant references:
+相关引用：
 
 - [RootWindowContainer.java:2418](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/wm/RootWindowContainer.java:2418)
 - [TntManagerService.java:1414](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1414)
@@ -750,36 +753,36 @@ Relevant references:
 - [TntExtendDisplayManager.java:242](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntExtendDisplayManager.java:242)
 - [TntExtendDisplayManager.java:262](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntExtendDisplayManager.java:262)
 
-Important points:
+关键点：
 
-- `RootWindowContainer.onDisplayAdded()` forwards every non-default display to `scheduleDisplayAdded(displayId, ..., newDisplay=true)`
-- but `TntManagerService.scheduleDisplayAdded(...)` immediately rejects `displayId < 100000`:
+- `RootWindowContainer.onDisplayAdded()` 会把每一个非默认显示器都转发到 `scheduleDisplayAdded(displayId, ..., newDisplay=true)`
+- 但 `TntManagerService.scheduleDisplayAdded(...)` 会立刻拒绝 `displayId < 100000`：
   - `"don't process non virtual displayId"`
-- when the new display is `>= 100000`, `scheduleDisplayAdded(...)`:
-  - inserts it into `mTntExtDisplayManager`
-  - then chooses `getPreferredDisplayIdIfPossible()`
-  - then posts the eventual `handleDisplayAdded(...)`
-- `TntExtendDisplayManager.rebuildDisplayList(...)` also only re-adds displays whose id is `>= 100000`
-- `getPreferredDisplayIdIfPossible()` simply returns the first entry in that list
-- `handleDisplayAdded(...)` will only enter TNT if `mTntExtDisplayManager.get(displayId) != null`
+- 当新显示器 `>= 100000` 时，`scheduleDisplayAdded(...)` 才会：
+  - 把它加入 `mTntExtDisplayManager`
+  - 然后选出 `getPreferredDisplayIdIfPossible()`
+  - 再 post 后续真正的 `handleDisplayAdded(...)`
+- `TntExtendDisplayManager.rebuildDisplayList(...)` 在重建时也只会重新加入 `id >= 100000` 的显示器
+- `getPreferredDisplayIdIfPossible()` 本质上只是返回列表中的第一项
+- `handleDisplayAdded(...)` 也只有在 `mTntExtDisplayManager.get(displayId) != null` 时才可能进入 TNT
 
-Interpretation:
+解释：
 
-- despite its name, `TntExtendDisplayManager` is not the authoritative registry of all physical external displays
-- it behaves much more like:
-  - the candidate queue of TNT-layer displays
-  - which in practice means the remapped `100000+` `smt.tnt.virtual.display` instances
-- the lower-ID physical display still matters, but mostly inside `TntDisplayManagerServiceImpl` as:
+- 尽管名字叫 `TntExtendDisplayManager`，它并不是所有物理外接显示器的权威注册表。
+- 它的行为更像是：
+  - TNT 层显示器的候选队列
+  - 而在实践中，这基本就意味着被重新映射到 `100000+` 的 `smt.tnt.virtual.display`
+- 较小 ID 的物理基础显示器仍然重要，但它主要存在于 `TntDisplayManagerServiceImpl` 的内部状态里，例如：
   - `mBaseDisplay`
   - `mBaseDevice`
   - `mBaseDisplayId`
-- this cleanly splits the TNT pipeline into two stages:
-  1. a physical or privileged virtual display is admitted as the base display
-  2. the TNT service stack creates and then tracks its own `100000+` virtual display as the real PC-mode object
+- 这把 TNT 流程清晰地分成了两个阶段：
+  1. 先接纳一个物理或带特权的虚拟显示，作为基础显示
+  2. 再由 TNT 服务栈创建并跟踪自己的 `100000+` 虚拟显示器，作为真正的 PC 模式对象
 
-### 17D. Overlay display has now been experimentally confirmed as a working headless TNT base-display path
+### 17D. Overlay display 已通过实验确认可以作为无头 TNT 基础显示路径
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtils.java:145](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:145)
 - [SmtPCUtils.java:268](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:268)
@@ -789,32 +792,32 @@ Relevant references:
 - [TntDisplayManagerServiceImpl.java:217](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:217)
 - [TntManagerService.java:1438](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1438)
 
-Experiment result:
+实验结果：
 
-- using ADB/root to:
-  - enable `persist.easycast.show_overlay_display=1`
-  - create an Android overlay display through `Settings.Global["overlay_display_devices"]`
-- the device was able to headlessly start TNT successfully in real testing
+- 通过 ADB / root：
+  - 开启 `persist.easycast.show_overlay_display=1`
+  - 并借助 `Settings.Global["overlay_display_devices"]` 创建 Android overlay display
+- 实机测试中，设备确实能够在无头场景下成功启动 TNT
 
-Interpretation:
+解释：
 
-- this is a major confirmation that Smartisan's TNT stack does not fundamentally require a real wired monitor or Miracast sink
-- instead, it is sufficient for system services to see a display that:
-  - is admitted by Smartisan's external-display policy
-  - survives base-display selection
-  - allows TNT to create its own `smt.tnt.virtual.display`
-- importantly, this working path uses the platform's own official overlay-display debug mechanism
-- so this is not a fragile "fake hardware" trick in the narrow sense
-- it is better understood as:
-  - reusing Android's official debug display backend
-  - while enabling Smartisan's built-in overlay acceptance gate
-- this sharply narrows the remaining productization problem:
-  - not "can TNT run headless at all?"
-  - but "how can `app-mirror` invoke the same system-recognized path automatically and safely?"
+- 这是一个非常关键的确认：Smartisan 的 TNT 栈并不从根本上依赖真实有线显示器或 Miracast 接收端。
+- 更准确地说，只要系统服务看到一个满足以下条件的显示器就够了：
+  - 它能通过 Smartisan 的外接显示策略校验
+  - 它能在基础显示筛选阶段存活下来
+  - 它允许 TNT 在其上继续创建自己的 `smt.tnt.virtual.display`
+- 更重要的是，这条可工作路径使用的是 Android 平台自己官方提供的 overlay-display 调试机制。
+- 因此它并不是一个狭义上的脆弱“伪造硬件”小技巧。
+- 更合适的理解是：
+  - 复用了 Android 官方调试显示后端
+  - 同时打开了 Smartisan 内建的 overlay 接纳门
+- 这让剩余的产品化问题被明显缩小：
+  - 不再是“无头情况下 TNT 到底能不能跑”
+  - 而是“`app-mirror` 如何自动且安全地走同一条系统认可路径”
 
-### 18. Official Boston app actively writes `pc_mode_enable`
+### 18. 官方 Boston App 会主动写入 `pc_mode_enable`
 
-Relevant references:
+相关引用：
 
 - [Constants.java:16](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/easycast/source/utils/Constants.java:16)
 - [Constants.java:24](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/easycast/source/utils/Constants.java:24)
@@ -822,114 +825,114 @@ Relevant references:
 - [EasyCastSourceByte.java:316](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/easycast/source/EasyCastSourceByte.java:316)
 - [TntManagerService.java:1438](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1438)
 
-Important points:
+关键点：
 
-- EasyCast constants define:
+- EasyCast 常量定义了：
   - mirror mode = `0`
   - PC mode = `1`
-- both official EasyCast source implementations write `Settings.Secure["pc_mode_enable"]`
-- `TntManagerService.handleDisplayAdded(...)` requires either:
+- 两个官方 EasyCast source 实现都会写入 `Settings.Secure["pc_mode_enable"]`
+- `TntManagerService.handleDisplayAdded(...)` 要求以下其一成立：
   - `pc_mode_enable == 1`
-  - or TNT Anywhere mode is active
+  - 或 TNT Anywhere 模式已激活
 
-Interpretation:
+解释：
 
-- the official app does not rely on display creation alone
-- it also cooperates with the system by pre-setting the persistent display mode preference that TNT services later check
-- this is one of the most concrete differences between the official flow and a generic third-party projection flow
+- 官方 App 并不是只靠创建显示器就完事。
+- 它还会和系统协作，提前写入一个持久显示模式偏好，供后续 TNT 服务判定使用。
+- 这是官方流程和普通第三方投屏流程之间最具体的差异之一。
 
-### 19. Official Boston control flow distinguishes wired and wireless before starting TNT
+### 19. 官方 Boston 控制流会先区分有线和无线，再决定如何启动 TNT
 
-Relevant references:
+相关引用：
 
 - [ConnectionReceiver.java:220](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/smartisanos/boston/phone/receiver/ConnectionReceiver.java:220)
 - [ConnectionReceiver.java:240](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/smartisanos/boston/phone/receiver/ConnectionReceiver.java:240)
 - [ConnectionReceiver.java:668](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/smartisanos/boston/phone/receiver/ConnectionReceiver.java:668)
 - [SmtTntUtil.java:21](E:/Sunshine-android-master/smartisanos/settings/app/src/main/java/com/android/settings/utils/SmtTntUtil.java:21)
 
-Important points:
+关键点：
 
-- the Boston app exposes privileged broadcast actions such as:
+- Boston App 暴露了带特权的广播动作，例如：
   - `com.smartisanos.boston.action.START_TNT`
   - `com.smartisanos.boston.action.REBOOT_TNT`
   - `com.smartisanos.boston.action.SHUTDOWN_TNT`
-- its receiver first decides whether current mode is wired or wireless
-- wired mode goes through `DpCtrlUtils.startupDp()/shutdownDp()`
-- wireless mode goes through `EasyCastSwitcher`
-- Settings-side helper `SmtTntUtil` also sends these actions with `displayType = wired|wifi`
+- 它的 receiver 会先判断当前模式是有线还是无线
+- 有线路径走 `DpCtrlUtils.startupDp()/shutdownDp()`
+- 无线路径走 `EasyCastSwitcher`
+- Settings 侧的 `SmtTntUtil` 也会带上 `displayType = wired|wifi` 去发这些 action
 
-Interpretation:
+解释：
 
-- official TNT control is a coordinated multi-path state machine, not a single "start desktop" API
-- Smartisan separates wired DP-style entry and wireless EasyCast entry early in the control path
-- reproducing official behavior likely requires matching the correct branch, not just creating a display
+- 官方 TNT 控制本质上是一个多分支状态机，而不是单一的“启动桌面”API。
+- Smartisan 很早就在控制流里区分了有线 DP 类路径和无线 EasyCast 类路径。
+- 因此如果要复现官方行为，关键不是简单“创建一个显示器”，而是匹配对正确的分支。
 
-### 20. `global_pc_mode_settings` is observed by the official app, not used as its root trigger
+### 20. `global_pc_mode_settings` 在官方 App 中也是被观察的结果状态，而不是根触发器
 
-Relevant references:
+相关引用：
 
 - [ConnectionService.java:248](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/smartisanos/boston/phone/service/ConnectionService.java:248)
 - [ConnectionService.java:255](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/smartisanos/boston/phone/service/ConnectionService.java:255)
 - [TntManagerService.java:1268](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1268)
 
-Important points:
+关键点：
 
-- `ConnectionService` registers a content observer for `global_pc_mode_settings`
-- when it changes, the service refreshes `CastHalWrapper` state and logs mode changes
-- the same key is written by `TntManagerService` during real enter/exit
+- `ConnectionService` 会注册一个针对 `global_pc_mode_settings` 的 content observer
+- 当它变化时，服务会刷新 `CastHalWrapper` 状态并记录模式变化日志
+- 同一个 key 正是由 `TntManagerService` 在真正进入 / 退出 TNT 时写入的
 
-Interpretation:
+解释：
 
-- even in the official app, `global_pc_mode_settings` behaves like a downstream state signal
-- this matches the earlier system-side conclusion that writing this key alone is not the true TNT entry mechanism
+- 即便在官方 App 里，`global_pc_mode_settings` 也更像是下游状态信号。
+- 这和前面系统侧结论是一致的：单独写这个 key 并不是真正的 TNT 进入机制。
 
-### 21. Smartisan grants additional package-based privileges beyond display admission
+### 21. Smartisan 还会在显示准入之外，赋予额外的“按包名特权”
 
-Relevant references:
+相关引用：
 
 - [TntPowerManagerServiceImpl.java:52](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/power/TntPowerManagerServiceImpl.java:52)
 - [TntMediaProjectionManagerServiceImpl.java:19](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/media/projection/TntMediaProjectionManagerServiceImpl.java:19)
 - [TntDisplayManagerServiceImpl.java:478](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:478)
 - [SmtPCUtilsInner.java:463](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:463)
 
-Important points:
+关键点：
 
-- power manager side marks `ownerPackageName == com.smartisanos.boston.phone` as a special Boston display
-- media-projection manager exempts `isInPCModeList(...)` packages from ordinary projection limits while in PC mode
-- display manager tracks TNT Anywhere mode based on special package identities:
+- power manager 侧会把 `ownerPackageName == com.smartisanos.boston.phone` 标成特殊 Boston 显示
+- media-projection manager 在 PC 模式下会对 `isInPCModeList(...)` 里的包放宽普通投屏限制
+- display manager 会基于特殊包名来跟踪 TNT Anywhere 模式：
   - `com.smartisanos.smartfolder.aoa`
   - `com.smartisanos.tntanywhere`
 
-Interpretation:
+解释：
 
-- Smartisan special-cases official TNT-related identities in multiple subsystems, not just one
-- this makes it less likely that a third-party package can fully impersonate the official path by reproducing only one surface-level behavior
+- Smartisan 对官方 TNT 相关身份的特殊处理，分布在多个子系统里，不是只在一个地方写了一次白名单。
+- 这也意味着：第三方包即便复现了某一个表层行为，也未必能完整伪装成官方路径。
 
-## Complete Call Chain
+## 完整调用链
 
-The currently confirmed TNT activation call chain is:
+当前已经确认的 TNT 激活调用链如下：
 
-1. `SystemServer` creates the TNT manager service through `TntFeatureFactoryImpl`
-2. `SystemServer` registers that service as binder service `smt_pcm`
-3. framework-side `SmtPCUtils*` APIs connect to `smt_pcm` through `ISmtPCManager`
-4. `TntManagerService` is the actual binder implementation behind `ISmtPCManager`
-5. `DisplayManagerService.handleDisplayDeviceAddedLocked()` receives a new display device
-6. if TNT support is active, `DisplayManagerService` forwards the device to `TntDisplayManagerServiceImpl`
-7. `TntDisplayManagerServiceImpl.addVirtualDisplayLocked()` checks whether the new device is a valid TNT base display
-8. if valid, the service records that base display and creates `smt.tnt.virtual.display`
-9. `DisplayManagerService.addLogicalDisplayLocked()` remaps that TNT virtual display to `100000+`
-10. `RootWindowContainer.onDisplayAdded()` sees the new logical display and calls `mService.mTNT.scheduleDisplayAdded(displayId, ...)`
-11. `TntManagerService.scheduleDisplayAdded()` only really processes `100000+` TNT virtual display IDs
-12. `TntManagerService.LocalHandler` handles message `2` and runs `handleDisplayAdded(displayId)`
-13. `handleDisplayAdded(...)` checks boot/provision/display-mode/TNT-Anywhere state and decides whether TNT may enter
-14. if conditions pass, `TntActivityTaskManagerServiceImpl.enterPcMode(displayId)` is triggered
-15. `TntActivityTaskManagerServiceImpl` calls:
+1. `SystemServer` 通过 `TntFeatureFactoryImpl` 创建 TNT manager service
+2. `SystemServer` 把该服务注册为 binder service `smt_pcm`
+3. framework 侧 `SmtPCUtils*` API 通过 `ISmtPCManager` 连接到 `smt_pcm`
+4. `TntManagerService` 就是 `ISmtPCManager` 背后的真实 binder 实现
+5. `DisplayManagerService.handleDisplayDeviceAddedLocked()` 接收到一个新的 display device
+6. 如果 TNT 支持开启，`DisplayManagerService` 会把该设备继续转发给 `TntDisplayManagerServiceImpl`
+7. `TntDisplayManagerServiceImpl.addVirtualDisplayLocked()` 检查新设备是否是有效 TNT 基础显示
+8. 如果有效，服务记录这个基础显示，并创建 `smt.tnt.virtual.display`
+9. `DisplayManagerService.addLogicalDisplayLocked()` 把这个 TNT 虚拟显示器重新映射到 `100000+`
+10. `RootWindowContainer.onDisplayAdded()` 看到新的 logical display，并调用 `mService.mTNT.scheduleDisplayAdded(displayId, ...)`
+11. `TntManagerService.scheduleDisplayAdded()` 只会真正处理 `100000+` 这一层 TNT 虚拟显示 ID
+12. `TntManagerService.LocalHandler` 处理消息 `2`，并执行 `handleDisplayAdded(displayId)`
+13. `handleDisplayAdded(...)` 检查 boot / provision / display-mode / TNT-Anywhere 状态，并决定是否允许进入 TNT
+14. 如果条件通过，会触发 `TntActivityTaskManagerServiceImpl.enterPcMode(displayId)`
+15. `TntActivityTaskManagerServiceImpl` 会调用：
     - `SmtPCUtilsInner.setIsPcMode(displayId, true)`
     - `mTntWindowManager.enterPcMode(display, true)`
-16. `TntManagerService.enterPCModeLocked(displayId)` finishes the real system-mode transition
-17. only after that does the system write `global_pc_mode_settings = 1`
+16. `TntManagerService.enterPCModeLocked(displayId)` 完成真正的系统模式切换
+17. 直到这之后，系统才会写入 `global_pc_mode_settings = 1`
 
-Key references:
+关键引用：
 
 - [SystemServer.java:1667](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/SystemServer.java:1667)
 - [SystemServer.java:1671](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/SystemServer.java:1671)
@@ -946,126 +949,126 @@ Key references:
 - [TntActivityTaskManagerServiceImpl.java:510](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java:510)
 - [TntManagerService.java:1253](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1253)
 
-## Conditions Required To Enter TNT
+## 进入 TNT 所需条件
 
-Based on the currently confirmed code, a real TNT session requires all of the following classes of conditions:
+根据目前已经确认的代码，一次真正的 TNT 会话需要满足以下几类条件：
 
-### A. A display must first be recognized as a valid TNT base display
+### A. 首先必须有一个显示器被识别为有效 TNT 基础显示
 
-The system must see a display whose type/package matches Smartisan's validation rules:
+系统必须看到一个显示器，其 type / package 满足 Smartisan 的校验规则：
 
 - `type == 2`
 - `type == 3`
-- `type == 5` and package name is in the Smartisan PC-mode allowlist
-- `type == 4` only for overlay-display test mode
+- `type == 5` 且包名在 Smartisan PC 模式白名单中
+- `type == 4` 仅 overlay-display 测试模式
 
-Relevant references:
+相关引用：
 
 - [SmtPCUtils.java:263](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:263)
 - [SmtPCUtils.java:252](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtils.java:252)
 
-### B. The display must survive TNT base-display filtering
+### B. 该显示器必须能通过 TNT 基础显示筛选
 
-`TntDisplayManagerServiceImpl.addVirtualDisplayLocked()` rejects displays that:
+`TntDisplayManagerServiceImpl.addVirtualDisplayLocked()` 会拒绝以下显示器：
 
-- fail `isValidExtDisplayType(...)`
-- are already the TNT virtual display itself
-- are overlay-display test devices in the wrong mode
-- arrive when a base display is already locked in and no force-refresh is pending
+- `isValidExtDisplayType(...)` 不通过
+- 它本身已经是 TNT 虚拟显示器
+- 它是错误模式下的 overlay-display 测试设备
+- 当前已经锁定了一个基础显示，且没有等待中的强制刷新
 
-Relevant references:
+相关引用：
 
 - [TntDisplayManagerServiceImpl.java:184](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:184)
 
-### C. The system must create the TNT virtual display
+### C. 系统还必须创建出 TNT 虚拟显示器
 
-Even after a valid base display exists, TNT still does not enter until:
+即使已经存在有效基础显示，TNT 也不会立刻进入，除非：
 
-- `smt.tnt.virtual.display` is created
-- the logical display is remapped to `100000+`
+- `smt.tnt.virtual.display` 被创建出来
+- 对应 logical display 被重新映射到 `100000+`
 
-Relevant references:
+相关引用：
 
 - [TntDisplayManagerServiceImpl.java:217](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:217)
 - [TntDisplayManagerServiceImpl.java:290](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/display/TntDisplayManagerServiceImpl.java:290)
 
-### D. The display-added event must reach `TntManagerService`
+### D. display-added 事件必须真正到达 `TntManagerService`
 
-The TNT virtual display must be:
+这个 TNT 虚拟显示器必须：
 
-- materialized as a logical display
-- delivered to `RootWindowContainer.onDisplayAdded()`
-- forwarded into `scheduleDisplayAdded()`
+- 被 materialize 成 logical display
+- 被投递到 `RootWindowContainer.onDisplayAdded()`
+- 再被转发进 `scheduleDisplayAdded()`
 
-Relevant references:
+相关引用：
 
 - [DisplayManagerService.java:851](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/display/DisplayManagerService.java:851)
 - [RootWindowContainer.java:2418](E:/Sunshine-android-master/smartisanos/servicesjar/sources/com/android/server/wm/RootWindowContainer.java:2418)
 
-### E. `TntManagerService.handleDisplayAdded()` gate conditions must pass
+### E. `TntManagerService.handleDisplayAdded()` 的门槛条件必须全部通过
 
-At entry time, TNT still requires:
+在真正进入前，TNT 还要求：
 
-- boot completed or locked-boot completed
-- display is tracked by `TntExtendDisplayManager`
-- no display is already in PC mode
-- either `pc_mode_enable == 1` or TNT Anywhere mode is active
-- device provisioned
-- valid home / required services available
-- no "switch home" dialog blocking the transition
+- boot completed 或 locked-boot completed
+- 该显示器已经被 `TntExtendDisplayManager` 跟踪
+- 当前没有其他显示器已经处于 PC 模式
+- `pc_mode_enable == 1`，或 TNT Anywhere 模式已激活
+- 设备已完成 provision
+- 有效的 home / 必需服务可用
+- 没有 “switch home” 对话框阻塞当前切换
 
-Relevant references:
+相关引用：
 
 - [TntManagerService.java:1435](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1435)
 - [TntManagerService.java:1438](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1438)
 - [TntManagerService.java:1439](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1439)
 
-### F. Framework/system state must then be switched into PC mode
+### F. framework / system 状态随后还必须真正切到 PC 模式
 
-Once entry is accepted, TNT still needs:
+一旦入口被允许，TNT 还需要完成：
 
-- ATMS/WMS PC-mode entry
-- framework `sDisplayIdInPcMode` to be updated
-- `enterPCModeLocked()` to complete
+- ATMS / WMS 的 PC 模式进入
+- framework `sDisplayIdInPcMode` 更新
+- `enterPCModeLocked()` 全部走完
 
-Relevant references:
+相关引用：
 
 - [TntActivityTaskManagerServiceImpl.java:510](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java:510)
 - [TntActivityTaskManagerServiceImpl.java:519](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/wm/TntActivityTaskManagerServiceImpl.java:519)
 - [SmtPCUtilsInner.java:278](E:/Sunshine-android-master/smartisanos/frameworkjar/sources/android/app/SmtPCUtilsInner.java:278)
 - [TntManagerService.java:1253](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1253)
 
-### G. For the normal non-TNT-Anywhere path, `pc_mode_enable` must already agree
+### G. 对于普通非 TNT-Anywhere 路径，`pc_mode_enable` 还必须提前一致
 
-The official Boston / EasyCast stack explicitly writes:
+官方 Boston / EasyCast 栈会显式写入：
 
-- `Settings.Secure["pc_mode_enable"] = 1` for PC mode
-- `Settings.Secure["pc_mode_enable"] = 0` for mirror mode
+- `Settings.Secure["pc_mode_enable"] = 1` 表示 PC mode
+- `Settings.Secure["pc_mode_enable"] = 0` 表示 mirror mode
 
-and the TNT entry gate checks:
+而 TNT 入口门槛检查的是：
 
 - `mDisplayMode == 1`
-- or `getInTntAnywhereMode() == true`
+- 或 `getInTntAnywhereMode() == true`
 
-Relevant references:
+相关引用：
 
 - [EasyCastSourceLebo.java:1018](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/easycast/source/EasyCastSourceLebo.java:1018)
 - [EasyCastSourceByte.java:316](E:/Sunshine-android-master/TNTgo_1.0.3_App/app/src/main/java/com/easycast/source/EasyCastSourceByte.java:316)
 - [TntManagerService.java:1438](E:/Sunshine-android-master/smartisanos/smartisan-services-tnt/sources/com/android/server/pc/TntManagerService.java:1438)
 
-Interpretation:
+解释：
 
-- if we are not entering via the special TNT Anywhere path, then a valid display alone is still insufficient unless the persistent display-mode state also says PC mode is enabled
+- 如果不是走特殊的 TNT Anywhere 路径，那么即使有一个有效显示器存在也仍然不够，持久显示模式状态也必须先声明“当前是 PC mode”。
 
-## Current Bottom-Line Judgment
+## 当前最终判断
 
-The current best-supported judgment is:
+当前最有支撑的结论是：
 
-1. `global_pc_mode_settings` is not a sufficient trigger.
-2. A normal third-party display is not enough by itself.
-3. The system expects a valid Smartisan-recognized base display first.
-4. The system then creates its own TNT virtual display and only reacts to that layer for TNT entry.
-5. Official Smartisan wireless/Boston/TNT-Anywhere paths work partly because their display type and package identity already fit this model.
-6. The official app stack also writes `pc_mode_enable`, routes through wired vs wireless control branches, and benefits from additional package-based special handling in power/media-projection/display services.
+1. `global_pc_mode_settings` 不是一个充分触发条件。
+2. 普通第三方显示器本身也不够。
+3. 系统首先期待看到一个被 Smartisan 认可的有效基础显示。
+4. 然后系统会自己创建 TNT 虚拟显示器，并且只对这一层的显示器作出 TNT 进入响应。
+5. 官方 Smartisan 无线 / Boston / TNT Anywhere 路径之所以能工作，部分原因就在于它们的显示类型和包名身份天然符合这套模型。
+6. 官方 App 栈还会写入 `pc_mode_enable`，区分有线 / 无线控制分支，并在电源 / media-projection / display 服务里享受额外的按包名特殊处理。
 
-This means the core challenge for `app-mirror` is not just "open TNT" but "make the system believe a valid TNT-eligible display/session exists, so the native TNT service stack completes its own activation path."
+这意味着，对于 `app-mirror` 来说，核心挑战不只是“打开 TNT”，而是“让系统相信当前已经存在一个有效且具备 TNT 资格的显示 / 会话”，从而让原生 TNT 服务栈自行把后续激活链走完。
