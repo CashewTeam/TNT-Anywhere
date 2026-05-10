@@ -38,6 +38,8 @@ public class State {
     private static WeakReference<MirrorMainActivity> currentActivity = new WeakReference<>(null);
     public static final MutableLiveData<MirrorUiState> uiState = new MutableLiveData<>(new MirrorUiState());
     public static final MutableLiveData<String> streamingDebugInfo = new MutableLiveData<>("串流未启动");
+    public static volatile String lastMoonlightHandshakeInfo;
+    public static volatile String lastMoonlightControlInputInfo;
     public static FloatingButtonService floatingButtonService;
     public static String serverUuid;
     private static Job currentJob;

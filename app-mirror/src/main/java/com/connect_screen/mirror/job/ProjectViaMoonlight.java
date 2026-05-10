@@ -1,13 +1,11 @@
 package com.connect_screen.mirror.job;
 
 import android.content.Context;
-import android.hardware.display.DisplayManager;
-import android.media.projection.MediaProjection;
 import android.os.Build;
 import android.os.RemoteException;
+import android.view.Display;
 import android.view.Surface;
 
-import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
@@ -18,25 +16,26 @@ public class ProjectViaMoonlight implements Job {
     private final int frameRate;
     private final int packetDuration;
     private final Surface surface;
-    private final boolean shouldSendAudio;
+    private final boolean shouldMutePhone;
+    private final long sessionId;
     private final TntDisplaySelector tntDisplaySelector = new TntDisplaySelector();
-    private boolean mediaProjectionRequested;
     private boolean userServiceRequested;
     private int autoTntStartAttempts;
 
-    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldSendAudio) {
+    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         this.width = width;
         this.height = height;
         this.frameRate = frameRate;
         this.packetDuration = packetDuration;
         this.surface = surface;
-        this.shouldSendAudio = shouldSendAudio;
+        this.shouldMutePhone = shouldMutePhone;
+        this.sessionId = sessionId;
     }
 
     @Override
     public void start() throws YieldException {
         State.log("[ProjectViaMoonlight] start, w=" + width + " h=" + height
-                + " fps=" + frameRate + " audio=" + shouldSendAudio);
+                + " fps=" + frameRate + " mutePhone=" + shouldMutePhone);
 
         Context context = State.getContext();
         if (context == null) {
@@ -44,15 +43,18 @@ public class ProjectViaMoonlight implements Job {
             return;
         }
 
-        if (!ensureTntDisplayStartedForClient(context)) {
-            return;
-        }
-        if (!tntDisplaySelector.ensureSelected()) {
-            return;
-        }
-
-        boolean mirrorExternal = Pref.getSkipExternalActivity() && State.externalDisplayId > 0;
-        if (mirrorExternal) {
+        boolean tntMode = Pref.getSkipExternalActivity();
+        if (tntMode) {
+            if (!ensureTntDisplayStartedForClient(context)) {
+                return;
+            }
+            if (!tntDisplaySelector.ensureSelected()) {
+                return;
+            }
+            if (State.externalDisplayId <= 0) {
+                State.showErrorStatus("TNT mode did not find an external display");
+                return;
+            }
             if (!ShizukuUtils.hasPermission()) {
                 State.showErrorStatus("TNT mode needs Shizuku permission to mirror the external display");
                 return;
@@ -64,24 +66,20 @@ public class ProjectViaMoonlight implements Job {
                     + " w=" + width + " h=" + height);
             mirrorExternalDisplay(width, height, surface);
         } else {
-            if (!ensureMediaProjectionPermission()) {
+            if (!ShizukuUtils.hasPermission()) {
+                State.showErrorStatus("Mirror mode needs Shizuku permission to capture display 0");
                 return;
             }
-            State.log("[MirrorLocal] start default display mirror w=" + width + " h=" + height);
-            mirrorLocalDisplay(width, height, surface);
-            State.log("[MirrorLocal] local mirror ready");
+            releaseStaleAppMirrorState();
+            SunshineMouse.initialize(width, height);
+            SunshineKeyboard.initialize();
+            State.log("[MirrorPrimary] start display 0 mirror w=" + width + " h=" + height);
+            mirrorPrimaryDisplay(width, height, surface);
         }
 
-        if (shouldSendAudio) {
-            if (SunshineAudio.sendAudio(context, packetDuration)) {
-                return;
-            }
-        } else {
-            State.log("Client did not request audio; keep playing through phone speaker");
-        }
-        if (!mirrorExternal && State.getMediaProjection() != null) {
-            State.setMediaProjection(null);
-        }
+        State.log(shouldMutePhone
+                ? "Moonlight audio route requests phone speaker mute; audio capture is driven by native audio thread"
+                : "Moonlight audio route keeps phone speaker enabled; audio capture is driven by native audio thread");
     }
 
     private boolean ensureTntDisplayStartedForClient(Context context) throws YieldException {
@@ -133,126 +131,153 @@ public class ProjectViaMoonlight implements Job {
         throw new YieldException("Waiting for TNT display auto start");
     }
 
-    private boolean ensureMediaProjectionPermission() throws YieldException {
-        if (State.getMediaProjection() != null) {
-            State.log("MediaProjection already exists, skip permission request");
-            return true;
+    private void mirrorPrimaryDisplay(int width, int height, Surface surface) throws YieldException {
+        if (Pref.getAutoRotate()) {
+            State.log("[MirrorPrimaryDisplay] auto-rotate enabled, use GL mirror pipeline");
+            AutoRotateAndScaleForMoonlight autoRotatePipeline =
+                    new AutoRotateAndScaleForMoonlight(
+                            new VirtualDisplayArgs("Moonlight-main-mirror", width, height, frameRate, 160, false));
+            SunshineMouse.autoRotateAndScaleForMoonlight = autoRotatePipeline;
+            autoRotatePipeline.start(
+                    surface,
+                    Display.DEFAULT_DISPLAY,
+                    "Moonlight-main-mirror",
+                    "Mirror mode failed to mirror display 0. Confirm Shizuku is running, then retry.");
+            return;
         }
+        mirrorDisplay(
+                "[MirrorPrimaryDisplay]",
+                "Moonlight-main-mirror",
+                Display.DEFAULT_DISPLAY,
+                Display.DEFAULT_DISPLAY,
+                width,
+                height,
+                surface,
+                "Mirror mode failed to mirror display 0. Confirm Shizuku is running, then retry.");
+    }
+
+    private void releaseStaleAppMirrorState() {
         if (State.mirrorVirtualDisplay != null) {
             try {
-                State.log("Release stale Moonlight mirror VirtualDisplay before requesting permission again");
+                State.log("[MirrorPrimary] release stale app VirtualDisplay before Shizuku mirror");
                 State.mirrorVirtualDisplay.release();
-            } catch (Throwable e) {
-                State.log("Release stale Moonlight mirror VirtualDisplay failed: " + e.getMessage());
+            } catch (Exception e) {
+                State.log("[MirrorPrimary] release stale app VirtualDisplay failed: "
+                        + e.getClass().getSimpleName() + " " + e.getMessage());
             }
             State.mirrorVirtualDisplay = null;
         }
-        if (mediaProjectionRequested) {
-            State.showErrorStatus("Moonlight local mirror has not received screen capture permission");
-            return false;
-        }
-        mediaProjectionRequested = true;
-        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
-        if (mirrorMainActivity == null) {
-            State.showErrorStatus("Open the main UI to grant Moonlight local mirror screen capture permission");
-            return false;
-        }
-        mirrorMainActivity.startMediaProjectionService();
-        throw new YieldException("Waiting for screen capture permission");
-    }
-
-    private void mirrorLocalDisplay(int width, int height, Surface surface) {
-        MediaProjection mediaProjection = State.getMediaProjection();
-        if (mediaProjection == null) {
-            State.showErrorStatus("Local mirror needs screen capture permission first");
-            return;
-        }
-        try {
-            boolean autoRotate = Pref.getAutoRotate();
-            boolean autoScale = Pref.getAutoScale();
-            if (autoRotate || autoScale) {
-                SunshineMouse.autoRotateAndScaleForMoonlight = new AutoRotateAndScaleForMoonlight(
-                        new VirtualDisplayArgs("Moonlight", width, height, frameRate, 160, false));
-                SunshineMouse.autoRotateAndScaleForMoonlight.start(surface);
-                State.log("[MirrorLocal] AutoRotateAndScaleForMoonlight enabled, autoRotate="
-                        + autoRotate + " autoScale=" + autoScale);
-                SunshineServer.showMoonlightControlHint();
-                return;
-            }
-
-            State.mirrorVirtualDisplay = mediaProjection.createVirtualDisplay(
-                    "Moonlight",
-                    width,
-                    height,
-                    160,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                    surface,
-                    null,
-                    null);
-            if (State.mirrorVirtualDisplay == null) {
-                State.showErrorStatus("Failed to create local mirror VirtualDisplay");
-                return;
-            }
-            State.log("[MirrorLocal] MediaProjection VirtualDisplay id="
-                    + State.mirrorVirtualDisplay.getDisplay().getDisplayId()
-                    + " size=" + width + "x" + height);
-            SunshineServer.showMoonlightControlHint();
-        } catch (Throwable e) {
-            State.log("[MirrorLocal] create VirtualDisplay failed: "
-                    + e.getClass().getSimpleName() + " msg=" + e.getMessage());
-            State.showErrorStatus("Local mirror failed: " + e.getMessage());
+        if (State.getMediaProjection() != null) {
+            State.log("[MirrorPrimary] clear stale MediaProjection before Shizuku mirror");
+            State.setMediaProjection(null);
         }
     }
 
     private void mirrorExternalDisplay(int width, int height, Surface surface) throws YieldException {
-        State.log("[MirrorExternalDisplay] enter, surface=" + surface
+        mirrorDisplay(
+                "[MirrorExternalDisplay]",
+                "Moonlight-mirror",
+                State.externalDisplayId,
+                State.externalControlDisplayId > 0 ? State.externalControlDisplayId : State.externalDisplayId,
+                width,
+                height,
+                surface,
+                "TNT mode failed to mirror external display. Restart Sunshine service and retry.");
+    }
+
+    private void mirrorDisplay(
+            String logPrefix,
+            String mirrorName,
+            int displayIdToMirror,
+            int controlDisplayId,
+            int width,
+            int height,
+            Surface surface,
+            String failureMessage) throws YieldException {
+        State.log(logPrefix + " enter, surface=" + surface
                 + " w=" + width + " h=" + height
-                + " externalDisplayId=" + State.externalDisplayId
+                + " displayId=" + displayIdToMirror
                 + " userService=" + State.userService);
         try {
             if (!State.isUserServiceAlive()) {
-                waitForUserService("[MirrorExternalDisplay] userService unavailable, rebind before mirroring external display");
+                waitForUserService(logPrefix + " userService unavailable, rebind before mirroring display");
             }
-            State.log("[MirrorExternalDisplay] call userService.createExternalMirror");
-            int result = State.userService.createExternalMirror("Moonlight-mirror", width, height, State.externalDisplayId, surface);
-            State.log("[MirrorExternalDisplay] createExternalMirror result=" + result);
+            Surface mirrorSurface = surface;
+            ExternalDisplayFramePacer framePacer = startFramePacerIfNeeded(
+                    logPrefix,
+                    width,
+                    height,
+                    frameRate,
+                    surface);
+            SunshineMouse.setExternalDisplayFramePacer(framePacer, sessionId);
+            if (framePacer != null) {
+                mirrorSurface = framePacer.getInputSurface();
+            }
+            State.log(logPrefix + " call userService.createExternalMirror");
+            int result = State.userService.createExternalMirror(mirrorName, width, height, displayIdToMirror, mirrorSurface);
+            State.log(logPrefix + " createExternalMirror result=" + result);
             if (result < 0) {
-                State.showErrorStatus("TNT mode failed to mirror external display. Restart Sunshine service and retry.");
+                SunshineMouse.stopExternalDisplayFramePacer(sessionId, false);
+                State.showErrorStatus(failureMessage);
                 return;
             }
             State.mirrorExternalToken = null;
-            State.lastSingleAppDisplay = State.externalControlDisplayId > 0
-                    ? State.externalControlDisplayId
-                    : State.externalDisplayId;
+            State.lastSingleAppDisplay = controlDisplayId;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                State.log("[MirrorExternalDisplay] [API31+] success, vdId=" + result);
+                State.log(logPrefix + " [API31+] success, vdId=" + result);
             } else {
-                State.log("[MirrorExternalDisplay] [API30] SurfaceControl success");
+                State.log(logPrefix + " [API30] SurfaceControl success");
             }
             SunshineServer.showMoonlightControlHint();
         } catch (YieldException e) {
             throw e;
         } catch (RemoteException e) {
-            State.log("[MirrorExternalDisplay] RemoteException: "
+            State.log(logPrefix + " RemoteException: "
                     + e.getClass().getSimpleName() + " msg=" + e.getMessage());
             State.userService = null;
-            waitForUserService("[MirrorExternalDisplay] userService binder died, rebind and retry");
+            waitForUserService(logPrefix + " userService binder died, rebind and retry");
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            State.log("[MirrorExternalDisplay] exception: "
+            State.log(logPrefix + " exception: "
                     + e.getClass().getSimpleName() + " msg=" + e.getMessage());
+        }
+    }
+
+    private ExternalDisplayFramePacer startFramePacerIfNeeded(
+            String logPrefix,
+            int width,
+            int height,
+            int frameRate,
+            Surface outputSurface) {
+        if (Pref.getEncoderDynamicFrameRate()) {
+            State.log(logPrefix + " dynamic frame rate enabled, use direct encoder surface");
+            return null;
+        }
+        ExternalDisplayFramePacer framePacer = null;
+        try {
+            framePacer = new ExternalDisplayFramePacer(width, height, frameRate, outputSurface);
+            framePacer.start();
+            State.log(logPrefix + " fixed frame pacer enabled");
+            return framePacer;
+        } catch (RuntimeException e) {
+            State.log(logPrefix + " fixed frame pacer unavailable, fallback to direct surface: "
+                    + e.getMessage());
+            if (framePacer != null) {
+                framePacer.stop();
+            }
+            return null;
         }
     }
 
     private void waitForUserService(String reason) throws YieldException {
         State.log(reason);
         if (!ShizukuUtils.hasPermission()) {
-            State.showErrorStatus("TNT mode needs Shizuku permission");
+            State.showErrorStatus("Moonlight mirror needs Shizuku permission");
             throw new RuntimeException("Shizuku permission missing");
         }
         if (userServiceRequested) {
-            State.showErrorStatus("TNT mode failed to wait for Shizuku user service. Confirm Shizuku is running, then retry.");
+            State.showErrorStatus("Moonlight mirror failed to wait for Shizuku user service. Confirm Shizuku is running, then retry.");
             throw new RuntimeException("Shizuku user service unavailable");
         }
         userServiceRequested = true;

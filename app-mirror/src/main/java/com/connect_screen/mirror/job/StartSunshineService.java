@@ -1,5 +1,8 @@
 package com.connect_screen.mirror.job;
 
+import android.content.Intent;
+import android.os.Build;
+
 import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.State;
@@ -20,6 +23,13 @@ public class StartSunshineService implements Job {
 
         SunshineService.markStarting();
         activity.refresh();
-        activity.startMediaProjectionService();
+        Intent sunshineServiceIntent = new Intent(activity, SunshineService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            activity.startForegroundService(sunshineServiceIntent);
+        } else {
+            activity.startService(sunshineServiceIntent);
+        }
+        State.log("启动 SunshineService 服务（使用 Shizuku/ADB 捕获，启动时不请求投屏权限）");
+        activity.refresh();
     }
 }

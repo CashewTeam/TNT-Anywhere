@@ -80,7 +80,7 @@ public class SunshineService extends Service {
     private static volatile LifecycleState lifecycleState = LifecycleState.STOPPED;
     private static volatile boolean stopRequested = false;
     private static volatile boolean nativeThreadRunning = false;
-    private static final String CHANNEL_ID = "SunshineServiceChannel";
+    private static final String CHANNEL_ID = "SunshineServiceChannelV2";
     private static final int NOTIFICATION_ID = 2;
     private static final String TAG = "SunshineService";
     private static final String CERT_FILE_NAME = "cacert.pem";
@@ -100,6 +100,8 @@ public class SunshineService extends Service {
     };
 
     private int currentTimeout;
+    private PowerManager.WakeLock cpuWakeLock;
+    private WifiManager.WifiLock wifiLock;
 
     public static LifecycleState getLifecycleState() {
         return lifecycleState;
@@ -150,6 +152,7 @@ public class SunshineService extends Service {
         }
         createNotificationChannel();
         startForeground(NOTIFICATION_ID, createNotification());
+        acquireRuntimeLocks();
     }
 
     @Override
@@ -164,6 +167,7 @@ public class SunshineService extends Service {
             setLifecycleState(LifecycleState.STOPPED);
         }
         releaseWakeLock();
+        SmartisanPerformanceHelper.updateStreamingBoost(false, "SunshineService destroyed");
         try {
             if (usbPermissionRegistered) {
                 unregisterReceiver(usbPermissionReceiver);
@@ -177,9 +181,11 @@ public class SunshineService extends Service {
     }
 
     public void releaseWakeLock() {
+        releaseRuntimeLocks();
         if (currentTimeout > 0) {
             Settings.System.putInt(this.getContentResolver(),
                     Settings.System.SCREEN_OFF_TIMEOUT, currentTimeout);
+            currentTimeout = 0;
         }
     }
 
@@ -205,7 +211,7 @@ public class SunshineService extends Service {
             }, null);
             State.resumeJob();
         } else {
-            State.log("SunshineService received invalid media projection data");
+            State.log("SunshineService started without MediaProjection; Moonlight capture will use Shizuku/ADB when a client connects");
             State.resumeJob();
         }
         if (Pref.getPreventAutoLock()) {
@@ -338,6 +344,74 @@ public class SunshineService extends Service {
         }
     }
 
+    private void acquireRuntimeLocks() {
+        acquireCpuWakeLock();
+        acquireWifiLock();
+    }
+
+    private void acquireCpuWakeLock() {
+        try {
+            if (cpuWakeLock != null && cpuWakeLock.isHeld()) {
+                return;
+            }
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (powerManager == null) {
+                State.log("Sunshine runtime keepalive: PowerManager unavailable");
+                return;
+            }
+            cpuWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG + ":CpuLock");
+            cpuWakeLock.setReferenceCounted(false);
+            cpuWakeLock.acquire();
+            State.log("Sunshine runtime keepalive: PARTIAL_WAKE_LOCK acquired");
+        } catch (Throwable e) {
+            State.log("Sunshine runtime keepalive: failed to acquire PARTIAL_WAKE_LOCK: " + e.getMessage());
+        }
+    }
+
+    private void acquireWifiLock() {
+        try {
+            if (wifiLock != null && wifiLock.isHeld()) {
+                return;
+            }
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager == null) {
+                State.log("Sunshine runtime keepalive: WifiManager unavailable");
+                return;
+            }
+            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, TAG + ":WifiLock");
+            wifiLock.setReferenceCounted(false);
+            wifiLock.acquire();
+            State.log("Sunshine runtime keepalive: Wi-Fi high perf lock acquired");
+        } catch (Throwable e) {
+            State.log("Sunshine runtime keepalive: failed to acquire Wi-Fi lock: " + e.getMessage());
+        }
+    }
+
+    private void releaseRuntimeLocks() {
+        if (cpuWakeLock != null) {
+            try {
+                if (cpuWakeLock.isHeld()) {
+                    cpuWakeLock.release();
+                    State.log("Sunshine runtime keepalive: PARTIAL_WAKE_LOCK released");
+                }
+            } catch (Throwable e) {
+                State.log("Sunshine runtime keepalive: failed to release PARTIAL_WAKE_LOCK: " + e.getMessage());
+            }
+            cpuWakeLock = null;
+        }
+        if (wifiLock != null) {
+            try {
+                if (wifiLock.isHeld()) {
+                    wifiLock.release();
+                    State.log("Sunshine runtime keepalive: Wi-Fi high perf lock released");
+                }
+            } catch (Throwable e) {
+                State.log("Sunshine runtime keepalive: failed to release Wi-Fi lock: " + e.getMessage());
+            }
+            wifiLock = null;
+        }
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -348,8 +422,11 @@ public class SunshineService extends Service {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
                     "Sunshine Service Channel",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_DEFAULT
             );
+            serviceChannel.setSound(null, null);
+            serviceChannel.enableVibration(false);
+            serviceChannel.enableLights(false);
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }

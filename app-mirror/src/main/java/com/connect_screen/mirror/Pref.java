@@ -34,6 +34,7 @@ public class Pref {
     public static final String KEY_TNT_OVERLAY_DPI = "tnt_overlay_dpi";
     public static final String KEY_AUTO_CLOSE_TNT_ON_CLIENT_DISCONNECT = "auto_close_tnt_on_client_disconnect";
     public static final String KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT = "adapt_tnt_resolution_to_client";
+    public static final String KEY_SMARTISAN_CPUSET_BOOST = "smartisan_cpuset_boost";
     public static final String KEY_ENCODER_CODEC = "encoder_codec";
     public static final String KEY_ENCODER_BITRATE_PERCENT = "encoder_bitrate_percent";
     public static final String KEY_ENCODER_BITRATE_MODE = "encoder_bitrate_mode";
@@ -43,6 +44,7 @@ public class Pref {
     public static final String KEY_ENCODER_LOW_LATENCY = "encoder_low_latency";
     public static final String KEY_ENCODER_DISABLE_B_FRAMES = "encoder_disable_b_frames";
     public static final String KEY_ENCODER_REALTIME_PRIORITY = "encoder_realtime_priority";
+    public static final String KEY_ENCODER_DYNAMIC_FRAME_RATE = "encoder_dynamic_frame_rate";
     public static final String KEY_STREAM_FEC_PERCENT = "stream_fec_percent";
     public static final String KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete";
     public static final int ENCODER_CODEC_H264 = 0;
@@ -165,6 +167,10 @@ public class Pref {
         return getBoolean(KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT, true);
     }
 
+    public static boolean getSmartisanCpusetBoost() {
+        return getBoolean(KEY_SMARTISAN_CPUSET_BOOST, true);
+    }
+
     public static int getEncoderCodec() {
         return getInt(KEY_ENCODER_CODEC, ENCODER_CODEC_H264);
     }
@@ -199,6 +205,10 @@ public class Pref {
 
     public static boolean getEncoderRealtimePriority() {
         return getBoolean(KEY_ENCODER_REALTIME_PRIORITY, true);
+    }
+
+    public static boolean getEncoderDynamicFrameRate() {
+        return getBoolean(KEY_ENCODER_DYNAMIC_FRAME_RATE, false);
     }
 
     public static int getStreamFecPercent() {

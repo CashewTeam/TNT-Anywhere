@@ -6,6 +6,7 @@
 
 // standard includes
 #include <functional>
+#include <string>
 
 // local includes
 #include "platform/common.h"
@@ -17,6 +18,8 @@ namespace input {
   void print(void *input);
   void reset(std::shared_ptr<input_t> &input);
   void passthrough(std::shared_ptr<input_t> &input, std::vector<std::uint8_t> &&input_data);
+  void reset_debug_stats();
+  [[nodiscard]] std::string collect_debug_summary();
 
   [[nodiscard]] std::unique_ptr<platf::deinit_t> init();
 

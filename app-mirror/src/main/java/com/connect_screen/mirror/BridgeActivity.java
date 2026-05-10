@@ -121,6 +121,11 @@ public class BridgeActivity extends AppCompatActivity {
                 Surface surface = holder.getSurface();
                 
                 if (State.mirrorVirtualDisplay == null) {
+                    if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
+                        State.log("SunshineService 运行期间阻止 BridgeActivity 创建 App 虚拟显示");
+                        finish();
+                        return;
+                    }
                     stopVirtualDisplay();
                     State.mirrorVirtualDisplay = CreateVirtualDisplay.createVirtualDisplay(args, surface);
                 } else {

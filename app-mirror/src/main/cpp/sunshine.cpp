@@ -16,6 +16,7 @@
 #include "stream.h"
 #include "rtsp.h"
 #include "audio.h"
+#include "input.h"
 #include "moonlight-common-c/src/Input.h"
 #include "video_colorspace.h"
 
@@ -40,6 +41,7 @@ static std::atomic_bool serverRunning {false};
 static std::thread audioRecordingThread;
 static std::atomic_bool audioRecordingActive {false};
 static std::atomic_bool stoppingVirtualDisplay {false};
+static std::atomic_long captureSessionCounter {0};
 static std::atomic_int encoderBitratePercent {100};
 static std::atomic_int encoderBitrateMode {2};
 static std::atomic_int encoderComplexity {5};
@@ -60,6 +62,8 @@ static jmethodID handleAbsMouseMoveMethod = nullptr;
 static jmethodID handleLeftMouseButtonMethod = nullptr;
 static jmethodID handleMouseScrollMethod = nullptr;
 static jmethodID updateStreamingDebugInfoMethod = nullptr;
+static jmethodID updateLastMoonlightHandshakeInfoMethod = nullptr;
+static jmethodID updateLastMoonlightControlInputInfoMethod = nullptr;
 
 // 在全局变量区域添加新的缓存变量
 static jclass sunshineKeyboardClass = nullptr;
@@ -83,6 +87,8 @@ static void resetJavaCaches(JNIEnv *env) {
     handleLeftMouseButtonMethod = nullptr;
     handleMouseScrollMethod = nullptr;
     updateStreamingDebugInfoMethod = nullptr;
+    updateLastMoonlightHandshakeInfoMethod = nullptr;
+    updateLastMoonlightControlInputInfoMethod = nullptr;
     handleKeyboardMethod = nullptr;
 }
 
@@ -151,6 +157,20 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
                 "(Ljava/lang/String;)V");
         if (!updateStreamingDebugInfoMethod) {
             BOOST_LOG(warning) << "无法缓存串流调试信息更新方法"sv;
+        }
+        updateLastMoonlightHandshakeInfoMethod = env->GetStaticMethodID(
+                sunshineServerClass,
+                "updateLastMoonlightHandshakeInfo",
+                "(Ljava/lang/String;)V");
+        if (!updateLastMoonlightHandshakeInfoMethod) {
+            BOOST_LOG(warning) << "无法缓存握手信息更新方法"sv;
+        }
+        updateLastMoonlightControlInputInfoMethod = env->GetStaticMethodID(
+                sunshineServerClass,
+                "updateLastMoonlightControlInputInfo",
+                "(Ljava/lang/String;)V");
+        if (!updateLastMoonlightControlInputInfoMethod) {
+            BOOST_LOG(warning) << "无法缓存控制输入统计更新方法"sv;
         }
         env->DeleteLocalRef(serverClass);
     } else {
@@ -299,6 +319,36 @@ static void callJavaStreamingDebugInfo(JNIEnv *env, const std::string &info) {
         return;
     }
     env->CallStaticVoidMethod(sunshineServerClass, updateStreamingDebugInfoMethod, jInfo);
+    env->DeleteLocalRef(jInfo);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+}
+
+static void callJavaLastMoonlightHandshakeInfo(JNIEnv *env, const std::string &info) {
+    if (sunshineServerClass == nullptr || updateLastMoonlightHandshakeInfoMethod == nullptr) {
+        return;
+    }
+    jstring jInfo = env->NewStringUTF(info.c_str());
+    if (jInfo == nullptr) {
+        return;
+    }
+    env->CallStaticVoidMethod(sunshineServerClass, updateLastMoonlightHandshakeInfoMethod, jInfo);
+    env->DeleteLocalRef(jInfo);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+}
+
+static void callJavaLastMoonlightControlInputInfo(JNIEnv *env, const std::string &info) {
+    if (sunshineServerClass == nullptr || updateLastMoonlightControlInputInfoMethod == nullptr) {
+        return;
+    }
+    jstring jInfo = env->NewStringUTF(info.c_str());
+    if (jInfo == nullptr) {
+        return;
+    }
+    env->CallStaticVoidMethod(sunshineServerClass, updateLastMoonlightControlInputInfoMethod, jInfo);
     env->DeleteLocalRef(jInfo);
     if (env->ExceptionCheck()) {
         env->ExceptionClear();
@@ -538,7 +588,7 @@ namespace sunshine_callbacks {
 
     }
 
-    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface, jboolean shouldMute) {
+    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface, jboolean shouldMute, jlong sessionId) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -549,13 +599,13 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;Z)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;ZJ)V");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface, shouldMute);
+        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface, shouldMute, sessionId);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -563,7 +613,42 @@ namespace sunshine_callbacks {
         }
     }
 
-    void stopVirtualDisplay() {
+    void startMoonlightAudioCapture(jint packetDuration, jboolean shouldMutePhone) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空，无法启动音频捕获"sv;
+            return;
+        }
+
+        if (sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer 类引用为空，无法启动音频捕获"sv;
+            return;
+        }
+
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
+            BOOST_LOG(error) << "无法附加到 Java 线程，无法启动音频捕获"sv;
+            return;
+        }
+
+        jmethodID startAudioCaptureMethod = env->GetStaticMethodID(
+                sunshineServerClass,
+                "startMoonlightAudioCapture",
+                "(IZ)V");
+        if (startAudioCaptureMethod == nullptr) {
+            BOOST_LOG(error) << "找不到 startMoonlightAudioCapture 方法"sv;
+            return;
+        }
+
+        env->CallStaticVoidMethod(sunshineServerClass, startAudioCaptureMethod, packetDuration, shouldMutePhone);
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+    }
+
+    void stopVirtualDisplay(jlong sessionId) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -587,14 +672,14 @@ namespace sunshine_callbacks {
             return;
         }
 
-        jmethodID stopVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "stopVirtualDisplay", "()V");
+        jmethodID stopVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "stopVirtualDisplay", "(J)V");
         if (stopVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 stopVirtualDisplay 方法"sv;
             stoppingVirtualDisplay = false;
             return;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, stopVirtualDisplayMethod);
+        env->CallStaticVoidMethod(sunshineServerClass, stopVirtualDisplayMethod, sessionId);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
@@ -634,13 +719,16 @@ namespace sunshine_callbacks {
 
     }
 
-    void captureVideoLoop(void *channel_data, safe::mail_t mail, const video::config_t& config, const audio::config_t& audioConfig) {
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
+    void captureVideoLoop(void *channel_data, safe::mail_t mail, const stream::config_t& streamConfig) {
+        const auto &config = streamConfig.monitor;
+        const auto &audioConfig = streamConfig.audio;
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
+        const auto moonlightSessionId = static_cast<jlong>(captureSessionCounter.fetch_add(1) + 1);
         auto shutdown_event = mail->event<bool>(mail::shutdown);
         auto idr_events = mail->event<bool>(mail::idr);
         // 添加更详细的客户端配置日志
@@ -675,6 +763,10 @@ namespace sunshine_callbacks {
         const auto configuredDisableBFrames = encoderDisableBFrames.load();
         const auto configuredRealtimePriority = encoderRealtimePriority.load();
         const auto configuredEncoderPriority = configuredRealtimePriority ? 0 : 1;
+        const auto avcMacroblocksPerFrame =
+                ((config.width + 15) / 16) * ((config.height + 15) / 16);
+        const auto avcMacroblocksPerSecond = avcMacroblocksPerFrame * encodeFrameRate;
+        int32_t configuredAvcLevel = 0;
         config::stream.fec_percentage = streamFecPercent.load();
         // 基本配置保持不变
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
@@ -708,7 +800,14 @@ namespace sunshine_callbacks {
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 65536); // HEVCMainTierLevel51
         } else {
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 0x200); // Level 4.2
+            if (avcMacroblocksPerSecond > 983040) {
+                configuredAvcLevel = 0x10000; // AVCLevel52
+            } else if (avcMacroblocksPerSecond > 522240) {
+                configuredAvcLevel = 0x8000; // AVCLevel51
+            } else {
+                configuredAvcLevel = 0x2000; // AVCLevel42
+            }
+            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, configuredAvcLevel);
         }
 
         // 设置色彩空间
@@ -762,7 +861,6 @@ namespace sunshine_callbacks {
         if (!codec) {
             BOOST_LOG(error) << "无法创建编码器"sv;
             AMediaFormat_delete(format);
-            jvm->DetachCurrentThread();
             return;
         }
         
@@ -774,7 +872,6 @@ namespace sunshine_callbacks {
             showEncoderError(errorMsg.c_str());
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
-            jvm->DetachCurrentThread();
             return;
         }
         
@@ -785,7 +882,6 @@ namespace sunshine_callbacks {
             BOOST_LOG(error) << "无法创建输入Surface，错误码: "sv << surfaceStatus;
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
-            jvm->DetachCurrentThread();
             return;
         }
         
@@ -795,7 +891,6 @@ namespace sunshine_callbacks {
             ANativeWindow_release(inputSurface);
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
-            jvm->DetachCurrentThread();
             return;
         }
         
@@ -803,7 +898,6 @@ namespace sunshine_callbacks {
         jobject javaSurface = ANativeWindow_toSurface(env, inputSurface);
         if (javaSurface == nullptr) {
             BOOST_LOG(error) << "无法将 ANativeWindow 转换为 Surface"sv;
-            jvm->DetachCurrentThread();
             ANativeWindow_release(inputSurface);
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
@@ -818,17 +912,72 @@ namespace sunshine_callbacks {
             BOOST_LOG(info) << "音频配置: 声音将在客户端(Moonlight)播放"sv;
         }
 
+        {
+            std::ostringstream handshake;
+            handshake << "Moonlight 握手摘要\n"
+                      << "Resolution: " << config.width << "x" << config.height << "\n"
+                      << "FPS: " << config.framerate << "\n"
+                      << "Codec: " << (config.videoFormat == 1 ? "HEVC" : (config.videoFormat == 2 ? "AV1" : "H.264")) << "\n"
+                      << "Client bitrate: " << config.requestedBitrate << " kbps\n"
+                      << "RTSP adjusted bitrate: " << config.bitrate << " kbps\n"
+                      << "Local encoder target: " << configuredBitrateKbps << " kbps (" << configuredBitratePercent << "%)\n"
+                      << "Chroma: " << (config.chromaSamplingType == 1 ? "YUV 4:4:4" : "YUV 4:2:0") << "\n"
+                      << "Dynamic range: " << (config.dynamicRange ? "HDR" : "SDR") << "\n"
+                      << "Encoder CSC mode: 0x" << std::hex << config.encoderCscMode << std::dec << "\n"
+                      << "Color standard/range/transfer: "
+                      << colorStandard << "/" << colorRange << "/" << colorTransfer << "\n"
+                      << "Audio route: " << (shouldMute ? "client" : "host") << "\n"
+                      << "Audio channels: " << audioConfig.channels << "\n"
+                      << "Audio packet duration: " << audioConfig.packetDuration << " ms\n"
+                      << "Packet size: " << streamConfig.packetsize << "\n"
+                      << "FEC percent/min packets: " << config::stream.fec_percentage
+                      << "% / " << streamConfig.minRequiredFecPackets << "\n"
+                      << "Control protocol: " << streamConfig.controlProtocolType << "\n"
+                      << "QoS audio/video: " << streamConfig.audioQosType << "/" << streamConfig.videoQosType;
+            callJavaLastMoonlightHandshakeInfo(env, handshake.str());
+        }
+        input::reset_debug_stats();
+
+        stream::video_debug_stats_t lastStreamStats {};
+        auto lastStreamStatsAt = std::chrono::steady_clock::now();
         auto buildDebugInfo = [&](const char *status,
                                   double actualFps,
                                   double encodedKbps,
                                   int64_t frames,
                                   int64_t keyFrames,
                                   uint64_t totalBytes,
-                                  int64_t noOutputMs) {
+                                  int64_t noOutputMs,
+                                  double maxOutputGapMs,
+                                  int64_t lateOutputFrames) {
+            auto streamStats = stream::getVideoDebugStats();
+            auto completedFrames = streamStats.sent_frames + streamStats.dropped_frames;
+            auto pendingFrames = streamStats.queued_frames > completedFrames
+                    ? streamStats.queued_frames - completedFrames
+                    : 0;
+            auto streamStatsAt = std::chrono::steady_clock::now();
+            auto streamStatsWindowSec = std::chrono::duration<double>(streamStatsAt - lastStreamStatsAt).count();
+            auto queuedWindow = streamStats.queued_frames - lastStreamStats.queued_frames;
+            auto droppedWindow = streamStats.dropped_frames - lastStreamStats.dropped_frames;
+            auto sentWindow = streamStats.sent_frames - lastStreamStats.sent_frames;
+            auto packetsWindow = streamStats.sent_packets - lastStreamStats.sent_packets;
+            auto bytesWindow = streamStats.sent_bytes - lastStreamStats.sent_bytes;
+            auto packetizeUsWindow = streamStats.packetize_us - lastStreamStats.packetize_us;
+            auto fecUsWindow = streamStats.fec_us - lastStreamStats.fec_us;
+            auto sendUsWindow = streamStats.send_us - lastStreamStats.send_us;
+            auto totalUsWindow = streamStats.total_us - lastStreamStats.total_us;
+            auto averageWindowMs = [sentWindow](uint64_t elapsedUs) -> double {
+                if (sentWindow == 0) {
+                    return 0.0;
+                }
+                return static_cast<double>(elapsedUs) / 1000.0 / sentWindow;
+            };
+            lastStreamStats = streamStats;
+            lastStreamStatsAt = streamStatsAt;
             std::ostringstream out;
             out << "Encoder config\n"
                 << "Status: " << status << "\n"
                 << "Codec: " << (config.videoFormat == 1 ? "HEVC" : "H.264") << "\n"
+                << "H.264 level: " << (configuredAvcLevel == 0x10000 ? "5.2" : configuredAvcLevel == 0x8000 ? "5.1" : configuredAvcLevel == 0x2000 ? "4.2" : "-") << "\n"
                 << "Size: " << config.width << "x" << config.height << "\n"
                 << "Client FPS: " << config.framerate << " / Encoder FPS: " << encodeFrameRate << "\n"
                 << "Target bitrate: " << configuredBitrateKbps << " kbps (" << configuredBitratePercent << "%)\n"
@@ -848,27 +997,45 @@ namespace sunshine_callbacks {
                 << "Encoded bitrate: " << encodedKbps << " kbps\n"
                 << "Frames: " << frames << " / Keyframes: " << keyFrames << "\n"
                 << "Encoded bytes: " << totalBytes << "\n"
-                << "No-output time: " << noOutputMs << " ms";
+                << "No-output time: " << noOutputMs << " ms\n"
+                << "Output gap max: " << maxOutputGapMs
+                << " ms / late frames: " << lateOutputFrames << "\n\n"
+                << "Pipeline (last " << streamStatsWindowSec << "s)\n"
+                << "Queue: pending=" << pendingFrames
+                << " queued=" << queuedWindow
+                << " sent=" << sentWindow
+                << " dropped=" << droppedWindow << "\n"
+                << "Last queue delay: " << streamStats.last_queue_delay_ms << " ms"
+                << " / Last sent frame: " << streamStats.last_frame_index << "\n"
+                << "Avg native cost: packetize=" << averageWindowMs(packetizeUsWindow) << " ms"
+                << " fec=" << averageWindowMs(fecUsWindow) << " ms"
+                << " send=" << averageWindowMs(sendUsWindow) << " ms"
+                << " total=" << averageWindowMs(totalUsWindow) << " ms\n"
+                << "Network payload: packets=" << packetsWindow
+                << " bytes=" << bytesWindow;
             return out.str();
         };
-        callJavaStreamingDebugInfo(env, buildDebugInfo("initializing", 0, 0, 0, 0, 0, 0));
+        auto controlInputDebugInfo = input::collect_debug_summary();
+        callJavaStreamingDebugInfo(env, buildDebugInfo("initializing", 0, 0, 0, 0, 0, 0, 0, 0));
+        callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
         
         // 调用 createVirtualDisplay 方法，传递 shouldMute 参数
-        createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute);
+        createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute, moonlightSessionId);
         
         // 启动编码器
         status = AMediaCodec_start(codec);
         if (status != AMEDIA_OK) {
             BOOST_LOG(error) << "无法启动编码器，错误码: "sv << status;
             env->DeleteLocalRef(javaSurface);
-            jvm->DetachCurrentThread();
             ANativeWindow_release(inputSurface);
             AMediaCodec_delete(codec);
             AMediaFormat_delete(format);
             return;
         }
         BOOST_LOG(info) << "MediaCodec 编码器已启动"sv;
-        callJavaStreamingDebugInfo(env, buildDebugInfo("running", 0, 0, 0, 0, 0, 0));
+        controlInputDebugInfo = input::collect_debug_summary();
+        callJavaStreamingDebugInfo(env, buildDebugInfo("running", 0, 0, 0, 0, 0, 0, 0, 0));
+        callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
         
         // 编码循环
         std::vector<uint8_t> codecConfigData;  // 用于存储完整的编解码器配置数据
@@ -880,6 +1047,10 @@ namespace sunshine_callbacks {
         auto lastOutputAt = std::chrono::steady_clock::now();
         auto lastNoOutputLogAt = lastOutputAt;
         auto lastStatsAt = lastOutputAt;
+        auto lastEncodedFrameAt = std::chrono::steady_clock::time_point {};
+        double intervalMaxOutputGapMs = 0.0;
+        int64_t intervalLateOutputFrames = 0;
+        const double outputFrameBudgetMs = 1000.0 / std::max(1, encodeFrameRate);
         
         while (!shutdown_event->peek()) {
             bool requested_idr_frame = false;
@@ -937,29 +1108,31 @@ namespace sunshine_callbacks {
                         bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
                         BOOST_LOG(verbose) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
                         frameIndex++;
+                        auto encodedFrameAt = std::chrono::steady_clock::now();
+                        if (lastEncodedFrameAt.time_since_epoch().count() != 0) {
+                            auto outputGapMs = std::chrono::duration<double, std::milli>(
+                                    encodedFrameAt - lastEncodedFrameAt).count();
+                            intervalMaxOutputGapMs = std::max(intervalMaxOutputGapMs, outputGapMs);
+                            if (outputGapMs > outputFrameBudgetMs * 1.5) {
+                                intervalLateOutputFrames++;
+                            }
+                        }
+                        lastEncodedFrameAt = encodedFrameAt;
                         size_t emittedFrameBytes = 0;
                         
                         if(isKeyFrame) {
                             keyFrameCount++;
                             // 对于关键帧，需要在数据前附加编解码器配置数据
                             if (!codecConfigData.empty()) {
-                                // 创建包含配置数据和关键帧的完整数据
-                                std::vector<uint8_t> frameData(codecConfigData.size() + bufferSize);
-                                std::memcpy(frameData.data(), codecConfigData.data(), codecConfigData.size());
-                                std::memcpy(frameData.data() + codecConfigData.size(), payload, bufferSize);
-
-                                BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << frameData.size();
-                                // 发送完整的关键帧数据
-                                emittedFrameBytes = frameData.size();
-                                stream::postFrame(std::move(frameData), frameIndex, true, channel_data);
+                                emittedFrameBytes = codecConfigData.size() + bufferSize;
+                                BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << emittedFrameBytes;
+                                stream::postFrame(codecConfigData.data(), codecConfigData.size(), payload, bufferSize, frameIndex, true, channel_data);
                             } else {
                                 BOOST_LOG(error) << "没有编解码器配置数据，无法发送完整关键帧"sv;
                             }
                         } else {
-                            std::vector<uint8_t> frameData(bufferSize);
-                            std::memcpy(frameData.data(), payload, bufferSize);
-                            emittedFrameBytes = frameData.size();
-                            stream::postFrame(std::move(frameData), frameIndex, false, channel_data);
+                            emittedFrameBytes = bufferSize;
+                            stream::postFrame(nullptr, 0, payload, bufferSize, frameIndex, false, channel_data);
                         }
                         if (emittedFrameBytes > 0) {
                             totalEncodedBytes += emittedFrameBytes;
@@ -970,15 +1143,22 @@ namespace sunshine_callbacks {
                                 double actualFps = (frameIndex - lastStatsFrameIndex) / statsElapsed;
                                 double encodedKbps = (intervalEncodedBytes * 8.0) / 1000.0 / statsElapsed;
                                 auto noOutputMs = std::chrono::duration_cast<std::chrono::milliseconds>(statsNow - lastOutputAt).count();
-                                callJavaStreamingDebugInfo(env, buildDebugInfo(
+                                controlInputDebugInfo = input::collect_debug_summary();
+                                auto debugInfo = buildDebugInfo(
                                         "running",
                                         actualFps,
                                         encodedKbps,
                                         frameIndex,
                                         keyFrameCount,
                                         totalEncodedBytes,
-                                        noOutputMs));
+                                        noOutputMs,
+                                        intervalMaxOutputGapMs,
+                                        intervalLateOutputFrames);
+                                callJavaStreamingDebugInfo(env, debugInfo);
+                                callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
                                 intervalEncodedBytes = 0;
+                                intervalMaxOutputGapMs = 0.0;
+                                intervalLateOutputFrames = 0;
                                 lastStatsFrameIndex = frameIndex;
                                 lastStatsAt = statsNow;
                             }
@@ -996,15 +1176,22 @@ namespace sunshine_callbacks {
                     auto statsElapsed = std::chrono::duration<double>(now - lastStatsAt).count();
                     double actualFps = statsElapsed > 0 ? (frameIndex - lastStatsFrameIndex) / statsElapsed : 0;
                     double encodedKbps = statsElapsed > 0 ? (intervalEncodedBytes * 8.0) / 1000.0 / statsElapsed : 0;
-                    callJavaStreamingDebugInfo(env, buildDebugInfo(
+                    controlInputDebugInfo = input::collect_debug_summary();
+                    auto debugInfo = buildDebugInfo(
                             "waiting for frames",
                             actualFps,
                             encodedKbps,
                             frameIndex,
                             keyFrameCount,
                             totalEncodedBytes,
-                            noOutputMs));
+                            noOutputMs,
+                            intervalMaxOutputGapMs,
+                            intervalLateOutputFrames);
+                    callJavaStreamingDebugInfo(env, debugInfo);
+                    callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
                     intervalEncodedBytes = 0;
+                    intervalMaxOutputGapMs = 0.0;
+                    intervalLateOutputFrames = 0;
                     lastStatsFrameIndex = frameIndex;
                     lastStatsAt = now;
                     lastNoOutputLogAt = now;
@@ -1027,15 +1214,20 @@ namespace sunshine_callbacks {
             }
         }
 
-        stopVirtualDisplay();
-        callJavaStreamingDebugInfo(env, buildDebugInfo(
+        stopVirtualDisplay(moonlightSessionId);
+        controlInputDebugInfo = input::collect_debug_summary();
+        auto debugInfo = buildDebugInfo(
                 "stopped",
                 0,
                 0,
                 frameIndex,
                 keyFrameCount,
                 totalEncodedBytes,
-                0));
+                0,
+                0,
+                0);
+        callJavaStreamingDebugInfo(env, debugInfo);
+        callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
         // 停止编码器
         AMediaCodec_stop(codec);
         
@@ -1046,11 +1238,12 @@ namespace sunshine_callbacks {
         
         // 清理 Java Surface 引用
         env->DeleteLocalRef(javaSurface);
-        jvm->DetachCurrentThread();
     }
 
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {
         samples = std::make_shared<audio::sample_queue_t::element_type>(30);
+        bool shouldMutePhone = !config.flags[audio::config_t::HOST_AUDIO];
+        startMoonlightAudioCapture(config.packetDuration, shouldMutePhone);
         std::thread encoderThread {audio::encodeThread, samples, config, channel_data};
 
         auto shutdown_event = mail->event<bool>(mail::shutdown);
@@ -1101,8 +1294,6 @@ namespace sunshine_callbacks {
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
-
-        jvm->DetachCurrentThread();
     }
 
     void callJavaOnAbsMouseMove(NV_ABS_MOUSE_MOVE_PACKET* packet) {
@@ -1116,9 +1307,9 @@ namespace sunshine_callbacks {
             return;
         }
 
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
@@ -1128,22 +1319,15 @@ namespace sunshine_callbacks {
         float y = util::endian::big(packet->y);
         float width = (float) util::endian::big(packet->width);
         float height = (float) util::endian::big(packet->height);
-        
-        BOOST_LOG(info) << "调用 Java 处理鼠标移动: "sv << x << ","sv << y << " 在 "sv << width << "*"sv << height << " 范围内";
-
         env->CallStaticVoidMethod(sunshineMouseClass, handleAbsMouseMoveMethod, x, y, width, height);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
-
-        jvm->DetachCurrentThread();
     }
 
     void callJavaOnMouseButton(std::uint8_t button, bool release) {
-        BOOST_LOG(info) << "on mouse button "sv << static_cast<int>(button) << " release "sv << release;
-        
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
             return;
@@ -1154,9 +1338,9 @@ namespace sunshine_callbacks {
             return;
         }
 
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
@@ -1173,13 +1357,9 @@ namespace sunshine_callbacks {
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
-
-        jvm->DetachCurrentThread();
     }
 
     void callJavaOnMouseScroll(int verticalAmount, int horizontalAmount) {
-        BOOST_LOG(info) << "on mouse scroll vertical "sv << verticalAmount << " horizontal "sv << horizontalAmount;
-
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 鎸囬拡涓虹┖"sv;
             return;
@@ -1190,9 +1370,9 @@ namespace sunshine_callbacks {
             return;
         }
 
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
             BOOST_LOG(error) << "鏃犳硶闄勫姞鍒?Java 绾跨▼"sv;
             return;
         }
@@ -1277,8 +1457,6 @@ namespace sunshine_callbacks {
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
-
-        jvm->DetachCurrentThread();
     }
 
     void callJavaOnKeyboard(uint16_t modcode, bool release, uint8_t flags) {
@@ -1292,9 +1470,9 @@ namespace sunshine_callbacks {
             return;
         }
 
-        JNIEnv *env;
-        jint result = jvm->AttachCurrentThread(&env, nullptr);
-        if (result != JNI_OK) {
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
             BOOST_LOG(error) << "无法附加到 Java 线程"sv;
             return;
         }
@@ -1309,7 +1487,5 @@ namespace sunshine_callbacks {
             env->ExceptionDescribe();
             env->ExceptionClear();
         }
-
-        jvm->DetachCurrentThread();
     }
 }

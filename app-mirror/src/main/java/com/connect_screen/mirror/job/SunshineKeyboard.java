@@ -22,6 +22,7 @@ import dev.rikka.tools.refine.Refine;
 
 public class SunshineKeyboard {
     private static String TAG = "SunshineKeyboard";
+    private static final boolean DEBUG_INPUT_EVENTS = false;
 
     /**
      * GFE's prefix for every key code
@@ -185,7 +186,9 @@ public class SunshineKeyboard {
                 lastFocusedDisplayId = targetDisplayId;
             }
         }
-        Log.d(TAG, "handleKeyboardEvent: " + modcode + " translated to " + keyEvent);
+        if (DEBUG_INPUT_EVENTS) {
+            Log.d(TAG, "handleKeyboardEvent: " + modcode + " translated to " + keyEvent);
+        }
         inputManager.injectInputEvent(keyEvent, 0);
     }
 

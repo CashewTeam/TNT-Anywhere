@@ -12,7 +12,10 @@ extern "C" {
 #include <bitset>
 #include <chrono>
 #include <cmath>
+#include <iomanip>
 #include <list>
+#include <mutex>
+#include <sstream>
 #include <thread>
 #include <unordered_map>
 
@@ -114,8 +117,198 @@ namespace input {
   static std::unordered_map<key_press_id_t, bool> key_press {};
   static std::array<std::uint8_t, 5> mouse_press {};
 
+  struct control_debug_bucket_t {
+    uint64_t keyboard_packets = 0;
+    uint64_t keyboard_down_packets = 0;
+    uint64_t keyboard_up_packets = 0;
+    uint64_t keyboard_keycode_ff_packets = 0;
+    uint64_t keyboard_action4_packets = 0;
+    uint64_t keyboard_ff_action4_packets = 0;
+    uint64_t abs_mouse_packets = 0;
+    uint64_t mouse_button_packets = 0;
+    uint64_t mouse_scroll_packets = 0;
+    uint64_t mouse_hscroll_packets = 0;
+    uint64_t touch_packets = 0;
+    uint64_t touch_down_packets = 0;
+    uint64_t touch_up_packets = 0;
+    uint64_t touch_move_packets = 0;
+    uint64_t touch_cancel_packets = 0;
+    uint64_t touch_cancel_all_packets = 0;
+    uint64_t touch_hover_packets = 0;
+    uint64_t controller_packets = 0;
+    uint64_t controller_touch_packets = 0;
+    uint64_t controller_motion_packets = 0;
+    uint64_t controller_arrival_packets = 0;
+    uint32_t last_keyboard_action = 0;
+    uint16_t last_keyboard_keycode = 0;
+    uint8_t last_keyboard_flags = 0;
+    uint8_t last_keyboard_modifiers = 0;
+    uint16_t last_touch_event_type = 0;
+    uint16_t last_touch_pointer_id = 0;
+  };
+
+  struct control_debug_state_t {
+    std::mutex lock;
+    std::chrono::steady_clock::time_point window_start = std::chrono::steady_clock::now();
+    control_debug_bucket_t raw_window {};
+    control_debug_bucket_t processed_window {};
+    std::string last_summary;
+  };
+
+  static control_debug_state_t control_debug_state {};
+
   static platf::input_t platf_input;
   static std::bitset<platf::MAX_GAMEPADS> gamepadMask {};
+
+  static void record_keyboard_packet(control_debug_bucket_t &bucket, PNV_KEYBOARD_PACKET packet) {
+    auto action = util::endian::little(packet->header.magic);
+    auto key_code = static_cast<uint16_t>(packet->keyCode & 0x00FF);
+    bucket.keyboard_packets++;
+    if (action == KEY_DOWN_EVENT_MAGIC) {
+      bucket.keyboard_down_packets++;
+    } else if (action == KEY_UP_EVENT_MAGIC) {
+      bucket.keyboard_up_packets++;
+    }
+    if (key_code == 0x00FF) {
+      bucket.keyboard_keycode_ff_packets++;
+    }
+    if (action == 0x00000004) {
+      bucket.keyboard_action4_packets++;
+    }
+    if (key_code == 0x00FF && action == 0x00000004) {
+      bucket.keyboard_ff_action4_packets++;
+    }
+    bucket.last_keyboard_action = action;
+    bucket.last_keyboard_keycode = key_code;
+    bucket.last_keyboard_flags = packet->flags;
+    bucket.last_keyboard_modifiers = packet->modifiers;
+  }
+
+  static void record_touch_packet(control_debug_bucket_t &bucket, PSS_TOUCH_PACKET packet) {
+    auto event_type = static_cast<uint16_t>(packet->eventType);
+    bucket.touch_packets++;
+    switch (event_type) {
+      case LI_TOUCH_EVENT_DOWN:
+        bucket.touch_down_packets++;
+        break;
+      case LI_TOUCH_EVENT_UP:
+        bucket.touch_up_packets++;
+        break;
+      case LI_TOUCH_EVENT_MOVE:
+        bucket.touch_move_packets++;
+        break;
+      case LI_TOUCH_EVENT_CANCEL:
+        bucket.touch_cancel_packets++;
+        break;
+      case LI_TOUCH_EVENT_CANCEL_ALL:
+        bucket.touch_cancel_all_packets++;
+        break;
+      case LI_TOUCH_EVENT_HOVER:
+        bucket.touch_hover_packets++;
+        break;
+      default:
+        break;
+    }
+    bucket.last_touch_event_type = event_type;
+    bucket.last_touch_pointer_id = util::endian::little(packet->pointerId);
+  }
+
+  static void record_packet(control_debug_bucket_t &bucket, PNV_INPUT_HEADER payload) {
+    switch (util::endian::little(payload->magic)) {
+      case MOUSE_MOVE_ABS_MAGIC:
+        bucket.abs_mouse_packets++;
+        break;
+      case MOUSE_BUTTON_DOWN_EVENT_MAGIC_GEN5:
+      case MOUSE_BUTTON_UP_EVENT_MAGIC_GEN5:
+        bucket.mouse_button_packets++;
+        break;
+      case SCROLL_MAGIC_GEN5:
+        bucket.mouse_scroll_packets++;
+        break;
+      case SS_HSCROLL_MAGIC:
+        bucket.mouse_hscroll_packets++;
+        break;
+      case KEY_DOWN_EVENT_MAGIC:
+      case KEY_UP_EVENT_MAGIC:
+        record_keyboard_packet(bucket, (PNV_KEYBOARD_PACKET) payload);
+        break;
+      case SS_TOUCH_MAGIC:
+        record_touch_packet(bucket, (PSS_TOUCH_PACKET) payload);
+        break;
+      case MULTI_CONTROLLER_MAGIC_GEN5:
+        bucket.controller_packets++;
+        break;
+      case SS_CONTROLLER_TOUCH_MAGIC:
+        bucket.controller_touch_packets++;
+        break;
+      case SS_CONTROLLER_MOTION_MAGIC:
+        bucket.controller_motion_packets++;
+        break;
+      case SS_CONTROLLER_ARRIVAL_MAGIC:
+        bucket.controller_arrival_packets++;
+        break;
+      default:
+        break;
+    }
+  }
+
+  void reset_debug_stats() {
+    std::lock_guard<std::mutex> lock(control_debug_state.lock);
+    control_debug_state.window_start = std::chrono::steady_clock::now();
+    control_debug_state.raw_window = {};
+    control_debug_state.processed_window = {};
+    control_debug_state.last_summary.clear();
+  }
+
+  std::string collect_debug_summary() {
+    std::lock_guard<std::mutex> lock(control_debug_state.lock);
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration<double>(now - control_debug_state.window_start).count();
+    if (elapsed <= 0.0) {
+      elapsed = 0.001;
+    }
+
+    const auto &raw = control_debug_state.raw_window;
+    const auto &processed = control_debug_state.processed_window;
+
+    std::ostringstream out;
+    out << "Control input (last " << std::fixed << std::setprecision(1) << elapsed << "s)\n"
+        << "Raw packets: key=" << raw.keyboard_packets
+        << " abs=" << raw.abs_mouse_packets
+        << " btn=" << raw.mouse_button_packets
+        << " scroll=" << (raw.mouse_scroll_packets + raw.mouse_hscroll_packets)
+        << " touch=" << raw.touch_packets
+        << " controller=" << (raw.controller_packets + raw.controller_touch_packets + raw.controller_motion_packets + raw.controller_arrival_packets) << "\n"
+        << "Processed: key=" << processed.keyboard_packets
+        << " abs=" << processed.abs_mouse_packets
+        << " btn=" << processed.mouse_button_packets
+        << " scroll=" << (processed.mouse_scroll_packets + processed.mouse_hscroll_packets)
+        << " touch=" << processed.touch_packets
+        << " controller=" << (processed.controller_packets + processed.controller_touch_packets + processed.controller_motion_packets + processed.controller_arrival_packets) << "\n"
+        << "Keyboard: down=" << processed.keyboard_down_packets
+        << " up=" << processed.keyboard_up_packets
+        << " ff=" << processed.keyboard_keycode_ff_packets
+        << " action4=" << processed.keyboard_action4_packets
+        << " ff+action4=" << processed.keyboard_ff_action4_packets
+        << " last=0x" << std::hex << processed.last_keyboard_keycode
+        << " action=0x" << processed.last_keyboard_action
+        << " flags=0x" << static_cast<int>(processed.last_keyboard_flags)
+        << " mods=0x" << static_cast<int>(processed.last_keyboard_modifiers) << std::dec << "\n"
+        << "Touch: down=" << processed.touch_down_packets
+        << " up=" << processed.touch_up_packets
+        << " move=" << processed.touch_move_packets
+        << " cancel=" << processed.touch_cancel_packets
+        << " all=" << processed.touch_cancel_all_packets
+        << " hover=" << processed.touch_hover_packets
+        << " last=0x" << std::hex << processed.last_touch_event_type
+        << " pointer=0x" << processed.last_touch_pointer_id << std::dec;
+
+    control_debug_state.last_summary = out.str();
+    control_debug_state.window_start = now;
+    control_debug_state.raw_window = {};
+    control_debug_state.processed_window = {};
+    return control_debug_state.last_summary;
+  }
 
   void free_gamepad(platf::input_t &platf_input, int id) {
 //    platf::gamepad_update(platf_input, id, platf::gamepad_state_t {});
@@ -587,39 +780,7 @@ namespace input {
      * input->mouse_left_button_timeout can only be nullptr
      * when the last mouse coordinates were absolute
      */
-    if (button == BUTTON_LEFT && release && !input->mouse_left_button_timeout) {
-      auto f = [=]() {
-        auto left_released = mouse_press[BUTTON_LEFT];
-        if (left_released) {
-          // Already released left button
-          return;
-        }
-        sunshine_callbacks::callJavaOnMouseButton(BUTTON_LEFT, release);
-//        platf::button_mouse(platf_input, BUTTON_LEFT, release);
-
-        mouse_press[BUTTON_LEFT] = false;
-        input->mouse_left_button_timeout = nullptr;
-      };
-
-      input->mouse_left_button_timeout = task_pool.pushDelayed(std::move(f), 10ms).task_id;
-
-      return;
-    }
-    if (
-      button == BUTTON_RIGHT && !release &&
-      input->mouse_left_button_timeout > DISABLE_LEFT_BUTTON_DELAY
-    ) {
-        sunshine_callbacks::callJavaOnMouseButton(BUTTON_RIGHT, false);
-        sunshine_callbacks::callJavaOnMouseButton(BUTTON_RIGHT, true);
-//      platf::button_mouse(platf_input, BUTTON_RIGHT, false);
-//      platf::button_mouse(platf_input, BUTTON_RIGHT, true);
-
-      mouse_press[BUTTON_RIGHT] = false;
-
-      return;
-    }
-
-      sunshine_callbacks::callJavaOnMouseButton(button, release);
+    sunshine_callbacks::callJavaOnMouseButton(button, release);
 //    platf::button_mouse(platf_input, button, release);
   }
 
@@ -735,6 +896,11 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
   void passthrough(std::shared_ptr<input_t> &input, PNV_KEYBOARD_PACKET packet) {
     if (!config::input.keyboard) {
       return;
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(control_debug_state.lock);
+      record_packet(control_debug_state.processed_window, (PNV_INPUT_HEADER) packet);
     }
 
     auto release = util::endian::little(packet->header.magic) == KEY_UP_EVENT_MAGIC;
@@ -1554,19 +1720,39 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
     switch (util::endian::little(payload->magic)) {
       case MOUSE_MOVE_REL_MAGIC_GEN5:
         passthrough(input, (PNV_REL_MOUSE_MOVE_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case MOUSE_MOVE_ABS_MAGIC:
         passthrough(input, (PNV_ABS_MOUSE_MOVE_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case MOUSE_BUTTON_DOWN_EVENT_MAGIC_GEN5:
       case MOUSE_BUTTON_UP_EVENT_MAGIC_GEN5:
         passthrough(input, (PNV_MOUSE_BUTTON_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SCROLL_MAGIC_GEN5:
         passthrough(input, (PNV_SCROLL_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_HSCROLL_MAGIC:
         passthrough(input, (PSS_HSCROLL_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case KEY_DOWN_EVENT_MAGIC:
       case KEY_UP_EVENT_MAGIC:
@@ -1577,24 +1763,52 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
         break;
       case MULTI_CONTROLLER_MAGIC_GEN5:
         passthrough(input, (PNV_MULTI_CONTROLLER_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_TOUCH_MAGIC:
         passthrough(input, (PSS_TOUCH_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_PEN_MAGIC:
         passthrough(input, (PSS_PEN_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_CONTROLLER_ARRIVAL_MAGIC:
         passthrough(input, (PSS_CONTROLLER_ARRIVAL_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_CONTROLLER_TOUCH_MAGIC:
         passthrough(input, (PSS_CONTROLLER_TOUCH_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_CONTROLLER_MOTION_MAGIC:
         passthrough(input, (PSS_CONTROLLER_MOTION_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
       case SS_CONTROLLER_BATTERY_MAGIC:
         passthrough(input, (PSS_CONTROLLER_BATTERY_PACKET) payload);
+        {
+          std::lock_guard<std::mutex> lock(control_debug_state.lock);
+          record_packet(control_debug_state.processed_window, payload);
+        }
         break;
     }
   }
@@ -1605,6 +1819,11 @@ sunshine_callbacks::callJavaOnKeyboard(VKEY_MENU, true, flags);
    * @param input_data The input message.
    */
   void passthrough(std::shared_ptr<input_t> &input, std::vector<std::uint8_t> &&input_data) {
+    auto payload = (PNV_INPUT_HEADER) input_data.data();
+    {
+      std::lock_guard<std::mutex> lock(control_debug_state.lock);
+      record_packet(control_debug_state.raw_window, payload);
+    }
     {
       std::lock_guard<std::mutex> lg(input->input_queue_lock);
       input->input_queue.push_back(std::move(input_data));

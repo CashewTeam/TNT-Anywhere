@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include <cstdint>
+
 // standard includes
 #include <utility>
 
@@ -39,6 +41,23 @@ namespace stream {
     std::optional<int> gcmap;
   };
 
+  struct video_debug_stats_t {
+    uint64_t queued_frames;
+    uint64_t dropped_frames;
+    uint64_t sent_frames;
+    uint64_t sent_packets;
+    uint64_t sent_bytes;
+    uint64_t packetize_us;
+    uint64_t fec_us;
+    uint64_t send_us;
+    uint64_t total_us;
+    int64_t last_frame_index;
+    int64_t last_queue_delay_ms;
+  };
+
+  video_debug_stats_t getVideoDebugStats();
+  void resetVideoDebugStats();
+  void postFrame(const uint8_t *prefix_data, size_t prefix_size, const uint8_t *frame_data, size_t frame_size, int64_t frame_index, bool idr, void* channel_data);
   void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr, void* channel_data);
 
   namespace session {

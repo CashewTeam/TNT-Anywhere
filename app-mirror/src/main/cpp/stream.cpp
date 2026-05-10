@@ -4,8 +4,11 @@
  */
 
 // standard includes
+#include <atomic>
+#include <cstring>
 #include <fstream>
 #include <future>
+#include <mutex>
 #include <queue>
 
 // lib includes
@@ -68,6 +71,100 @@ static const short packetTypes[] = {
   0x5502,  // Set RGB LED (Sunshine protocol extension)
 };
 
+namespace {
+  std::atomic<uint64_t> videoQueuedFrames {0};
+  std::atomic<uint64_t> videoDroppedFrames {0};
+  std::atomic<uint64_t> videoSentFrames {0};
+  std::atomic<uint64_t> videoSentPackets {0};
+  std::atomic<uint64_t> videoSentBytes {0};
+  std::atomic<uint64_t> videoPacketizeUs {0};
+  std::atomic<uint64_t> videoFecUs {0};
+  std::atomic<uint64_t> videoSendUs {0};
+  std::atomic<uint64_t> videoTotalUs {0};
+  std::atomic<int64_t> videoLastFrameIndex {0};
+  std::atomic<int64_t> videoLastQueueDelayUs {0};
+  std::mutex videoFramePoolMutex;
+  std::vector<std::vector<uint8_t>> videoFramePool;
+  size_t videoFramePoolBytes = 0;
+  constexpr size_t MAX_VIDEO_FRAME_POOL_BUFFERS = 32;
+  constexpr size_t MAX_VIDEO_FRAME_POOL_BYTES = 64 * 1024 * 1024;
+  constexpr size_t MAX_POOLED_VIDEO_FRAME_BYTES = 16 * 1024 * 1024;
+
+  uint64_t elapsed_us(const std::chrono::steady_clock::time_point &start,
+                      const std::chrono::steady_clock::time_point &end) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+  }
+
+  std::vector<uint8_t> acquire_video_frame_buffer(size_t size) {
+    std::lock_guard lock {videoFramePoolMutex};
+    auto best = videoFramePool.end();
+    for (auto it = videoFramePool.begin(); it != videoFramePool.end(); ++it) {
+      if (it->capacity() < size) {
+        continue;
+      }
+      if (best == videoFramePool.end() || it->capacity() < best->capacity()) {
+        best = it;
+      }
+    }
+    if (best == videoFramePool.end()) {
+      return std::vector<uint8_t>(size);
+    }
+
+    std::vector<uint8_t> buffer = std::move(*best);
+    videoFramePoolBytes -= buffer.capacity();
+    videoFramePool.erase(best);
+    buffer.resize(size);
+    return buffer;
+  }
+
+  void recycle_video_frame_buffer(std::vector<uint8_t> &&buffer) {
+    auto capacity = buffer.capacity();
+    if (capacity == 0 || capacity > MAX_POOLED_VIDEO_FRAME_BYTES) {
+      return;
+    }
+    buffer.clear();
+    std::lock_guard lock {videoFramePoolMutex};
+    if (videoFramePool.size() >= MAX_VIDEO_FRAME_POOL_BUFFERS ||
+        videoFramePoolBytes + capacity > MAX_VIDEO_FRAME_POOL_BYTES) {
+      return;
+    }
+    videoFramePoolBytes += capacity;
+    videoFramePool.emplace_back(std::move(buffer));
+  }
+
+  struct packet_raw_pooled: video::packet_raw_t {
+    packet_raw_pooled(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr):
+        frame_data {std::move(frame_data)},
+        index {frame_index},
+        idr {idr} {
+    }
+
+    ~packet_raw_pooled() override {
+      recycle_video_frame_buffer(std::move(frame_data));
+    }
+
+    bool is_idr() override {
+      return idr;
+    }
+
+    int64_t frame_index() override {
+      return index;
+    }
+
+    uint8_t *data() override {
+      return frame_data.data();
+    }
+
+    size_t data_size() override {
+      return frame_data.size();
+    }
+
+    std::vector<uint8_t> frame_data;
+    int64_t index;
+    bool idr;
+  };
+}
+
 namespace asio = boost::asio;
 namespace sys = boost::system;
 
@@ -77,6 +174,36 @@ using asio::ip::udp;
 using namespace std::literals;
 
 namespace stream {
+
+  video_debug_stats_t getVideoDebugStats() {
+    return {
+      videoQueuedFrames.load(std::memory_order_relaxed),
+      videoDroppedFrames.load(std::memory_order_relaxed),
+      videoSentFrames.load(std::memory_order_relaxed),
+      videoSentPackets.load(std::memory_order_relaxed),
+      videoSentBytes.load(std::memory_order_relaxed),
+      videoPacketizeUs.load(std::memory_order_relaxed),
+      videoFecUs.load(std::memory_order_relaxed),
+      videoSendUs.load(std::memory_order_relaxed),
+      videoTotalUs.load(std::memory_order_relaxed),
+      videoLastFrameIndex.load(std::memory_order_relaxed),
+      videoLastQueueDelayUs.load(std::memory_order_relaxed) / 1000,
+    };
+  }
+
+  void resetVideoDebugStats() {
+    videoQueuedFrames.store(0, std::memory_order_relaxed);
+    videoDroppedFrames.store(0, std::memory_order_relaxed);
+    videoSentFrames.store(0, std::memory_order_relaxed);
+    videoSentPackets.store(0, std::memory_order_relaxed);
+    videoSentBytes.store(0, std::memory_order_relaxed);
+    videoPacketizeUs.store(0, std::memory_order_relaxed);
+    videoFecUs.store(0, std::memory_order_relaxed);
+    videoSendUs.store(0, std::memory_order_relaxed);
+    videoTotalUs.store(0, std::memory_order_relaxed);
+    videoLastFrameIndex.store(0, std::memory_order_relaxed);
+    videoLastQueueDelayUs.store(0, std::memory_order_relaxed);
+  }
 
   enum class socket_e : int {
     video,  ///< Video
@@ -1270,6 +1397,11 @@ namespace stream {
         continue;
       }
 
+      auto frame_start = std::chrono::steady_clock::now();
+      if (packet->frame_timestamp) {
+        videoLastQueueDelayUs.store(elapsed_us(*packet->frame_timestamp, frame_start), std::memory_order_relaxed);
+      }
+
       auto lowseq = session->video.lowseq;
 
       std::string_view payload {(char *) packet->data(), packet->data_size()};
@@ -1315,11 +1447,18 @@ namespace stream {
       auto fecPercentage = config::stream.fec_percentage;
 
       // Insert space for packet headers
+      auto packetize_start = std::chrono::steady_clock::now();
       auto blocksize = session->config.packetsize + MAX_RTP_HEADER_SIZE;
       auto payload_blocksize = blocksize - sizeof(video_packet_raw_t);
       auto payload_new = concat_and_insert(sizeof(video_packet_raw_t), payload_blocksize, std::string_view {(char *) &frame_header, sizeof(frame_header)}, payload);
 
       payload = std::string_view {(char *) payload_new.data(), payload_new.size()};
+      auto packetize_end = std::chrono::steady_clock::now();
+      auto frame_packetize_us = elapsed_us(packetize_start, packetize_end);
+      uint64_t frame_fec_us = 0;
+      uint64_t frame_send_us = 0;
+      uint64_t frame_packets = 0;
+      uint64_t frame_bytes = 0;
 
       // There are 2 bits for FEC block count for a maximum of 4 FEC blocks
       constexpr auto MAX_FEC_BLOCKS = 4;
@@ -1422,7 +1561,9 @@ namespace stream {
 
           frame_fec_latency_logger.first_point_now();
           // If video encryption is enabled, we allocate space for the encryption header before each shard
+          auto fec_start = std::chrono::steady_clock::now();
           auto shards = fec::encode(current_payload, blocksize, fecPercentage, session->config.minRequiredFecPackets, session->video.cipher ? sizeof(video_packet_enc_prefix_t) : 0);
+          frame_fec_us += elapsed_us(fec_start, std::chrono::steady_clock::now());
           frame_fec_latency_logger.second_point_now_and_log();
 
           auto peer_address = session->video.peer.address();
@@ -1502,6 +1643,7 @@ namespace stream {
               batch_info.block_count = current_batch_size;
 
               frame_send_batch_latency_logger.first_point_now();
+              auto send_start = std::chrono::steady_clock::now();
               // Use a batched send if it's supported on this platform
               if (!platf::send_batch(batch_info)) {
                 // Batched send is not available, so send each packet individually
@@ -1521,6 +1663,7 @@ namespace stream {
                   platf::send(send_info);
                 }
               }
+              frame_send_us += elapsed_us(send_start, std::chrono::steady_clock::now());
               frame_send_batch_latency_logger.second_point_now_and_log();
 
               ratecontrol_group_packets_sent += current_batch_size;
@@ -1528,6 +1671,9 @@ namespace stream {
               next_shard_to_send = x + 1;
             }
           }
+
+          frame_packets += shards.size();
+          frame_bytes += shards.size() * (shards.blocksize + shards.prefixsize);
 
           // remember this in case the next frame comes immediately
           ratecontrol_next_frame_start = ratecontrol_frame_start +
@@ -1547,6 +1693,14 @@ namespace stream {
         });
 
         session->video.lowseq = lowseq;
+        videoSentFrames.fetch_add(1, std::memory_order_relaxed);
+        videoSentPackets.fetch_add(frame_packets, std::memory_order_relaxed);
+        videoSentBytes.fetch_add(frame_bytes, std::memory_order_relaxed);
+        videoPacketizeUs.fetch_add(frame_packetize_us, std::memory_order_relaxed);
+        videoFecUs.fetch_add(frame_fec_us, std::memory_order_relaxed);
+        videoSendUs.fetch_add(frame_send_us, std::memory_order_relaxed);
+        videoTotalUs.fetch_add(elapsed_us(frame_start, std::chrono::steady_clock::now()), std::memory_order_relaxed);
+        videoLastFrameIndex.store(packet->frame_index(), std::memory_order_relaxed);
       } catch (const std::exception &e) {
         BOOST_LOG(error) << "Broadcast video failed "sv << e.what();
         std::this_thread::sleep_for(100ms);
@@ -1827,12 +1981,43 @@ namespace stream {
     auto address = session->video.peer.address();
     session->video.qos = platf::enable_socket_qos(ref->video_sock.native_handle(), address, session->video.peer.port(), platf::qos_data_type_e::video, session->config.videoQosType != 0);
 
-      currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
+    resetVideoDebugStats();
+    currentSessionVideoQueue = mail::man->queue<video::packet_t>(mail::video_packets);
     BOOST_LOG(debug) << "Start capturing Video"sv;
-    sunshine_callbacks::captureVideoLoop(session, session->mail, session->config.monitor, session->config.audio);
+    sunshine_callbacks::captureVideoLoop(session, session->mail, session->config);
     currentSessionVideoQueue = {};
 //    video::capture(session->mail, session->config.monitor, session);
   }
+
+    void postFrame(const uint8_t *prefix_data, size_t prefix_size, const uint8_t *frame_data, size_t frame_size, int64_t frame_index, bool idr, void* channel_data)  {
+        auto session = static_cast<session_t *>(channel_data);
+        if (!session || session->state.load(std::memory_order_acquire) != session::state_e::RUNNING) {
+            return;
+        }
+        if (!currentSessionVideoQueue || frame_data == nullptr || frame_size == 0) {
+            return;
+        }
+
+        size_t total_size = prefix_size + frame_size;
+        auto buffer = acquire_video_frame_buffer(total_size);
+        if (prefix_data != nullptr && prefix_size > 0) {
+            std::memcpy(buffer.data(), prefix_data, prefix_size);
+        }
+        std::memcpy(buffer.data() + prefix_size, frame_data, frame_size);
+
+        auto packet = std::make_unique<packet_raw_pooled>(
+                std::move(buffer),
+                frame_index,
+                idr
+        );
+        packet->channel_data = channel_data;
+        packet->frame_timestamp = std::chrono::steady_clock::now();
+        auto dropped = currentSessionVideoQueue->raise(std::move(packet));
+        videoQueuedFrames.fetch_add(1, std::memory_order_relaxed);
+        if (dropped > 0) {
+            videoDroppedFrames.fetch_add(dropped, std::memory_order_relaxed);
+        }
+    }
 
     void postFrame(std::vector<uint8_t> &&frame_data, int64_t frame_index, bool idr, void* channel_data)  {
         auto session = static_cast<session_t *>(channel_data);
@@ -1840,13 +2025,18 @@ namespace stream {
             return;
         }
         if(currentSessionVideoQueue) {
-            auto packet = std::make_unique<video::packet_raw_generic>(
+            auto packet = std::make_unique<packet_raw_pooled>(
                     std::move(frame_data),
                     frame_index,
                     idr
             );
             packet->channel_data = channel_data;
-            currentSessionVideoQueue->raise(std::move(packet));
+            packet->frame_timestamp = std::chrono::steady_clock::now();
+            auto dropped = currentSessionVideoQueue->raise(std::move(packet));
+            videoQueuedFrames.fetch_add(1, std::memory_order_relaxed);
+            if (dropped > 0) {
+                videoDroppedFrames.fetch_add(dropped, std::memory_order_relaxed);
+            }
         }
     }
 

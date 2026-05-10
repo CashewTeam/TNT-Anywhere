@@ -51,7 +51,7 @@ namespace video {
             }
         }
 
-        colorspace.full_range = (config.encoderCscMode & 0x1);
+        colorspace.full_range = (config.encoderCscMode & 0x1) != 0;
 
         switch (config.dynamicRange) {
             case 0:

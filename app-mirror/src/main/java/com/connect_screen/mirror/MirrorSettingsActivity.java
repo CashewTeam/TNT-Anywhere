@@ -1,6 +1,8 @@
 package com.connect_screen.mirror;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -85,6 +87,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     private SwitchCompat encoderLowLatencyCheckbox;
     private SwitchCompat encoderDisableBFramesCheckbox;
     private SwitchCompat encoderRealtimePriorityCheckbox;
+    private SwitchCompat encoderDynamicFrameRateCheckbox;
     private TextView currentEncoderSettingsText;
     private boolean backupRootGranted;
     private boolean backupRootChecked;
@@ -112,6 +115,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         SwitchCompat useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
         SwitchCompat preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
         SwitchCompat disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
+        SwitchCompat smartisanCpusetBoostCheckbox = findViewById(R.id.smartisanCpusetBoostCheckbox);
         SwitchCompat useAndroidCursorOverlayCheckbox = findViewById(R.id.useAndroidCursorOverlayCheckbox);
         SwitchCompat mapMouseToTouchCheckbox = findViewById(R.id.mapMouseToTouchCheckbox);
         SwitchCompat disableAccessibilityCheckbox = findViewById(R.id.disableAccessibilityCheckbox);
@@ -129,6 +133,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         styleSwitch(useBlackImageCheckbox);
         styleSwitch(preventAutoLockCheckbox);
         styleSwitch(disableRemoteSubmixCheckbox);
+        styleSwitch(smartisanCpusetBoostCheckbox);
         styleSwitch(useAndroidCursorOverlayCheckbox);
         styleSwitch(mapMouseToTouchCheckbox);
         styleSwitch(disableAccessibilityCheckbox);
@@ -160,6 +165,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         useBlackImageCheckbox.setChecked(Pref.getUseBlackImage());
         preventAutoLockCheckbox.setChecked(Pref.getPreventAutoLock());
         disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
+        smartisanCpusetBoostCheckbox.setChecked(Pref.getSmartisanCpusetBoost());
         useAndroidCursorOverlayCheckbox.setChecked(Pref.getUseAndroidCursorOverlay());
         mapMouseToTouchCheckbox.setChecked(Pref.getMapMouseToTouch());
         disableAccessibilityCheckbox.setChecked(!Pref.getDisableAccessibility());
@@ -188,6 +194,12 @@ public class MirrorSettingsActivity extends AppCompatActivity {
 
         Button screenSettingsButton = findViewById(R.id.screenSettingsButton);
         screenSettingsButton.setOnClickListener(v -> startActivity(new Intent(this, ScreenSettingsActivity.class)));
+
+        Button viewRecentHandshakeButton = findViewById(R.id.viewRecentHandshakeButton);
+        viewRecentHandshakeButton.setOnClickListener(v -> showLastMoonlightHandshakeDialog());
+
+        Button viewRecentControlInputButton = findViewById(R.id.viewRecentControlInputButton);
+        viewRecentControlInputButton.setOnClickListener(v -> showLastMoonlightControlInputDialog());
 
         Button editTntOverlaySettingsButton = findViewById(R.id.editTntOverlaySettingsButton);
         editTntOverlaySettingsButton.setOnClickListener(v -> showTntOverlaySettingsDialog());
@@ -218,6 +230,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 preferences.edit().putBoolean(Pref.KEY_PREVENT_AUTO_LOCK, isChecked).apply());
         disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
+        smartisanCpusetBoostCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(Pref.KEY_SMARTISAN_CPUSET_BOOST, isChecked).apply();
+            if (SunshineService.getLifecycleState() == SunshineService.LifecycleState.RUNNING) {
+                SmartisanPerformanceHelper.updateStreamingBoost(
+                        isChecked,
+                        "settings toggle while Sunshine is running");
+            }
+        });
         useAndroidCursorOverlayCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_USE_ANDROID_CURSOR_OVERLAY, isChecked).apply());
         mapMouseToTouchCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
@@ -284,6 +304,43 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
 
         setupEncoderSettings();
+    }
+
+    private void showLastMoonlightHandshakeDialog() {
+        String handshakeInfo = State.lastMoonlightHandshakeInfo;
+        if (handshakeInfo == null || handshakeInfo.trim().isEmpty()) {
+            handshakeInfo = "尚无最近一次 Moonlight 连接握手信息";
+        }
+        showReadonlyDebugDialog("最近握手信息", handshakeInfo, "Moonlight 握手信息", "已复制握手信息");
+    }
+
+    private void showLastMoonlightControlInputDialog() {
+        String controlInputInfo = State.lastMoonlightControlInputInfo;
+        if (controlInputInfo == null || controlInputInfo.trim().isEmpty()) {
+            controlInputInfo = "尚无最近一次 Moonlight 控制输入统计";
+        }
+        showReadonlyDebugDialog("最近控制输入统计", controlInputInfo, "Moonlight 控制输入统计", "已复制控制输入统计");
+    }
+
+    private void showReadonlyDebugDialog(String title,
+                                         String content,
+                                         String clipLabel,
+                                         String copiedToastText) {
+        final String textToCopy = content;
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(content)
+                .setPositiveButton("关闭", null)
+                .setNeutralButton("复制", (dialog, which) -> {
+                    ClipboardManager clipboardManager =
+                            (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (clipboardManager != null) {
+                        clipboardManager.setPrimaryClip(
+                                ClipData.newPlainText(clipLabel, textToCopy));
+                        Toast.makeText(this, copiedToastText, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
     }
 
     @Override
@@ -589,11 +646,13 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         encoderLowLatencyCheckbox = findViewById(R.id.encoderLowLatencyCheckbox);
         encoderDisableBFramesCheckbox = findViewById(R.id.encoderDisableBFramesCheckbox);
         encoderRealtimePriorityCheckbox = findViewById(R.id.encoderRealtimePriorityCheckbox);
+        encoderDynamicFrameRateCheckbox = findViewById(R.id.encoderDynamicFrameRateCheckbox);
         currentEncoderSettingsText = findViewById(R.id.currentEncoderSettingsText);
 
         styleSwitch(encoderLowLatencyCheckbox);
         styleSwitch(encoderDisableBFramesCheckbox);
         styleSwitch(encoderRealtimePriorityCheckbox);
+        styleSwitch(encoderDynamicFrameRateCheckbox);
 
         String[] codecs = new String[]{
                 "H.264 / AVC - default",
@@ -640,6 +699,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, true)
                     .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, true)
                     .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, true)
+                    .putBoolean(Pref.KEY_ENCODER_DYNAMIC_FRAME_RATE, false)
                     .putInt(Pref.KEY_STREAM_FEC_PERCENT, 0)
                     .apply();
             loadEncoderSettingsIntoViews();
@@ -658,6 +718,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         encoderLowLatencyCheckbox.setChecked(Pref.getEncoderLowLatency());
         encoderDisableBFramesCheckbox.setChecked(Pref.getEncoderDisableBFrames());
         encoderRealtimePriorityCheckbox.setChecked(Pref.getEncoderRealtimePriority());
+        encoderDynamicFrameRateCheckbox.setChecked(Pref.getEncoderDynamicFrameRate());
 
         int codec = Pref.getEncoderCodec();
         for (int i = 0; i < ENCODER_CODEC_VALUES.length; i++) {
@@ -696,6 +757,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 .putBoolean(Pref.KEY_ENCODER_LOW_LATENCY, encoderLowLatencyCheckbox.isChecked())
                 .putBoolean(Pref.KEY_ENCODER_DISABLE_B_FRAMES, encoderDisableBFramesCheckbox.isChecked())
                 .putBoolean(Pref.KEY_ENCODER_REALTIME_PRIORITY, encoderRealtimePriorityCheckbox.isChecked())
+                .putBoolean(Pref.KEY_ENCODER_DYNAMIC_FRAME_RATE, encoderDynamicFrameRateCheckbox.isChecked())
                 .putInt(Pref.KEY_STREAM_FEC_PERCENT, parseClampedInt(streamFecPercentEditText, 0, 0, 50))
                 .apply();
         loadEncoderSettingsIntoViews();
@@ -727,13 +789,14 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
         String text = String.format(
                 Locale.US,
-                "Codec %s | Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | FEC %d%%",
+                "Codec %s | Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | Frame %s | FEC %d%%",
                 codecName,
                 Pref.getEncoderBitratePercent(),
                 modeName,
                 Pref.getEncoderComplexity(),
                 Pref.getEncoderIFrameInterval(),
                 Pref.getEncoderMaxFps(),
+                Pref.getEncoderDynamicFrameRate() ? "dynamic" : "fixed",
                 Pref.getStreamFecPercent());
         currentEncoderSettingsText.setText(text);
     }

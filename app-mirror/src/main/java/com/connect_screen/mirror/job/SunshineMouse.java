@@ -39,12 +39,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.lang.reflect.Method;
+import java.util.Locale;
 
 import dev.rikka.tools.refine.Refine;
 
 public class SunshineMouse {
     private static String TAG = "SunshineMouse";
-    public static AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
+    private static final boolean DEBUG_INPUT_EVENTS = false;
+    public static volatile AutoRotateAndScaleForMoonlight autoRotateAndScaleForMoonlight;
+    private static volatile ExternalDisplayFramePacer externalDisplayFramePacer;
+    private static volatile long externalDisplayFramePacerSessionId;
     private static IInputManager inputManager;
     private static float defaultDisplayWidth;
     private static float defaultDisplayHeight;
@@ -65,6 +69,7 @@ public class SunshineMouse {
     private static boolean leftMouseDown;
     private static long mouseDownTime;
     private static long mouseTouchDownTime;
+    private static long touchGestureDownTime;
     private static boolean mapMouseToTouch;
     private static Method setActionButtonMethod;
     private static int lastFocusedDisplayId = Integer.MIN_VALUE;
@@ -77,6 +82,36 @@ public class SunshineMouse {
     private static int cursorHotspotY;
     private static boolean useAndroidCursorOverlay;
     private static final int MOUSE_TOUCH_POINTER_ID = 0;
+    private static final Object touchInputDebugLock = new Object();
+    private static long touchInputDebugWindowStartMs;
+    private static long touchInputDebugLastCollectMs;
+    private static String lastTouchInputDebugLine = "";
+    private static final Map<Integer, Point> touchPacketDebugLastPoints = new HashMap<>();
+    private static float touchPacketDebugMinX;
+    private static float touchPacketDebugMaxX;
+    private static float touchPacketDebugMinY;
+    private static float touchPacketDebugMaxY;
+    private static long touchPacketMoveCount;
+    private static long touchPacketRepeatedMoveCount;
+    private static long touchPacketTinyMoveCount;
+    private static double touchPacketTotalStepPx;
+    private static double touchPacketMaxStepPx;
+    private static long touchPacketLastMoveAtMs;
+    private static double touchPacketTotalGapMs;
+    private static double touchPacketMaxGapMs;
+    private static long touchPacketGapOver33MsCount;
+    private static long touchPacketGapOver50MsCount;
+    private static Point injectedMoveDebugLastPoint;
+    private static long injectedMoveCount;
+    private static long injectedRepeatedMoveCount;
+    private static long injectedTinyMoveCount;
+    private static double injectedTotalStepPx;
+    private static double injectedMaxStepPx;
+    private static long injectedLastMoveAtMs;
+    private static double injectedTotalGapMs;
+    private static double injectedMaxGapMs;
+    private static long injectedGapOver33MsCount;
+    private static long injectedGapOver50MsCount;
 
     public static void initialize(int width, int height) {
         Context context = State.getContext();
@@ -101,7 +136,9 @@ public class SunshineMouse {
         leftMouseDown = false;
         mouseDownTime = 0;
         mouseTouchDownTime = 0;
+        touchGestureDownTime = 0;
         lastFocusedDisplayId = Integer.MIN_VALUE;
+        resetTouchInputDebugStats();
         pointers.clear();
         bufferedMove.clear();
         gesture.clear();
@@ -168,6 +205,105 @@ public class SunshineMouse {
         if (!singleAppMode) {
             State.log("镜像模式时 portraitMirrorWidth: " + portraitMirrorWidth + " portraitMirrorHeight: " + portraitMirrorHeight + " landscapeMirrorWidth: " + landscapeMirrorWidth + " landscapeMirrorHeight: " + landscapeMirrorHeight);
         }
+    }
+
+    public static String collectFramePacerDebugLine() {
+        ExternalDisplayFramePacer pacer = externalDisplayFramePacer;
+        return pacer != null ? pacer.collectDebugLine() : "";
+    }
+
+    public static String collectTouchInputDebugLine() {
+        synchronized (touchInputDebugLock) {
+            long now = SystemClock.uptimeMillis();
+            if (touchInputDebugWindowStartMs == 0) {
+                touchInputDebugWindowStartMs = now;
+            }
+            if (touchInputDebugLastCollectMs != 0 && now - touchInputDebugLastCollectMs < 100) {
+                return lastTouchInputDebugLine;
+            }
+            double elapsedSec = Math.max(0.001, (now - touchInputDebugWindowStartMs) / 1000.0);
+            double packetAvgStepPx = touchPacketMoveCount > 0 ? touchPacketTotalStepPx / touchPacketMoveCount : 0.0;
+            double injectedAvgStepPx = injectedMoveCount > 0 ? injectedTotalStepPx / injectedMoveCount : 0.0;
+            double packetAvgGapMs = touchPacketMoveCount > 1 ? touchPacketTotalGapMs / (touchPacketMoveCount - 1) : 0.0;
+            double injectedAvgGapMs = injectedMoveCount > 1 ? injectedTotalGapMs / (injectedMoveCount - 1) : 0.0;
+            float packetSpanX = touchPacketMoveCount > 0 ? touchPacketDebugMaxX - touchPacketDebugMinX : 0f;
+            float packetSpanY = touchPacketMoveCount > 0 ? touchPacketDebugMaxY - touchPacketDebugMinY : 0f;
+            lastTouchInputDebugLine = String.format(
+                    Locale.US,
+                    "Touch path (last %.1fs): packetMoves=%d repeated=%d tiny<1px=%d avgStep=%.2fpx maxStep=%.2fpx avgGap=%.1fms maxGap=%.1fms gap>33=%d gap>50=%d span=%.1fx%.1fpx injectedMoves=%d repeated=%d tiny<1px=%d avgStep=%.2fpx maxStep=%.2fpx avgGap=%.1fms maxGap=%.1fms gap>33=%d gap>50=%d",
+                    elapsedSec,
+                    touchPacketMoveCount,
+                    touchPacketRepeatedMoveCount,
+                    touchPacketTinyMoveCount,
+                    packetAvgStepPx,
+                    touchPacketMaxStepPx,
+                    packetAvgGapMs,
+                    touchPacketMaxGapMs,
+                    touchPacketGapOver33MsCount,
+                    touchPacketGapOver50MsCount,
+                    packetSpanX,
+                    packetSpanY,
+                    injectedMoveCount,
+                    injectedRepeatedMoveCount,
+                    injectedTinyMoveCount,
+                    injectedAvgStepPx,
+                    injectedMaxStepPx,
+                    injectedAvgGapMs,
+                    injectedMaxGapMs,
+                    injectedGapOver33MsCount,
+                    injectedGapOver50MsCount
+            );
+            touchInputDebugLastCollectMs = now;
+            touchInputDebugWindowStartMs = now;
+            touchPacketMoveCount = 0;
+            touchPacketRepeatedMoveCount = 0;
+            touchPacketTinyMoveCount = 0;
+            touchPacketTotalStepPx = 0.0;
+            touchPacketMaxStepPx = 0.0;
+            touchPacketTotalGapMs = 0.0;
+            touchPacketMaxGapMs = 0.0;
+            touchPacketGapOver33MsCount = 0;
+            touchPacketGapOver50MsCount = 0;
+            injectedMoveCount = 0;
+            injectedRepeatedMoveCount = 0;
+            injectedTinyMoveCount = 0;
+            injectedTotalStepPx = 0.0;
+            injectedMaxStepPx = 0.0;
+            injectedTotalGapMs = 0.0;
+            injectedMaxGapMs = 0.0;
+            injectedGapOver33MsCount = 0;
+            injectedGapOver50MsCount = 0;
+            touchPacketLastMoveAtMs = 0;
+            injectedLastMoveAtMs = 0;
+            if (!touchPacketDebugLastPoints.isEmpty()) {
+                Point anchor = touchPacketDebugLastPoints.values().iterator().next();
+                touchPacketDebugMinX = anchor.x;
+                touchPacketDebugMaxX = anchor.x;
+                touchPacketDebugMinY = anchor.y;
+                touchPacketDebugMaxY = anchor.y;
+            }
+            return lastTouchInputDebugLine;
+        }
+    }
+
+    public static void setExternalDisplayFramePacer(ExternalDisplayFramePacer pacer, long sessionId) {
+        externalDisplayFramePacer = pacer;
+        externalDisplayFramePacerSessionId = pacer != null ? sessionId : 0;
+    }
+
+    public static void stopExternalDisplayFramePacer(long sessionId, boolean force) {
+        ExternalDisplayFramePacer pacer = externalDisplayFramePacer;
+        if (pacer == null) {
+            return;
+        }
+        if (!force && externalDisplayFramePacerSessionId != sessionId) {
+            State.log("[ExternalDisplayFramePacer] skip stale cleanup, session="
+                    + sessionId + " active=" + externalDisplayFramePacerSessionId);
+            return;
+        }
+        externalDisplayFramePacer = null;
+        externalDisplayFramePacerSessionId = 0;
+        pacer.stop();
     }
 
 
@@ -388,6 +524,7 @@ public class SunshineMouse {
         // 根据屏幕旋转调整坐标
         Point point = translate(x, y);
         pointerId = pointerId % 10;
+        recordTouchPacketDebug(eventType, pointerId, point.x, point.y);
         switch (eventType) {
             case 0x01: // LI_TOUCH_EVENT_DOWN
                 handleTouchEventDown(pointerId, point.x, point.y);
@@ -446,8 +583,11 @@ public class SunshineMouse {
         }
 
         // 构造 MotionEvent
-        long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
+        if (isFirstPointer || touchGestureDownTime == 0) {
+            touchGestureDownTime = eventTime;
+        }
+        long downTime = touchGestureDownTime;
 
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointers.size()];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointers.size()];
@@ -738,7 +878,9 @@ public class SunshineMouse {
                 lastFocusedDisplayId = targetDisplayId;
             }
             inputManager.injectInputEvent(event, 0);
-            Log.d(TAG, prefix + ": " + event);
+            if (DEBUG_INPUT_EVENTS) {
+                Log.d(TAG, prefix + ": " + event);
+            }
         } else if (TouchpadAccessibilityService.getInstance() != null) {
             if ((event.getSource() & InputDevice.SOURCE_MOUSE) == InputDevice.SOURCE_MOUSE) {
                 return;
@@ -787,8 +929,8 @@ public class SunshineMouse {
         }
 
         // 构造 MotionEvent
-        long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
+        long downTime = touchGestureDownTime != 0 ? touchGestureDownTime : eventTime;
 
         // 创建包含所有活跃触摸点的属性数组
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointers.size()];
@@ -827,6 +969,9 @@ public class SunshineMouse {
         );
 
         pointers.remove(pointerId);
+        if (pointers.isEmpty()) {
+            touchGestureDownTime = 0;
+        }
 
         injectEvent("inject up", event);
     }
@@ -839,22 +984,27 @@ public class SunshineMouse {
             return;
         }
 
-        if (bufferedMove.contains(pointerId) || bufferedMove.size() == pointers.size()) {
-            bufferedMove.clear();
-            triggerTouchEventMove();
-        } else {
-            bufferedMove.add(pointerId);
-        }
-
         // 更新指针位置
         status.x = x;
         status.y = y;
+
+        if (pointers.size() == 1) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+            return;
+        }
+
+        bufferedMove.add(pointerId);
+        if (bufferedMove.size() >= pointers.size()) {
+            bufferedMove.clear();
+            triggerTouchEventMove();
+        }
     }
 
     private static void handleTouchEventCancelAll() {
         // 取消所有触摸事件
-        long downTime = SystemClock.uptimeMillis();
         long eventTime = SystemClock.uptimeMillis();
+        long downTime = touchGestureDownTime != 0 ? touchGestureDownTime : eventTime;
 
 
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointers.size()];
@@ -886,6 +1036,7 @@ public class SunshineMouse {
                 0
         );
         pointers.clear();
+        touchGestureDownTime = 0;
 
         injectEvent("inject cancel", event);
     }
@@ -894,8 +1045,10 @@ public class SunshineMouse {
         if (pointers.isEmpty()) {
             return;
         }
-        long downTime = SystemClock.uptimeMillis();
+        Point centroid = computeActiveTouchCentroid();
+        recordInjectedTouchMoveDebug(centroid.x, centroid.y);
         long eventTime = SystemClock.uptimeMillis();
+        long downTime = touchGestureDownTime != 0 ? touchGestureDownTime : eventTime;
 
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[pointers.size()];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointers.size()];
@@ -937,11 +1090,153 @@ public class SunshineMouse {
         }
         pointers.clear();
         bufferedMove.clear();
+        resetTouchInputDebugStats();
         gesture.clear();
         leftMouseDown = false;
         mouseDownTime = 0;
         mouseTouchDownTime = 0;
+        touchGestureDownTime = 0;
         singlePoint = null;
         lastFocusedDisplayId = Integer.MIN_VALUE;
+    }
+
+    private static void resetTouchInputDebugStats() {
+        synchronized (touchInputDebugLock) {
+            touchInputDebugWindowStartMs = SystemClock.uptimeMillis();
+            touchInputDebugLastCollectMs = 0;
+            lastTouchInputDebugLine = "";
+            touchPacketDebugLastPoints.clear();
+            touchPacketDebugMinX = 0f;
+            touchPacketDebugMaxX = 0f;
+            touchPacketDebugMinY = 0f;
+            touchPacketDebugMaxY = 0f;
+            touchPacketMoveCount = 0;
+            touchPacketRepeatedMoveCount = 0;
+            touchPacketTinyMoveCount = 0;
+            touchPacketTotalStepPx = 0.0;
+            touchPacketMaxStepPx = 0.0;
+            touchPacketLastMoveAtMs = 0;
+            touchPacketTotalGapMs = 0.0;
+            touchPacketMaxGapMs = 0.0;
+            touchPacketGapOver33MsCount = 0;
+            touchPacketGapOver50MsCount = 0;
+            injectedMoveDebugLastPoint = null;
+            injectedMoveCount = 0;
+            injectedRepeatedMoveCount = 0;
+            injectedTinyMoveCount = 0;
+            injectedTotalStepPx = 0.0;
+            injectedMaxStepPx = 0.0;
+            injectedLastMoveAtMs = 0;
+            injectedTotalGapMs = 0.0;
+            injectedMaxGapMs = 0.0;
+            injectedGapOver33MsCount = 0;
+            injectedGapOver50MsCount = 0;
+        }
+    }
+
+    private static void recordTouchPacketDebug(int eventType, int pointerId, float x, float y) {
+        synchronized (touchInputDebugLock) {
+            long now = SystemClock.uptimeMillis();
+            Point current = new Point();
+            current.x = x;
+            current.y = y;
+            if (touchPacketDebugLastPoints.isEmpty()) {
+                touchPacketDebugMinX = x;
+                touchPacketDebugMaxX = x;
+                touchPacketDebugMinY = y;
+                touchPacketDebugMaxY = y;
+            } else {
+                touchPacketDebugMinX = Math.min(touchPacketDebugMinX, x);
+                touchPacketDebugMaxX = Math.max(touchPacketDebugMaxX, x);
+                touchPacketDebugMinY = Math.min(touchPacketDebugMinY, y);
+                touchPacketDebugMaxY = Math.max(touchPacketDebugMaxY, y);
+            }
+            if (eventType == 0x03) {
+                touchPacketMoveCount++;
+                if (touchPacketLastMoveAtMs != 0) {
+                    double gapMs = now - touchPacketLastMoveAtMs;
+                    touchPacketTotalGapMs += gapMs;
+                    touchPacketMaxGapMs = Math.max(touchPacketMaxGapMs, gapMs);
+                    if (gapMs > 33.0) {
+                        touchPacketGapOver33MsCount++;
+                    }
+                    if (gapMs > 50.0) {
+                        touchPacketGapOver50MsCount++;
+                    }
+                }
+                touchPacketLastMoveAtMs = now;
+                Point previous = touchPacketDebugLastPoints.get(pointerId);
+                if (previous != null) {
+                    double dx = x - previous.x;
+                    double dy = y - previous.y;
+                    double distance = Math.hypot(dx, dy);
+                    touchPacketTotalStepPx += distance;
+                    touchPacketMaxStepPx = Math.max(touchPacketMaxStepPx, distance);
+                    if (distance < 0.01) {
+                        touchPacketRepeatedMoveCount++;
+                    }
+                    if (distance < 1.0) {
+                        touchPacketTinyMoveCount++;
+                    }
+                }
+            }
+            if (eventType == 0x07) {
+                touchPacketDebugLastPoints.clear();
+            } else if (eventType == 0x02 || eventType == 0x04) {
+                touchPacketDebugLastPoints.remove(pointerId);
+            } else {
+                touchPacketDebugLastPoints.put(pointerId, current);
+            }
+        }
+    }
+
+    private static void recordInjectedTouchMoveDebug(float x, float y) {
+        synchronized (touchInputDebugLock) {
+            long now = SystemClock.uptimeMillis();
+            injectedMoveCount++;
+            if (injectedLastMoveAtMs != 0) {
+                double gapMs = now - injectedLastMoveAtMs;
+                injectedTotalGapMs += gapMs;
+                injectedMaxGapMs = Math.max(injectedMaxGapMs, gapMs);
+                if (gapMs > 33.0) {
+                    injectedGapOver33MsCount++;
+                }
+                if (gapMs > 50.0) {
+                    injectedGapOver50MsCount++;
+                }
+            }
+            injectedLastMoveAtMs = now;
+            Point current = new Point();
+            current.x = x;
+            current.y = y;
+            if (injectedMoveDebugLastPoint != null) {
+                double dx = x - injectedMoveDebugLastPoint.x;
+                double dy = y - injectedMoveDebugLastPoint.y;
+                double distance = Math.hypot(dx, dy);
+                injectedTotalStepPx += distance;
+                injectedMaxStepPx = Math.max(injectedMaxStepPx, distance);
+                if (distance < 0.01) {
+                    injectedRepeatedMoveCount++;
+                }
+                if (distance < 1.0) {
+                    injectedTinyMoveCount++;
+                }
+            }
+            injectedMoveDebugLastPoint = current;
+        }
+    }
+
+    private static Point computeActiveTouchCentroid() {
+        Point centroid = new Point();
+        if (pointers.isEmpty()) {
+            return centroid;
+        }
+        for (Point point : pointers.values()) {
+            centroid.x += point.x;
+            centroid.y += point.y;
+        }
+        centroid.x /= pointers.size();
+        centroid.y /= pointers.size();
+        return centroid;
     }
 }

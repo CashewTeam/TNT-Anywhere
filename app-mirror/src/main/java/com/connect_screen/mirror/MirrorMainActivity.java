@@ -59,6 +59,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     SwitchCompat tntModeCheckbox;
     TextView versionTitle;
     TextView mirrorStatus;
+    TextView runtimeControlsHint;
     TextView streamingDebugPanel;
 
     @Override
@@ -151,6 +152,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         tntModeCheckbox = findViewById(R.id.tntModeCheckbox);
         versionTitle = findViewById(R.id.versionTitle);
         mirrorStatus = findViewById(R.id.mirrorStatus);
+        runtimeControlsHint = findViewById(R.id.runtimeControlsHint);
         streamingDebugPanel = findViewById(R.id.streamingDebugPanel);
         styleSwitch(tntModeCheckbox);
         if (versionTitle != null) {
@@ -228,10 +230,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     private void toggleSunshineService() {
         SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
         if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
-            State.log("手动启动 SunshineService");
-            SunshineService.markStarting();
-            refresh();
-            startMediaProjectionService();
+            State.startNewJob(new StartSunshineService());
             return;
         }
         if (lifecycleState == SunshineService.LifecycleState.STARTING
@@ -368,7 +367,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             tntDesktopBtn.setVisibility(View.VISIBLE);
             tntDesktopBtn.setText(getTntDesktopButtonText());
             tntModeCheckbox.setVisibility(View.VISIBLE);
+            if (runtimeControlsHint != null) {
+                runtimeControlsHint.setText("服务异常时不可使用熄屏和触摸控制。");
+            }
             screenOffBtn.setVisibility(View.GONE);
+            screenOffBtn.setEnabled(false);
             touchScreenBtn.setVisibility(View.GONE);
             updateServiceControls();
             return;
@@ -376,13 +379,17 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         mirrorStatus.setText(state.mirrorStatusText);
         mirrorStatus.setVisibility(View.VISIBLE);
+        if (runtimeControlsHint != null) {
+            runtimeControlsHint.setText(state.runtimeControlsHintText);
+        }
         settingsBtn.setVisibility(state.settingsBtnVisibility ? View.VISIBLE : View.GONE);
         exitBtn.setVisibility(View.VISIBLE);
         tntDesktopBtn.setVisibility(state.tntDesktopButtonVisibility ? View.VISIBLE : View.GONE);
         tntDesktopBtn.setText(state.tntDesktopButtonText);
         tntModeCheckbox.setVisibility(View.VISIBLE);
-        screenOffBtn.setText("熄屏");
+        screenOffBtn.setText(state.screenOffBtnText != null ? state.screenOffBtnText : "熄屏");
         screenOffBtn.setVisibility(state.screenOffBtnVisibility ? View.VISIBLE : View.GONE);
+        screenOffBtn.setEnabled(state.screenOffBtnEnabled);
         touchScreenBtn.setVisibility(state.touchScreenBtnVisibility ? View.VISIBLE : View.GONE);
         if (state.touchScreenBtnVisibility && state.touchScreenBtnText != null) {
             touchScreenBtn.setText(state.touchScreenBtnText);
@@ -412,27 +419,39 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         newUiState.settingsBtnVisibility = true;
         newUiState.tntDesktopButtonVisibility = true;
         newUiState.tntDesktopButtonText = getTntDesktopButtonText();
+        newUiState.screenOffBtnText = "熄屏";
+        newUiState.runtimeControlsHintText = "已启动服务后，可继续使用熄屏和触摸控制。";
 
         SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
         if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
             newUiState.mirrorStatusText = "Sunshine 服务未启动，请点击启动服务";
             newUiState.screenOffBtnVisibility = false;
+            newUiState.screenOffBtnEnabled = false;
             newUiState.touchScreenBtnVisibility = false;
+            newUiState.runtimeControlsHintText = "启动服务后，这里会显示熄屏和触摸控制。";
         } else if (lifecycleState == SunshineService.LifecycleState.STARTING) {
             newUiState.mirrorStatusText = "Sunshine 服务正在启动，请稍候";
             newUiState.screenOffBtnVisibility = false;
+            newUiState.screenOffBtnEnabled = false;
             newUiState.touchScreenBtnVisibility = false;
+            newUiState.runtimeControlsHintText = "服务启动中，熄屏和触摸控制稍后可用。";
         } else if (lifecycleState == SunshineService.LifecycleState.STOPPING) {
             newUiState.mirrorStatusText = "Sunshine 服务正在停止，请稍候";
             newUiState.screenOffBtnVisibility = false;
+            newUiState.screenOffBtnEnabled = false;
             newUiState.touchScreenBtnVisibility = false;
+            newUiState.runtimeControlsHintText = "服务停止中，熄屏和触摸控制暂不可用。";
         } else if (isScreenMirroring) {
             newUiState.mirrorStatusText = "Sunshine Host 运行中。建议在系统设置中为 TNT Anywhere 关闭省电限制，并在任务列表中锁定任务防止被杀。控制链路推荐使用 Shizuku。";
-            newUiState.screenOffBtnVisibility = ShizukuUtils.hasPermission();
+            newUiState.screenOffBtnVisibility = true;
+            newUiState.screenOffBtnEnabled = ShizukuUtils.hasPermission();
             newUiState.touchScreenBtnVisibility = singleAppMode;
             if (singleAppMode) {
                 newUiState.touchScreenBtnText = useTouchscreen ? "触摸屏" : "触控板";
             }
+            newUiState.runtimeControlsHintText = ShizukuUtils.hasPermission()
+                    ? "串流已建立，可直接使用熄屏和触摸控制。"
+                    : "串流已建立，但熄屏需要先授权 Shizuku。";
         } else {
             StringBuilder status = new StringBuilder(
                     "Sunshine Host 已启动，等待 Moonlight 客户端连接。\n可在 Moonlight 中搜索 TNT Anywhere，或手动输入下方 IP。");
@@ -444,8 +463,12 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
                 // ignore
             }
             newUiState.mirrorStatusText = status.toString();
-            newUiState.screenOffBtnVisibility = false;
+            newUiState.screenOffBtnVisibility = true;
+            newUiState.screenOffBtnEnabled = false;
             newUiState.touchScreenBtnVisibility = false;
+            newUiState.runtimeControlsHintText = ShizukuUtils.hasPermission()
+                    ? "连接客户端后可使用熄屏。"
+                    : "熄屏需要先授权 Shizuku；连接客户端后可用。";
         }
 
         State.uiState.setValue(newUiState);

@@ -25,6 +25,7 @@ namespace video {
     int height;  // Video height in pixels
     int framerate;  // Requested framerate, used in individual frame bitrate budget calculation
     int bitrate;  // Video bitrate in kilobits (1000 bits) for requested framerate
+    int requestedBitrate;  // Client requested video bitrate before server-side adjustments
     int slicesPerFrame;  // Number of slices per frame
     int numRefFrames;  // Max number of reference frames
 

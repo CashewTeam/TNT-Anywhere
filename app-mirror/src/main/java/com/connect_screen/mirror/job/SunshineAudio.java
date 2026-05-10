@@ -15,42 +15,53 @@ import android.os.RemoteException;
 
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
 
 public class SunshineAudio {
     private static boolean isMuted = false;
     private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
-    public static boolean sendAudio(Context context, int packetDuration) throws YieldException {
+    public static void startClientAudioCapture(Context context, int packetDuration, boolean shouldMutePhone) {
+        boolean started = false;
         if (shouldUseShizukuAudio()) {
             int framesPerPacket = (int) (48000 * packetDuration / 1000.0f);
             AudioRecordProxy audioRecordProxy = new AudioRecordProxy();
             if (!startRecording()) {
-                State.log("启动录音失败");
-                return true;
-            }
-            SunshineServer.startAudioRecording(audioRecordProxy, framesPerPacket);
-        } else {
-            if (sendAudioUseNormalPermission(context, packetDuration)) {
-                return true;
-            }
-            // 检查音频设置权限
-            if (context.checkSelfPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                State.log("没有音频控制权限，无法静音");
-            }
-            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-            if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
-                isMuted = true;
-                State.log("应客户端的请求对手机静音");
-                // 注册音量变化监听器
-                registerVolumeChangeListener(context, audioManager);
+                State.log("Shizuku REMOTE_SUBMIX 启动失败，尝试普通系统音频捕获");
             } else {
-                State.log("静音设置未成功");
+                SunshineServer.startAudioRecording(audioRecordProxy, framesPerPacket);
+                State.log("Shizuku REMOTE_SUBMIX 音频捕获已启动");
+                started = true;
             }
-            return false;
         }
-        return false;
+        if (!started) {
+            started = startAudioUseNormalPermission(context, packetDuration);
+        }
+
+        if (!started) {
+            State.log("Moonlight 音频捕获未启动，继续视频串流");
+            return;
+        }
+        if (shouldMutePhone) {
+            mutePhoneSpeaker(context);
+        } else {
+            State.log("客户端请求保留手机端播放，不静音手机扬声器");
+        }
+    }
+
+    private static void mutePhoneSpeaker(Context context) {
+        if (context.checkSelfPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            State.log("没有音频控制权限，无法静音");
+        }
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+        if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
+            isMuted = true;
+            State.log("应客户端的请求对手机静音");
+            // 注册音量变化监听器
+            registerVolumeChangeListener(context, audioManager);
+        } else {
+            State.log("静音设置未成功");
+        }
     }
 
     // 添加注册音量变化监听器的方法
@@ -59,7 +70,7 @@ public class SunshineAudio {
         // 创建音频焦点变化监听器
         volumeChangeListener = focusChange -> {
             // 如果还在投屏且应该保持静音状态，检查并重新设置静音
-            if (State.mirrorVirtualDisplay != null && isMuted) {
+            if (isMuted) {
                 checkAndRestoreMute();
             }
         };
@@ -78,7 +89,7 @@ public class SunshineAudio {
                     public void onChange(boolean selfChange) {
                         super.onChange(selfChange);
                         // 如果还在投屏且应该保持静音状态，检查并重新设置静音
-                        if (State.mirrorVirtualDisplay != null && isMuted) {
+                        if (isMuted) {
                             checkAndRestoreMute();
                         }
                     }
@@ -103,7 +114,7 @@ public class SunshineAudio {
         if (Pref.getDisableRemoteSubmix()) {
             return false;
         }
-        return State.userService != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S;
+        return State.isUserServiceAlive();
     }
 
     private static boolean startRecording() {
@@ -114,7 +125,7 @@ public class SunshineAudio {
         }
     }
 
-    private static boolean sendAudioUseNormalPermission(Context context, int packetDuration) throws YieldException {
+    private static boolean startAudioUseNormalPermission(Context context, int packetDuration) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
             State.log("安卓版本太低，无法录音");
             return false;
@@ -157,12 +168,12 @@ public class SunshineAudio {
 
             // 将 AudioRecord 传递给 SunshineServer 进行处理
             SunshineServer.startAudioRecording(audioRecord, framesPerPacket);
+            return true;
 
         } else {
             State.log("未授予录音权限，跳过音频捕获并继续视频串流");
             return false;
         }
-        return false;
     }
 
     public static void restoreVolume(Context context) {

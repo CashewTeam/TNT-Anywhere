@@ -109,6 +109,11 @@ public class MirrorDisplayMonitor {
         if (Pref.getSkipExternalActivity()) {
             return;
         }
+        if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
+            State.log("SunshineService 运行期间忽略新增显示器，避免触发旧镜像链路创建 App 虚拟显示: id="
+                    + display.getDisplayId() + " name=" + display.getName());
+            return;
+        }
         State.startNewJob(new ProjectViaMirror(display));
         handleDisableUsbAudio(context);
     }

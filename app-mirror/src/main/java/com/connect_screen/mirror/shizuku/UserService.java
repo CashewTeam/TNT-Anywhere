@@ -3,6 +3,10 @@ package com.connect_screen.mirror.shizuku;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.display.IDisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -40,6 +44,9 @@ public class UserService extends IUserService.Stub  {
     private float[] buffer;
     private VirtualDisplay mirrorVirtualDisplay;
     private IBinder mirrorExternalToken;
+    private volatile boolean screenshotMirrorRunning;
+    private Thread screenshotMirrorThread;
+    private Surface screenshotMirrorSurface;
 
     public UserService() {
         Ln.i("Start UserService without context: " + android.os.Process.myUid());
@@ -58,6 +65,11 @@ public class UserService extends IUserService.Stub  {
     public void destroy() {
         Log.i("UserService", "destroy");
         stopListenVolumeKey();
+        try {
+            stopDisplayScreenshotMirror();
+        } catch (RemoteException e) {
+            // local binder call; ignore
+        }
         setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
         if (audioRecord != null) {
             audioRecord.stop();
@@ -412,7 +424,7 @@ public class UserService extends IUserService.Stub  {
             layerStack = getLayerStackFromDumpsys(displayIdToMirror);
             Ln.d("createExternalMirror [API30] layerStack from dumpsys=" + layerStack);
         }
-        if (layerStack <= 0) {
+        if (layerStack < 0) {
             Ln.e("createExternalMirror [API30]: layerStack=" + layerStack);
             return -1;
         }
@@ -552,6 +564,7 @@ public class UserService extends IUserService.Stub  {
     @Override
     public void destroyExternalMirror() throws RemoteException {
         Ln.i("destroyExternalMirror");
+        stopDisplayScreenshotMirror();
         if (mirrorVirtualDisplay != null) {
             mirrorVirtualDisplay.release();
             mirrorVirtualDisplay = null;
@@ -559,6 +572,204 @@ public class UserService extends IUserService.Stub  {
         if (mirrorExternalToken != null) {
             SurfaceControl.destroyDisplay(mirrorExternalToken);
             mirrorExternalToken = null;
+        }
+    }
+
+    @Override
+    public int startDisplayScreenshotMirror(int width, int height, int displayIdToMirror, Surface surface, int fps) throws RemoteException {
+        Ln.i("startDisplayScreenshotMirror: displayId=" + displayIdToMirror
+                + " size=" + width + "x" + height + " fps=" + fps + " surface=" + surface);
+        if (surface == null || !surface.isValid()) {
+            Ln.e("startDisplayScreenshotMirror: invalid surface");
+            return -1;
+        }
+        stopDisplayScreenshotMirror();
+        IDisplayManager dm = IDisplayManager.Stub.asInterface(
+                SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE));
+        android.view.DisplayInfo displayInfo;
+        try {
+            displayInfo = dm.getDisplayInfo(displayIdToMirror);
+        } catch (Throwable e) {
+            Ln.e("startDisplayScreenshotMirror: getDisplayInfo failed", e);
+            return -1;
+        }
+        if (displayInfo == null) {
+            Ln.e("startDisplayScreenshotMirror: display info is null for " + displayIdToMirror);
+            return -1;
+        }
+        Rect sourceRect = getSourceDisplayRect(displayInfo, width, height);
+        Rect displayRect = getAspectFitRect(sourceRect, width, height);
+        IBinder displayToken = getDisplayToken();
+        if (displayToken == null) {
+            Ln.e("startDisplayScreenshotMirror: display token is null");
+            return -1;
+        }
+
+        int safeFps = Math.max(1, Math.min(60, fps));
+        long frameIntervalMs = Math.max(1, 1000L / safeFps);
+        screenshotMirrorSurface = surface;
+        screenshotMirrorRunning = true;
+        screenshotMirrorThread = new Thread(() -> runScreenshotMirrorLoop(
+                displayToken,
+                sourceRect,
+                displayRect,
+                width,
+                height,
+                frameIntervalMs), "TNTAnywhere-ScreenshotMirror");
+        screenshotMirrorThread.start();
+        return 0;
+    }
+
+    @Override
+    public void stopDisplayScreenshotMirror() throws RemoteException {
+        screenshotMirrorRunning = false;
+        Thread thread = screenshotMirrorThread;
+        screenshotMirrorThread = null;
+        if (thread != null) {
+            try {
+                thread.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        screenshotMirrorSurface = null;
+    }
+
+    private void runScreenshotMirrorLoop(
+            IBinder displayToken,
+            Rect sourceRect,
+            Rect displayRect,
+            int width,
+            int height,
+            long frameIntervalMs) {
+        Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        Rect fullRect = new Rect(0, 0, width, height);
+        long nextFrameAt = android.os.SystemClock.uptimeMillis();
+        while (screenshotMirrorRunning) {
+            Bitmap bitmap = null;
+            Canvas canvas = null;
+            try {
+                bitmap = captureDisplayBitmap(displayToken, sourceRect, width, height);
+                Surface surface = screenshotMirrorSurface;
+                if (bitmap != null && surface != null && surface.isValid()) {
+                    canvas = surface.lockCanvas(null);
+                    canvas.drawColor(Color.BLACK);
+                    canvas.drawBitmap(bitmap, null, displayRect == null ? fullRect : displayRect, paint);
+                }
+            } catch (Throwable e) {
+                Ln.e("screenshot mirror frame failed", e);
+                sleepQuietly(200);
+            } finally {
+                Surface surface = screenshotMirrorSurface;
+                if (canvas != null && surface != null && surface.isValid()) {
+                    try {
+                        surface.unlockCanvasAndPost(canvas);
+                    } catch (Throwable e) {
+                        Ln.e("screenshot mirror unlock failed", e);
+                    }
+                }
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
+            }
+            nextFrameAt += frameIntervalMs;
+            long delay = nextFrameAt - android.os.SystemClock.uptimeMillis();
+            if (delay > 0) {
+                sleepQuietly(delay);
+            } else {
+                nextFrameAt = android.os.SystemClock.uptimeMillis();
+            }
+        }
+    }
+
+    private Bitmap captureDisplayBitmap(IBinder displayToken, Rect sourceRect, int width, int height) throws Exception {
+        Class<?> surfaceControlClass = Class.forName("android.view.SurfaceControl");
+        Throwable lastError = null;
+        try {
+            Method method = surfaceControlClass.getMethod("screenshot", Rect.class, int.class, int.class, int.class);
+            Object result = method.invoke(null, sourceRect, width, height, 0);
+            Bitmap bitmap = bitmapFromScreenshotResult(result);
+            if (bitmap != null) {
+                return bitmap;
+            }
+        } catch (Throwable e) {
+            lastError = e;
+        }
+        try {
+            Method method = surfaceControlClass.getMethod("screenshot", IBinder.class, Rect.class, int.class, int.class);
+            Object result = method.invoke(null, displayToken, sourceRect, width, height);
+            Bitmap bitmap = bitmapFromScreenshotResult(result);
+            if (bitmap != null) {
+                return bitmap;
+            }
+        } catch (Throwable e) {
+            lastError = e;
+        }
+        try {
+            Object args = buildDisplayCaptureArgs(displayToken, sourceRect, width, height);
+            Method method = surfaceControlClass.getMethod("captureDisplay", args.getClass());
+            Object result = method.invoke(null, args);
+            Bitmap bitmap = bitmapFromScreenshotResult(result);
+            if (bitmap != null) {
+                return bitmap;
+            }
+        } catch (Throwable e) {
+            lastError = e;
+        }
+        throw new IllegalStateException("No supported SurfaceControl screenshot API", lastError);
+    }
+
+    private Object buildDisplayCaptureArgs(IBinder displayToken, Rect sourceRect, int width, int height) throws Exception {
+        Class<?> builderClass = Class.forName("android.view.SurfaceControl$DisplayCaptureArgs$Builder");
+        Object builder = builderClass.getConstructor(IBinder.class).newInstance(displayToken);
+        tryInvoke(builder, "setSourceCrop", new Class[]{Rect.class}, new Object[]{sourceRect});
+        tryInvoke(builder, "setSize", new Class[]{int.class, int.class}, new Object[]{width, height});
+        tryInvoke(builder, "setUseIdentityTransform", new Class[]{boolean.class}, new Object[]{true});
+        return builderClass.getMethod("build").invoke(builder);
+    }
+
+    private void tryInvoke(Object target, String name, Class<?>[] types, Object[] args) {
+        try {
+            target.getClass().getMethod(name, types).invoke(target, args);
+        } catch (Throwable e) {
+            // API-level dependent option; ignore if unavailable.
+        }
+    }
+
+    private Bitmap bitmapFromScreenshotResult(Object result) throws Exception {
+        if (result == null) {
+            return null;
+        }
+        if (result instanceof Bitmap) {
+            return (Bitmap) result;
+        }
+        try {
+            Object bitmap = result.getClass().getMethod("asBitmap").invoke(result);
+            if (bitmap instanceof Bitmap) {
+                return (Bitmap) bitmap;
+            }
+        } catch (NoSuchMethodException e) {
+            // Try unwrap below.
+        }
+        try {
+            Object buffer = result.getClass().getMethod("getGraphicBuffer").invoke(result);
+            if (buffer != null) {
+                Object bitmap = result.getClass().getMethod("asBitmap").invoke(result);
+                if (bitmap instanceof Bitmap) {
+                    return (Bitmap) bitmap;
+                }
+            }
+        } catch (NoSuchMethodException e) {
+            // Not a screenshot buffer wrapper.
+        }
+        return null;
+    }
+
+    private void sleepQuietly(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

@@ -58,10 +58,10 @@ public class ExitAll {
         if (SunshineService.instance != null) {
             SunshineService.instance.releaseWakeLock();
         }
-        boolean wasSunshineStarted = SunshineServer.exitServer();
         CreateVirtualDisplay.restoreAspectRatio();
         SunshineAudio.restoreVolume(context);
         SunshineServer.stopVirtualDisplay();
+        boolean wasSunshineStarted = SunshineServer.exitServer();
         State.unbindUserService();
         if (State.mediaProjectionInUse != null) {
             State.mediaProjectionInUse.stop();
@@ -105,8 +105,8 @@ public class ExitAll {
             State.log("SunshineService stop retry " + attempt + ": native service is still stopping");
             SunshineService.markStopping();
             State.cancelCurrentJob("SunshineService stop retry");
-            SunshineServer.exitServer();
             SunshineServer.stopVirtualDisplay();
+            SunshineServer.exitServer();
             SunshineAudio.restoreVolume(context);
             if (State.mediaProjectionInUse != null) {
                 State.mediaProjectionInUse.stop();

@@ -282,6 +282,11 @@ public class MirrorActivity extends AppCompatActivity {
 
                     // 使用inputSurface创建虚拟显示器
                     if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
+                        if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
+                            State.log("SunshineService 运行期间阻止 MirrorActivity 创建 App 虚拟显示");
+                            finish();
+                            return;
+                        }
                         stopVirtualDisplay();
                         boolean isLandscape = isDefaultDisplayLandscape();
                         if (!autoRotate) {

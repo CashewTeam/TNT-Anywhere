@@ -983,6 +983,7 @@ namespace rtsp_stream {
       config.monitor.width = util::from_view(args.at("x-nv-video[0].clientViewportWd"sv));
       config.monitor.framerate = util::from_view(args.at("x-nv-video[0].maxFPS"sv));
       config.monitor.bitrate = util::from_view(args.at("x-nv-vqos[0].bw.maximumBitrateKbps"sv));
+      config.monitor.requestedBitrate = config.monitor.bitrate;
       config.monitor.slicesPerFrame = util::from_view(args.at("x-nv-video[0].videoEncoderSlicesPerFrame"sv));
       config.monitor.numRefFrames = util::from_view(args.at("x-nv-video[0].maxNumReferenceFrames"sv));
       config.monitor.encoderCscMode = util::from_view(args.at("x-nv-video[0].encoderCscMode"sv));

@@ -28,6 +28,7 @@ import android.media.AudioManager;
 import androidx.annotation.NonNull;
 
 import com.connect_screen.mirror.Pref;
+import com.connect_screen.mirror.SmartisanPerformanceHelper;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
@@ -53,6 +54,7 @@ public class SunshineServer {
     public static String suppressPin;
     public static String pinCandidate;
     private static final AtomicBoolean stoppingVirtualDisplay = new AtomicBoolean(false);
+    private static volatile long activeMoonlightSessionId;
     private static final String MOONLIGHT_CONTROL_HINT =
             "按 Ctrl+Alt+Shift+C 打开光标\n如果不可操控，请在 Moonlight 切换一下控制模式";
 
@@ -139,8 +141,10 @@ public class SunshineServer {
     
     // surface created by MediaCodec
     // width always > height, as it is a landscape mode
-    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMute) {
+    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         suppressPin = null;
+        activeMoonlightSessionId = sessionId;
+        SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         Context context = State.getContext();
         if (context == null) {
             return;
@@ -150,12 +154,37 @@ public class SunshineServer {
         SunshineKeyboard.initialize();
         
         new Handler(Looper.getMainLooper()).post(() -> {
-            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMute));
+            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
         });
     }
 
     public static void updateStreamingDebugInfo(String info) {
-        new Handler(Looper.getMainLooper()).post(() -> State.streamingDebugInfo.setValue(info));
+        String nativeDebugInfo = info;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            String debugInfo = nativeDebugInfo;
+            String smartisanBoostInfo = SmartisanPerformanceHelper.getDebugStatusLine();
+            if (!smartisanBoostInfo.isEmpty()) {
+                debugInfo = debugInfo + "\n" + smartisanBoostInfo;
+            }
+            String framePacerInfo = SunshineMouse.collectFramePacerDebugLine();
+            if (!framePacerInfo.isEmpty()) {
+                debugInfo = debugInfo + "\n" + framePacerInfo;
+            }
+            State.streamingDebugInfo.setValue(debugInfo);
+        });
+    }
+
+    public static void updateLastMoonlightHandshakeInfo(String info) {
+        State.lastMoonlightHandshakeInfo = info;
+    }
+
+    public static void updateLastMoonlightControlInputInfo(String info) {
+        String touchInputInfo = SunshineMouse.collectTouchInputDebugLine();
+        if (!touchInputInfo.isEmpty()) {
+            State.lastMoonlightControlInputInfo = info + "\n" + touchInputInfo;
+            return;
+        }
+        State.lastMoonlightControlInputInfo = info;
     }
 
     public static void showMoonlightControlHint() {
@@ -171,13 +200,17 @@ public class SunshineServer {
     }
 
     public static void stopVirtualDisplay() {
+        stopVirtualDisplay(0);
+    }
+
+    public static void stopVirtualDisplay(long sessionId) {
         if (!stoppingVirtualDisplay.compareAndSet(false, true)) {
             State.log("Moonlight 投屏正在停止，跳过重复停止请求");
             return;
         }
         Runnable cleanup = () -> {
             try {
-                cleanupMoonlightProjection();
+                cleanupMoonlightProjection(sessionId);
             } finally {
                 stoppingVirtualDisplay.set(false);
             }
@@ -206,13 +239,24 @@ public class SunshineServer {
         }
     }
 
-    private static void cleanupMoonlightProjection() {
+    private static void cleanupMoonlightProjection(long sessionId) {
+        boolean force = sessionId == 0;
+        long activeSessionId = activeMoonlightSessionId;
+        if (!force && activeSessionId != 0 && activeSessionId != sessionId) {
+            State.log("跳过过期 Moonlight 投屏清理，session=" + sessionId
+                    + " active=" + activeSessionId);
+            return;
+        }
         State.log("停止 Moonlight 投屏");
+        activeMoonlightSessionId = 0;
+        SmartisanPerformanceHelper.updateStreamingBoost(false, "Moonlight session stopped");
         State.streamingDebugInfo.setValue("串流未启动");
+        SunshineAudio.restoreVolume(State.getContext());
         SunshineMouse.resetInjectedInputState();
         SunshineMouse.cleanupCursorOverlay();
         CreateVirtualDisplay.powerOnScreen();
         CreateVirtualDisplay.restoreAspectRatio();
+        SunshineMouse.stopExternalDisplayFramePacer(sessionId, force);
         if (SunshineMouse.autoRotateAndScaleForMoonlight != null) {
             SunshineMouse.autoRotateAndScaleForMoonlight.stop();
             SunshineMouse.autoRotateAndScaleForMoonlight = null;
@@ -240,6 +284,17 @@ public class SunshineServer {
     public static native void startAudioRecording(Object audioRecord, int framesPerPacket);
 
     public static native void enableH265();
+
+    public static void startMoonlightAudioCapture(int packetDuration, boolean shouldMutePhone) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Context context = State.getContext();
+            if (context == null) {
+                State.log("Moonlight audio capture skipped: context is null");
+                return;
+            }
+            SunshineAudio.startClientAudioCapture(context, packetDuration, shouldMutePhone);
+        });
+    }
 
     // 添加显示编码器错误的方法
     public static void showEncoderError(String errorMessage) {

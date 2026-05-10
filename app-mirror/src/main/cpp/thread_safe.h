@@ -259,20 +259,23 @@ namespace safe {
         }
 
         template<class... Args>
-        void raise(Args &&...args) {
+        size_t raise(Args &&...args) {
             std::lock_guard ul {_lock};
 
             if (!_continue) {
-                return;
+                return 0;
             }
 
+            size_t dropped_elements = 0;
             if (_queue.size() == _max_elements) {
+                dropped_elements = _queue.size();
                 _queue.clear();
             }
 
             _queue.emplace_back(std::forward<Args>(args)...);
 
             _cv.notify_all();
+            return dropped_elements;
         }
 
         bool peek() {

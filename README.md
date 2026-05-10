@@ -1,5 +1,7 @@
 # TNT Anywhere
 
+更新日志见 [CHANGELOG.md](/Users/con11/Documents/GitHub/TNT-Shaker/CHANGELOG.md)。
+
 ## 项目简介
 
 `TNT Anywhere` 项目的目标：完成 Smartisan OS 当年没有真正做完的 `TNT Anywhere` 体验，让 `TNT` 系统不再被固定硬件限制，而是可以在更多设备和更多连接场景里被投屏、启动和运行。
@@ -51,7 +53,7 @@
 
 ## 兼容性说明
 
-当前 `v0.7.2` 仅在以下环境完成实机测试：
+当前 `v0.7.5` 仅在以下环境完成实机测试：
 
 - `坚果 R2`
 - `SmartisanOS 8.5.3`

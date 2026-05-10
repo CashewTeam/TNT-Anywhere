@@ -3,24 +3,22 @@ package com.connect_screen.mirror.job;
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.opengl.EGLSurface;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
-import android.view.SurfaceHolder;
 
 import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
-import com.connect_screen.mirror.FloatingButtonService;
-import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
@@ -48,9 +46,17 @@ public class AutoRotateAndScaleForMoonlight {
 
     private boolean autoRotate;
     private boolean autoScale;
+    private boolean dynamicFrameRate;
     private OrientationChangeCallback orientationChangeCallback;
     private boolean isLandscape;
     private volatile boolean stopping;
+    private long nextFrameAtMs;
+    private int mirrorDisplayId = Display.DEFAULT_DISPLAY;
+    private String mirrorName = "Moonlight-main-mirror";
+    private String failureMessage = "Mirror mode failed to mirror display 0. Confirm Shizuku is running, then retry.";
+    private Surface activeInputSurface;
+    private int activeInputWidth;
+    private int activeInputHeight;
 
     public AutoRotateAndScaleForMoonlight(VirtualDisplayArgs virtualDisplayArgs) {
         this.virtualDisplayArgs = virtualDisplayArgs;
@@ -85,7 +91,9 @@ public class AutoRotateAndScaleForMoonlight {
         public void onDisplayChanged(int displayId) {
             if (displayId == Display.DEFAULT_DISPLAY) {
                 checkRotation();
-                new Handler().postDelayed(this::checkRotation, 2000);
+                if (renderHandler != null) {
+                    renderHandler.postDelayed(this::checkRotation, 400);
+                }
             }
         }
 
@@ -95,27 +103,23 @@ public class AutoRotateAndScaleForMoonlight {
                 android.util.Log.d("AutoRotateAndScaleForMoonlight", "context is null");
                 return;
             }
-            boolean isLandscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-            Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-
-            android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: " + isLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
-            AutoRotateAndScaleForMoonlight.this.isLandscape = isLandscape;
-
-            if (State.mirrorVirtualDisplay != null) {
-                if (isLandscape) {
-                    android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to landscape");
-                    State.mirrorVirtualDisplay.resize(virtualDisplayArgs.width, virtualDisplayArgs.height, 160);
-                } else {
-                    android.util.Log.d("AutoRotateAndScaleForMoonlight", "change to portrait");
-                    State.mirrorVirtualDisplay.resize(virtualDisplayArgs.height, virtualDisplayArgs.width, 160);
-                }
-                State.mirrorVirtualDisplay.setSurface(targetSurface);
+            boolean nextLandscape = context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+            android.util.Log.d("AutoRotateAndScaleForMoonlight", "main display changed, isLandscape: "
+                    + nextLandscape + ", current isLandscape: " + AutoRotateAndScaleForMoonlight.this.isLandscape);
+            if (nextLandscape == AutoRotateAndScaleForMoonlight.this.isLandscape && activeInputSurface != null) {
+                return;
+            }
+            if (renderHandler != null) {
+                renderHandler.post(() -> configureMirrorSource(nextLandscape, true));
             }
         }
     }
 
-    public void start(Surface outputSurface) {
+    public void start(Surface outputSurface, int mirrorDisplayId, String mirrorName, String failureMessage) {
         instance = this;
+        this.mirrorDisplayId = mirrorDisplayId;
+        this.mirrorName = mirrorName;
+        this.failureMessage = failureMessage;
 
         Context context = State.getContext();
         if (context == null) {
@@ -124,6 +128,7 @@ public class AutoRotateAndScaleForMoonlight {
         // 读取设置
         autoRotate = Pref.getAutoRotate();
         autoScale = Pref.getAutoScale();
+        dynamicFrameRate = Pref.getEncoderDynamicFrameRate();
 
         // 获取手机主屏的完整显示信息
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
@@ -202,8 +207,8 @@ public class AutoRotateAndScaleForMoonlight {
             portraitInputTextureId = textures[0];
             landscapeInputTextureId = textures[1];
 
-            portraitRenderer = new PortraitRenderer(portraitInputTextureId, eglDisplay, eglOutputSurface);
-            landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface, virtualDisplayArgs.width, virtualDisplayArgs.height, autoScale);
+            portraitRenderer = new PortraitRenderer(portraitInputTextureId, eglDisplay, eglOutputSurface, !dynamicFrameRate);
+            landscapeRenderer = new LandscapeRenderer(landscapeInputTextureId, eglDisplay, eglOutputSurface, virtualDisplayArgs.width, virtualDisplayArgs.height, autoScale, !dynamicFrameRate);
 
             GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, portraitInputTextureId);
 
@@ -223,59 +228,120 @@ public class AutoRotateAndScaleForMoonlight {
             // 创建SurfaceTexture和Surface
             portraitInputSurfaceTexture = new SurfaceTexture(portraitInputTextureId);
             portraitInputSurfaceTexture.setDefaultBufferSize(virtualDisplayArgs.height, virtualDisplayArgs.width);
-            portraitInputSurfaceTexture.setOnFrameAvailableListener(portraitRenderer);
+            portraitInputSurfaceTexture.setOnFrameAvailableListener(portraitRenderer, renderHandler);
             portraitInputSurface = new Surface(portraitInputSurfaceTexture);
 
             landscapeInputSurfaceTexture = new SurfaceTexture(landscapeInputTextureId);
             landscapeInputSurfaceTexture.setDefaultBufferSize(virtualDisplayArgs.width, virtualDisplayArgs.height);
-            landscapeInputSurfaceTexture.setOnFrameAvailableListener(landscapeRenderer);
+            landscapeInputSurfaceTexture.setOnFrameAvailableListener(landscapeRenderer, renderHandler);
             landscapeInputSurface = new Surface(landscapeInputSurfaceTexture);
 
-            // 使用inputSurface创建虚拟显示器
-            if (State.mirrorVirtualDisplay == null && State.getMediaProjection() != null) {
-                stopVirtualDisplay();
-                DisplayMetrics metrics = new DisplayMetrics();
-                display.getRealMetrics(metrics);
-                isLandscape = metrics.widthPixels > metrics.heightPixels;
-                if (!autoRotate) {
-                    isLandscape = true;
-                }
-                android.util.Log.i("AutoRotateAndScaleForMoonlight", "isLandscape: " + isLandscape);
-                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-                State.mirrorVirtualDisplay = State.getMediaProjection().createVirtualDisplay(
-                        virtualDisplayArgs.virtualDisplayName,
-                        isLandscape ? virtualDisplayArgs.width : virtualDisplayArgs.height,
-                        isLandscape ? virtualDisplayArgs.height : virtualDisplayArgs.width,
-                        virtualDisplayArgs.dpi,
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
-                        targetSurface,
-                        null,
-                        null);
-                State.setMediaProjection(null);
-                FloatingButtonService.startForMirror();
-            } else if (State.mirrorVirtualDisplay != null) {
-                DisplayMetrics metrics = new DisplayMetrics();
-                display.getRealMetrics(metrics);
-                boolean isLandscape = metrics.widthPixels > metrics.heightPixels;
-                Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;
-
-                State.mirrorVirtualDisplay.setSurface(targetSurface);
+            DisplayMetrics metrics = new DisplayMetrics();
+            display.getRealMetrics(metrics);
+            boolean startLandscape = metrics.widthPixels > metrics.heightPixels;
+            if (!autoRotate) {
+                startLandscape = true;
+            }
+            android.util.Log.i("AutoRotateAndScaleForMoonlight", "isLandscape: " + startLandscape);
+            if (!configureMirrorSource(startLandscape, false)) {
+                return;
             }
 
-
+            if (!dynamicFrameRate) {
+                nextFrameAtMs = SystemClock.uptimeMillis();
+                renderHandler.post(frameTicker);
+            }
         });
 
-        State.log("AutoRotateAndScaleForMoonlight 启动，autoRotate=" + autoRotate + ", autoScale=" + autoScale);
+        State.log("AutoRotateAndScaleForMoonlight 启动，autoRotate=" + autoRotate
+                + ", autoScale=" + autoScale
+                + ", dynamicFrameRate=" + dynamicFrameRate);
     }
 
+    private final Runnable frameTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (stopping || renderHandler == null) {
+                return;
+            }
+            try {
+                if (isLandscape && landscapeRenderer != null && landscapeInputSurfaceTexture != null) {
+                    landscapeRenderer.renderLatest(landscapeInputSurfaceTexture);
+                } else if (!isLandscape && portraitRenderer != null && portraitInputSurfaceTexture != null) {
+                    portraitRenderer.renderLatest(portraitInputSurfaceTexture);
+                }
+            } catch (RuntimeException e) {
+                android.util.Log.w("AutoRotateAndScaleForMoonlight", "ignore paced frame render failure", e);
+            }
 
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        // 可以在这里处理尺寸变化
+            long frameIntervalMs = Math.max(1, Math.round(1000f / Math.max(1, virtualDisplayArgs.refreshRate)));
+            nextFrameAtMs += frameIntervalMs;
+            long now = SystemClock.uptimeMillis();
+            if (nextFrameAtMs < now) {
+                nextFrameAtMs = now + frameIntervalMs;
+            }
+            renderHandler.postAtTime(this, nextFrameAtMs);
+        }
+    };
+
+
+    private boolean configureMirrorSource(boolean nextLandscape, boolean recreate) {
+        if (stopping) {
+            return false;
+        }
+        Surface targetSurface = nextLandscape ? landscapeInputSurface : portraitInputSurface;
+        int targetWidth = nextLandscape ? virtualDisplayArgs.width : virtualDisplayArgs.height;
+        int targetHeight = nextLandscape ? virtualDisplayArgs.height : virtualDisplayArgs.width;
+        if (targetSurface == null || !targetSurface.isValid()) {
+            State.log("AutoRotateAndScaleForMoonlight 输入 Surface 无效");
+            return false;
+        }
+        if (!State.isUserServiceAlive()) {
+            State.showErrorStatus("Mirror mode lost Shizuku user service while updating auto-rotate mirror");
+            return false;
+        }
+        if (!recreate
+                && activeInputSurface == targetSurface
+                && activeInputWidth == targetWidth
+                && activeInputHeight == targetHeight) {
+            isLandscape = nextLandscape;
+            return true;
+        }
+        try {
+            if (recreate) {
+                State.userService.destroyExternalMirror();
+            }
+            int result = State.userService.createExternalMirror(
+                    mirrorName,
+                    targetWidth,
+                    targetHeight,
+                    mirrorDisplayId,
+                    targetSurface);
+            if (result < 0) {
+                State.showErrorStatus(failureMessage);
+                return false;
+            }
+            isLandscape = nextLandscape;
+            activeInputSurface = targetSurface;
+            activeInputWidth = targetWidth;
+            activeInputHeight = targetHeight;
+            State.lastSingleAppDisplay = mirrorDisplayId;
+            SunshineServer.showMoonlightControlHint();
+            State.log("AutoRotateAndScaleForMoonlight mirror source updated, landscape="
+                    + nextLandscape + " size=" + targetWidth + "x" + targetHeight);
+            return true;
+        } catch (RemoteException e) {
+            State.log("AutoRotateAndScaleForMoonlight createExternalMirror failed: " + e.getMessage());
+            State.userService = null;
+            State.showErrorStatus("Mirror mode lost Shizuku user service while updating auto-rotate mirror");
+            return false;
+        }
     }
 
     private void surfaceDestroyed() {
         stopping = true;
         renderHandler.post(() -> {
+            renderHandler.removeCallbacks(frameTicker);
             if (portraitInputSurfaceTexture != null) {
                 portraitInputSurfaceTexture.setOnFrameAvailableListener(null);
             }
@@ -346,6 +412,9 @@ public class AutoRotateAndScaleForMoonlight {
         stopping = true;
         surfaceDestroyed();
         instance = null;
+        activeInputSurface = null;
+        activeInputWidth = 0;
+        activeInputHeight = 0;
         Context context = State.getContext();
         if (orientationChangeCallback != null && context != null) {
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
@@ -360,11 +429,15 @@ public class AutoRotateAndScaleForMoonlight {
         protected final EGLDisplay eglDisplay;
         protected final EGLSurface eglOutputSurface;
         private volatile boolean released;
+        private final boolean framePacingEnabled;
+        private boolean frameAvailable;
+        private boolean hasFrame;
 
-        public PortraitRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface) {
+        public PortraitRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, boolean framePacingEnabled) {
             this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
             this.eglDisplay = eglDisplay;
             this.eglOutputSurface = eglOutputSurface;
+            this.framePacingEnabled = framePacingEnabled;
             portraitMvpMatrix = new float[16];
             android.opengl.Matrix.setIdentityM(portraitMvpMatrix, 0);
             android.opengl.Matrix.scaleM(portraitMvpMatrix, 0, 1, 1, 1.0f);
@@ -373,6 +446,10 @@ public class AutoRotateAndScaleForMoonlight {
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            if (framePacingEnabled) {
+                frameAvailable = true;
+                return;
+            }
             if (released) {
                 return;
             }
@@ -386,6 +463,22 @@ public class AutoRotateAndScaleForMoonlight {
             } catch (RuntimeException e) {
                 android.util.Log.w("AutoRotateAndScaleForMoonlight", "ignore portrait frame during shutdown", e);
             }
+        }
+
+        public void renderLatest(SurfaceTexture surfaceTexture) {
+            if (released) {
+                return;
+            }
+            if (frameAvailable) {
+                surfaceTexture.updateTexImage();
+                frameAvailable = false;
+                hasFrame = true;
+            }
+            if (!hasFrame) {
+                return;
+            }
+            externalTextureRenderer.renderFrame(portraitMvpMatrix);
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
         }
 
         // 添加清理方法
@@ -404,12 +497,16 @@ public class AutoRotateAndScaleForMoonlight {
         private int[] fbo = new int[1];
         private int[] tempTexture = new int[1];
         private volatile boolean released;
+        private final boolean framePacingEnabled;
+        private boolean frameAvailable;
+        private boolean hasFrame;
 
-        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale) {
+        public LandscapeRenderer(int inputTextureId, EGLDisplay eglDisplay, EGLSurface eglOutputSurface, int width, int height, boolean autoScale, boolean framePacingEnabled) {
             this.externalTextureRenderer = new ExternalTextureRenderer(inputTextureId);
             this.eglDisplay = eglDisplay;
             this.eglOutputSurface = eglOutputSurface;
             this.autoScale = autoScale;
+            this.framePacingEnabled = framePacingEnabled;
 
             // 创建临时纹理
             GLES20.glGenTextures(1, tempTexture, 0);
@@ -437,6 +534,10 @@ public class AutoRotateAndScaleForMoonlight {
         }
 
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            if (framePacingEnabled) {
+                frameAvailable = true;
+                return;
+            }
             if (released) {
                 return;
             }
@@ -452,6 +553,25 @@ public class AutoRotateAndScaleForMoonlight {
                 }
             } catch (RuntimeException e) {
                 android.util.Log.w("AutoRotateAndScaleForMoonlight", "ignore landscape frame during shutdown", e);
+            }
+        }
+
+        public void renderLatest(SurfaceTexture surfaceTexture) {
+            if (released) {
+                return;
+            }
+            if (frameAvailable) {
+                surfaceTexture.updateTexImage();
+                frameAvailable = false;
+                hasFrame = true;
+            }
+            if (!hasFrame) {
+                return;
+            }
+            externalTextureRenderer.renderFrame(landscapeAutoScaler.landscapeMvpMatrix);
+            EGL14.eglSwapBuffers(eglDisplay, eglOutputSurface);
+            if (autoScale) {
+                landscapeAutoScaler.onFrame();
             }
         }
 

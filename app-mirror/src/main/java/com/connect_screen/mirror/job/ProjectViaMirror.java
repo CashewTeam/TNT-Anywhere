@@ -19,6 +19,7 @@ import com.connect_screen.mirror.MirrorMainActivity;
 import com.connect_screen.mirror.MirrorSettingsActivity;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import com.connect_screen.mirror.SunshineService;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
@@ -42,6 +43,10 @@ public class ProjectViaMirror implements Job {
         }
         Context context = State.getContext();
         if (context == null) {
+            return;
+        }
+        if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
+            State.log("SunshineService 运行期间跳过旧镜像 MediaProjection 链路");
             return;
         }
         boolean singleAppMode = Pref.getSingleAppMode();

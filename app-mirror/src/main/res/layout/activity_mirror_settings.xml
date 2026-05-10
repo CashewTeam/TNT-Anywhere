@@ -240,6 +240,19 @@
             app:trackTint="#664CAF50" />
 
         <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/smartisanCpusetBoostCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="Smartisan 后台串流性能模式"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            app:showText="false"
+            app:switchMinWidth="48dp"
+            app:thumbTint="#4CAF50"
+            app:trackTint="#664CAF50" />
+
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/useAndroidCursorOverlayCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -482,6 +495,20 @@
                 android:textColor="#666666"
                 android:textSize="13sp" />
 
+            <Button
+                android:id="@+id/viewRecentHandshakeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="查看最近握手信息" />
+
+            <Button
+                android:id="@+id/viewRecentControlInputButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="查看最近控制输入统计" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -616,6 +643,19 @@
                 android:layout_height="wrap_content"
                 android:padding="8dp"
                 android:text="启用实时优先级提示"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                app:showText="false"
+                app:switchMinWidth="48dp"
+                app:thumbTint="#4CAF50"
+                app:trackTint="#664CAF50" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/encoderDynamicFrameRateCheckbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="动态帧率（静止画面降低编码帧率）"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 app:showText="false"
