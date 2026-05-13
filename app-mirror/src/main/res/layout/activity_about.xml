@@ -1,105 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@color/ui_background"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/header"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="TNT Anywhere 是运行在 Android 设备上的 Sunshine Host，可将手机镜像或 TNT 外接显示器画面串流到 Moonlight 客户端。"
-        android:textSize="16sp"
-        android:textColor="@color/black"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="@dimen/ui_top_bar_height"
+        android:background="@color/ui_surface"
+        android:elevation="@dimen/ui_top_bar_elevation"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
-    <TextView
-        android:id="@+id/versionText"
+        <TextView
+            android:id="@+id/aboutBackButton"
+            android:layout_width="64dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="返回"
+            android:textColor="@color/ui_text_primary"
+            android:textSize="15sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="关于"
+            android:textColor="@color/ui_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="64dp"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="版本："
-        android:textSize="16sp"
-        android:textColor="@color/black"
-        android:layout_marginTop="8dp"/>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/qqLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目 QQ 群：安卓屏连"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="16dp"
-        android:clickable="true"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/ui_page_padding"
+            android:paddingTop="24dp"
+            android:paddingEnd="@dimen/ui_page_padding"
+            android:paddingBottom="28dp">
 
-    <TextView
-        android:id="@+id/websiteLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目用户手册：connect-screen.com"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="16dp"
-        android:clickable="true"/>
+            <ImageView
+                android:id="@+id/aboutAppIcon"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="TNT Anywhere"
+                android:src="@drawable/ic_tnt_anywhere_foreground" />
 
-    <TextView
-        android:id="@+id/xiaohongshuLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目小红书：安卓屏连"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="16dp"
-        android:clickable="true"
-        android:autoLink="web"/>
+            <TextView
+                android:id="@+id/header"
+                android:layout_width="@dimen/ui_content_max_width"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:gravity="center"
+                android:text="TNT Anywhere"
+                android:textColor="@color/ui_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/bilibiliLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目 B 站：安卓屏连"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="8dp"
-        android:clickable="true"
-        android:autoLink="web"/>
+            <TextView
+                android:id="@+id/versionText"
+                android:layout_width="@dimen/ui_content_max_width"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:text="版本："
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/douyinLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目抖音：安卓屏连"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="8dp"
-        android:clickable="true"
-        android:autoLink="web"/>
+            <LinearLayout
+                android:layout_width="@dimen/ui_content_max_width"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_ui_panel"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-    <TextView
-        android:id="@+id/youtubeLink"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="原项目 YouTube：安卓屏连"
-        android:textSize="16sp"
-        android:textColor="@color/blue"
-        android:layout_marginTop="8dp"
-        android:clickable="true"
-        android:autoLink="web"/>
+                <TextView
+                    android:id="@+id/aboutContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="15sp" />
+            </LinearLayout>
 
+            <Button
+                android:id="@+id/githubButton"
+                style="@style/TntAnywhereLargeButton"
+                android:layout_marginTop="@dimen/ui_section_gap"
+                android:text="GitHub 项目地址" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="16dp"/>
-
-    <TextView
-        android:id="@+id/aboutContent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="16sp"/>
-
-</LinearLayout> 
-</ScrollView>
+            <Button
+                android:id="@+id/releasesButton"
+                style="@style/TntAnywhereLargeButton"
+                android:layout_marginTop="@dimen/ui_row_gap"
+                android:text="下载最新版本" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

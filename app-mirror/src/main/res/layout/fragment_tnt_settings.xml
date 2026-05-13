@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/ui_page_padding"
+        android:paddingTop="16dp"
+        android:paddingEnd="@dimen/ui_page_padding"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="@dimen/ui_content_width"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_ui_panel"
+            android:elevation="@dimen/ui_shadow_small"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/adaptTntResolutionToClientCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="适应客户端分辨率" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoCloseTntOnClientDisconnectCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="客户端断开后自动关闭 TNT" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/useAndroidCursorOverlayCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="显示鼠标叠加光标" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/mapMouseToTouchCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="将鼠标事件映射为触控" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/useTntOverlayBackendCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="使用 overlay 调试启动 TNT" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/ui_panel_row_height"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_row_side_padding"
+                android:paddingEnd="@dimen/ui_row_side_padding">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Root 状态"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/backupTntRootStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:text="未检查"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/checkBackupTntRootButton"
+                    android:layout_width="@dimen/ui_small_button_width"
+                    android:layout_height="@dimen/ui_small_button_height"
+                    android:background="@drawable/bg_ui_small_button"
+                    android:elevation="@dimen/ui_shadow_small"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    android:text="检查"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/ui_panel_row_height"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_row_side_padding"
+                android:paddingEnd="@dimen/ui_row_side_padding">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="TNT 调试选项"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/backupTntDebugStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:text="待检查"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="14sp" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/backupTntDebugSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:showText="false" />
+            </LinearLayout>
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <TextView
+                android:id="@+id/editTntOverlaySettingsButton"
+                style="@style/TntAnywhereSettingMenu"
+                android:drawableEnd="@drawable/ic_chevron_right"
+                android:text="编辑 TNT 分辨率" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <TextView
+                android:id="@+id/screenSettingsButton"
+                style="@style/TntAnywhereSettingMenu"
+                android:drawableEnd="@drawable/ic_chevron_right"
+                android:text="屏幕设置（实验性）" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="@dimen/ui_content_width"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/ui_section_gap"
+            android:background="@drawable/bg_ui_panel"
+            android:elevation="@dimen/ui_shadow_small"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/tntModeCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="镜像模式" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoRotateCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="自动旋转" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoScaleCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="自动缩放去黑边" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoScreenOffCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="自动息屏" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/preventAutoLockCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="防止自动锁屏" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/showFloatingInMirrorModeCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="显示悬浮返回键" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/autoHideFloatingCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="自动隐藏悬浮返回键" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/aboutButton"
+            style="@style/TntAnywhereLargeButton"
+            android:layout_width="@dimen/ui_content_width"
+            android:layout_marginTop="@dimen/ui_section_gap"
+            android:text="关于" />
+    </LinearLayout>
+</ScrollView>

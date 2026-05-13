@@ -1,7 +1,6 @@
 package com.connect_screen.mirror;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -13,11 +12,15 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public final class InitializationGuideDialog {
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
+    private static boolean showing;
 
     private final Activity activity;
     private AlertDialog dialog;
@@ -32,10 +35,23 @@ public final class InitializationGuideDialog {
     }
 
     public static void show(Activity activity) {
-        if (activity == null || activity.isFinishing()) {
+        if (activity == null || activity.isFinishing() || showing) {
             return;
         }
         new InitializationGuideDialog(activity).showInternal();
+    }
+
+    public static boolean needsSetup(Activity activity) {
+        if (activity == null) {
+            return false;
+        }
+        boolean shizukuReady = ShizukuUtils.hasPermission();
+        boolean recordAudioReady = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            recordAudioReady = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return !shizukuReady || !recordAudioReady;
     }
 
     private void showInternal() {
@@ -45,7 +61,7 @@ public final class InitializationGuideDialog {
         content.setPadding(padding, dp(10), padding, 0);
 
         TextView warning = new TextView(activity);
-        warning.setText("TNT Anywhere 涉及高级权限、SmartisanOS 私有 API 调用，且仍处于开发阶段，可能存在未知风险。请确认你理解这些权限用途后继续。");
+        warning.setText("开始使用前，需要先完成必要权限。TNT Anywhere 会通过 Shizuku 建立系统级显示与控制链路，并使用录音权限采集串流音频；缺少权限时会影响连接、控制或声音输出。");
         warning.setTextColor(0xFF5F6368);
         warning.setTextSize(14);
         warning.setLineSpacing(dp(2), 1.0f);
@@ -53,7 +69,7 @@ public final class InitializationGuideDialog {
 
         content.addView(createStatusRow(
                 "Shizuku 权限",
-                "用于获取画面和注入控制事件。",
+                "用于创建/管理虚拟显示、获取屏幕画面、注入控制事件和执行系统级电源控制。",
                 "授权",
                 true));
         content.addView(createStatusRow(
@@ -62,19 +78,15 @@ public final class InitializationGuideDialog {
                 "授权",
                 false));
 
-        dialog = new AlertDialog.Builder(activity)
-                .setTitle("初始化配置")
+        dialog = new MaterialAlertDialogBuilder(activity, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
+                .setTitle("连接向导")
                 .setView(content)
-                .setNegativeButton("跳过", null)
                 .setPositiveButton("完成", null)
                 .create();
+        showing = true;
+        dialog.setOnDismissListener(d -> showing = false);
         dialog.setOnShowListener(d -> {
-            Button skipButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
             doneButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (skipButton != null) {
-                skipButton.setTextColor(0xFF80868B);
-                skipButton.setOnClickListener(v -> finishSetup());
-            }
             if (doneButton != null) {
                 doneButton.setOnClickListener(v -> finishSetup());
             }

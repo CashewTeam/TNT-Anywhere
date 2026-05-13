@@ -30,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import rikka.shizuku.Shizuku;
 
@@ -53,6 +54,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("屏幕设置");
         }
 
+        findViewById(R.id.screenSettingsBackButton).setOnClickListener(v -> finish());
         statusText = findViewById(R.id.screenSettingsStatus);
         requestShizukuButton = findViewById(R.id.requestShizukuButton);
         displayListContainer = findViewById(R.id.displayListContainer);
@@ -131,17 +133,17 @@ public class ScreenSettingsActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, 0, 0, dp(12));
         container.setLayoutParams(params);
-        container.setBackgroundResource(R.drawable.log_list_background);
+        container.setBackgroundResource(R.drawable.bg_ui_panel);
 
         TextView title = createText("屏幕 " + display.getDisplayId() + " - " + display.getName());
         title.setTextSize(18);
-        title.setTextColor(0xff000000);
+        title.setTextColor(getColorCompat(R.color.ui_text_primary));
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         container.addView(title);
 
         TextView detail = createText(buildDisplayInfo(display, hasShizuku));
         detail.setTextSize(14);
-        detail.setTextColor(0xff444444);
+        detail.setTextColor(getColorCompat(R.color.ui_text_secondary));
         LinearLayout.LayoutParams detailParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -152,7 +154,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         if (internalDisplay) {
             TextView warning = createText("内置屏幕仅允许查看，修改按钮已禁用，避免误改系统显示参数。");
             warning.setTextSize(13);
-            warning.setTextColor(0xff8a5a00);
+            warning.setTextColor(getColorCompat(R.color.ui_warning));
             LinearLayout.LayoutParams warningParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -244,7 +246,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         view.addView(widthInput);
         view.addView(heightInput);
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("修改屏幕 " + display.getDisplayId() + " 分辨率")
                 .setView(view)
                 .setPositiveButton("应用", (dialog, which) -> {
@@ -284,7 +286,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         EditText dpiInput = createNumberInput("DPI", metrics.densityDpi);
         view.addView(dpiInput);
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("修改屏幕 " + display.getDisplayId() + " DPI")
                 .setView(view)
                 .setPositiveButton("应用", (dialog, which) -> {
@@ -332,7 +334,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
                     mode.getPhysicalHeight(),
                     mode.getRefreshRate());
         }
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("选择屏幕 " + display.getDisplayId() + " 刷新模式")
                 .setItems(items, (dialog, which) -> {
                     Display.Mode selectedMode = which == 0 ? null : modes[which - 1];
@@ -362,7 +364,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
         view.addView(spinner);
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("修改屏幕 " + displayId + " 旋转")
                 .setView(view)
                 .setPositiveButton("应用", (dialog, which) -> {
@@ -469,7 +471,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
 
     private void showConfirmOrRevertDialog(String title, String message, Runnable revertAction) {
         final boolean[] confirmed = new boolean[]{false};
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle(title)
                 .setMessage(message)
                 .setPositiveButton("保留", (d, which) -> {
@@ -496,6 +498,10 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         button.setText(text);
         button.setEnabled(enabled);
         button.setOnClickListener(listener);
+        button.setBackgroundResource(R.drawable.bg_ui_small_button);
+        button.setTextColor(getColorCompat(R.color.ui_text_primary));
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         params.setMargins(0, 0, dp(8), dp(8));
         button.setLayoutParams(params);
@@ -515,8 +521,12 @@ public class ScreenSettingsActivity extends AppCompatActivity {
         TextView textView = new TextView(this);
         textView.setText(text);
         textView.setTextSize(16);
-        textView.setTextColor(0xff222222);
+        textView.setTextColor(getColorCompat(R.color.ui_text_primary));
         return textView;
+    }
+
+    private int getColorCompat(int colorRes) {
+        return getResources().getColor(colorRes, getTheme());
     }
 
     private LinearLayout createVerticalDialogView() {

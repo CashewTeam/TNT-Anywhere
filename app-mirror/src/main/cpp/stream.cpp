@@ -83,6 +83,7 @@ namespace {
   std::atomic<uint64_t> videoTotalUs {0};
   std::atomic<int64_t> videoLastFrameIndex {0};
   std::atomic<int64_t> videoLastQueueDelayUs {0};
+  std::atomic<int64_t> controlRoundTripMs {-1};
   std::mutex videoFramePoolMutex;
   std::vector<std::vector<uint8_t>> videoFramePool;
   size_t videoFramePoolBytes = 0;
@@ -188,6 +189,7 @@ namespace stream {
       videoTotalUs.load(std::memory_order_relaxed),
       videoLastFrameIndex.load(std::memory_order_relaxed),
       videoLastQueueDelayUs.load(std::memory_order_relaxed) / 1000,
+      controlRoundTripMs.load(std::memory_order_relaxed),
     };
   }
 
@@ -203,6 +205,7 @@ namespace stream {
     videoTotalUs.store(0, std::memory_order_relaxed);
     videoLastFrameIndex.store(0, std::memory_order_relaxed);
     videoLastQueueDelayUs.store(0, std::memory_order_relaxed);
+    controlRoundTripMs.store(-1, std::memory_order_relaxed);
   }
 
   enum class socket_e : int {
@@ -685,6 +688,7 @@ namespace stream {
       }
 
       session->pingTimeout = std::chrono::steady_clock::now() + config::stream.ping_timeout;
+      controlRoundTripMs.store(static_cast<int64_t>(event.peer->roundTripTime), std::memory_order_relaxed);
 
       switch (event.type) {
         case ENET_EVENT_TYPE_RECEIVE:

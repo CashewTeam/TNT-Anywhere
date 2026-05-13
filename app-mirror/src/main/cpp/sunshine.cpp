@@ -1007,6 +1007,7 @@ namespace sunshine_callbacks {
                 << " dropped=" << droppedWindow << "\n"
                 << "Last queue delay: " << streamStats.last_queue_delay_ms << " ms"
                 << " / Last sent frame: " << streamStats.last_frame_index << "\n"
+                << "Ping: " << (streamStats.control_rtt_ms >= 0 ? std::to_string(streamStats.control_rtt_ms) + " ms" : "--") << "\n"
                 << "Avg native cost: packetize=" << averageWindowMs(packetizeUsWindow) << " ms"
                 << " fec=" << averageWindowMs(fecUsWindow) << " ms"
                 << " send=" << averageWindowMs(sendUsWindow) << " ms"

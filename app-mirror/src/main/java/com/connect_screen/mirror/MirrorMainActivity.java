@@ -2,7 +2,6 @@ package com.connect_screen.mirror;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.content.pm.PackageManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
@@ -11,23 +10,22 @@ import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
-import androidx.core.widget.CompoundButtonCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.connect_screen.mirror.job.AcquireShizuku;
 import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.StartSunshineService;
+import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.job.TntDebugVirtualDisplayHelper;
+import com.connect_screen.mirror.job.TntOverlayHelper;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.topjohnwu.superuser.Shell;
 
 import org.lsposed.hiddenapibypass.HiddenApiBypass;
@@ -47,26 +45,18 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     public static final int REQUEST_RECORD_AUDIO_PERMISSION = 1002;
     public static final String TAG = "MirrorMainActivity";
 
-    private RecyclerView logRecyclerView;
-    private LogAdapter logAdapter;
-    private long lastCheckTime;
-
-    Button settingsBtn;
-    Button screenOffBtn;
-    Button touchScreenBtn;
-    Button exitBtn;
-    Button tntDesktopBtn;
-    SwitchCompat tntModeCheckbox;
-    TextView versionTitle;
-    TextView mirrorStatus;
-    TextView runtimeControlsHint;
-    TextView streamingDebugPanel;
+    private ViewPager2 mainPager;
+    private BottomNavigationView bottomNavigation;
+    private HomePageFragment homePageFragment;
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
             State.resumeJob();
+            if (InitializationGuideDialog.needsSetup(this)) {
+                InitializationGuideDialog.show(this);
+            }
         } else {
             State.log("未知权限请求代码: " + requestCode);
         }
@@ -77,6 +67,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             State.log("Shizuku 权限请求结果: "
                     + (grantResult == PackageManager.PERMISSION_GRANTED ? "已授权" : "被拒绝"));
             State.resumeJob();
+            if (InitializationGuideDialog.needsSetup(this)) {
+                InitializationGuideDialog.show(this);
+            }
         } else {
             State.log("未知 Shizuku 请求代码: " + requestCode);
         }
@@ -100,6 +93,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        boolean darkMode = getSharedPreferences(MirrorSettingsActivity.PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(Pref.KEY_DARK_MODE, false);
+        AppCompatDelegate.setDefaultNightMode(darkMode
+                ? AppCompatDelegate.MODE_NIGHT_YES
+                : AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         State.setCurrentActivity(this);
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -109,31 +107,74 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             Pref.doNotAutoStartMoonlight = true;
         }
 
-        if (SunshineService.getLifecycleState() == SunshineService.LifecycleState.STOPPED) {
-            State.log("SunshineService 未启动，请点击启动服务");
-        } else {
-            State.log("SunshineService 正在运行");
-        }
-
         Shizuku.addRequestPermissionResultListener(requestPermissionResultListener);
-
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().hide();
-        }
-
         setContentView(R.layout.activity_main);
 
-        logRecyclerView = findViewById(R.id.logRecyclerView);
-        logAdapter = new LogAdapter(State.logs);
-        logRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        logRecyclerView.setAdapter(logAdapter);
+        TextView versionTitle = findViewById(R.id.versionTitle);
+        versionTitle.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
+        versionTitle.setOnClickListener(v -> startActivity(new Intent(this, AboutActivity.class)));
+
+        mainPager = findViewById(R.id.mainPager);
+        bottomNavigation = findViewById(R.id.bottomNavigation);
+        mainPager.setAdapter(new MainPagerAdapter(this));
+        mainPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                int itemId = position == 1 ? R.id.nav_tnt : position == 2 ? R.id.nav_streaming : R.id.nav_home;
+                if (bottomNavigation.getSelectedItemId() != itemId) {
+                    bottomNavigation.setSelectedItemId(itemId);
+                }
+                captureHomeFragment();
+            }
+        });
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.nav_tnt) {
+                mainPager.setCurrentItem(1, true);
+                return true;
+            }
+            if (item.getItemId() == R.id.nav_streaming) {
+                mainPager.setCurrentItem(2, true);
+                return true;
+            }
+            mainPager.setCurrentItem(0, true);
+            return true;
+        });
 
         State.uiState.observe(this, this::updateUI);
-        initHomeControls();
-        if (!Pref.isInitialSetupComplete()) {
+        State.streamingDebugInfo.observe(this, info -> {
+            captureHomeFragment();
+            if (homePageFragment != null) {
+                homePageFragment.updateDebugInfo(info);
+            }
+        });
+
+        State.log(SunshineService.getLifecycleState() == SunshineService.LifecycleState.STOPPED
+                ? "SunshineService 未启动，请点击启动服务"
+                : "SunshineService 正在运行");
+        refresh();
+        if (InitializationGuideDialog.needsSetup(this)) {
             new android.os.Handler(android.os.Looper.getMainLooper())
                     .postDelayed(() -> InitializationGuideDialog.show(this), 400);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        State.setCurrentActivity(this);
+        ensureAccessibilityServiceStarted();
+        forceRefreshUi();
+        if (InitializationGuideDialog.needsSetup(this)) {
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .postDelayed(() -> InitializationGuideDialog.show(this), 200);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Shizuku.removeRequestPermissionResultListener(requestPermissionResultListener);
+        State.clearCurrentActivity(this);
     }
 
     private void ensureAccessibilityServiceStarted() {
@@ -143,72 +184,12 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
     }
 
-    private void initHomeControls() {
-        settingsBtn = findViewById(R.id.settingsBtn);
-        screenOffBtn = findViewById(R.id.screenOffBtn);
-        touchScreenBtn = findViewById(R.id.touchScreenBtn);
-        exitBtn = findViewById(R.id.exitBtn);
-        tntDesktopBtn = findViewById(R.id.tntDesktopBtn);
-        tntModeCheckbox = findViewById(R.id.tntModeCheckbox);
-        versionTitle = findViewById(R.id.versionTitle);
-        mirrorStatus = findViewById(R.id.mirrorStatus);
-        runtimeControlsHint = findViewById(R.id.runtimeControlsHint);
-        streamingDebugPanel = findViewById(R.id.streamingDebugPanel);
-        styleSwitch(tntModeCheckbox);
-        if (versionTitle != null) {
-            versionTitle.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
-        }
-
-        State.streamingDebugInfo.observe(this, info -> {
-            if (streamingDebugPanel != null) {
-                streamingDebugPanel.setText(info);
-            }
-        });
-
-        refresh();
-
-        settingsBtn.setOnClickListener(v -> startActivity(new Intent(this, MirrorSettingsActivity.class)));
-
-        tntModeCheckbox.setChecked(Pref.getSkipExternalActivity());
-        tntModeCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (Pref.getPreferences() != null) {
-                Pref.getPreferences().edit().putBoolean(Pref.KEY_SKIP_EXTERNAL_ACTIVITY, isChecked).apply();
-            }
-            State.log("TNT模式" + (isChecked ? "已开启" : "已关闭"));
-            refresh();
-        });
-
-        screenOffBtn.setOnClickListener(v -> CreateVirtualDisplay.doPowerOffScreen(this));
-
-        touchScreenBtn.setOnClickListener(v -> {
-            boolean useTouchscreen = Pref.getUseTouchscreen();
-            if (ShizukuUtils.hasPermission() && useTouchscreen) {
-                VirtualDisplay virtualDisplay = State.displaylinkState.getVirtualDisplay();
-                if (virtualDisplay == null) {
-                    virtualDisplay = State.mirrorVirtualDisplay;
-                }
-                if (virtualDisplay == null) {
-                    return;
-                }
-                int displayId = virtualDisplay.getDisplay().getDisplayId();
-                Intent intent = new Intent(this, TouchscreenActivity.class);
-                intent.putExtra("surface", virtualDisplay.getSurface());
-                intent.putExtra("display", displayId);
-                startActivity(intent);
-            } else {
-                TouchpadActivity.startTouchpad(this, State.lastSingleAppDisplay, false);
-            }
-        });
-
-        exitBtn.setOnClickListener(v -> startSunshineServiceWithPreflight());
-        tntDesktopBtn.setOnClickListener(v -> toggleTntDesktop());
-    }
-
-    private void startSunshineServiceWithPreflight() {
+    public void startSunshineServiceWithPreflight() {
         State.setCurrentActivity(this);
         SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
         if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
             State.startNewJob(new StartSunshineService());
+            refresh();
             return;
         }
         if (lifecycleState == SunshineService.LifecycleState.STARTING
@@ -227,29 +208,17 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         refresh();
     }
 
-    private void toggleSunshineService() {
-        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
-        if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
-            State.startNewJob(new StartSunshineService());
-            return;
-        }
-        if (lifecycleState == SunshineService.LifecycleState.STARTING
-                || lifecycleState == SunshineService.LifecycleState.STOPPING) {
-            State.log("SunshineService 正在切换状态，请稍候");
+    public void toggleTntDesktop() {
+        if (Pref.getUseTntOverlayBackend()) {
+            if (TntOverlayHelper.isOverlayOwnedByApp()) {
+                TntOverlayHelper.clearOverlayDisplay();
+                State.log("已关闭 TNT overlay 调试显示");
+            } else if (TntOverlayHelper.ensureHeadlessOverlayDisplayFromPreferences()) {
+                State.log("已启动 TNT overlay 调试显示");
+            }
             refresh();
             return;
         }
-        State.log("手动停止 SunshineService");
-        SunshineService.markStopping();
-        refresh();
-        if (AutoRotateAndScaleForDisplaylink.instance != null) {
-            AutoRotateAndScaleForDisplaylink.instance.release();
-        }
-        ExitAll.stopServices(this);
-        refresh();
-    }
-
-    private void toggleTntDesktop() {
         if (TntDebugVirtualDisplayHelper.isActive()) {
             TntDebugVirtualDisplayHelper.clearVirtualDisplay();
             State.log("已关闭 TNT 原生虚拟显示");
@@ -263,31 +232,11 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        State.setCurrentActivity(this);
-        ensureAccessibilityServiceStarted();
-        if (tntModeCheckbox != null) {
-            tntModeCheckbox.setChecked(Pref.getSkipExternalActivity());
-        }
-        forceRefreshUi();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Shizuku.removeRequestPermissionResultListener(requestPermissionResultListener);
-        State.clearCurrentActivity(this);
-    }
-
-    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
                 State.log("用户授予了投屏权限");
-                lastCheckTime = System.currentTimeMillis();
                 if (SunshineService.instance == null) {
                     Intent sunshineServiceIntent = new Intent(this, SunshineService.class);
                     sunshineServiceIntent.putExtra("data", data);
@@ -322,13 +271,9 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
     @Override
     public void updateLogs() {
-        try {
-            if (logAdapter != null) {
-                logAdapter.notifyDataSetChanged();
-                logRecyclerView.scrollToPosition(logAdapter.getItemCount() - 1);
-            }
-        } catch (Exception e) {
-            // ignore
+        captureHomeFragment();
+        if (homePageFragment != null) {
+            homePageFragment.updateLogs();
         }
     }
 
@@ -351,50 +296,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         } else {
             captureIntent = mediaProjectionManager.createScreenCaptureIntent();
         }
-
-        MirrorMainActivity mirrorMainActivity = State.getCurrentActivity();
-        if (mirrorMainActivity != null) {
-            mirrorMainActivity.startActivityForResult(captureIntent, REQUEST_CODE_MEDIA_PROJECTION);
-        }
-    }
-
-    private void updateUI(MirrorUiState state) {
-        if (state.errorStatusText != null) {
-            mirrorStatus.setText(state.errorStatusText);
-            mirrorStatus.setVisibility(View.VISIBLE);
-            settingsBtn.setVisibility(View.VISIBLE);
-            exitBtn.setVisibility(View.VISIBLE);
-            tntDesktopBtn.setVisibility(View.VISIBLE);
-            tntDesktopBtn.setText(getTntDesktopButtonText());
-            tntModeCheckbox.setVisibility(View.VISIBLE);
-            if (runtimeControlsHint != null) {
-                runtimeControlsHint.setText("服务异常时不可使用熄屏和触摸控制。");
-            }
-            screenOffBtn.setVisibility(View.GONE);
-            screenOffBtn.setEnabled(false);
-            touchScreenBtn.setVisibility(View.GONE);
-            updateServiceControls();
-            return;
-        }
-
-        mirrorStatus.setText(state.mirrorStatusText);
-        mirrorStatus.setVisibility(View.VISIBLE);
-        if (runtimeControlsHint != null) {
-            runtimeControlsHint.setText(state.runtimeControlsHintText);
-        }
-        settingsBtn.setVisibility(state.settingsBtnVisibility ? View.VISIBLE : View.GONE);
-        exitBtn.setVisibility(View.VISIBLE);
-        tntDesktopBtn.setVisibility(state.tntDesktopButtonVisibility ? View.VISIBLE : View.GONE);
-        tntDesktopBtn.setText(state.tntDesktopButtonText);
-        tntModeCheckbox.setVisibility(View.VISIBLE);
-        screenOffBtn.setText(state.screenOffBtnText != null ? state.screenOffBtnText : "熄屏");
-        screenOffBtn.setVisibility(state.screenOffBtnVisibility ? View.VISIBLE : View.GONE);
-        screenOffBtn.setEnabled(state.screenOffBtnEnabled);
-        touchScreenBtn.setVisibility(state.touchScreenBtnVisibility ? View.VISIBLE : View.GONE);
-        if (state.touchScreenBtnVisibility && state.touchScreenBtnText != null) {
-            touchScreenBtn.setText(state.touchScreenBtnText);
-        }
-        updateServiceControls();
+        startActivityForResult(captureIntent, REQUEST_CODE_MEDIA_PROJECTION);
     }
 
     public void refresh() {
@@ -403,143 +305,69 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
             return;
         }
 
-        MirrorUiState currentState = State.uiState.getValue();
-        if (currentState != null && currentState.errorStatusText != null) {
-            updateServiceControls();
-            return;
-        }
+        MirrorUiState newUiState = new MirrorUiState();
+        newUiState.tntDesktopButtonVisibility = true;
+        newUiState.tntDesktopButtonText = getTntDesktopButtonText();
+        newUiState.screenOffBtnText = "息屏";
 
-        boolean singleAppMode = Pref.getSingleAppMode();
-        boolean useTouchscreen = Pref.getUseTouchscreen();
-        boolean isScreenMirroring = State.mirrorVirtualDisplay != null
+        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
+        boolean connected = SunshineServer.isMoonlightSessionActive()
+                || State.mirrorVirtualDisplay != null
                 || State.displaylinkState.getVirtualDisplay() != null
                 || State.lastSingleAppDisplay != 0;
 
-        MirrorUiState newUiState = new MirrorUiState();
-        newUiState.settingsBtnVisibility = true;
-        newUiState.tntDesktopButtonVisibility = true;
-        newUiState.tntDesktopButtonText = getTntDesktopButtonText();
-        newUiState.screenOffBtnText = "熄屏";
-        newUiState.runtimeControlsHintText = "已启动服务后，可继续使用熄屏和触摸控制。";
-
-        SunshineService.LifecycleState lifecycleState = SunshineService.getLifecycleState();
         if (lifecycleState == SunshineService.LifecycleState.STOPPED) {
-            newUiState.mirrorStatusText = "Sunshine 服务未启动，请点击启动服务";
+            newUiState.mirrorStatusText = "Sunshine 服务未启动";
             newUiState.screenOffBtnVisibility = false;
             newUiState.screenOffBtnEnabled = false;
-            newUiState.touchScreenBtnVisibility = false;
-            newUiState.runtimeControlsHintText = "启动服务后，这里会显示熄屏和触摸控制。";
         } else if (lifecycleState == SunshineService.LifecycleState.STARTING) {
-            newUiState.mirrorStatusText = "Sunshine 服务正在启动，请稍候";
+            newUiState.mirrorStatusText = "Sunshine 服务启动中";
             newUiState.screenOffBtnVisibility = false;
             newUiState.screenOffBtnEnabled = false;
-            newUiState.touchScreenBtnVisibility = false;
-            newUiState.runtimeControlsHintText = "服务启动中，熄屏和触摸控制稍后可用。";
         } else if (lifecycleState == SunshineService.LifecycleState.STOPPING) {
-            newUiState.mirrorStatusText = "Sunshine 服务正在停止，请稍候";
+            newUiState.mirrorStatusText = "Sunshine 服务关闭中";
             newUiState.screenOffBtnVisibility = false;
             newUiState.screenOffBtnEnabled = false;
-            newUiState.touchScreenBtnVisibility = false;
-            newUiState.runtimeControlsHintText = "服务停止中，熄屏和触摸控制暂不可用。";
-        } else if (isScreenMirroring) {
-            newUiState.mirrorStatusText = "Sunshine Host 运行中。建议在系统设置中为 TNT Anywhere 关闭省电限制，并在任务列表中锁定任务防止被杀。控制链路推荐使用 Shizuku。";
+        } else if (connected) {
+            newUiState.mirrorStatusText = "已连接到客户端";
             newUiState.screenOffBtnVisibility = true;
             newUiState.screenOffBtnEnabled = ShizukuUtils.hasPermission();
-            newUiState.touchScreenBtnVisibility = singleAppMode;
-            if (singleAppMode) {
-                newUiState.touchScreenBtnText = useTouchscreen ? "触摸屏" : "触控板";
-            }
-            newUiState.runtimeControlsHintText = ShizukuUtils.hasPermission()
-                    ? "串流已建立，可直接使用熄屏和触摸控制。"
-                    : "串流已建立，但熄屏需要先授权 Shizuku。";
         } else {
-            StringBuilder status = new StringBuilder(
-                    "Sunshine Host 已启动，等待 Moonlight 客户端连接。\n可在 Moonlight 中搜索 TNT Anywhere，或手动输入下方 IP。");
-            try {
-                for (String ip : SunshineService.getAllWifiIpAddresses(this)) {
-                    status.append("\n").append(ip);
-                }
-            } catch (Throwable e) {
-                // ignore
-            }
-            newUiState.mirrorStatusText = status.toString();
-            newUiState.screenOffBtnVisibility = true;
+            newUiState.mirrorStatusText = "Sunshine 服务已启动，等待连接中";
+            newUiState.screenOffBtnVisibility = false;
             newUiState.screenOffBtnEnabled = false;
-            newUiState.touchScreenBtnVisibility = false;
-            newUiState.runtimeControlsHintText = ShizukuUtils.hasPermission()
-                    ? "连接客户端后可使用熄屏。"
-                    : "熄屏需要先授权 Shizuku；连接客户端后可用。";
         }
-
         State.uiState.setValue(newUiState);
-        updateServiceControls();
     }
 
     public void forceRefreshUi() {
         refresh();
-        updateServiceControls();
-        if (exitBtn != null) {
-            exitBtn.post(this::updateServiceControls);
+        captureHomeFragment();
+        if (homePageFragment != null) {
+            homePageFragment.updateUiState(State.uiState.getValue());
+            homePageFragment.updateDebugInfo(State.streamingDebugInfo.getValue());
         }
     }
 
-    private void updateServiceControls() {
-        if (exitBtn != null) {
-            exitBtn.setText(getSunshineServiceButtonText());
-            exitBtn.setEnabled(isSunshineServiceButtonEnabled());
-        }
-        if (tntDesktopBtn != null) {
-            tntDesktopBtn.setText(getTntDesktopButtonText());
+    private void updateUI(MirrorUiState state) {
+        captureHomeFragment();
+        if (homePageFragment != null) {
+            homePageFragment.updateUiState(state);
         }
     }
 
     private String getTntDesktopButtonText() {
+        if (Pref.getUseTntOverlayBackend()) {
+            return TntOverlayHelper.isOverlayOwnedByApp() ? "关闭 TNT" : "开启 TNT";
+        }
         return TntDebugVirtualDisplayHelper.isActive() ? "关闭 TNT" : "开启 TNT";
     }
 
-    private String getSunshineServiceButtonText() {
-        switch (SunshineService.getLifecycleState()) {
-            case STARTING:
-                return "启动中...";
-            case RUNNING:
-                return "停止服务";
-            case STOPPING:
-                return "停止中...";
-            case STOPPED:
-            default:
-                return "启动服务";
+    private void captureHomeFragment() {
+        androidx.fragment.app.Fragment fragment =
+                getSupportFragmentManager().findFragmentByTag("f" + 0);
+        if (fragment instanceof HomePageFragment) {
+            homePageFragment = (HomePageFragment) fragment;
         }
-    }
-
-    private boolean isSunshineServiceButtonEnabled() {
-        SunshineService.LifecycleState state = SunshineService.getLifecycleState();
-        return state == SunshineService.LifecycleState.STOPPED
-                || state == SunshineService.LifecycleState.RUNNING;
-    }
-
-    private void styleSwitch(SwitchCompat switchCompat) {
-        if (switchCompat == null) {
-            return;
-        }
-        int textColor = 0xFF202020;
-        int[][] states = new int[][]{
-                new int[]{-android.R.attr.state_enabled},
-                new int[]{android.R.attr.state_checked},
-                new int[]{-android.R.attr.state_checked}
-        };
-        ColorStateList thumbColors = new ColorStateList(states, new int[]{
-                0xFFD0D4D8,
-                0xFF4CAF50,
-                0xFF9EA4AA
-        });
-        ColorStateList trackColors = new ColorStateList(states, new int[]{
-                0x223F454A,
-                0x664CAF50,
-                0x553F454A
-        });
-        switchCompat.setTextColor(textColor);
-        switchCompat.setThumbTintList(thumbColors);
-        switchCompat.setTrackTintList(trackColors);
-        CompoundButtonCompat.setButtonTintList(switchCompat, null);
     }
 }

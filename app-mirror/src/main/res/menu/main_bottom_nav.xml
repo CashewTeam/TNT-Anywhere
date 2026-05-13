@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="主页" />
+    <item
+        android:id="@+id/nav_tnt"
+        android:icon="@drawable/ic_settings"
+        android:title="TNT 设置" />
+    <item
+        android:id="@+id/nav_streaming"
+        android:icon="@drawable/ic_wifi"
+        android:title="串流设置" />
+</menu>

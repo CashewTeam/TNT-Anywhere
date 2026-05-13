@@ -53,6 +53,7 @@ namespace stream {
     uint64_t total_us;
     int64_t last_frame_index;
     int64_t last_queue_delay_ms;
+    int64_t control_rtt_ms;
   };
 
   video_debug_stats_t getVideoDebugStats();

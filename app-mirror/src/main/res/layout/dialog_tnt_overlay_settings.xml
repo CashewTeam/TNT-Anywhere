@@ -3,70 +3,94 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="18dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="This controls the headless TNT overlay display resolution used by the TNT button on the home page."
-        android:textColor="#666666"
+        android:lineSpacingExtra="2dp"
+        android:text="这里用于设置默认和备用 overlay 方式手动创建的 TNT 显示器参数。开启适应客户端分辨率后会优先使用客户端请求分辨率启动 TNT。"
+        android:textColor="@color/ui_text_secondary"
         android:textSize="14sp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Preset"
-        android:textSize="16sp" />
+        android:text="预设"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <Spinner
         android:id="@+id/tntOverlayPresetSpinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:layout_marginTop="8dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Width"
-        android:textSize="16sp" />
+        android:layout_marginTop="14dp"
+        android:text="宽度"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/tntOverlayWidthEditText"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_ui_input"
         android:hint="1920"
         android:inputType="number"
-        android:singleLine="true" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="@color/ui_text_primary"
+        android:textColorHint="@color/ui_text_secondary" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Height"
-        android:textSize="16sp" />
+        android:text="高度"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/tntOverlayHeightEditText"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_ui_input"
         android:hint="1080"
         android:inputType="number"
-        android:singleLine="true" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="@color/ui_text_primary"
+        android:textColorHint="@color/ui_text_secondary" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:text="DPI"
-        android:textSize="16sp" />
+        android:textColor="@color/ui_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/tntOverlayDpiEditText"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="216 or 320"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_ui_input"
+        android:hint="216 或 320"
         android:inputType="number"
-        android:singleLine="true" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:textColor="@color/ui_text_primary"
+        android:textColorHint="@color/ui_text_secondary" />
 </LinearLayout>

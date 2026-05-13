@@ -1,6 +1,5 @@
 package com.connect_screen.mirror;
 
-import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -22,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 
@@ -31,6 +31,7 @@ import com.connect_screen.mirror.job.SunshineServer;
 import com.connect_screen.mirror.job.TntOverlayHelper;
 import com.connect_screen.mirror.shizuku.PermissionManager;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -327,7 +328,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                                          String clipLabel,
                                          String copiedToastText) {
         final String textToCopy = content;
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle(title)
                 .setMessage(content)
                 .setPositiveButton("关闭", null)
@@ -594,7 +595,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         });
         presetSpinner.setSelection(findMatchingTntOverlayPresetIndex(currentWidth, currentHeight, currentDpi));
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("TNT overlay resolution")
                 .setView(dialogView)
                 .setPositiveButton("Save", (dialog, which) -> {
@@ -837,7 +838,7 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         EditText portEditText = dialogView.findViewById(R.id.portEditText);
         portEditText.setText("42515");
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("Manual client address")
                 .setView(dialogView)
                 .setPositiveButton("OK", (dialog, which) -> {

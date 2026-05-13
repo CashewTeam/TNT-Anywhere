@@ -89,9 +89,11 @@ public class ProjectViaMoonlight implements Job {
         int targetWidth = Pref.getAdaptTntResolutionToClient() ? width : Pref.getTntOverlayWidth();
         int targetHeight = Pref.getAdaptTntResolutionToClient() ? height : Pref.getTntOverlayHeight();
         int targetDpi = Pref.getTntOverlayDpi();
+        boolean useOverlayBackend = Pref.getUseTntOverlayBackend();
         boolean externalDisplayPresent = TntDisplaySelector.hasExternalDisplay(context);
         boolean baseDisplayPresent = TntDebugVirtualDisplayHelper.isBaseDisplayPresent(context);
         boolean helperActive = TntDebugVirtualDisplayHelper.isActive();
+        boolean overlayActive = TntOverlayHelper.isOverlayOwnedByApp();
         boolean helperMatchesTarget = TntDebugVirtualDisplayHelper.isActiveWithConfig(
                 targetWidth,
                 targetHeight,
@@ -102,6 +104,9 @@ public class ProjectViaMoonlight implements Job {
             return true;
         }
         if (externalDisplayPresent && helperActive && helperMatchesTarget) {
+            return true;
+        }
+        if (useOverlayBackend && externalDisplayPresent && overlayActive) {
             return true;
         }
 
@@ -115,11 +120,16 @@ public class ProjectViaMoonlight implements Job {
                     + externalDisplayPresent
                     + " basePresent=" + baseDisplayPresent
                     + " helperActive=" + helperActive
+                    + " overlayBackend=" + useOverlayBackend
+                    + " overlayActive=" + overlayActive
                     + " helperMatchesTarget=" + helperMatchesTarget
                     + " target="
                     + targetWidth + "x" + targetHeight + "/" + targetDpi
                     + (Pref.getAdaptTntResolutionToClient() ? " from Moonlight client request" : " from TNT settings"));
-            if (!TntDebugVirtualDisplayHelper.ensureVirtualDisplay(targetWidth, targetHeight, targetDpi)) {
+            boolean started = useOverlayBackend
+                    ? TntOverlayHelper.ensureHeadlessOverlayDisplay(targetWidth, targetHeight, targetDpi)
+                    : TntDebugVirtualDisplayHelper.ensureVirtualDisplay(targetWidth, targetHeight, targetDpi);
+            if (!started) {
                 State.showErrorStatus("TNT auto start failed. Start TNT manually and reconnect Moonlight.");
                 return false;
             }

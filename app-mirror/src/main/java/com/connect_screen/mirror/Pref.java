@@ -35,6 +35,8 @@ public class Pref {
     public static final String KEY_AUTO_CLOSE_TNT_ON_CLIENT_DISCONNECT = "auto_close_tnt_on_client_disconnect";
     public static final String KEY_ADAPT_TNT_RESOLUTION_TO_CLIENT = "adapt_tnt_resolution_to_client";
     public static final String KEY_SMARTISAN_CPUSET_BOOST = "smartisan_cpuset_boost";
+    public static final String KEY_USE_TNT_OVERLAY_BACKEND = "use_tnt_overlay_backend";
+    public static final String KEY_DARK_MODE = "dark_mode";
     public static final String KEY_ENCODER_CODEC = "encoder_codec";
     public static final String KEY_ENCODER_BITRATE_PERCENT = "encoder_bitrate_percent";
     public static final String KEY_ENCODER_BITRATE_MODE = "encoder_bitrate_mode";
@@ -169,6 +171,14 @@ public class Pref {
 
     public static boolean getSmartisanCpusetBoost() {
         return getBoolean(KEY_SMARTISAN_CPUSET_BOOST, true);
+    }
+
+    public static boolean getUseTntOverlayBackend() {
+        return getBoolean(KEY_USE_TNT_OVERLAY_BACKEND, false);
+    }
+
+    public static boolean getDarkMode() {
+        return getBoolean(KEY_DARK_MODE, false);
     }
 
     public static int getEncoderCodec() {

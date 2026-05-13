@@ -4,10 +4,9 @@ import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.app.AlertDialog;
-import android.content.Context;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.text.InputFilter;
@@ -23,11 +22,13 @@ import android.view.Surface;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.media.AudioRecord;
+
 import android.media.AudioManager;
 
 import androidx.annotation.NonNull;
 
 import com.connect_screen.mirror.Pref;
+import com.connect_screen.mirror.R;
 import com.connect_screen.mirror.SmartisanPerformanceHelper;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.SunshineService;
@@ -36,6 +37,7 @@ import com.connect_screen.mirror.TouchpadActivity;
 import com.connect_screen.mirror.shizuku.ServiceUtils;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.connect_screen.mirror.shizuku.SurfaceControl;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -115,7 +117,8 @@ public class SunshineServer {
             if (suppressPin != null) {
                 submitPin(suppressPin);
             } else {
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                MaterialAlertDialogBuilder builder =
+                        new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog);
                 builder.setTitle("请输入PIN码")
                         .setMessage("请输入4位数字PIN码")
                         .setView(input)
@@ -156,6 +159,10 @@ public class SunshineServer {
         new Handler(Looper.getMainLooper()).post(() -> {
             State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
         });
+    }
+
+    public static boolean isMoonlightSessionActive() {
+        return activeMoonlightSessionId != 0;
     }
 
     public static void updateStreamingDebugInfo(String info) {
@@ -276,7 +283,11 @@ public class SunshineServer {
             State.userService = null;
         }
         if (Pref.getAutoCloseTntOnClientDisconnect()) {
-            TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+            if (Pref.getUseTntOverlayBackend()) {
+                TntOverlayHelper.clearOverlayDisplay();
+            } else {
+                TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+            }
         }
     }
 
@@ -304,7 +315,7 @@ public class SunshineServer {
                 return;
             }
             
-            new AlertDialog.Builder(context)
+            new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_TntAnywhere_MaterialAlertDialog)
                 .setTitle("无法配置编码器")
                 .setMessage(errorMessage)
                 .setPositiveButton("确定", (dialog, which) -> {
