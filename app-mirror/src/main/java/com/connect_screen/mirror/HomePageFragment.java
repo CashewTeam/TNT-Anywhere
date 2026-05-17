@@ -88,7 +88,7 @@ public class HomePageFragment extends Fragment {
         if (serviceButton == null || getContext() == null) {
             return;
         }
-        int diameter = getResources().getDisplayMetrics().widthPixels - dp(78);
+        int diameter = getResources().getDisplayMetrics().widthPixels - dp(128);
         ViewGroup.LayoutParams params = serviceButton.getLayoutParams();
         params.width = diameter;
         params.height = diameter;
@@ -118,7 +118,7 @@ public class HomePageFragment extends Fragment {
                     serviceStatusSecondary.setText("已连接到客户端");
                 } else {
                     serviceStatusPrimary.setText("等待连接");
-                    serviceStatusSecondary.setText("Sunshine 服务已启动，等待连接中");
+                    serviceStatusSecondary.setText("Sunshine 服务已启动");
                 }
                 setServiceButtonRunningStyle();
                 break;

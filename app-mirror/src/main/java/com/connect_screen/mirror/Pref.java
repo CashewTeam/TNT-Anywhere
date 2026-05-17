@@ -70,7 +70,7 @@ public class Pref {
     }
 
     public static boolean getAutoScreenOff() {
-        return getBoolean(KEY_AUTO_SCREEN_OFF, false);
+        return getBoolean(KEY_AUTO_SCREEN_OFF, true);
     }
 
     public static boolean getAutoBindInput() {
@@ -126,7 +126,7 @@ public class Pref {
     }
 
     public static boolean getUseBlackImage() {
-        return getBoolean(KEY_USE_BLACK_IMAGE, false);
+        return getBoolean(KEY_USE_BLACK_IMAGE, true);
     }
 
     public static boolean getPreventAutoLock() {

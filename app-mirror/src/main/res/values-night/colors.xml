@@ -9,6 +9,7 @@
     <color name="ui_divider">#FF333539</color>
     <color name="ui_accent">#FFFF8A2A</color>
     <color name="ui_accent_dark">#FFFF7A1A</color>
+    <color name="ui_service_ring">#FF000000</color>
     <color name="ui_icon_muted">#FF9AA0A6</color>
     <color name="ui_warning">#FFFFB74D</color>
     <color name="ui_success">#FF81C784</color>

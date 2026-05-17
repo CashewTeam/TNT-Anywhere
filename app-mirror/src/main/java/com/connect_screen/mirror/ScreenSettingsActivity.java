@@ -50,6 +50,7 @@ public class ScreenSettingsActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_screen_settings);
+        UiCompat.applyStripedBackground(this);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("屏幕设置");
         }

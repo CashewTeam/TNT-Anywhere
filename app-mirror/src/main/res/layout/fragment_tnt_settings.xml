@@ -189,6 +189,13 @@
             <View style="@style/TntAnywhereDivider" />
 
             <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/useBlackImageCheckbox"
+                style="@style/TntAnywhereSettingSwitch"
+                android:text="使用黑色画面模拟息屏" />
+
+            <View style="@style/TntAnywhereDivider" />
+
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/preventAutoLockCheckbox"
                 style="@style/TntAnywhereSettingSwitch"
                 android:text="防止自动锁屏" />

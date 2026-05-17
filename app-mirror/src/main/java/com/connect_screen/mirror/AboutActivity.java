@@ -25,6 +25,7 @@ public class AboutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
+        UiCompat.applyStripedBackground(this);
 
         findViewById(R.id.aboutBackButton).setOnClickListener(v -> finish());
         findViewById(R.id.githubButton).setOnClickListener(v -> openUrl(PROJECT_URL));

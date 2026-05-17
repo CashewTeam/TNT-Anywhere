@@ -56,7 +56,10 @@ public class SunshineServer {
     public static String suppressPin;
     public static String pinCandidate;
     private static final AtomicBoolean stoppingVirtualDisplay = new AtomicBoolean(false);
+    private static final long AUTO_SCREEN_OFF_DELAY_MS = 30_000L;
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
     private static volatile long activeMoonlightSessionId;
+    private static Runnable autoScreenOffRunnable;
     private static final String MOONLIGHT_CONTROL_HINT =
             "按 Ctrl+Alt+Shift+C 打开光标\n如果不可操控，请在 Moonlight 切换一下控制模式";
 
@@ -147,6 +150,7 @@ public class SunshineServer {
     public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         suppressPin = null;
         activeMoonlightSessionId = sessionId;
+        scheduleAutoScreenOffForSession(sessionId);
         SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         Context context = State.getContext();
         if (context == null) {
@@ -246,6 +250,43 @@ public class SunshineServer {
         }
     }
 
+    private static void scheduleAutoScreenOffForSession(long sessionId) {
+        cancelAutoScreenOffTimer();
+        if (!Pref.getAutoScreenOff()) {
+            State.log("[AutoScreenOff] disabled; skip scheduling");
+            return;
+        }
+        autoScreenOffRunnable = () -> {
+            if (activeMoonlightSessionId != sessionId) {
+                State.log("[AutoScreenOff] skip expired session=" + sessionId
+                        + " active=" + activeMoonlightSessionId);
+                return;
+            }
+            if (!Pref.getAutoScreenOff()) {
+                State.log("[AutoScreenOff] disabled before timer fired");
+                return;
+            }
+            Context context = State.getContext();
+            if (context == null) {
+                State.log("[AutoScreenOff] skip because context is null");
+                return;
+            }
+            State.log("[AutoScreenOff] trigger after 30s for session=" + sessionId);
+            CreateVirtualDisplay.doPowerOffScreen(context);
+        };
+        MAIN_HANDLER.postDelayed(autoScreenOffRunnable, AUTO_SCREEN_OFF_DELAY_MS);
+        State.log("[AutoScreenOff] scheduled after 30s for session=" + sessionId);
+    }
+
+    private static void cancelAutoScreenOffTimer() {
+        if (autoScreenOffRunnable == null) {
+            return;
+        }
+        MAIN_HANDLER.removeCallbacks(autoScreenOffRunnable);
+        autoScreenOffRunnable = null;
+        State.log("[AutoScreenOff] timer cancelled");
+    }
+
     private static void cleanupMoonlightProjection(long sessionId) {
         boolean force = sessionId == 0;
         long activeSessionId = activeMoonlightSessionId;
@@ -255,6 +296,7 @@ public class SunshineServer {
             return;
         }
         State.log("停止 Moonlight 投屏");
+        cancelAutoScreenOffTimer();
         activeMoonlightSessionId = 0;
         SmartisanPerformanceHelper.updateStreamingBoost(false, "Moonlight session stopped");
         State.streamingDebugInfo.setValue("串流未启动");
@@ -283,11 +325,7 @@ public class SunshineServer {
             State.userService = null;
         }
         if (Pref.getAutoCloseTntOnClientDisconnect()) {
-            if (Pref.getUseTntOverlayBackend()) {
-                TntOverlayHelper.clearOverlayDisplay();
-            } else {
-                TntDebugVirtualDisplayHelper.clearVirtualDisplay();
-            }
+            TntDisplayStarter.clearCurrentBackendAndResidual();
         }
     }
 

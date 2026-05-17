@@ -26,6 +26,7 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 
+import com.connect_screen.mirror.BlackScreenOverlayService;
 import com.connect_screen.mirror.FloatingButtonService;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.PureBlackActivity;
@@ -63,12 +64,10 @@ public class CreateVirtualDisplay {
                 try {
                     VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, null);
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
-                    powerOffScreen();
                     return virtualDisplay;
                 } catch(Exception e) {
                     VirtualDisplay virtualDisplay = createByShizuku(virtualDisplayArgs, surface, true, State.getMediaProjection());
                     android.util.Log.i("CreateVirtualDisplay", "created virtual display: " + virtualDisplay.getDisplay().getDisplayId());
-                    powerOffScreen();
                     return virtualDisplay;
                 }
             } else {
@@ -98,8 +97,12 @@ public class CreateVirtualDisplay {
         if (State.floatingButtonService != null) {
             State.floatingButtonService.resetButtonVisibility();
         }
+        if (Pref.getUseBlackImage()) {
+            BlackScreenOverlayService.show(context);
+            return;
+        }
         boolean singleApp = Pref.getSingleAppMode();
-        if (State.userService != null && !Pref.getUseBlackImage()) {
+        if (State.userService != null) {
             try {
                 State.userService.startListenVolumeKey();
                 if (!State.userService.setScreenPower(SurfaceControl.POWER_MODE_OFF)) {
@@ -251,6 +254,7 @@ public class CreateVirtualDisplay {
         if (State.floatingButtonService != null) {
             State.floatingButtonService.resetButtonVisibility();
         }
+        BlackScreenOverlayService.hide(State.getContext());
         if (State.isInPureBlackActivity != null) {
             State.isInPureBlackActivity.finish();
         } else {

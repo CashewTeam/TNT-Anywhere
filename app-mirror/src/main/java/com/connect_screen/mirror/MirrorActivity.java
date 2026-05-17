@@ -352,7 +352,6 @@ public class MirrorActivity extends AppCompatActivity {
                             inputManager.injectInputEvent(event, 0);
                             return true;
                         });
-                        CreateVirtualDisplay.powerOffScreen();
                     } else if (State.mirrorVirtualDisplay != null) {
                         boolean isLandscape = isDefaultDisplayLandscape();
                         Surface targetSurface = isLandscape ? landscapeInputSurface : portraitInputSurface;

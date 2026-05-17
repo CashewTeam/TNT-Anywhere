@@ -22,8 +22,7 @@ import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
 import com.connect_screen.mirror.job.ExitAll;
 import com.connect_screen.mirror.job.StartSunshineService;
 import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.job.TntDebugVirtualDisplayHelper;
-import com.connect_screen.mirror.job.TntOverlayHelper;
+import com.connect_screen.mirror.job.TntDisplayStarter;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.topjohnwu.superuser.Shell;
@@ -109,6 +108,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
 
         Shizuku.addRequestPermissionResultListener(requestPermissionResultListener);
         setContentView(R.layout.activity_main);
+        UiCompat.applyStripedBackground(this);
 
         TextView versionTitle = findViewById(R.id.versionTitle);
         versionTitle.setText(getString(R.string.app_name) + " " + BuildConfig.VERSION_NAME);
@@ -209,26 +209,8 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     public void toggleTntDesktop() {
-        if (Pref.getUseTntOverlayBackend()) {
-            if (TntOverlayHelper.isOverlayOwnedByApp()) {
-                TntOverlayHelper.clearOverlayDisplay();
-                State.log("已关闭 TNT overlay 调试显示");
-            } else if (TntOverlayHelper.ensureHeadlessOverlayDisplayFromPreferences()) {
-                State.log("已启动 TNT overlay 调试显示");
-            }
-            refresh();
-            return;
-        }
-        if (TntDebugVirtualDisplayHelper.isActive()) {
-            TntDebugVirtualDisplayHelper.clearVirtualDisplay();
-            State.log("已关闭 TNT 原生虚拟显示");
-            refresh();
-            return;
-        }
-        if (TntDebugVirtualDisplayHelper.ensureVirtualDisplayFromPreferences()) {
-            State.log("已创建 TNT 原生虚拟显示，请稍候等待系统激活 TNT");
-            refresh();
-        }
+        TntDisplayStarter.toggleFromPreferences();
+        refresh();
     }
 
     @Override
@@ -357,10 +339,7 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     private String getTntDesktopButtonText() {
-        if (Pref.getUseTntOverlayBackend()) {
-            return TntOverlayHelper.isOverlayOwnedByApp() ? "关闭 TNT" : "开启 TNT";
-        }
-        return TntDebugVirtualDisplayHelper.isActive() ? "关闭 TNT" : "开启 TNT";
+        return TntDisplayStarter.isActiveForCurrentBackend() ? "关闭 TNT" : "开启 TNT";
     }
 
     private void captureHomeFragment() {

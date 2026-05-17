@@ -70,6 +70,8 @@ public class TntSettingsFragment extends Fragment {
                 Pref.KEY_AUTO_SCALE);
         bindSwitch(view, R.id.autoScreenOffCheckbox, Pref.getAutoScreenOff(),
                 Pref.KEY_AUTO_SCREEN_OFF);
+        bindSwitch(view, R.id.useBlackImageCheckbox, Pref.getUseBlackImage(),
+                Pref.KEY_USE_BLACK_IMAGE);
         bindSwitch(view, R.id.preventAutoLockCheckbox, Pref.getPreventAutoLock(),
                 Pref.KEY_PREVENT_AUTO_LOCK);
         bindSwitch(view, R.id.showFloatingInMirrorModeCheckbox, Pref.getShowFloatingInMirrorMode(),

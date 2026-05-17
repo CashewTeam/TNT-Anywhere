@@ -87,6 +87,22 @@ public final class TntOverlayHelper {
         return hasOverlayDisplayConfig();
     }
 
+    public static boolean isOverlayActiveWithConfig(int width, int height, int density) {
+        String expected = buildOverlayValue(width, height, density);
+        synchronized (LOCK) {
+            if (overlayOwnedByApp && expected.equals(currentOverlayValue)) {
+                return true;
+            }
+        }
+        String configured = getOverlayDisplayConfig();
+        return expected.equals(configured);
+    }
+
+    public static boolean hasOverlayDisplayConfig() {
+        String configured = getOverlayDisplayConfig();
+        return configured != null && !configured.trim().isEmpty();
+    }
+
     public static boolean clearOverlayDisplay() {
         if (!hasRootAccess()) {
             State.log("[TNTOverlay] cannot clear overlay display because root is unavailable");
@@ -111,6 +127,27 @@ public final class TntOverlayHelper {
             State.log("[TNTOverlay] clear overlay display failed: " + e.getMessage());
             return false;
         }
+    }
+
+    public static boolean clearOverlayDisplayIfOwned() {
+        String ownedValue;
+        synchronized (LOCK) {
+            if (!overlayOwnedByApp) {
+                return true;
+            }
+            ownedValue = currentOverlayValue;
+        }
+        String configured = getOverlayDisplayConfig();
+        if (ownedValue != null && configured != null && !ownedValue.equals(configured)) {
+            synchronized (LOCK) {
+                overlayOwnedByApp = false;
+                currentOverlayValue = null;
+            }
+            State.log("[TNTOverlay] skip clearing overlay display because setting changed outside app: "
+                    + configured);
+            return true;
+        }
+        return clearOverlayDisplay();
     }
 
     public static boolean isOverlayDebugPropertyEnabled() {
@@ -152,7 +189,7 @@ public final class TntOverlayHelper {
     }
 
     public static void restoreOverlayDisplayIfOwned() {
-        clearOverlayDisplay();
+        clearOverlayDisplayIfOwned();
     }
 
     public static String getConfiguredOverlayValue() {
@@ -162,17 +199,17 @@ public final class TntOverlayHelper {
                 Pref.getTntOverlayDpi());
     }
 
-    private static boolean hasOverlayDisplayConfig() {
+    private static String getOverlayDisplayConfig() {
         try {
             Context context = State.getContext();
             if (context == null) {
-                return false;
+                return "";
             }
             String value = Settings.Global.getString(context.getContentResolver(), OVERLAY_SETTING_KEY);
-            return value != null && !value.trim().isEmpty();
+            return value == null ? "" : value.trim();
         } catch (Throwable e) {
             State.log("[TNTOverlay] query overlay setting failed: " + e.getMessage());
-            return false;
+            return "";
         }
     }
 

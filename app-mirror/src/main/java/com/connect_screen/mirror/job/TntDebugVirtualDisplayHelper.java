@@ -152,7 +152,9 @@ public final class TntDebugVirtualDisplayHelper {
                 return false;
             }
             for (Display display : displayManager.getDisplays()) {
-                if (display != null && DISPLAY_NAME.equals(display.getName())) {
+                if (display != null
+                        && display.getDisplayId() < 100000
+                        && DISPLAY_NAME.equals(display.getName())) {
                     return true;
                 }
             }

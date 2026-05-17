@@ -89,52 +89,71 @@ public class ProjectViaMoonlight implements Job {
         int targetWidth = Pref.getAdaptTntResolutionToClient() ? width : Pref.getTntOverlayWidth();
         int targetHeight = Pref.getAdaptTntResolutionToClient() ? height : Pref.getTntOverlayHeight();
         int targetDpi = Pref.getTntOverlayDpi();
-        boolean useOverlayBackend = Pref.getUseTntOverlayBackend();
+        boolean useOverlayBackend = TntDisplayStarter.isOverlayBackend();
         boolean externalDisplayPresent = TntDisplaySelector.hasExternalDisplay(context);
+        boolean selectableExternalPresent = TntDisplaySelector.hasSelectableExternalDisplay(context);
+        boolean physicalExternalPresent = TntDisplaySelector.hasPhysicalExternalDisplay(context);
         boolean baseDisplayPresent = TntDebugVirtualDisplayHelper.isBaseDisplayPresent(context);
         boolean helperActive = TntDebugVirtualDisplayHelper.isActive();
+        boolean overlayConfigured = TntOverlayHelper.hasOverlayDisplayConfig();
+        boolean overlayMatchesTarget = TntOverlayHelper.isOverlayActiveWithConfig(
+                targetWidth,
+                targetHeight,
+                targetDpi);
         boolean overlayActive = TntOverlayHelper.isOverlayOwnedByApp();
         boolean helperMatchesTarget = TntDebugVirtualDisplayHelper.isActiveWithConfig(
                 targetWidth,
                 targetHeight,
                 targetDpi);
 
-        if (externalDisplayPresent && !baseDisplayPresent && !helperActive) {
-            State.log("[ProjectViaMoonlight] external display already present and is not TNT Anywhere base display");
+        if (!useOverlayBackend && physicalExternalPresent) {
+            State.log("[ProjectViaMoonlight] physical external display already present; skip native base display creation");
             return true;
         }
-        if (externalDisplayPresent && helperActive && helperMatchesTarget) {
-            return true;
-        }
-        if (useOverlayBackend && externalDisplayPresent && overlayActive) {
+        if (TntDisplayStarter.isReadyForClient(context, targetWidth, targetHeight, targetDpi)) {
             return true;
         }
 
         if (autoTntStartAttempts >= 4) {
-            State.log("[ProjectViaMoonlight] TNT auto start timed out, continue to display selection");
+            State.log("[ProjectViaMoonlight] TNT auto start timed out, externalPresent="
+                    + externalDisplayPresent
+                    + " selectableExternalPresent=" + selectableExternalPresent
+                    + " physicalExternalPresent=" + physicalExternalPresent
+                    + " basePresent=" + baseDisplayPresent
+                    + " overlayBackend=" + useOverlayBackend);
+            TntDisplaySelector.logDisplays(context, "auto-start-timeout");
+            if (!useOverlayBackend) {
+                State.showErrorStatus("TNT auto start timed out. Wait for TNT to finish starting and reconnect Moonlight.");
+                return false;
+            }
             return true;
         }
 
         if (autoTntStartAttempts == 0) {
             State.log("[ProjectViaMoonlight] ensuring TNT display before Moonlight mirror, externalPresent="
                     + externalDisplayPresent
+                    + " selectableExternalPresent=" + selectableExternalPresent
+                    + " physicalExternalPresent=" + physicalExternalPresent
                     + " basePresent=" + baseDisplayPresent
                     + " helperActive=" + helperActive
                     + " overlayBackend=" + useOverlayBackend
                     + " overlayActive=" + overlayActive
+                    + " overlayConfigured=" + overlayConfigured
+                    + " overlayMatchesTarget=" + overlayMatchesTarget
                     + " helperMatchesTarget=" + helperMatchesTarget
                     + " target="
                     + targetWidth + "x" + targetHeight + "/" + targetDpi
                     + (Pref.getAdaptTntResolutionToClient() ? " from Moonlight client request" : " from TNT settings"));
-            boolean started = useOverlayBackend
-                    ? TntOverlayHelper.ensureHeadlessOverlayDisplay(targetWidth, targetHeight, targetDpi)
-                    : TntDebugVirtualDisplayHelper.ensureVirtualDisplay(targetWidth, targetHeight, targetDpi);
+            boolean started = TntDisplayStarter.ensureForClient(targetWidth, targetHeight, targetDpi);
             if (!started) {
                 State.showErrorStatus("TNT auto start failed. Start TNT manually and reconnect Moonlight.");
                 return false;
             }
         } else {
-            State.log("[ProjectViaMoonlight] waiting for TNT display, attempt=" + (autoTntStartAttempts + 1));
+            State.log("[ProjectViaMoonlight] waiting for TNT display, attempt=" + (autoTntStartAttempts + 1)
+                    + " selectableExternalPresent=" + selectableExternalPresent
+                    + " physicalExternalPresent=" + physicalExternalPresent
+                    + " basePresent=" + baseDisplayPresent);
         }
         autoTntStartAttempts++;
         State.resumeJobLater(1500);

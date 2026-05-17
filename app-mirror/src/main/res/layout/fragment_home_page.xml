@@ -88,7 +88,7 @@
             android:id="@+id/ipAddressText"
             android:layout_width="@dimen/ui_content_width"
             android:layout_height="wrap_content"
-            android:layout_marginTop="36dp"
+            android:layout_marginTop="48dp"
             android:gravity="center"
             android:text="IP：--"
             android:textColor="@color/ui_text_primary"
@@ -99,11 +99,12 @@
             android:id="@+id/serviceButton"
             android:layout_width="@dimen/ui_service_button_size"
             android:layout_height="@dimen/ui_service_button_size"
-            android:layout_marginTop="58dp"
+            android:layout_marginTop="78dp"
             android:background="@drawable/bg_ui_service_button_stopped"
             android:clickable="true"
             android:elevation="8dp"
-            android:focusable="true">
+            android:focusable="true"
+            android:foreground="@drawable/bg_ui_service_button_ring">
 
             <LinearLayout
                 android:layout_width="match_parent"

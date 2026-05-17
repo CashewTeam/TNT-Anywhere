@@ -55,7 +55,6 @@ public class ProjectViaMirror implements Job {
             String selectedAppPackage = Pref.getSelectedAppPackage();
             ServiceUtils.launchPackage(context, selectedAppPackage, mirrorDisplay.getDisplayId());
             State.refreshMainActivity();
-            CreateVirtualDisplay.powerOffScreen();
             int targetDisplayId = mirrorDisplay.getDisplayId();
             if (ShizukuUtils.hasPermission()) {
                 int singleAppDpi = Pref.getSingleAppDpi();

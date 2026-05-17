@@ -73,7 +73,7 @@ public class ExitAll {
             State.mirrorVirtualDisplay.release();
             State.mirrorVirtualDisplay = null;
         }
-        TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+        TntDisplayStarter.clearAllOwnedDisplays();
 
         State.displaylinkState.destroy();
         State.lastSingleAppDisplay = 0;
