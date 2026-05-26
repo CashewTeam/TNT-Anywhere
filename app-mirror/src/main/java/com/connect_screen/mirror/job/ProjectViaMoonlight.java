@@ -196,10 +196,7 @@ public class ProjectViaMoonlight implements Job {
             }
             State.mirrorVirtualDisplay = null;
         }
-        if (State.getMediaProjection() != null) {
-            State.log("[MirrorPrimary] clear stale MediaProjection before Shizuku mirror");
-            State.setMediaProjection(null);
-        }
+        State.log("[MirrorPrimary] keep MediaProjection for Android native audio capture");
     }
 
     private void mirrorExternalDisplay(int width, int height, Surface surface) throws YieldException {

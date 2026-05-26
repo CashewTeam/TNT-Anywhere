@@ -211,7 +211,9 @@ public class SunshineService extends Service {
             }, null);
             State.resumeJob();
         } else {
-            State.log("SunshineService started without MediaProjection; Moonlight capture will use Shizuku/ADB when a client connects");
+            State.log(State.getMediaProjection() != null
+                    ? "SunshineService started with existing MediaProjection for Android native audio capture"
+                    : "SunshineService started without MediaProjection; Android native audio capture will be unavailable");
             State.resumeJob();
         }
         if (Pref.getPreventAutoLock()) {

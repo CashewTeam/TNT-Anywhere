@@ -11,30 +11,14 @@ import android.media.AudioRecord;
 import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.RemoteException;
 
-import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 
 public class SunshineAudio {
     private static boolean isMuted = false;
     private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
     public static void startClientAudioCapture(Context context, int packetDuration, boolean shouldMutePhone) {
-        boolean started = false;
-        if (shouldUseShizukuAudio()) {
-            int framesPerPacket = (int) (48000 * packetDuration / 1000.0f);
-            AudioRecordProxy audioRecordProxy = new AudioRecordProxy();
-            if (!startRecording()) {
-                State.log("Shizuku REMOTE_SUBMIX 启动失败，尝试普通系统音频捕获");
-            } else {
-                SunshineServer.startAudioRecording(audioRecordProxy, framesPerPacket);
-                State.log("Shizuku REMOTE_SUBMIX 音频捕获已启动");
-                started = true;
-            }
-        }
-        if (!started) {
-            started = startAudioUseNormalPermission(context, packetDuration);
-        }
+        boolean started = startAudioUseNormalPermission(context, packetDuration);
 
         if (!started) {
             State.log("Moonlight 音频捕获未启动，继续视频串流");
@@ -110,21 +94,6 @@ public class SunshineAudio {
         }
     }
 
-    private static boolean shouldUseShizukuAudio() {
-        if (Pref.getDisableRemoteSubmix()) {
-            return false;
-        }
-        return State.isUserServiceAlive();
-    }
-
-    private static boolean startRecording() {
-        try {
-            return State.userService.startRecordingAudio();
-        } catch (RemoteException e) {
-            return false;
-        }
-    }
-
     private static boolean startAudioUseNormalPermission(Context context, int packetDuration) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
             State.log("安卓版本太低，无法录音");
@@ -168,6 +137,7 @@ public class SunshineAudio {
 
             // 将 AudioRecord 传递给 SunshineServer 进行处理
             SunshineServer.startAudioRecording(audioRecord, framesPerPacket);
+            State.log("Android 原生系统音频捕获已启动");
             return true;
 
         } else {
@@ -177,13 +147,6 @@ public class SunshineAudio {
     }
 
     public static void restoreVolume(Context context) {
-        if (State.userService != null) {
-            try {
-                State.userService.stopRecordingAudio();
-            } catch (RemoteException e) {
-                // ignore
-            }
-        }
         if (isMuted && context != null) {
             State.log("恢复音量");
             isMuted = false;

@@ -227,19 +227,6 @@
             app:trackTint="#664CAF50" />
 
         <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/disableRemoteSubmixCheckbox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="Moonlight 无声音时尝试不使用 REMOTE_SUBMIX"
-            android:textColor="@android:color/black"
-            android:textSize="16sp"
-            app:showText="false"
-            app:switchMinWidth="48dp"
-            app:thumbTint="#4CAF50"
-            app:trackTint="#664CAF50" />
-
-        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/smartisanCpusetBoostCheckbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

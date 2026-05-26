@@ -333,13 +333,6 @@
                 android:id="@+id/disableUsbAudioCheckbox"
                 style="@style/TntAnywhereSettingSwitch"
                 android:text="禁用 USB 外接屏音频输出" />
-
-            <View style="@style/TntAnywhereDivider" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/disableRemoteSubmixCheckbox"
-                style="@style/TntAnywhereSettingSwitch"
-                android:text="Moonlight 无声音时不使用 REMOTE_SUBMIX" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

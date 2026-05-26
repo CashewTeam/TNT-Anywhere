@@ -119,13 +119,8 @@ public class StreamingSettingsFragment extends Fragment {
 
     private void bindAudioSwitches(View root) {
         SwitchCompat disableUsbAudioCheckbox = root.findViewById(R.id.disableUsbAudioCheckbox);
-        SwitchCompat disableRemoteSubmixCheckbox = root.findViewById(R.id.disableRemoteSubmixCheckbox);
         UiCompat.tintSwitch(requireContext(), disableUsbAudioCheckbox);
-        UiCompat.tintSwitch(requireContext(), disableRemoteSubmixCheckbox);
         disableUsbAudioCheckbox.setChecked(Pref.getDisableUsbAudio());
-        disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
-        disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
-                preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
         disableUsbAudioCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_DISABLE_USB_AUDIO, isChecked).apply();
             if (ShizukuUtils.hasPermission() && PermissionManager.grant("android.permission.WRITE_SECURE_SETTINGS")) {

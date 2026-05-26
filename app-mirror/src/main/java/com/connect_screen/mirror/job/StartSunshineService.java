@@ -23,13 +23,19 @@ public class StartSunshineService implements Job {
 
         SunshineService.markStarting();
         activity.refresh();
-        Intent sunshineServiceIntent = new Intent(activity, SunshineService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            activity.startForegroundService(sunshineServiceIntent);
-        } else {
-            activity.startService(sunshineServiceIntent);
+        if (State.getMediaProjection() != null) {
+            Intent sunshineServiceIntent = new Intent(activity, SunshineService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                activity.startForegroundService(sunshineServiceIntent);
+            } else {
+                activity.startService(sunshineServiceIntent);
+            }
+            State.log("启动 SunshineService 服务（复用已有投屏授权用于原生音频捕获）");
+            activity.refresh();
+            return;
         }
-        State.log("启动 SunshineService 服务（使用 Shizuku/ADB 捕获，启动时不请求投屏权限）");
-        activity.refresh();
+        State.log("启动 SunshineService 前请求投屏权限，用于 Android 原生音频捕获");
+        activity.startMediaProjectionService();
+        throw new YieldException("等待用户授予投屏权限");
     }
 }

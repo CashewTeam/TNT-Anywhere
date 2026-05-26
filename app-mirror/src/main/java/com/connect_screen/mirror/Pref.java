@@ -25,7 +25,6 @@ public class Pref {
     public static final String KEY_DISABLE_ACCESSIBILITY = "disable_accessibility";
     public static final String KEY_USE_BLACK_IMAGE = "use_black_image";
     public static final String KEY_PREVENT_AUTO_LOCK = "prevent_auto_lock";
-    public static final String KEY_DISABLE_REMOTE_SUBMIX = "disable_remote_submix";
     public static final String KEY_SKIP_EXTERNAL_ACTIVITY = "skip_external_activity";
     public static final String KEY_USE_ANDROID_CURSOR_OVERLAY = "use_android_cursor_overlay";
     public static final String KEY_MAP_MOUSE_TO_TOUCH = "map_mouse_to_touch";
@@ -131,10 +130,6 @@ public class Pref {
 
     public static boolean getPreventAutoLock() {
         return getBoolean(KEY_PREVENT_AUTO_LOCK, false);
-    }
-
-    public static boolean getDisableRemoteSubmix() {
-        return getBoolean(KEY_DISABLE_REMOTE_SUBMIX, false);
     }
 
     public static boolean getSkipExternalActivity() {

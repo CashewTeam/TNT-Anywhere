@@ -11,8 +11,8 @@ android {
         applicationId "com.smartisanos.tntanywhere"
         minSdk 28
         targetSdk 34
-        versionCode 102
-        versionName "0.8.1"
+        versionCode 103
+        versionName "0.8.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

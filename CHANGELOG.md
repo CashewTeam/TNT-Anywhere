@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.2
+
+本次更新主要重构了 Moonlight 音频捕获链路，改善客户端无声音问题。
+
+### 音频
+
+- Moonlight 音频采集改为固定使用 Android 原生 `AudioPlaybackCaptureConfiguration`。
+- 移除 `REMOTE_SUBMIX` 音频采集后端和对应设置项。
+
 ## v0.8.1
 
 本次更新主要围绕 `UI` 细节、息屏体验和 `TNT` 拉起稳定性进行了完善。

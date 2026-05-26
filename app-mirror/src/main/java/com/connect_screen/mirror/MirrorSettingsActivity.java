@@ -115,7 +115,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         SwitchCompat autoConnectClientCheckbox = findViewById(R.id.autoConnectClientCheckbox);
         SwitchCompat useBlackImageCheckbox = findViewById(R.id.useBlackImageCheckbox);
         SwitchCompat preventAutoLockCheckbox = findViewById(R.id.preventAutoLockCheckbox);
-        SwitchCompat disableRemoteSubmixCheckbox = findViewById(R.id.disableRemoteSubmixCheckbox);
         SwitchCompat smartisanCpusetBoostCheckbox = findViewById(R.id.smartisanCpusetBoostCheckbox);
         SwitchCompat useAndroidCursorOverlayCheckbox = findViewById(R.id.useAndroidCursorOverlayCheckbox);
         SwitchCompat mapMouseToTouchCheckbox = findViewById(R.id.mapMouseToTouchCheckbox);
@@ -133,7 +132,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         styleSwitch(autoConnectClientCheckbox);
         styleSwitch(useBlackImageCheckbox);
         styleSwitch(preventAutoLockCheckbox);
-        styleSwitch(disableRemoteSubmixCheckbox);
         styleSwitch(smartisanCpusetBoostCheckbox);
         styleSwitch(useAndroidCursorOverlayCheckbox);
         styleSwitch(mapMouseToTouchCheckbox);
@@ -165,7 +163,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         autoConnectClientCheckbox.setChecked(Pref.getAutoConnectClient());
         useBlackImageCheckbox.setChecked(Pref.getUseBlackImage());
         preventAutoLockCheckbox.setChecked(Pref.getPreventAutoLock());
-        disableRemoteSubmixCheckbox.setChecked(Pref.getDisableRemoteSubmix());
         smartisanCpusetBoostCheckbox.setChecked(Pref.getSmartisanCpusetBoost());
         useAndroidCursorOverlayCheckbox.setChecked(Pref.getUseAndroidCursorOverlay());
         mapMouseToTouchCheckbox.setChecked(Pref.getMapMouseToTouch());
@@ -229,8 +226,6 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 preferences.edit().putBoolean(Pref.KEY_USE_BLACK_IMAGE, isChecked).apply());
         preventAutoLockCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
                 preferences.edit().putBoolean(Pref.KEY_PREVENT_AUTO_LOCK, isChecked).apply());
-        disableRemoteSubmixCheckbox.setOnCheckedChangeListener((buttonView, isChecked) ->
-                preferences.edit().putBoolean(Pref.KEY_DISABLE_REMOTE_SUBMIX, isChecked).apply());
         smartisanCpusetBoostCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             preferences.edit().putBoolean(Pref.KEY_SMARTISAN_CPUSET_BOOST, isChecked).apply();
             if (SunshineService.getLifecycleState() == SunshineService.LifecycleState.RUNNING) {
