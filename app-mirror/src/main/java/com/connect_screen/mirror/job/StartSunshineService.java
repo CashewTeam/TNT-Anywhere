@@ -23,7 +23,7 @@ public class StartSunshineService implements Job {
 
         SunshineService.markStarting();
         activity.refresh();
-        if (State.getMediaProjection() != null) {
+ if (State.getMediaProjection() != null) {
             Intent sunshineServiceIntent = new Intent(activity, SunshineService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 activity.startForegroundService(sunshineServiceIntent);
