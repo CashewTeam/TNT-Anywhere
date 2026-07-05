@@ -453,6 +453,30 @@ public class SunshineMouse {
     }
 
     private static Point singlePoint = null;
+    public static void handleRelMouseMovePacket(int deltaX, int deltaY) {
+        Point bounds = getPointerBounds();
+        Point point = ensureSinglePoint();
+        float scaleX = bounds.x / Math.max(1.0f, screenWidth);
+        float scaleY = bounds.y / Math.max(1.0f, screenHeight);
+        point.x = clamp(point.x + deltaX * scaleX, 0, bounds.x);
+        point.y = clamp(point.y + deltaY * scaleY, 0, bounds.y);
+        singlePoint = point;
+        if (useAndroidCursorOverlay) {
+            updateCursorOverlay(singlePoint.x, singlePoint.y);
+        }
+        if (mapMouseToTouch) {
+            if (leftMouseDown) {
+                handleTouchEventMove(MOUSE_TOUCH_POINTER_ID, singlePoint.x, singlePoint.y);
+            }
+            return;
+        }
+        if (leftMouseDown) {
+            injectMouseMove(singlePoint.x, singlePoint.y);
+        } else {
+            injectMouseHover(singlePoint.x, singlePoint.y);
+        }
+    }
+
     public static void handleAbsMouseMovePacket(float x, float y, float width, float height) {
         x = x / width;
         y = y / height;
@@ -477,7 +501,7 @@ public class SunshineMouse {
 
     public static void handleLeftMouseButton(boolean release) {
         if (singlePoint == null) {
-            return;
+            singlePoint = ensureSinglePoint();
         }
         if (mapMouseToTouch) {
             if (release) {
@@ -786,6 +810,35 @@ public class SunshineMouse {
             injectMouseEvent(MotionEvent.ACTION_DOWN, x, y, MotionEvent.BUTTON_PRIMARY, 0);
             injectMouseEvent(MotionEvent.ACTION_BUTTON_PRESS, x, y, MotionEvent.BUTTON_PRIMARY, MotionEvent.BUTTON_PRIMARY);
         }
+    }
+
+    private static Point ensureSinglePoint() {
+        if (singlePoint != null) {
+            return singlePoint;
+        }
+        Point bounds = getPointerBounds();
+        Point point = new Point();
+        point.x = bounds.x / 2.0f;
+        point.y = bounds.y / 2.0f;
+        singlePoint = point;
+        return point;
+    }
+
+    private static Point getPointerBounds() {
+        Point bounds = new Point();
+        if (singleAppMode) {
+            bounds.x = screenWidth;
+            bounds.y = screenHeight;
+        } else if (externalMirrorMode) {
+            bounds.x = externalMirrorWidth > 0 ? externalMirrorWidth : screenWidth;
+            bounds.y = externalMirrorHeight > 0 ? externalMirrorHeight : screenHeight;
+        } else {
+            bounds.x = defaultDisplayWidth > 0 ? defaultDisplayWidth : screenWidth;
+            bounds.y = defaultDisplayHeight > 0 ? defaultDisplayHeight : screenHeight;
+        }
+        bounds.x = Math.max(1.0f, bounds.x);
+        bounds.y = Math.max(1.0f, bounds.y);
+        return bounds;
     }
 
     private static void injectMouseScroll(float x, float y, float verticalScroll, float horizontalScroll) {

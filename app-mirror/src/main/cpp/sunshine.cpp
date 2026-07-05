@@ -59,6 +59,7 @@ static std::string runtimeSunshineName;
 
 // 缓存常用的方法ID
 static jmethodID handleTouchPacketMethod = nullptr;
+static jmethodID handleRelMouseMoveMethod = nullptr;
 static jmethodID handleAbsMouseMoveMethod = nullptr;
 static jmethodID handleLeftMouseButtonMethod = nullptr;
 static jmethodID handleMouseScrollMethod = nullptr;
@@ -84,6 +85,7 @@ static void resetJavaCaches(JNIEnv *env) {
         sunshineKeyboardClass = nullptr;
     }
     handleTouchPacketMethod = nullptr;
+    handleRelMouseMoveMethod = nullptr;
     handleAbsMouseMoveMethod = nullptr;
     handleLeftMouseButtonMethod = nullptr;
     handleMouseScrollMethod = nullptr;
@@ -185,11 +187,12 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
         
         // 在类引用创建后立即缓存常用方法ID
         handleTouchPacketMethod = env->GetStaticMethodID(sunshineMouseClass, "handleTouchPacket", "(IIIFFFFF)V");
+        handleRelMouseMoveMethod = env->GetStaticMethodID(sunshineMouseClass, "handleRelMouseMovePacket", "(II)V");
         handleAbsMouseMoveMethod = env->GetStaticMethodID(sunshineMouseClass, "handleAbsMouseMovePacket", "(FFFF)V");
         handleLeftMouseButtonMethod = env->GetStaticMethodID(sunshineMouseClass, "handleLeftMouseButton", "(Z)V");
         handleMouseScrollMethod = env->GetStaticMethodID(sunshineMouseClass, "handleMouseScroll", "(II)V");
         
-        if (!handleTouchPacketMethod || !handleAbsMouseMoveMethod || !handleLeftMouseButtonMethod || !handleMouseScrollMethod) {
+        if (!handleTouchPacketMethod || !handleRelMouseMoveMethod || !handleAbsMouseMoveMethod || !handleLeftMouseButtonMethod || !handleMouseScrollMethod) {
             BOOST_LOG(warning) << "无法缓存一个或多个输入处理方法ID"sv;
         }
     } else {
@@ -373,6 +376,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
         
         // 清除缓存的方法ID
         handleTouchPacketMethod = nullptr;
+        handleRelMouseMoveMethod = nullptr;
         handleAbsMouseMoveMethod = nullptr;
         handleLeftMouseButtonMethod = nullptr;
         handleMouseScrollMethod = nullptr;
@@ -1308,6 +1312,34 @@ namespace sunshine_callbacks {
                                  from_netfloat(touchPacket->pressureOrDistance),
                                  from_netfloat(touchPacket->contactAreaMajor),
                                  from_netfloat(touchPacket->contactAreaMinor));
+
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+    }
+
+    void callJavaOnRelMouseMove(NV_REL_MOUSE_MOVE_PACKET* packet) {
+        if (jvm == nullptr) {
+            BOOST_LOG(error) << "JVM 指针为空"sv;
+            return;
+        }
+
+        if (sunshineMouseClass == nullptr || handleRelMouseMoveMethod == nullptr) {
+            BOOST_LOG(error) << "SunshineMouse 类引用或相对鼠标方法ID为空"sv;
+            return;
+        }
+
+        ScopedJniEnv scopedEnv(jvm);
+        JNIEnv *env = scopedEnv.get();
+        if (env == nullptr) {
+            BOOST_LOG(error) << "无法附加到 Java 线程"sv;
+            return;
+        }
+
+        jint deltaX = static_cast<jint>(util::endian::big(packet->deltaX));
+        jint deltaY = static_cast<jint>(util::endian::big(packet->deltaY));
+        env->CallStaticVoidMethod(sunshineMouseClass, handleRelMouseMoveMethod, deltaX, deltaY);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
