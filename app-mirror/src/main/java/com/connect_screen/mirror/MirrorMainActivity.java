@@ -209,6 +209,28 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
     }
 
     public void toggleTntDesktop() {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && !ShizukuUtils.hasPermission()) {
+            State.log("TNT desktop needs Shizuku permission before creating the real desktop display");
+            State.startNewJob(new AcquireShizuku());
+            refresh();
+            return;
+        }
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && !State.isUserServiceAlive()) {
+            State.log("TNT desktop waits for Shizuku user service before creating the real desktop display");
+            State.unbindUserService();
+            State.bindUserService();
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                if (!State.isUserServiceAlive()) {
+                    State.showErrorStatus("TNT desktop failed to start Shizuku user service. Reopen Shizuku and retry.");
+                    refresh();
+                    return;
+                }
+                TntDisplayStarter.toggleFromPreferences();
+                refresh();
+            }, 3000);
+            refresh();
+            return;
+        }
         TntDisplayStarter.toggleFromPreferences();
         refresh();
     }

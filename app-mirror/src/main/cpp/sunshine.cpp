@@ -22,6 +22,7 @@
 
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
+#include <android/api-level.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <boost/endian/buffers.hpp>
@@ -588,29 +589,35 @@ namespace sunshine_callbacks {
 
     }
 
-    void createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface, jboolean shouldMute, jlong sessionId) {
+    bool createVirtualDisplay(JNIEnv *env, jint width, jint height, jint frameRate, jint packetDuration, jobject surface, jboolean shouldMute, jlong sessionId) {
         if (jvm == nullptr) {
             BOOST_LOG(error) << "JVM 指针为空"sv;
-            return;
+            return false;
         }
 
         if (sunshineServerClass == nullptr) {
             BOOST_LOG(error) << "SunshineServer 类引用为空"sv;
-            return;
+            return false;
         }
 
-        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;ZJ)V");
+        jmethodID createVirtualDisplayMethod = env->GetStaticMethodID(sunshineServerClass, "createVirtualDisplay", "(IIIILandroid/view/Surface;ZJ)Z");
         if (createVirtualDisplayMethod == nullptr) {
             BOOST_LOG(error) << "找不到 createVirtualDisplay 方法"sv;
-            return;
+            return false;
         }
 
-        env->CallStaticVoidMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface, shouldMute, sessionId);
+        jboolean result = env->CallStaticBooleanMethod(sunshineServerClass, createVirtualDisplayMethod, width, height, frameRate, packetDuration, surface, shouldMute, sessionId);
 
         if (env->ExceptionCheck()) {
             env->ExceptionDescribe();
             env->ExceptionClear();
+            return false;
         }
+        return result == JNI_TRUE;
+    }
+
+    bool shouldAbortOnVideoSourceSetupFailure() {
+        return android_get_device_api_level() == 29;
     }
 
     void startMoonlightAudioCapture(jint packetDuration, jboolean shouldMutePhone) {
@@ -1021,7 +1028,18 @@ namespace sunshine_callbacks {
         callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
         
         // 调用 createVirtualDisplay 方法，传递 shouldMute 参数
-        createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute, moonlightSessionId);
+        if (!createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute, moonlightSessionId)
+                && shouldAbortOnVideoSourceSetupFailure()) {
+            BOOST_LOG(error) << "Moonlight video source setup failed; abort encoder start"sv;
+            stopVirtualDisplay(moonlightSessionId);
+            callJavaStreamingDebugInfo(env, buildDebugInfo("stopped", 0, 0, 0, 0, 0, 0, 0, 0));
+            callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
+            env->DeleteLocalRef(javaSurface);
+            ANativeWindow_release(inputSurface);
+            AMediaCodec_delete(codec);
+            AMediaFormat_delete(format);
+            return;
+        }
         
         // 启动编码器
         status = AMediaCodec_start(codec);

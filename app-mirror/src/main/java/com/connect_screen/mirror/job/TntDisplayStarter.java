@@ -10,7 +10,17 @@ public final class TntDisplayStarter {
     }
 
     public static boolean isOverlayBackend() {
-        return Pref.getUseTntOverlayBackend();
+        if (!Pref.getUseTntOverlayBackend()) {
+            return false;
+        }
+        if (!isAndroid10TntFixEnabled()) {
+            return true;
+        }
+        if (TntOverlayHelper.hasRootAccess()) {
+            return true;
+        }
+        State.log("[TNTStart] overlay backend is enabled in settings but root is unavailable; use native TNT backend");
+        return false;
     }
 
     public static boolean isActiveForCurrentBackend() {
@@ -119,5 +129,9 @@ public final class TntDisplayStarter {
             return;
         }
         TntOverlayHelper.clearOverlayDisplayIfOwned();
+    }
+
+    private static boolean isAndroid10TntFixEnabled() {
+        return android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q;
     }
 }

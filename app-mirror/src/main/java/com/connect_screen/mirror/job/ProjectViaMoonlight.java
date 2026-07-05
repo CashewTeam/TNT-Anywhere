@@ -11,6 +11,10 @@ import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.shizuku.ShizukuUtils;
 
 public class ProjectViaMoonlight implements Job {
+    public interface StartupCallback {
+        void onStartupComplete(boolean success);
+    }
+
     private final int width;
     private final int height;
     private final int frameRate;
@@ -18,11 +22,17 @@ public class ProjectViaMoonlight implements Job {
     private final Surface surface;
     private final boolean shouldMutePhone;
     private final long sessionId;
+    private final StartupCallback startupCallback;
     private final TntDisplaySelector tntDisplaySelector = new TntDisplaySelector();
     private boolean userServiceRequested;
     private int autoTntStartAttempts;
+    private boolean startupReported;
 
     public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
+        this(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId, null);
+    }
+
+    public ProjectViaMoonlight(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId, StartupCallback startupCallback) {
         this.width = width;
         this.height = height;
         this.frameRate = frameRate;
@@ -30,6 +40,7 @@ public class ProjectViaMoonlight implements Job {
         this.surface = surface;
         this.shouldMutePhone = shouldMutePhone;
         this.sessionId = sessionId;
+        this.startupCallback = startupCallback;
     }
 
     @Override
@@ -40,9 +51,19 @@ public class ProjectViaMoonlight implements Job {
         Context context = State.getContext();
         if (context == null) {
             State.log("[ProjectViaMoonlight] context is null, abort");
+            reportStartup(false);
             return;
         }
 
+        if (!isAndroid10TntFixEnabled()) {
+            startDefaultProjection(context);
+            return;
+        }
+
+        startAndroid10Projection(context);
+    }
+
+    private void startDefaultProjection(Context context) throws YieldException {
         boolean tntMode = Pref.getSkipExternalActivity();
         if (tntMode) {
             if (!ensureTntDisplayStartedForClient(context)) {
@@ -80,6 +101,61 @@ public class ProjectViaMoonlight implements Job {
         State.log(shouldMutePhone
                 ? "Moonlight audio route requests phone speaker mute; audio capture is driven by native audio thread"
                 : "Moonlight audio route keeps phone speaker enabled; audio capture is driven by native audio thread");
+    }
+
+    private void startAndroid10Projection(Context context) throws YieldException {
+        boolean tntMode = Pref.getSkipExternalActivity();
+        boolean mirrorStarted;
+        if (tntMode) {
+            if (!ShizukuUtils.hasPermission()) {
+                State.showErrorStatus("TNT mode needs Shizuku permission to create and mirror the real TNT desktop display");
+                reportStartup(false);
+                return;
+            }
+            if (!State.isUserServiceAlive()) {
+                waitForUserService("[ProjectViaMoonlight] userService unavailable before TNT display creation");
+            }
+            if (!ensureTntDisplayStartedForClient(context)) {
+                reportStartup(false);
+                return;
+            }
+            if (!tntDisplaySelector.ensureSelected()) {
+                reportStartup(false);
+                return;
+            }
+            if (State.externalDisplayId <= 0) {
+                State.showErrorStatus("TNT mode did not find an external display");
+                reportStartup(false);
+                return;
+            }
+            SunshineMouse.initialize(width, height);
+            SunshineKeyboard.initialize();
+            State.log("[MirrorExternal] start external mirror displayId="
+                    + State.externalDisplayId + " controlDisplayId=" + State.externalControlDisplayId
+                    + " w=" + width + " h=" + height);
+            mirrorStarted = mirrorExternalDisplay(width, height, surface);
+        } else {
+            if (!ShizukuUtils.hasPermission()) {
+                State.showErrorStatus("Mirror mode needs Shizuku permission to capture display 0");
+                reportStartup(false);
+                return;
+            }
+            releaseStaleAppMirrorState();
+            SunshineMouse.initialize(width, height);
+            SunshineKeyboard.initialize();
+            State.log("[MirrorPrimary] start display 0 mirror w=" + width + " h=" + height);
+            mirrorStarted = mirrorPrimaryDisplay(width, height, surface);
+        }
+
+        if (!mirrorStarted) {
+            reportStartup(false);
+            return;
+        }
+
+        State.log(shouldMutePhone
+                ? "Moonlight audio route requests phone speaker mute; audio capture is driven by native audio thread"
+                : "Moonlight audio route keeps phone speaker enabled; audio capture is driven by native audio thread");
+        reportStartup(true);
     }
 
     private boolean ensureTntDisplayStartedForClient(Context context) throws YieldException {
@@ -123,7 +199,13 @@ public class ProjectViaMoonlight implements Job {
                     + " overlayBackend=" + useOverlayBackend);
             TntDisplaySelector.logDisplays(context, "auto-start-timeout");
             if (!useOverlayBackend) {
-                State.showErrorStatus("TNT auto start timed out. Wait for TNT to finish starting and reconnect Moonlight.");
+                if (isAndroid10TntFixEnabled() && baseDisplayPresent && !selectableExternalPresent) {
+                    State.showErrorStatus("The system did not create a real TNT desktop display (smt.tnt.virtual.display / displayId 100000+). Phone mirror fallback is disabled in TNT mode.");
+                    return false;
+                }
+                State.showErrorStatus(isAndroid10TntFixEnabled()
+                        ? "TNT auto start timed out before a real TNT desktop display appeared. Wait for TNT to finish starting and reconnect Moonlight."
+                        : "TNT auto start timed out. Wait for TNT to finish starting and reconnect Moonlight.");
                 return false;
             }
             return true;
@@ -160,8 +242,11 @@ public class ProjectViaMoonlight implements Job {
         throw new YieldException("Waiting for TNT display auto start");
     }
 
-    private void mirrorPrimaryDisplay(int width, int height, Surface surface) throws YieldException {
+    private boolean mirrorPrimaryDisplay(int width, int height, Surface surface) throws YieldException {
         if (Pref.getAutoRotate()) {
+            if (isAndroid10TntFixEnabled() && !State.isUserServiceAlive()) {
+                waitForUserService("[MirrorPrimaryDisplay] userService unavailable, rebind before auto-rotate mirror");
+            }
             State.log("[MirrorPrimaryDisplay] auto-rotate enabled, use GL mirror pipeline");
             AutoRotateAndScaleForMoonlight autoRotatePipeline =
                     new AutoRotateAndScaleForMoonlight(
@@ -172,9 +257,9 @@ public class ProjectViaMoonlight implements Job {
                     Display.DEFAULT_DISPLAY,
                     "Moonlight-main-mirror",
                     "Mirror mode failed to mirror display 0. Confirm Shizuku is running, then retry.");
-            return;
+            return true;
         }
-        mirrorDisplay(
+        return mirrorDisplay(
                 "[MirrorPrimaryDisplay]",
                 "Moonlight-main-mirror",
                 Display.DEFAULT_DISPLAY,
@@ -199,8 +284,8 @@ public class ProjectViaMoonlight implements Job {
         State.log("[MirrorPrimary] keep MediaProjection for Android native audio capture");
     }
 
-    private void mirrorExternalDisplay(int width, int height, Surface surface) throws YieldException {
-        mirrorDisplay(
+    private boolean mirrorExternalDisplay(int width, int height, Surface surface) throws YieldException {
+        return mirrorDisplay(
                 "[MirrorExternalDisplay]",
                 "Moonlight-mirror",
                 State.externalDisplayId,
@@ -211,7 +296,7 @@ public class ProjectViaMoonlight implements Job {
                 "TNT mode failed to mirror external display. Restart Sunshine service and retry.");
     }
 
-    private void mirrorDisplay(
+    private boolean mirrorDisplay(
             String logPrefix,
             String mirrorName,
             int displayIdToMirror,
@@ -245,7 +330,7 @@ public class ProjectViaMoonlight implements Job {
             if (result < 0) {
                 SunshineMouse.stopExternalDisplayFramePacer(sessionId, false);
                 State.showErrorStatus(failureMessage);
-                return;
+                return false;
             }
             State.mirrorExternalToken = null;
             State.lastSingleAppDisplay = controlDisplayId;
@@ -255,6 +340,7 @@ public class ProjectViaMoonlight implements Job {
                 State.log(logPrefix + " [API30] SurfaceControl success");
             }
             SunshineServer.showMoonlightControlHint();
+            return true;
         } catch (YieldException e) {
             throw e;
         } catch (RemoteException e) {
@@ -268,6 +354,7 @@ public class ProjectViaMoonlight implements Job {
             State.log(logPrefix + " exception: "
                     + e.getClass().getSimpleName() + " msg=" + e.getMessage());
         }
+        return false;
     }
 
     private ExternalDisplayFramePacer startFramePacerIfNeeded(
@@ -311,5 +398,19 @@ public class ProjectViaMoonlight implements Job {
         State.bindUserService();
         State.resumeJobLater(3000);
         throw new YieldException("Waiting for Shizuku user service");
+    }
+
+    private void reportStartup(boolean success) {
+        if (startupReported) {
+            return;
+        }
+        startupReported = true;
+        if (startupCallback != null) {
+            startupCallback.onStartupComplete(success);
+        }
+    }
+
+    private static boolean isAndroid10TntFixEnabled() {
+        return Build.VERSION.SDK_INT == Build.VERSION_CODES.Q;
     }
 }

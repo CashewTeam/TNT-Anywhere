@@ -231,7 +231,8 @@ public class State {
 
     public static void unbindUserService() {
         try {
-            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, false); // 解绑用户服务
+            boolean removeService = Build.VERSION.SDK_INT == Build.VERSION_CODES.Q;
+            Shizuku.unbindUserService(State.userServiceArgs, userServiceConnection, removeService);
             State.userService = null;
         } catch (Exception e) {
             // ignore

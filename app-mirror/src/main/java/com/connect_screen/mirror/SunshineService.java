@@ -62,6 +62,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
@@ -235,25 +236,12 @@ public class SunshineService extends Service {
                     stopSelf();
                     return;
                 }
-                List<JmDNS> dnsServers = new ArrayList<>();
-                if (!ipAddresses.isEmpty()) {
-                    for (String addr : ipAddresses) {
-                        try {
-                            JmDNS jmdns = JmDNS.create(InetAddress.getByName(addr));
-                            dnsServers.add(jmdns);
-                            ServiceInfo serviceInfo = ServiceInfo.create(
-                                    "_nvstream._tcp.local.",
-                                    "TNT Anywhere",
-                                    47989,
-                                    "TNT Anywhere"
-                            );
-
-                            jmdns.registerService(serviceInfo);
-                            Log.i("SunshineService", "JmDNS service registered, IP: " + addr);
-                        } catch (Exception e) {
-                            Log.e("SunshineService", "Failed to register JmDNS on IP " + addr, e);
-                        }
-                    }
+                boolean useAndroid10StartupFix = Build.VERSION.SDK_INT == Build.VERSION_CODES.Q;
+                List<JmDNS> dnsServers = useAndroid10StartupFix
+                        ? new CopyOnWriteArrayList<>()
+                        : new ArrayList<>();
+                if (!useAndroid10StartupFix) {
+                    registerJmDns(ipAddresses, dnsServers);
                 }
                 if (stopRequested) {
                     State.log("SunshineService stop requested before native start");
@@ -287,6 +275,9 @@ public class SunshineService extends Service {
                     }
                 }, "SunshineNativeThread");
                 nativeThread.start();
+                if (useAndroid10StartupFix) {
+                    registerJmDnsAsync(ipAddresses, dnsServers);
+                }
                 if (ipAddresses.isEmpty()) {
                     State.log("Cannot get Wi-Fi IP address");
                 } else {
@@ -328,6 +319,47 @@ public class SunshineService extends Service {
             }
         }, 2000);
         return START_NOT_STICKY;
+    }
+
+    private void registerJmDns(Set<String> ipAddresses, List<JmDNS> dnsServers) {
+        if (ipAddresses == null || ipAddresses.isEmpty()) {
+            return;
+        }
+        for (String addr : ipAddresses) {
+            registerJmDnsAddress(addr, dnsServers);
+        }
+    }
+
+    private void registerJmDnsAsync(Set<String> ipAddresses, List<JmDNS> dnsServers) {
+        if (ipAddresses == null || ipAddresses.isEmpty()) {
+            return;
+        }
+        new Thread(() -> {
+            for (String addr : ipAddresses) {
+                if (stopRequested) {
+                    return;
+                }
+                registerJmDnsAddress(addr, dnsServers);
+            }
+        }, "SunshineJmDNS").start();
+    }
+
+    private void registerJmDnsAddress(String addr, List<JmDNS> dnsServers) {
+        try {
+            JmDNS jmdns = JmDNS.create(InetAddress.getByName(addr));
+            dnsServers.add(jmdns);
+            ServiceInfo serviceInfo = ServiceInfo.create(
+                    "_nvstream._tcp.local.",
+                    "TNT Anywhere",
+                    47989,
+                    "TNT Anywhere"
+            );
+
+            jmdns.registerService(serviceInfo);
+            Log.i("SunshineService", "JmDNS service registered, IP: " + addr);
+        } catch (Exception e) {
+            Log.e("SunshineService", "Failed to register JmDNS on IP " + addr, e);
+        }
     }
 
     private void preventAutoLock() {

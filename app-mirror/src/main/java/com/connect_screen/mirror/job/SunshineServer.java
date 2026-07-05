@@ -5,6 +5,7 @@ import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.input.IInputManager;
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
@@ -57,6 +58,7 @@ public class SunshineServer {
     public static String pinCandidate;
     private static final AtomicBoolean stoppingVirtualDisplay = new AtomicBoolean(false);
     private static final long AUTO_SCREEN_OFF_DELAY_MS = 30_000L;
+    private static final long MOONLIGHT_PROJECTION_START_TIMEOUT_MS = 15_000L;
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
     private static volatile long activeMoonlightSessionId;
     private static Runnable autoScreenOffRunnable;
@@ -147,22 +149,78 @@ public class SunshineServer {
     
     // surface created by MediaCodec
     // width always > height, as it is a landscape mode
-    public static void createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
+    public static boolean createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         suppressPin = null;
         activeMoonlightSessionId = sessionId;
         scheduleAutoScreenOffForSession(sessionId);
         SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         Context context = State.getContext();
         if (context == null) {
-            return;
+            State.log("[ProjectViaMoonlight] context is null before scheduling projection startup");
+            return !isAndroid10TntFixEnabled();
         }
 
         SunshineMouse.initialize(width, height);
         SunshineKeyboard.initialize();
-        
-        new Handler(Looper.getMainLooper()).post(() -> {
-            State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
+
+        if (!isAndroid10TntFixEnabled()) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
+            });
+            return true;
+        }
+
+        CountDownLatch startupLatch = new CountDownLatch(1);
+        AtomicBoolean startupSucceeded = new AtomicBoolean(false);
+        ProjectViaMoonlight.StartupCallback startupCallback = success -> {
+            startupSucceeded.set(success);
+            startupLatch.countDown();
+        };
+
+        MAIN_HANDLER.post(() -> {
+            if (State.isJobRunning()) {
+                State.log("[ProjectViaMoonlight] cannot start Moonlight projection because another job is running");
+                State.showErrorStatus("Moonlight projection cannot start because another task is still running. Retry after it finishes.");
+                startupCallback.onStartupComplete(false);
+                return;
+            }
+
+            State.startNewJob(new ProjectViaMoonlight(
+                    width,
+                    height,
+                    frameRate,
+                    packetDuration,
+                    surface,
+                    shouldMutePhone,
+                    sessionId,
+                    startupCallback));
+            if (!State.isJobRunning() && startupLatch.getCount() > 0) {
+                State.log("[ProjectViaMoonlight] projection job finished without reporting startup result");
+                startupCallback.onStartupComplete(false);
+            }
         });
+
+        try {
+            if (!startupLatch.await(MOONLIGHT_PROJECTION_START_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                State.log("[ProjectViaMoonlight] projection startup wait timed out after "
+                        + MOONLIGHT_PROJECTION_START_TIMEOUT_MS + "ms");
+                MAIN_HANDLER.post(() -> {
+                    State.cancelCurrentJob("Moonlight projection setup timed out");
+                    State.showErrorStatus("Moonlight projection setup timed out before video source was ready. Reconnect after TNT or mirror mode is ready.");
+                });
+                return false;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            State.log("[ProjectViaMoonlight] projection startup wait interrupted");
+            return false;
+        }
+        State.log("[ProjectViaMoonlight] projection startup result=" + startupSucceeded.get());
+        return startupSucceeded.get();
+    }
+
+    private static boolean isAndroid10TntFixEnabled() {
+        return Build.VERSION.SDK_INT == Build.VERSION_CODES.Q;
     }
 
     public static boolean isMoonlightSessionActive() {

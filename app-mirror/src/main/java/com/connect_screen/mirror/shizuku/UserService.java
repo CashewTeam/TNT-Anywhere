@@ -36,6 +36,8 @@ import com.connect_screen.mirror.BuildConfig;
 import rikka.shizuku.SystemServiceHelper;
 
 public class UserService extends IUserService.Stub  {
+    private static final int SMARTISAN_TNT_DISPLAY_ID_MIN = 100000;
+
     private Context context;
     private boolean listenVolumeKey = false;
     private Process listenVolumeKeyProcess;
@@ -424,6 +426,7 @@ public class UserService extends IUserService.Stub  {
             layerStack = getLayerStackFromDumpsys(displayIdToMirror);
             Ln.d("createExternalMirror [API30] layerStack from dumpsys=" + layerStack);
         }
+        layerStack = resolveExternalMirrorLayerStack(displayIdToMirror, layerStack);
         if (layerStack < 0) {
             Ln.e("createExternalMirror [API30]: layerStack=" + layerStack);
             return -1;
@@ -456,6 +459,19 @@ public class UserService extends IUserService.Stub  {
         Ln.d("createExternalMirror [API30] setDisplayPowerMode NORMAL 瀹屾垚");
         Ln.i("createExternalMirror [API30] 鍏ㄩ儴瀹屾垚, layerStack=" + layerStack);
         return 0;
+    }
+
+    private int resolveExternalMirrorLayerStack(int displayIdToMirror, int displayInfoLayerStack) {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q
+                && displayIdToMirror >= SMARTISAN_TNT_DISPLAY_ID_MIN
+                && displayInfoLayerStack != displayIdToMirror) {
+            Ln.i("createExternalMirror [API30] Smartisan TNT displayId="
+                    + displayIdToMirror
+                    + " uses layerStack=" + displayIdToMirror
+                    + " instead of DisplayInfo override layerStack=" + displayInfoLayerStack);
+            return displayIdToMirror;
+        }
+        return displayInfoLayerStack;
     }
 
     private Rect getSourceDisplayRect(android.view.DisplayInfo displayInfo, int fallbackWidth, int fallbackHeight) {
