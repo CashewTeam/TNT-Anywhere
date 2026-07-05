@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.Intent;
@@ -23,10 +23,10 @@ import android.content.BroadcastReceiver;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
-import com.connect_screen.mirror.shizuku.SurfaceControl;
+import com.easycast.source.job.CreateVirtualDisplay;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
+import com.easycast.source.shizuku.SurfaceControl;
 
 import dev.rikka.tools.refine.Refine;
 

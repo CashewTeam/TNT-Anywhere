@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.Manifest;
 import android.content.Context;
@@ -12,7 +12,7 @@ import android.media.projection.MediaProjection;
 import android.os.Handler;
 import android.os.Looper;
 
-import com.connect_screen.mirror.State;
+import com.easycast.source.State;
 
 public class SunshineAudio {
     private static boolean isMuted = false;

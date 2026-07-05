@@ -1,10 +1,10 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.provider.Settings;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
 import com.topjohnwu.superuser.Shell;
 
 import java.io.BufferedReader;

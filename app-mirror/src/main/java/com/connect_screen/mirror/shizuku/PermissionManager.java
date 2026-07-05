@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.content.pm.IPackageManager;
 import android.os.Process;
@@ -8,8 +8,8 @@ import android.permission.IPermissionManager;
 import android.util.Log;
 
 
-import com.connect_screen.mirror.BuildConfig;
-import com.connect_screen.mirror.State;
+import com.easycast.source.BuildConfig;
+import com.easycast.source.State;
 
 import dev.rikka.tools.refine.Refine;
 

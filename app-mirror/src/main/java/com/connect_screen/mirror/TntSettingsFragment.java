@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.Intent;
@@ -20,7 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
-import com.connect_screen.mirror.job.TntOverlayHelper;
+import com.easycast.source.job.TntOverlayHelper;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;

@@ -124,7 +124,7 @@
             android:name=".PureBlackActivity$ExitReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.connect_screen.mirror.EXIT_PURE_BLACK" />
+                <action android:name="com.easycast.source.EXIT_PURE_BLACK" />
             </intent-filter>
         </receiver>
 

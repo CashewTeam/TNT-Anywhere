@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 public class SettingsException extends Exception {
     private static String createMessage(String method, String table, String key, String value) {

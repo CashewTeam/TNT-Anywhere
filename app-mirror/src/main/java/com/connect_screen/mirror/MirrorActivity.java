@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
@@ -31,14 +31,14 @@ import android.opengl.GLES20;
 import android.view.Window;
 import android.view.WindowManager;
 
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
-import com.connect_screen.mirror.job.ExitAll;
-import com.connect_screen.mirror.job.ExternalTextureRenderer;
-import com.connect_screen.mirror.job.InputRouting;
-import com.connect_screen.mirror.job.LandscapeAutoScaler;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.CreateVirtualDisplay;
+import com.easycast.source.job.ExitAll;
+import com.easycast.source.job.ExternalTextureRenderer;
+import com.easycast.source.job.InputRouting;
+import com.easycast.source.job.LandscapeAutoScaler;
+import com.easycast.source.job.VirtualDisplayArgs;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 

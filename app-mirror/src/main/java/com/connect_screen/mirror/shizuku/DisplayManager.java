@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -15,7 +15,7 @@ import java.lang.reflect.Proxy;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 @SuppressLint("PrivateApi,DiscouragedPrivateApi")
 public final class DisplayManager {

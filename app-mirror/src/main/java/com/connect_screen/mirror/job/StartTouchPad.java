@@ -1,10 +1,10 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.content.Intent;
 
-import com.connect_screen.mirror.TouchpadAccessibilityService;
-import com.connect_screen.mirror.TouchpadActivity;
+import com.easycast.source.TouchpadAccessibilityService;
+import com.easycast.source.TouchpadActivity;
 
 
 public class StartTouchPad implements Job {

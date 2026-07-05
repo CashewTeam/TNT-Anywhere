@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.connect_screen.mirror'
+    namespace 'com.easycast.source'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.smartisanos.tntanywhere"
+        applicationId "com.easycast.source"
         minSdk 28
         targetSdk 34
         versionCode 103

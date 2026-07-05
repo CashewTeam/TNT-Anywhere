@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 

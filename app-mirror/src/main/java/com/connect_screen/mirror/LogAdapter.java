@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.view.LayoutInflater;
 import android.view.View;

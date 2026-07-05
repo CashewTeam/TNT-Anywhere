@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -8,12 +8,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.connect_screen.mirror.BuildConfig;
-import com.connect_screen.mirror.PureBlackActivity;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.TouchpadAccessibilityService;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.BuildConfig;
+import com.easycast.source.PureBlackActivity;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
+import com.easycast.source.TouchpadAccessibilityService;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 public class ExitAll {
     public static void execute(Context context, boolean restart) {

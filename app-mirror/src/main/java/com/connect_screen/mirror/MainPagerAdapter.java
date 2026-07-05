@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;

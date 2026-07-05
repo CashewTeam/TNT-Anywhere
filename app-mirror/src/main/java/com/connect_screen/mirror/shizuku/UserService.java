@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -29,9 +29,9 @@ import java.util.regex.Pattern;
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 
-import com.connect_screen.mirror.job.AndroidVersions;
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
-import com.connect_screen.mirror.BuildConfig;
+import com.easycast.source.job.AndroidVersions;
+import com.easycast.source.job.CreateVirtualDisplay;
+import com.easycast.source.BuildConfig;
 
 import rikka.shizuku.SystemServiceHelper;
 
@@ -247,7 +247,7 @@ public class UserService extends IUserService.Stub  {
                             Ln.i("detected volume key, try to power on screen");
                             setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
                             if (context != null) {
-                                Intent intent = new Intent("com.connect_screen.mirror.EXIT_PURE_BLACK");
+                                Intent intent = new Intent("com.easycast.source.EXIT_PURE_BLACK");
                                 intent.setPackage(BuildConfig.APPLICATION_ID);
                                 context.sendBroadcast(intent);
                             } else {

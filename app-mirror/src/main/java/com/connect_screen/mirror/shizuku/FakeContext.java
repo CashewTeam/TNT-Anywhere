@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.annotation.TargetApi;
 import android.content.AttributionSource;
@@ -9,7 +9,7 @@ import android.content.IContentProvider;
 import android.os.Binder;
 import android.os.Process;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 public final class FakeContext extends ContextWrapper {
 

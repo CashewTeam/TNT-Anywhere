@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.os.Build;
 

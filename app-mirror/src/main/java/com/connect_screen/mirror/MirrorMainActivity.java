@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.Intent;
@@ -17,13 +17,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.connect_screen.mirror.job.AcquireShizuku;
-import com.connect_screen.mirror.job.AutoRotateAndScaleForDisplaylink;
-import com.connect_screen.mirror.job.ExitAll;
-import com.connect_screen.mirror.job.StartSunshineService;
-import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.job.TntDisplayStarter;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.AcquireShizuku;
+import com.easycast.source.job.AutoRotateAndScaleForDisplaylink;
+import com.easycast.source.job.ExitAll;
+import com.easycast.source.job.StartSunshineService;
+import com.easycast.source.job.SunshineServer;
+import com.easycast.source.job.TntDisplayStarter;
+import com.easycast.source.shizuku.ShizukuUtils;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.topjohnwu.superuser.Shell;
 

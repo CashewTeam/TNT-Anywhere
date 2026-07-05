@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.Manifest;
 import android.app.Activity;
@@ -14,8 +14,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 
-import com.connect_screen.mirror.job.AcquireShizuku;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.AcquireShizuku;
+import com.easycast.source.shizuku.ShizukuUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public final class InitializationGuideDialog {

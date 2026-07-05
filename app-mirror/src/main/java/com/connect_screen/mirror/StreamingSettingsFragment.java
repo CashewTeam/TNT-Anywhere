@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,10 +18,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
-import com.connect_screen.mirror.job.ConnectToClient;
-import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.shizuku.PermissionManager;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.ConnectToClient;
+import com.easycast.source.job.SunshineServer;
+import com.easycast.source.shizuku.PermissionManager;
+import com.easycast.source.shizuku.ShizukuUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;

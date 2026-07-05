@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
@@ -17,8 +17,8 @@ import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
 
-import com.connect_screen.mirror.shizuku.PermissionManager;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.shizuku.PermissionManager;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 public class TouchpadAccessibilityService extends AccessibilityService {
     private static TouchpadAccessibilityService instance;

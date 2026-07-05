@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,8 +17,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
-import com.connect_screen.mirror.job.SunshineServer;
+import com.easycast.source.job.CreateVirtualDisplay;
+import com.easycast.source.job.SunshineServer;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.Set;

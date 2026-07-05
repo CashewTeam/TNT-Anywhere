@@ -1,7 +1,7 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.State;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 

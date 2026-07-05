@@ -1,6 +1,6 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
-import static com.connect_screen.mirror.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
+import static com.easycast.source.job.AcquireShizuku.SHIZUKU_PERMISSION_REQUEST_CODE;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -12,8 +12,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.connect_screen.mirror.job.FetchLogAndShare;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.FetchLogAndShare;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import rikka.shizuku.Shizuku;
 

@@ -1,9 +1,9 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
 
 public final class TntDisplayStarter {
     private TntDisplayStarter() {

@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
@@ -39,9 +39,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 
-import com.connect_screen.mirror.job.StartTouchPad;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.StartTouchPad;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

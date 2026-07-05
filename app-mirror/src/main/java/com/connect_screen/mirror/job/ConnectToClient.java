@@ -1,7 +1,7 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;

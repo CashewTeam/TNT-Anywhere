@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.Intent;
@@ -27,9 +27,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.connect_screen.mirror.job.AcquireShizuku;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.AcquireShizuku;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import rikka.shizuku.Shizuku;

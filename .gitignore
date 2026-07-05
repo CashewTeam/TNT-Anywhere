@@ -38,3 +38,8 @@ app-mirror/src/main/assets/cakey.pem
 
 # Local reference copies not intended for the main repo
 /scrcpy-master/
+
+# Alma persistent files (per-thread state, local config)
+/.alma/
+.alma-snapshots/
+

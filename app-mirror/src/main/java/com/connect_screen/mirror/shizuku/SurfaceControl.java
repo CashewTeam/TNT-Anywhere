@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 
 import android.util.Log;
@@ -9,7 +9,7 @@ import android.os.Build;
 import android.os.IBinder;
 
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 import java.lang.reflect.Method;
 

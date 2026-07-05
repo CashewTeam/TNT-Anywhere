@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -25,12 +25,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 
-import com.connect_screen.mirror.job.AcquireShizuku;
-import com.connect_screen.mirror.job.ConnectToClient;
-import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.job.TntOverlayHelper;
-import com.connect_screen.mirror.shizuku.PermissionManager;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.AcquireShizuku;
+import com.easycast.source.job.ConnectToClient;
+import com.easycast.source.job.SunshineServer;
+import com.easycast.source.job.TntOverlayHelper;
+import com.easycast.source.shizuku.PermissionManager;
+import com.easycast.source.shizuku.ShizukuUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;

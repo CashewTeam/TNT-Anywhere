@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.hardware.display.VirtualDisplay;
 import android.hardware.usb.UsbDevice;
@@ -10,7 +10,7 @@ import android.os.HandlerThread;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.MonitorInfo;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.easycast.source.job.VirtualDisplayArgs;
 
 public class DisplaylinkState {
     public UsbDevice device;

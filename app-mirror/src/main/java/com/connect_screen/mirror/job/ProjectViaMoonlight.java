@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.os.Build;
@@ -6,9 +6,9 @@ import android.os.RemoteException;
 import android.view.Display;
 import android.view.Surface;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 public class ProjectViaMoonlight implements Job {
     public interface StartupCallback {

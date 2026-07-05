@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 
 import android.content.Context;
@@ -11,10 +11,10 @@ import android.view.DisplayInfo;
 import android.view.InputDevice;
 import android.widget.Toast;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import java.util.HashMap;
 import java.util.Map;

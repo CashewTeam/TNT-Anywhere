@@ -1,12 +1,12 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.util.DisplayMetrics;
 import android.view.Display;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
 
 public final class TntDisplaySelector {
     private static final int TNT_PC_DISPLAY_ID_MIN = 100000;

@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 
 import android.annotation.SuppressLint;
@@ -15,7 +15,7 @@ import android.os.Build;
 import android.os.Looper;
 import android.os.Parcel;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;

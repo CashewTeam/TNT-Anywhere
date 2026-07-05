@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -16,12 +16,12 @@ import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
 
-import com.connect_screen.mirror.job.Job;
-import com.connect_screen.mirror.job.YieldException;
-import com.connect_screen.mirror.shizuku.IUserService;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
-import com.connect_screen.mirror.shizuku.SurfaceControl;
-import com.connect_screen.mirror.shizuku.UserService;
+import com.easycast.source.job.Job;
+import com.easycast.source.job.YieldException;
+import com.easycast.source.shizuku.IUserService;
+import com.easycast.source.shizuku.ShizukuUtils;
+import com.easycast.source.shizuku.SurfaceControl;
+import com.easycast.source.shizuku.UserService;
 import com.topjohnwu.superuser.Shell;
 import com.topjohnwu.superuser.ShellUtils;
 

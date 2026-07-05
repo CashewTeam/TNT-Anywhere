@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.app.PendingIntent;
 import android.content.Context;
@@ -12,17 +12,17 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.Surface;
 
-import com.connect_screen.mirror.MirrorSettingsActivity;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.easycast.source.MirrorSettingsActivity;
+import com.easycast.source.Pref;
+import com.easycast.source.SunshineService;
+import com.easycast.source.shizuku.ServiceUtils;
 import com.displaylink.manager.NativeDriver;
 import com.displaylink.manager.NativeDriverListener;
 import com.displaylink.manager.display.DisplayMode;
-import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.DisplaylinkState;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.MirrorMainActivity;
+import com.easycast.source.State;
+import com.easycast.source.DisplaylinkState;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;

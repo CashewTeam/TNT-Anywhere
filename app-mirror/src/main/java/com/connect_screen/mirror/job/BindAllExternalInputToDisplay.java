@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 public class BindAllExternalInputToDisplay implements Job {
     private final AcquireShizuku acquireShizuku = new AcquireShizuku();

@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.app.ActivityOptions;
 import android.content.Context;
@@ -26,15 +26,15 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 
-import com.connect_screen.mirror.BlackScreenOverlayService;
-import com.connect_screen.mirror.FloatingButtonService;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.PureBlackActivity;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.TouchpadActivity;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
-import com.connect_screen.mirror.shizuku.SurfaceControl;
+import com.easycast.source.BlackScreenOverlayService;
+import com.easycast.source.FloatingButtonService;
+import com.easycast.source.Pref;
+import com.easycast.source.PureBlackActivity;
+import com.easycast.source.State;
+import com.easycast.source.TouchpadActivity;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
+import com.easycast.source.shizuku.SurfaceControl;
 
 import java.lang.reflect.Constructor;
 

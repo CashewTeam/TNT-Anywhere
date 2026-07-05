@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -24,11 +24,11 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import com.connect_screen.mirror.job.MirrorDisplayMonitor;
-import com.connect_screen.mirror.job.MirrorDisplaylinkMonitor;
-import com.connect_screen.mirror.job.SunshineServer;
-import com.connect_screen.mirror.shizuku.PermissionManager;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.MirrorDisplayMonitor;
+import com.easycast.source.job.MirrorDisplaylinkMonitor;
+import com.easycast.source.job.SunshineServer;
+import com.easycast.source.shizuku.PermissionManager;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -68,7 +68,7 @@ import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 
 public class SunshineService extends Service {
-    public static final String ACTION_USB_PERMISSION = "com.connect_screen.mirror.USB_PERMISSION";
+    public static final String ACTION_USB_PERMISSION = "com.easycast.source.USB_PERMISSION";
     public static SunshineService instance;
 
     public enum LifecycleState {

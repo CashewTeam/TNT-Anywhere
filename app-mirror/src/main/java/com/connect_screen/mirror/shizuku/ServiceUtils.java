@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.app.ActivityManager;
 import android.app.ActivityOptions;
@@ -22,9 +22,9 @@ import android.view.Display;
 import android.view.IWindowManager;
 import android.widget.Toast;
 
-import com.connect_screen.mirror.FloatingButtonService;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.job.BindAllExternalInputToDisplay;
+import com.easycast.source.FloatingButtonService;
+import com.easycast.source.State;
+import com.easycast.source.job.BindAllExternalInputToDisplay;
 
 import dev.rikka.tools.refine.Refine;
 import rikka.shizuku.ShizukuBinderWrapper;

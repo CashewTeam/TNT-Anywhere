@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.app.ActivityOptions;
 import android.content.Context;
@@ -14,12 +14,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Display;
 
-import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.MirrorMainActivity;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import java.util.List;
 

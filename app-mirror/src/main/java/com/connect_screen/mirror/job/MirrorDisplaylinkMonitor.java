@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -8,9 +8,9 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
 
 public class MirrorDisplaylinkMonitor {
 

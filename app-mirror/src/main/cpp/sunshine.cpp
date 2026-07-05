@@ -143,7 +143,7 @@ static void applyRuntimeConfigOverrides() {
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass clazz) {
+Java_com_easycast_source_job_SunshineServer_start(JNIEnv *env, jclass clazz) {
     if (serverRunning.exchange(true)) {
         BOOST_LOG(warning) << "Sunshine native server is already running, skip duplicate start"sv;
         return;
@@ -151,7 +151,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
     env->GetJavaVM(&jvm);
     try {
 
-    jclass serverClass = env->FindClass("com/connect_screen/mirror/job/SunshineServer");
+    jclass serverClass = env->FindClass("com/easycast/source/job/SunshineServer");
     if (serverClass != nullptr) {
         sunshineServerClass = (jclass)env->NewGlobalRef(serverClass);
         updateStreamingDebugInfoMethod = env->GetStaticMethodID(
@@ -180,7 +180,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
         BOOST_LOG(error) << "无法在启动时找到 SunshineServer 类"sv;
     }
     
-    jclass mouseClass = env->FindClass("com/connect_screen/mirror/job/SunshineMouse");
+    jclass mouseClass = env->FindClass("com/easycast/source/job/SunshineMouse");
     if (mouseClass != nullptr) {
         sunshineMouseClass = (jclass)env->NewGlobalRef(mouseClass);
         env->DeleteLocalRef(mouseClass);
@@ -200,7 +200,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
     }
     
     // 在现有类引用创建后添加 SunshineKeyboard 类的缓存
-    jclass keyboardClass = env->FindClass("com/connect_screen/mirror/job/SunshineKeyboard");
+    jclass keyboardClass = env->FindClass("com/easycast/source/job/SunshineKeyboard");
     if (keyboardClass != nullptr) {
         sunshineKeyboardClass = (jclass)env->NewGlobalRef(keyboardClass);
         env->DeleteLocalRef(keyboardClass);
@@ -255,31 +255,31 @@ Java_com_connect_1screen_mirror_job_SunshineServer_start(JNIEnv *env, jclass cla
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setSunshineName(JNIEnv *env, jclass clazz, jstring sunshine_name) {
+Java_com_easycast_source_job_SunshineServer_setSunshineName(JNIEnv *env, jclass clazz, jstring sunshine_name) {
     runtimeSunshineName = jstringToString(env, sunshine_name);
     config::nvhttp.sunshine_name = runtimeSunshineName;
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setPkeyPath(JNIEnv *env, jclass clazz, jstring path) {
+Java_com_easycast_source_job_SunshineServer_setPkeyPath(JNIEnv *env, jclass clazz, jstring path) {
     runtimePkeyPath = jstringToString(env, path);
     config::nvhttp.pkey = runtimePkeyPath;
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setCertPath(JNIEnv *env, jclass clazz, jstring path) {
+Java_com_easycast_source_job_SunshineServer_setCertPath(JNIEnv *env, jclass clazz, jstring path) {
     runtimeCertPath = jstringToString(env, path);
     config::nvhttp.cert = runtimeCertPath;
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setFileStatePath(JNIEnv *env, jclass clazz, jstring path) {
+Java_com_easycast_source_job_SunshineServer_setFileStatePath(JNIEnv *env, jclass clazz, jstring path) {
     runtimeFileStatePath = jstringToString(env, path);
     config::nvhttp.file_state = runtimeFileStatePath;
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderSettings(
+Java_com_easycast_source_job_SunshineServer_setEncoderSettings(
         JNIEnv *env,
         jclass clazz,
         jint bitratePercent,
@@ -360,14 +360,14 @@ static void callJavaLastMoonlightControlInputInfo(JNIEnv *env, const std::string
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_submitPin(JNIEnv *env, jclass clazz, jstring pin) {
+Java_com_easycast_source_job_SunshineServer_submitPin(JNIEnv *env, jclass clazz, jstring pin) {
     const char *pinStr = env->GetStringUTFChars(pin, nullptr);
     nvhttp::pin(pinStr, "some-moonlight");
     env->ReleaseStringUTFChars(pin, pinStr);
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass clazz) {
+Java_com_easycast_source_job_SunshineServer_cleanup(JNIEnv *env, jclass clazz) {
     resetJavaCaches(env);
     return;
     if (sunshineServerClass != nullptr) {
@@ -394,7 +394,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass c
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *env, jclass clazz, jobject audioRecord, jint framesPerPacket) {
+Java_com_easycast_source_job_SunshineServer_startAudioRecording(JNIEnv *env, jclass clazz, jobject audioRecord, jint framesPerPacket) {
     if (audioRecordingActive.exchange(true)) {
         BOOST_LOG(info) << "音频录制线程已在运行，跳过重复启动"sv;
         return;
@@ -486,12 +486,12 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
+Java_com_easycast_source_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
     video::active_hevc_mode = 2;
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setVideoCodec(JNIEnv *env, jclass clazz, jint codec) {
+Java_com_easycast_source_job_SunshineServer_setVideoCodec(JNIEnv *env, jclass clazz, jint codec) {
     if (codec == 1) {
         video::active_hevc_mode = 2;
         BOOST_LOG(info) << "Video codec preference: H.265/HEVC"sv;
@@ -502,7 +502,7 @@ Java_com_connect_1screen_mirror_job_SunshineServer_setVideoCodec(JNIEnv *env, jc
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_exitServer(JNIEnv *env, jclass clazz) {
+Java_com_easycast_source_job_SunshineServer_exitServer(JNIEnv *env, jclass clazz) {
     if (!serverRunning || !mail::man) {
         return JNI_FALSE;
     }

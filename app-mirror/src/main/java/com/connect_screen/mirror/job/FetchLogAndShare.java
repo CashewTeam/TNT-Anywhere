@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.content.Intent;
@@ -12,7 +12,7 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 
 
-import com.connect_screen.mirror.State;
+import com.easycast.source.State;
 
 import rikka.shizuku.Shizuku;
 

@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
@@ -18,11 +18,11 @@ import android.view.Display;
 import android.view.Surface;
 import android.content.SharedPreferences;
 
-import com.connect_screen.mirror.DisplaylinkState;
-import com.connect_screen.mirror.FloatingButtonService;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.MirrorSettingsActivity;
+import com.easycast.source.DisplaylinkState;
+import com.easycast.source.FloatingButtonService;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.MirrorSettingsActivity;
 
 import java.nio.ByteBuffer;
 

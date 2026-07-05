@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.app.Service;
 import android.content.Context;
@@ -17,7 +17,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.hardware.display.DisplayManager;
 
-import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ServiceUtils;
 
 public class FloatingButtonService extends Service {
     private WindowManager windowManager;

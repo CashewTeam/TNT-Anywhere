@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.res.Configuration;
 import android.graphics.Rect;
@@ -28,16 +28,16 @@ import android.media.AudioManager;
 
 import androidx.annotation.NonNull;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.R;
-import com.connect_screen.mirror.SmartisanPerformanceHelper;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.TouchpadAccessibilityService;
-import com.connect_screen.mirror.TouchpadActivity;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
-import com.connect_screen.mirror.shizuku.SurfaceControl;
+import com.easycast.source.Pref;
+import com.easycast.source.R;
+import com.easycast.source.SmartisanPerformanceHelper;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
+import com.easycast.source.TouchpadAccessibilityService;
+import com.easycast.source.TouchpadActivity;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
+import com.easycast.source.shizuku.SurfaceControl;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;

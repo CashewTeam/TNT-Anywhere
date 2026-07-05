@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.app.ActivityManager;
 import android.app.ActivityOptions;
@@ -13,15 +13,15 @@ import android.view.Display;
 import android.view.DisplayHidden;
 import android.view.IWindowManager;
 
-import com.connect_screen.mirror.BridgeActivity;
-import com.connect_screen.mirror.MirrorActivity;
-import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.MirrorSettingsActivity;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.BridgeActivity;
+import com.easycast.source.MirrorActivity;
+import com.easycast.source.MirrorMainActivity;
+import com.easycast.source.MirrorSettingsActivity;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 

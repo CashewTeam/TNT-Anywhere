@@ -1,6 +1,6 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;

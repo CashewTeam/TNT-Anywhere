@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.hardware.input.IInputManager;
@@ -11,12 +11,12 @@ import android.view.KeyEvent;
 import android.view.KeyEventHidden;
 import android.view.MotionEventHidden;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.TouchpadAccessibilityService;
-import com.connect_screen.mirror.TouchpadActivity;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.TouchpadAccessibilityService;
+import com.easycast.source.TouchpadActivity;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 

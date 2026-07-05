@@ -6,13 +6,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.ProjectionMode;
+import com.easycast.source.Pref;
+import com.easycast.source.ProjectionMode;
 import com.displaylink.manager.display.MonitorInfo;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.DisplaylinkState;
-import com.connect_screen.mirror.job.ProjectViaDisplaylink;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
+import com.easycast.source.State;
+import com.easycast.source.DisplaylinkState;
+import com.easycast.source.job.ProjectViaDisplaylink;
+import com.easycast.source.job.VirtualDisplayArgs;
 
 public class NativeDriverListener {
     private final String usbDeviceName;

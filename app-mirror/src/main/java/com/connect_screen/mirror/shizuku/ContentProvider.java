@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.annotation.SuppressLint;
 import android.content.AttributionSource;
@@ -6,7 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 import java.io.Closeable;
 import java.lang.reflect.Method;

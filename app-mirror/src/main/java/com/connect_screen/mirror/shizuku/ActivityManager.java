@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.shizuku;
+package com.easycast.source.shizuku;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.connect_screen.mirror.job.AndroidVersions;
+import com.easycast.source.job.AndroidVersions;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

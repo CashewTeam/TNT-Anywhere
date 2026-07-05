@@ -1,9 +1,9 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.content.Intent;
 
-import com.connect_screen.mirror.FloatingButtonService;
+import com.easycast.source.FloatingButtonService;
 
 
 public class StartFloatingButton implements Job {

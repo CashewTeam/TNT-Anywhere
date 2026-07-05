@@ -1,11 +1,11 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
 
-import com.connect_screen.mirror.DisplaylinkState;
-import com.connect_screen.mirror.State;
+import com.easycast.source.DisplaylinkState;
+import com.easycast.source.State;
 import com.displaylink.manager.display.DisplayMode;
 
 import java.nio.ByteBuffer;

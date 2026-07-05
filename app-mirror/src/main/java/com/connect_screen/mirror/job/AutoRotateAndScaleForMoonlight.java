@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import static android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
@@ -19,9 +19,9 @@ import android.opengl.EGL14;
 import android.opengl.EGLDisplay;
 import android.opengl.GLES20;
 
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
-import com.connect_screen.mirror.SunshineService;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
+import com.easycast.source.SunshineService;
 
 public class AutoRotateAndScaleForMoonlight {
 

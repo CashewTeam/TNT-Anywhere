@@ -1,4 +1,4 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
@@ -9,9 +9,9 @@ import android.os.Build;
 import android.view.Display;
 import android.util.DisplayMetrics;
 
-import com.connect_screen.mirror.BuildConfig;
-import com.connect_screen.mirror.Pref;
-import com.connect_screen.mirror.State;
+import com.easycast.source.BuildConfig;
+import com.easycast.source.Pref;
+import com.easycast.source.State;
 
 import java.lang.reflect.Method;
 

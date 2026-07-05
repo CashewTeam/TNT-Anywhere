@@ -1,11 +1,11 @@
-package com.connect_screen.mirror.job;
+package com.easycast.source.job;
 
 import android.content.Intent;
 import android.os.Build;
 
-import com.connect_screen.mirror.MirrorMainActivity;
-import com.connect_screen.mirror.SunshineService;
-import com.connect_screen.mirror.State;
+import com.easycast.source.MirrorMainActivity;
+import com.easycast.source.SunshineService;
+import com.easycast.source.State;
 
 public class StartSunshineService implements Job {
     @Override

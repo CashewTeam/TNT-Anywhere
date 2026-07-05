@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
@@ -26,7 +26,7 @@ import android.view.KeyEvent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.connect_screen.mirror.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ServiceUtils;
 
 import dev.rikka.tools.refine.Refine;
 

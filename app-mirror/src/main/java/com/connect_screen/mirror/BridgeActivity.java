@@ -1,4 +1,4 @@
-package com.connect_screen.mirror;
+package com.easycast.source;
 
 import android.app.ActivityOptions;
 import android.content.Context;
@@ -19,12 +19,12 @@ import android.view.SurfaceHolder;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.connect_screen.mirror.job.CreateVirtualDisplay;
-import com.connect_screen.mirror.job.ExitAll;
-import com.connect_screen.mirror.job.InputRouting;
-import com.connect_screen.mirror.job.VirtualDisplayArgs;
-import com.connect_screen.mirror.shizuku.ServiceUtils;
-import com.connect_screen.mirror.shizuku.ShizukuUtils;
+import com.easycast.source.job.CreateVirtualDisplay;
+import com.easycast.source.job.ExitAll;
+import com.easycast.source.job.InputRouting;
+import com.easycast.source.job.VirtualDisplayArgs;
+import com.easycast.source.shizuku.ServiceUtils;
+import com.easycast.source.shizuku.ShizukuUtils;
 
 import dev.rikka.tools.refine.Refine;
 
