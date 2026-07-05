@@ -66,6 +66,7 @@ public final class TntDebugVirtualDisplayHelper {
             dumpDisplays(displayManager, "before-create");
 
             boolean useAndroid10TntFix = isAndroid10TntFixEnabled();
+            boolean tntFixActive = false;
             if (useAndroid10TntFix
                     && isBaseDisplayPresent(context)
                     && TntDisplaySelector.hasSelectableExternalDisplay(context)) {
@@ -74,8 +75,11 @@ public final class TntDebugVirtualDisplayHelper {
                 return true;
             }
 
-            if (useAndroid10TntFix && !ensureVirtualDisplayOwnerProperty()) {
-                return false;
+            if (useAndroid10TntFix) {
+                tntFixActive = ensureVirtualDisplayOwnerProperty();
+                if (!tntFixActive) {
+                    State.log("[TNTDebugVD] Smartisan TNT display whitelist not available; continuing without SmartisanOS integration");
+                }
             }
 
             VirtualDisplay nextDisplay = null;
@@ -144,7 +148,7 @@ public final class TntDebugVirtualDisplayHelper {
                     + " sdk=" + Build.VERSION.SDK_INT
                     + (useAndroid10TntFix ? " owner=" + BuildConfig.APPLICATION_ID : ""));
             dumpDisplays(displayManager, "after-create");
-            if (useAndroid10TntFix && !waitForRealTntDisplay(context)) {
+            if (tntFixActive && !waitForRealTntDisplay(context)) {
                 State.log("[TNTDebugVD] base display was created but no real TNT desktop display appeared; release base display");
                 synchronized (LOCK) {
                     releaseLocked();
@@ -247,7 +251,6 @@ public final class TntDebugVirtualDisplayHelper {
 
     private static boolean ensureVirtualDisplayOwnerProperty() {
         if (!State.isUserServiceAlive()) {
-            State.showErrorStatus("TNT mode needs Shizuku user service before preparing the Smartisan display whitelist.");
             State.log("[TNTDebugVD] cannot prepare " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY
                     + " because Shizuku user service is not alive");
             return false;
@@ -270,14 +273,14 @@ public final class TntDebugVirtualDisplayHelper {
                     + " from " + currentPackageName + " to " + updatedPackageName
                     + " raw=" + sanitizeShellOutput(result));
             if (expectedPackageName.equals(updatedPackageName)) {
-                State.showErrorStatus("TNT display whitelist updated. Reboot the phone once, then start TNT again.");
-            } else {
-                State.showErrorStatus("Failed to update Smartisan TNT display whitelist.");
+                State.log("[TNTDebugVD] Smartisan TNT display whitelist updated. Reboot the phone once, then start TNT again.");
+                return true;
             }
+            State.log("[TNTDebugVD] failed to set " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY
+                    + " — insufficient privileges or non-Smartisan device");
         } catch (Throwable e) {
             State.log("[TNTDebugVD] set " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY + " failed: "
                     + e.getClass().getSimpleName() + " " + e.getMessage());
-            State.showErrorStatus("Failed to update Smartisan TNT display whitelist.");
         }
         return false;
     }
