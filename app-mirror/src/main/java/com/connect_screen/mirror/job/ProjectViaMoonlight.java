@@ -70,8 +70,13 @@ public class ProjectViaMoonlight implements Job {
                 return;
             }
             if (!tntDisplaySelector.ensureSelected()) {
-                return;
+                State.log("[ProjectViaMoonlight] TNT display not selectable, falling back to mirroring built-in display");
+                tntMode = false;
+                State.externalDisplayId = Display.DEFAULT_DISPLAY;
+                State.externalControlDisplayId = Display.DEFAULT_DISPLAY;
             }
+        }
+        if (tntMode) {
             if (State.externalDisplayId <= 0) {
                 State.showErrorStatus("TNT mode did not find an external display");
                 return;
@@ -206,7 +211,7 @@ public class ProjectViaMoonlight implements Job {
                 State.showErrorStatus(isAndroid10TntFixEnabled()
                         ? "TNT auto start timed out before a real TNT desktop display appeared. Wait for TNT to finish starting and reconnect Moonlight."
                         : "TNT auto start timed out. Wait for TNT to finish starting and reconnect Moonlight.");
-                return false;
+                return true;
             }
             return true;
         }
@@ -243,7 +248,7 @@ public class ProjectViaMoonlight implements Job {
     }
 
     private boolean mirrorPrimaryDisplay(int width, int height, Surface surface) throws YieldException {
-        if (Pref.getAutoRotate()) {
+        if (Pref.getAutoRotate() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             if (isAndroid10TntFixEnabled() && !State.isUserServiceAlive()) {
                 waitForUserService("[MirrorPrimaryDisplay] userService unavailable, rebind before auto-rotate mirror");
             }
@@ -323,6 +328,32 @@ public class ProjectViaMoonlight implements Job {
             SunshineMouse.setExternalDisplayFramePacer(framePacer, sessionId);
             if (framePacer != null) {
                 mirrorSurface = framePacer.getInputSurface();
+            }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                State.log(logPrefix + " API<28, trying MediaProjection screen capture");
+                android.media.projection.MediaProjection mp = com.connect_screen.mirror.State.getMediaProjection();
+                if (mp != null) {
+                    try {
+                        android.hardware.display.VirtualDisplay vd = mp.createVirtualDisplay(
+                                mirrorName + "-mediaprojection",
+                                width, height, 160,
+                                android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                                mirrorSurface, null, null);
+                        if (vd != null && vd.getDisplay() != null) {
+                            State.log(logPrefix + " MediaProjection VD created, id=" + vd.getDisplay().getDisplayId());
+                            State.mirrorVirtualDisplay = vd;
+                            SunshineServer.showMoonlightControlHint();
+                            return true;
+                        }
+                        if (vd != null) vd.release();
+                        State.log(logPrefix + " MediaProjection VD returned null display");
+                    } catch (Throwable e) {
+                        State.log(logPrefix + " MediaProjection VD failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                    }
+                } else {
+                    State.log(logPrefix + " MediaProjection not available");
+                }
+                State.log(logPrefix + " MediaProjection failed, trying createExternalMirror");
             }
             State.log(logPrefix + " call userService.createExternalMirror");
             int result = State.userService.createExternalMirror(mirrorName, width, height, displayIdToMirror, mirrorSurface);

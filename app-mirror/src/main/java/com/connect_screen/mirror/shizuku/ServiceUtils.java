@@ -48,18 +48,46 @@ public class ServiceUtils {
         if (!ShizukuUtils.hasPermission()) {
             return;
         }
+        try {
         activityTaskManager = IActivityTaskManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("activity_task")));
+        } catch (Throwable e) {
+            // ignore - service may be unavailable on this API level
+        }
+        try {
         activityManager = IActivityManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.ACTIVITY_SERVICE)));
+        } catch (Throwable e) {
+            // ignore
+        }
+        try {
         windowManager = IWindowManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.WINDOW_SERVICE)));
+        } catch (Throwable e) {
+            // ignore
+        }
+        try {
         displayManager = IDisplayManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.DISPLAY_SERVICE)));
+        } catch (Throwable e) {
+            // ignore
+        }
+        try {
         inputManager = IInputManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.INPUT_SERVICE)));
+        } catch (Throwable e) {
+            // ignore - INPUT_SERVICE may be unavailable on API 27 via Shizuku
+        }
         try {
             permissionManager = IPermissionManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("permissionmgr")));
         } catch(Throwable e) {
             // ignore;
         }
+        try {
         packageManager = IPackageManager.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService("package")));
+        } catch (Throwable e) {
+            // ignore
+        }
+        try {
         audioManager = IAudioService.Stub.asInterface(new ShizukuBinderWrapper(SystemServiceHelper.getSystemService(Context.AUDIO_SERVICE)));
+        } catch (Throwable e) {
+            // ignore
+        }
     }
 
     /**

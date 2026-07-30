@@ -46,7 +46,7 @@ static std::atomic_long captureSessionCounter {0};
 static std::atomic_int encoderBitratePercent {100};
 static std::atomic_int encoderBitrateMode {2};
 static std::atomic_int encoderComplexity {5};
-static std::atomic_int encoderIFrameInterval {3};
+static std::atomic_int encoderIFrameInterval {1};
 static std::atomic_int encoderMaxFps {60};
 static std::atomic_bool encoderLowLatency {true};
 static std::atomic_bool encoderDisableBFrames {true};
@@ -785,15 +785,21 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, configuredBitrateKbps * 1000);
         AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
         AMediaFormat_setInt32(format, "priority", configuredEncoderPriority);
+#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
+#endif
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
         AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, configuredIFrameInterval); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
+#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, configuredComplexity);
+#endif
         if (configuredLowLatency) {
+#if __ANDROID_API__ >= 28
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
+#endif
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
         }
         if (configuredDisableBFrames) {
@@ -801,6 +807,7 @@ namespace sunshine_callbacks {
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-bframes.num-bframes", 0);
         }
 
+#if __ANDROID_API__ >= 28
         // 设置编码配置
         if (config.videoFormat == 1) {
             if (colorspace.bit_depth == 10) {
@@ -820,7 +827,10 @@ namespace sunshine_callbacks {
             }
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, configuredAvcLevel);
         }
+#endif
 
+        int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
+#if __ANDROID_API__ >= 28
         // 设置色彩空间
         switch (colorspace.colorspace) {
             case video::colorspace_e::rec601:
@@ -856,6 +866,10 @@ namespace sunshine_callbacks {
         BOOST_LOG(info) << "  - COLOR_STANDARD: "sv << colorStandard;
         BOOST_LOG(info) << "  - COLOR_RANGE: "sv << colorRange << (colorRange == 1 ? " (FULL)" : " (LIMITED)");
         BOOST_LOG(info) << "  - COLOR_TRANSFER: "sv << colorTransfer;
+#else
+        (void)isHdr;
+        BOOST_LOG(info) << "色彩配置仅适用于 API 28+，Android 8.1 上跳过"sv;
+#endif
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
@@ -863,8 +877,10 @@ namespace sunshine_callbacks {
             // 创建编码器
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1920);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 1080);
+#if __ANDROID_API__ >= 28
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
+#endif
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
             AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
             codec = AMediaCodec_createEncoderByType("video/avc");
@@ -1129,6 +1145,7 @@ namespace sunshine_callbacks {
                     } else {
                         // 这是正常的编码帧
                         bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
+                        BOOST_LOG(info) << "Frame #"sv << frameIndex << " size="sv << bufferSize << " flags="sv << bufferInfo.flags << " keyframe="sv << isKeyFrame;
                         BOOST_LOG(verbose) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
                         frameIndex++;
                         auto encodedFrameAt = std::chrono::steady_clock::now();

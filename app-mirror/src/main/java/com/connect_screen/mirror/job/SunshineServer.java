@@ -160,8 +160,16 @@ public class SunshineServer {
             return !isAndroid10TntFixEnabled();
         }
 
-        SunshineMouse.initialize(width, height);
-        SunshineKeyboard.initialize();
+        try {
+            SunshineMouse.initialize(width, height);
+        } catch(Throwable e) {
+            State.log("[SunshineServer] SunshineMouse.initialize failed (non-fatal): " + e.getMessage());
+        }
+        try {
+            SunshineKeyboard.initialize();
+        } catch(Throwable e) {
+            State.log("[SunshineServer] SunshineKeyboard.initialize failed (non-fatal): " + e.getMessage());
+        }
 
         if (!isAndroid10TntFixEnabled()) {
             new Handler(Looper.getMainLooper()).post(() -> {
