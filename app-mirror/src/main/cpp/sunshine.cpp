@@ -783,14 +783,20 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, configuredBitrateKbps * 1000);
+#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
+#endif
+#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "priority", configuredEncoderPriority);
+#endif
 #if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
 #endif
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
+#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
+#endif
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, configuredIFrameInterval); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
 #if __ANDROID_API__ >= 28
@@ -800,7 +806,9 @@ namespace sunshine_callbacks {
 #if __ANDROID_API__ >= 28
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
 #endif
+#if __ANDROID_API__ >= 28
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
+#endif
         }
         if (configuredDisableBFrames) {
             AMediaFormat_setInt32(format, "max-bframes", 0);
@@ -882,7 +890,9 @@ namespace sunshine_callbacks {
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
 #endif
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
-            AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
+    #if __ANDROID_API__ >= 28
+        AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
+#endif
             codec = AMediaCodec_createEncoderByType("video/avc");
         }
         if (!codec) {
@@ -1557,3 +1567,8 @@ namespace sunshine_callbacks {
         }
     }
 }
+#if __ANDROID_API__ >= 28
+#if __ANDROID_API__ >= 28
+        AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
+#endif
+#endif
