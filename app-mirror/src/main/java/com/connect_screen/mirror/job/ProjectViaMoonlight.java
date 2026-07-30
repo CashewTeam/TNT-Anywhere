@@ -356,37 +356,23 @@ public class ProjectViaMoonlight implements Job {
                 State.log(logPrefix + " MediaProjection failed, trying createExternalMirror");
             }
             // SmartisanOS 8.1: SurfaceControl.setDisplayLayerStack does not produce frames.
-            // Destroy the base display and recreate with encoder surface so TNT renders directly to it.
+            // Use startDisplayScreenshotMirror to capture display via SurfaceControl.screenshot() and draw to encoder surface.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P && displayIdToMirror != Display.DEFAULT_DISPLAY) {
-                State.log(logPrefix + " API<28 SmartisanOS: destroying base display and recreating with encoder surface");
+                State.log(logPrefix + " API<28 SmartisanOS: using screenshot mirror for display " + displayIdToMirror);
                 try {
-                    TntDebugVirtualDisplayHelper.clearVirtualDisplay();
-                } catch (Throwable e) {
-                    State.log(logPrefix + " clearVirtualDisplay failed: " + e.getMessage());
-                }
-                try {
-                    android.hardware.display.DisplayManager dm = (android.hardware.display.DisplayManager)
-                            com.connect_screen.mirror.State.getContext().getSystemService(Context.DISPLAY_SERVICE);
-                    int flags = android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION
-                            | android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
-                    android.hardware.display.VirtualDisplay newVd = dm.createVirtualDisplay(
-                            "tntanywhere.base.display",
-                            width, height, 160,
-                            mirrorSurface,
-                            flags,
-                            null, null);
-                    if (newVd != null && newVd.getDisplay() != null) {
-                        State.log(logPrefix + " Direct display created, id=" + newVd.getDisplay().getDisplayId());
-                        State.mirrorVirtualDisplay = newVd;
+                    int ssResult = State.userService.startDisplayScreenshotMirror(
+                            width, height, displayIdToMirror, mirrorSurface, frameRate);
+                    State.log(logPrefix + " startDisplayScreenshotMirror result=" + ssResult);
+                    if (ssResult == 0) {
                         State.lastSingleAppDisplay = controlDisplayId;
                         SunshineServer.showMoonlightControlHint();
                         return true;
                     }
-                    State.log(logPrefix + " Direct display creation returned null");
                 } catch (Throwable e) {
-                    State.log(logPrefix + " Direct display creation failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                    State.log(logPrefix + " startDisplayScreenshotMirror failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
                 }
             }
+
             State.log(logPrefix + " call userService.createExternalMirror");
             int result = State.userService.createExternalMirror(mirrorName, width, height, displayIdToMirror, mirrorSurface);
             State.log(logPrefix + " createExternalMirror result=" + result);
