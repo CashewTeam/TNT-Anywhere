@@ -329,7 +329,7 @@ public class ProjectViaMoonlight implements Job {
             if (framePacer != null) {
                 mirrorSurface = framePacer.getInputSurface();
             }
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P && displayIdToMirror == Display.DEFAULT_DISPLAY) {
                 State.log(logPrefix + " API<28, trying MediaProjection screen capture");
                 android.media.projection.MediaProjection mp = com.connect_screen.mirror.State.getMediaProjection();
                 if (mp != null) {

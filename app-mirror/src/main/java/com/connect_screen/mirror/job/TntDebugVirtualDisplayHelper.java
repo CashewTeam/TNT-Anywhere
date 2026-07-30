@@ -74,11 +74,14 @@ public final class TntDebugVirtualDisplayHelper {
                 return true;
             }
 
-            if (useAndroid10TntFix && !ensureVirtualDisplayOwnerProperty()) {
+           if (useAndroid10TntFix && !ensureVirtualDisplayOwnerProperty()) {
+               return false;
+           }
+
+           VirtualDisplay nextDisplay = null;
+            if (!ensureSmartisanPcModeEnabled()) {
                 return false;
             }
-
-            VirtualDisplay nextDisplay = null;
             ImageReader nextReader = null;
             int[] flagCandidates = useAndroid10TntFix
                     ? new int[]{
@@ -280,6 +283,37 @@ public final class TntDebugVirtualDisplayHelper {
             State.showErrorStatus("Failed to update Smartisan TNT display whitelist.");
         }
         return false;
+    }
+
+    private static boolean ensureSmartisanPcModeEnabled() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return true;
+        }
+        if (!State.isUserServiceAlive()) {
+            State.log("[TNTDebugVD] userService not alive, cannot set Smartisan PC mode settings");
+            return true;
+        }
+        try {
+            String expectedPackageName = BuildConfig.APPLICATION_ID;
+            String currentPackageName = firstNonEmptyLine(State.userService.executeShellCommand(
+                    "getprop " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY));
+            if (!expectedPackageName.equals(currentPackageName)) {
+                String result = State.userService.executeShellCommand(
+                        "setprop " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY + " " + expectedPackageName
+                                + " && getprop " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY);
+                String updated = firstNonEmptyLine(result);
+                State.log("[TNTDebugVD] set " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY
+                        + " from " + currentPackageName + " to " + updated);
+            }
+            State.userService.executeShellCommand("settings put secure global_pc_mode_settings 1");
+            State.userService.executeShellCommand("settings put secure pc_mode_enable 1");
+            State.log("[TNTDebugVD] Smartisan PC mode enabled (pc_mode_enable=1)");
+            return true;
+        } catch (Throwable e) {
+            State.log("[TNTDebugVD] enable Smartisan PC mode failed: "
+                    + e.getClass().getSimpleName() + " " + e.getMessage());
+            return false;
+        }
     }
 
     private static String readVirtualDisplayPackageProperty() {

@@ -7,6 +7,7 @@ import android.view.Display;
 
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
+import android.os.Build;
 
 public final class TntDisplaySelector {
     private static final int TNT_PC_DISPLAY_ID_MIN = 100000;
@@ -150,6 +151,12 @@ public final class TntDisplaySelector {
     }
 
     private static int findLargestSelectableDisplayId(DisplayManager displayManager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            int baseDisplayId = findSmartisanBaseDisplayId(displayManager);
+            if (baseDisplayId > Display.DEFAULT_DISPLAY) {
+                return baseDisplayId;
+            }
+        }
         int largestTntPcDisplayId = -1;
         int largestDisplayId = -1;
         for (Display display : displayManager.getDisplays()) {
@@ -167,6 +174,20 @@ public final class TntDisplaySelector {
         return largestTntPcDisplayId > Display.DEFAULT_DISPLAY
                 ? largestTntPcDisplayId
                 : largestDisplayId;
+    }
+
+    private static int findSmartisanBaseDisplayId(DisplayManager displayManager) {
+        for (Display display : displayManager.getDisplays()) {
+            if (display == null) {
+                continue;
+            }
+            int displayId = display.getDisplayId();
+            if (displayId > Display.DEFAULT_DISPLAY
+                    && TntDebugVirtualDisplayHelper.DISPLAY_NAME.equals(display.getName())) {
+                return displayId;
+            }
+        }
+        return Display.DEFAULT_DISPLAY;
     }
 
     private static int findLargestPhysicalExternalDisplayId(DisplayManager displayManager) {
