@@ -615,7 +615,7 @@ public class UserService extends IUserService.Stub  {
         }
         Rect sourceRect = getSourceDisplayRect(displayInfo, width, height);
         Rect displayRect = getAspectFitRect(sourceRect, width, height);
-        IBinder displayToken = getDisplayToken();
+        IBinder displayToken = SurfaceControl.getDisplayToken(displayIdToMirror);
         if (displayToken == null) {
             Ln.e("startDisplayScreenshotMirror: display token is null");
             return -1;
