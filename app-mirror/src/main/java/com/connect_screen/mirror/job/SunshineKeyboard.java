@@ -171,7 +171,7 @@ public class SunshineKeyboard {
                 injectInputEventOtherScreensMethod = IInputManager.class.getMethod(
                         "injectInputEventOtherScreens", android.view.InputEvent.class, int.class);
             }
-            Boolean accepted = (Boolean) injectInputEventOtherScreensMethod.invoke(inputManager, event, displayId);
+            Boolean accepted = (Boolean) injectInputEventOtherScreensMethod.invoke(inputManager, event, 2);
             if (!Boolean.TRUE.equals(accepted)) {
                 Log.w(TAG, "injectInputEventOtherScreens rejected event for displayId=" + displayId);
             }
@@ -207,8 +207,8 @@ public class SunshineKeyboard {
             return;
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY
-                && android.os.Build.VERSION.SDK_INT < 28
-                && forwardEventToDisplay(keyEvent, targetDisplayId)) {
+                && android.os.Build.VERSION.SDK_INT < 28) {
+            forwardEventToDisplay(keyEvent, targetDisplayId);
             if (lastFocusedDisplayId != targetDisplayId) {
                 TouchpadActivity.setFocus(inputManager, targetDisplayId);
                 lastFocusedDisplayId = targetDisplayId;

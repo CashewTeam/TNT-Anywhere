@@ -8,7 +8,7 @@
 3. 昨天排查的 `setDisplayLayerStack` 镜像、截图轮询、WFDMM Hook 等方案是绕路，
    均未进入最终版本。
 4. 通过把 H.264 SPS 从纯 Baseline 改为 Constrained Baseline，**PC 端 Moonlight 硬解黑屏已解决**。
-5. 剩余未解决问题：Android 8.1 上 PC 键鼠注入 TNT 外接屏仍未打通。
+5. Android 8.1 上 PC 键鼠注入已通过 `IInputManager.injectInputEventOtherScreens(event, 2)` 打通。
 
 ## 最终版本对比最初版本
 
@@ -76,16 +76,21 @@ API 27 没有 Android 10+ 的音频捕获 API，改用系统级 `REMOTE_SUBMIX`�
 
 当前状态：**PC 端 Moonlight 硬解已出画面**，Android 端接收不受影响。
 
-### 6. Android 8.1 键鼠注入外接屏（未解决）
+### 6. Android 8.1 键鼠注入外接屏（已解决）
 
-PC 端 Moonlight 键鼠事件无法注入 TNT 外接屏，已排除/确认的路径：
+SmartisanOS 8.1 不能把 displayId 直接塞进 `MotionEvent`/`InputEvent`，已排除的路径：
 
-- `MotionEvent.setDisplayId` / `InputEvent.setDisplayId` 在 SmartisanOS 8.1 上不存在
+- `MotionEvent.setDisplayId` / `InputEvent.setDisplayId` 不存在
 - `createInputForwarder(displayId)` 因 Shizuku 身份是 shell、TNT 屏归属 app uid 被拒
 - 8.1 的 `GestureDescription.Builder` 没有 `setDisplayId`
-- SmartisanOS `input --ext-display` 可用，底层是 `IInputManager.injectInputEventOtherScreens(InputEvent, int)`；
-  当前代码传入 `(event, displayId)` 会报 `mode is invalid`，说明第二个参数是注入 mode，
-  displayId 如何挂到事件上仍需确认（反编译材料在本地 `analysis/`）
+
+最终方案：调用 `IInputManager.injectInputEventOtherScreens(event, 2)`。
+服务端 `InputManagerService.injectInputEventOtherScreens` 内部会自己取
+`SmtPCUtilsInner.getExtDisplayId(mContext)`，所以事件不需要携带 displayId，
+第二个参数是注入 mode（2），不是 displayId。
+
+当前状态：**PC 端 Moonlight 鼠标点击/拖动和键盘已能作用到 TNT 屏**。
+注：纯 `HOVER_MOVE` 仍可能被系统 native 层拒绝，不影响点击/拖动与键盘验证。
 
 ## 关键代码位置
 
@@ -97,6 +102,7 @@ PC 端 Moonlight 键鼠事件无法注入 TNT 外接屏，已排除/确认的路
 | `app-mirror/src/main/java/com/connect_screen/mirror/job/TntDebugVirtualDisplayHelper.java` | 开启 Smartisan PC 模式、encoder Surface 直连虚拟屏、白名单重启检测 |
 | `app-mirror/src/main/java/com/connect_screen/mirror/job/TntDisplaySelector.java` | API < 28 优先选 `tntanywhere.base.display` |
 | `app-mirror/src/main/java/com/connect_screen/mirror/job/SunshineServer.java` | `onVideoInputSurface` 视频源、音频 JNI |
+| `app-mirror/src/main/java/com/connect_screen/mirror/job/SunshineMouse.java` / `SunshineKeyboard.java` | API < 28 外接屏输入改走 `injectInputEventOtherScreens(event, 2)` |
 | `app-mirror/src/main/java/com/connect_screen/mirror/job/SunshineAudio.java` | REMOTE_SUBMIX 采集、音量保持与恢复 |
 | `app-mirror/src/main/java/com/connect_screen/mirror/shizuku/UserService.java` | REMOTE_SUBMIX AudioRecord、强制音频路由 |
 | `app-mirror/src/main/java/com/connect_screen/mirror/shizuku/ServiceUtils.java` | 每个 binder 独立 try-catch |
@@ -108,10 +114,11 @@ PC 端 Moonlight 键鼠事件无法注入 TNT 外接屏，已排除/确认的路
 - `dumpsys display` 显示 `tntanywhere.base.display`（1920x1080）
 - display owner 为 `com.smartisanos.tntanywhere`，处于活动状态
 - PC 端 Moonlight 硬解已出画面（H.264，D3D11VA/NVDEC）
+- PC 端 Moonlight 键鼠已作用到 TNT 屏，logcat 无 `NoSuchMethodError` / `mode is invalid`
 
 ## 待解决问题
 
-- 确认 SmartisanOS `injectInputEventOtherScreens` 如何携带 displayId，并让 PC 键鼠作用到 TNT 屏
+- 可选优化：纯 `HOVER_MOVE` 仍可能被系统 native 层拒绝，可考虑转为触摸事件或仅在按下时发送移动
 
 ## 最终链路（当前打通路径）
 
@@ -123,4 +130,5 @@ TNT 桌面 (tntanywhere.base.display)
         → Shizuku 输入注入回手机
 
 PC 端 Moonlight 客户端：硬解正常
+  → PC 键鼠通过 `injectInputEventOtherScreens(event, 2)` 注入 TNT 屏
 ```
