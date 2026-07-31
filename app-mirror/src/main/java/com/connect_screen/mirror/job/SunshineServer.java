@@ -547,6 +547,7 @@ public class SunshineServer {
 
     // 添加新方法用于启动音频录制
     public static native void startAudioRecording(Object audioRecord, int framesPerPacket);
+    public static native void pushAudioSamples(float[] data, int count);
 
     public static native void enableH265();
 

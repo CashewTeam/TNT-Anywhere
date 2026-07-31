@@ -492,6 +492,20 @@ Java_com_connect_1screen_mirror_job_SunshineServer_startAudioRecording(JNIEnv *e
 }
 
 JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_pushAudioSamples(JNIEnv *env, jclass clazz, jfloatArray data, jint count) {
+    if (data == nullptr || count <= 0 || !samples) {
+        return;
+    }
+    jfloat *elements = env->GetFloatArrayElements(data, nullptr);
+    if (elements == nullptr) {
+        return;
+    }
+    std::vector<float> audioSamples(elements, elements + count);
+    env->ReleaseFloatArrayElements(data, elements, JNI_ABORT);
+    samples->raise(std::move(audioSamples));
+}
+
+JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_enableH265(JNIEnv *env, jclass clazz) {
     video::active_hevc_mode = 2;
 }

@@ -331,7 +331,20 @@ public class UserService extends IUserService.Stub  {
             if (audioRecord == null) {
                 Ln.d("before start recording");
                 audioRecord = createAudioRecord();
+                if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    Ln.e("REMOTE_SUBMIX AudioRecord not initialized state=" + audioRecord.getState());
+                    audioRecord.release();
+                    audioRecord = null;
+                    return false;
+                }
                 audioRecord.startRecording();
+                if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                    Ln.e("REMOTE_SUBMIX AudioRecord failed to start state=" + audioRecord.getRecordingState());
+                    audioRecord.stop();
+                    audioRecord.release();
+                    audioRecord = null;
+                    return false;
+                }
                 Ln.d("started recording");
                 return true;
             } else {
@@ -355,6 +368,39 @@ public class UserService extends IUserService.Stub  {
             }
         } catch(Throwable e) {
             Ln.e("failed to stop recording audio", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean forceTntAudioRoute(boolean enabled) throws RemoteException {
+        Ln.i("forceTntAudioRoute: enabled=" + enabled);
+        try {
+            Class<?> audioSystemClass = Class.forName("android.media.AudioSystem");
+            java.lang.reflect.Method setDeviceConnectionState = audioSystemClass.getMethod(
+                    "setDeviceConnectionState", int.class, int.class, String.class, String.class);
+            java.lang.reflect.Method setForceUse = audioSystemClass.getMethod(
+                    "setForceUse", int.class, int.class);
+            final int deviceOutRemoteSubmix = 0x8000;
+            final int deviceStateAvailable = 1;
+            final int deviceStateUnavailable = 0;
+            final int forceMedia = 1;
+            final int forceTnt = 0x22;
+            final int forceNone = 0;
+            if (enabled) {
+                int rcDevice = (Integer) setDeviceConnectionState.invoke(
+                        null, deviceOutRemoteSubmix, deviceStateAvailable, "", "remote_submix");
+                int rcForce = (Integer) setForceUse.invoke(null, forceMedia, forceTnt);
+                Ln.i("forceTntAudioRoute: device=" + rcDevice + " force=" + rcForce);
+                return rcDevice == 0 && rcForce == 0;
+            }
+            int rcForce = (Integer) setForceUse.invoke(null, forceMedia, forceNone);
+            int rcDevice = (Integer) setDeviceConnectionState.invoke(
+                    null, deviceOutRemoteSubmix, deviceStateUnavailable, "", "remote_submix");
+            Ln.i("forceTntAudioRoute restore: force=" + rcForce + " device=" + rcDevice);
+            return rcForce == 0 && rcDevice == 0;
+        } catch (Throwable e) {
+            Ln.e("forceTntAudioRoute failed", e);
             return false;
         }
     }

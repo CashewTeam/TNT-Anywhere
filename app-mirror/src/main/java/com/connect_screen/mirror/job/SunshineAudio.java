@@ -17,8 +17,17 @@ import com.connect_screen.mirror.State;
 public class SunshineAudio {
     private static boolean isMuted = false;
     private static AudioManager.OnAudioFocusChangeListener volumeChangeListener;
+    private static final java.util.concurrent.atomic.AtomicBoolean remoteSubmixActive =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static volatile Thread remoteSubmixThread;
+    private static volatile boolean remoteSubmixStopRequested;
     public static void startClientAudioCapture(Context context, int packetDuration, boolean shouldMutePhone) {
-        boolean started = startAudioUseNormalPermission(context, packetDuration);
+        boolean started;
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            started = startRemoteSubmixAudioCapture(packetDuration);
+        } else {
+            started = startAudioUseNormalPermission(context, packetDuration);
+        }
 
         if (!started) {
             State.log("Moonlight 音频捕获未启动，继续视频串流");
@@ -146,7 +155,85 @@ public class SunshineAudio {
         }
     }
 
+    private static boolean startRemoteSubmixAudioCapture(int packetDuration) {
+        if (!State.isUserServiceAlive()) {
+            State.log("8.1 REMOTE_SUBMIX 音频需要 UserService");
+            return false;
+        }
+        try {
+            if (!State.userService.startRecordingAudio()) {
+                State.log("8.1 REMOTE_SUBMIX AudioRecord 启动失败");
+                return false;
+            }
+            if (!State.userService.forceTntAudioRoute(true)) {
+                State.log("8.1 强制 remote_submix 路由失败，继续尝试录音");
+            }
+        } catch (Throwable e) {
+            State.log("8.1 REMOTE_SUBMIX 音频启动异常: " + e.getClass().getSimpleName() + " " + e.getMessage());
+            stopRemoteSubmixAudio();
+            return false;
+        }
+
+        remoteSubmixStopRequested = false;
+        if (!remoteSubmixActive.compareAndSet(false, true)) {
+            return true;
+        }
+        int framesPerPacket = Math.max(1, (int) (48000 * packetDuration / 1000.0f));
+        float[] buffer = new float[framesPerPacket * 2];
+        Thread thread = new Thread(() -> {
+            while (remoteSubmixActive.get() && !remoteSubmixStopRequested) {
+                try {
+                    int n = State.userService.readAudio(buffer);
+                    if (n > 0) {
+                        SunshineServer.pushAudioSamples(buffer, n);
+                    } else if (n < 0) {
+                        State.log("8.1 REMOTE_SUBMIX readAudio 返回 " + n);
+                        break;
+                    }
+                } catch (Throwable e) {
+                    State.log("8.1 REMOTE_SUBMIX readAudio 异常: " + e.getClass().getSimpleName() + " " + e.getMessage());
+                    break;
+                }
+            }
+            remoteSubmixActive.set(false);
+            State.log("8.1 REMOTE_SUBMIX reader 线程结束");
+        }, "moonlight-audio-submix");
+        thread.setDaemon(true);
+        remoteSubmixThread = thread;
+        thread.start();
+        State.log("8.1 REMOTE_SUBMIX 音频捕获已启动");
+        return true;
+    }
+
+    public static void stopRemoteSubmixAudio() {
+        boolean wasActive = remoteSubmixActive.get() || remoteSubmixThread != null;
+        remoteSubmixStopRequested = true;
+        try {
+            if (State.userService != null) {
+                State.userService.forceTntAudioRoute(false);
+                State.userService.stopRecordingAudio();
+            }
+        } catch (Throwable e) {
+            State.log("8.1 REMOTE_SUBMIX 停止异常: " + e.getClass().getSimpleName() + " " + e.getMessage());
+        }
+        Thread thread = remoteSubmixThread;
+        if (thread != null && thread != Thread.currentThread()) {
+            thread.interrupt();
+            try {
+                thread.join(1500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        remoteSubmixThread = null;
+        remoteSubmixActive.set(false);
+        if (wasActive) {
+            State.log("8.1 REMOTE_SUBMIX 音频已停止");
+        }
+    }
+
     public static void restoreVolume(Context context) {
+        stopRemoteSubmixAudio();
         if (isMuted && context != null) {
             State.log("恢复音量");
             isMuted = false;
