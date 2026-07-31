@@ -329,14 +329,6 @@ public final class TntDebugVirtualDisplayHelper {
             State.userService.executeShellCommand("settings put secure global_pc_mode_settings 1");
             State.userService.executeShellCommand("settings put secure pc_mode_enable 1");
             State.log("[TNTDebugVD] Smartisan PC mode enabled (pc_mode_enable=1)");
-            String bootCachedPackage = readBootCachedVirtualDisplayPackage();
-            if (!bootCachedPackage.isEmpty() && !expectedPackageName.equals(bootCachedPackage)) {
-                State.log("[TNTDebugVD] framework cached virtual display pkg=" + bootCachedPackage
-                        + " expected=" + expectedPackageName + "; reboot required");
-                State.showErrorStatus("TNT 显示白名单在系统启动时缓存，需要重启手机后生效");
-                whitelistRebootRequired = true;
-                return false;
-            }
             return true;
         } catch (Throwable e) {
             State.log("[TNTDebugVD] enable Smartisan PC mode failed: "
