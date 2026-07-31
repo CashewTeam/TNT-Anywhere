@@ -33,6 +33,7 @@ interface IUserService {
     int createExternalMirror(String name, int width, int height, int displayIdToMirror, in Surface surface) = 13;
     void destroyExternalMirror() = 14;
     String executeShellCommand(String command) = 15;
-    int startDisplayScreenshotMirror(int width, int height, int displayIdToMirror, in Surface surface, int fps) = 16;
-    void stopDisplayScreenshotMirror() = 17;
+   int startDisplayScreenshotMirror(int width, int height, int displayIdToMirror, in Surface surface, int fps) = 16;
+   void stopDisplayScreenshotMirror() = 17;
+   int redirectDisplayToSurface(int displayId, in Surface surface) = 18;
 }

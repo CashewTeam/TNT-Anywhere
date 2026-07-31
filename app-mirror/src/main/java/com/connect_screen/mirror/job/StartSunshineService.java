@@ -30,7 +30,7 @@ public class StartSunshineService implements Job {
             } else {
                 activity.startService(sunshineServiceIntent);
             }
-            State.log("启动 SunshineService 服务（复用已有投屏授权用于原生音频捕获）");
+            State.log("启动 SunshineService 服务（复用已有投屏权限用于原生音频捕获）");
             activity.refresh();
             return;
         }

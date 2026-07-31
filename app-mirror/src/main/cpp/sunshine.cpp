@@ -43,6 +43,7 @@ static std::thread audioRecordingThread;
 static std::atomic_bool audioRecordingActive {false};
 static std::atomic_bool stoppingVirtualDisplay {false};
 static std::atomic_long captureSessionCounter {0};
+static std::atomic_bool videoSourceSetupFailed {false};
 static std::atomic_int encoderBitratePercent {100};
 static std::atomic_int encoderBitrateMode {2};
 static std::atomic_int encoderComplexity {5};
@@ -367,6 +368,11 @@ Java_com_connect_1screen_mirror_job_SunshineServer_submitPin(JNIEnv *env, jclass
 }
 
 JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_notifyVideoSourceFailure(JNIEnv *env, jclass clazz) {
+    videoSourceSetupFailed.store(true, std::memory_order_release);
+}
+
+JNIEXPORT void JNICALL
 Java_com_connect_1screen_mirror_job_SunshineServer_cleanup(JNIEnv *env, jclass clazz) {
     resetJavaCaches(env);
     return;
@@ -620,6 +626,25 @@ namespace sunshine_callbacks {
         return result == JNI_TRUE;
     }
 
+    void callJavaOnVideoInputSurface(JNIEnv *env, jobject surface, jint width, jint height, jint frameRate, jlong sessionId) {
+        if (jvm == nullptr || sunshineServerClass == nullptr) {
+            BOOST_LOG(error) << "SunshineServer JVM/class unavailable for onVideoInputSurface"sv;
+            return;
+        }
+
+        jmethodID method = env->GetStaticMethodID(sunshineServerClass, "onVideoInputSurface", "(Landroid/view/Surface;IIIJ)V");
+        if (method == nullptr) {
+            BOOST_LOG(error) << "Cannot find SunshineServer.onVideoInputSurface"sv;
+            return;
+        }
+
+        env->CallStaticVoidMethod(sunshineServerClass, method, surface, width, height, frameRate, sessionId);
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+        }
+    }
+
     bool shouldAbortOnVideoSourceSetupFailure() {
         return android_get_device_api_level() == 29;
     }
@@ -740,6 +765,7 @@ namespace sunshine_callbacks {
             return;
         }
         const auto moonlightSessionId = static_cast<jlong>(captureSessionCounter.fetch_add(1) + 1);
+        videoSourceSetupFailed.store(false, std::memory_order_release);
         auto shutdown_event = mail->event<bool>(mail::shutdown);
         auto idr_events = mail->event<bool>(mail::idr);
         // 添加更详细的客户端配置日志
@@ -932,7 +958,17 @@ namespace sunshine_callbacks {
         }
         
         // 将 ANativeWindow 转换为 Java Surface 对象
-        jobject javaSurface = ANativeWindow_toSurface(env, inputSurface);
+        // ARctrl-style: ensure thread is attached to JVM before Surface conversion
+        bool _attached = false;
+        JNIEnv *_aenv = env;
+        if (jvm != nullptr) {
+            jint _s = jvm->GetEnv((void**)&_aenv, JNI_VERSION_1_6);
+            if (_s == JNI_EDETACHED) {
+                jvm->AttachCurrentThread(&_aenv, nullptr);
+                _attached = true;
+            }
+        }
+        jobject javaSurface = _aenv ? ANativeWindow_toSurface(_aenv, inputSurface) : nullptr;
         if (javaSurface == nullptr) {
             BOOST_LOG(error) << "无法将 ANativeWindow 转换为 Surface"sv;
             ANativeWindow_release(inputSurface);
@@ -1057,29 +1093,46 @@ namespace sunshine_callbacks {
         callJavaStreamingDebugInfo(env, buildDebugInfo("initializing", 0, 0, 0, 0, 0, 0, 0, 0));
         callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
         
-        // 调用 createVirtualDisplay 方法，传递 shouldMute 参数
-        if (!createVirtualDisplay(env, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute, moonlightSessionId)
-                && shouldAbortOnVideoSourceSetupFailure()) {
-            BOOST_LOG(error) << "Moonlight video source setup failed; abort encoder start"sv;
-            stopVirtualDisplay(moonlightSessionId);
-            callJavaStreamingDebugInfo(env, buildDebugInfo("stopped", 0, 0, 0, 0, 0, 0, 0, 0));
-            callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
-            env->DeleteLocalRef(javaSurface);
-            ANativeWindow_release(inputSurface);
-            AMediaCodec_delete(codec);
-            AMediaFormat_delete(format);
-            return;
-        }
-        
-        // 启动编码器
-        status = AMediaCodec_start(codec);
-        if (status != AMEDIA_OK) {
-            BOOST_LOG(error) << "无法启动编码器，错误码: "sv << status;
-            env->DeleteLocalRef(javaSurface);
-            ANativeWindow_release(inputSurface);
-            AMediaCodec_delete(codec);
-            AMediaFormat_delete(format);
-            return;
+        // API<28 uses the ARctrl-style contract: start the encoder first, then
+        // hand the input surface to Java so it can bind the TNT virtual display.
+        const bool arctrlStyleVideoSource = android_get_device_api_level() < 28;
+        if (arctrlStyleVideoSource) {
+            status = AMediaCodec_start(codec);
+            if (status != AMEDIA_OK) {
+                BOOST_LOG(error) << "无法启动编码器，错误码: "sv << status;
+                _aenv->DeleteLocalRef(javaSurface);
+                if (_attached && jvm != nullptr) jvm->DetachCurrentThread();
+                ANativeWindow_release(inputSurface);
+                AMediaCodec_delete(codec);
+                AMediaFormat_delete(format);
+                return;
+            }
+            callJavaOnVideoInputSurface(_aenv, javaSurface, config.width, config.height, config.framerate, moonlightSessionId);
+        } else {
+            if (!createVirtualDisplay(_aenv, config.width, config.height, config.framerate, audioConfig.packetDuration, javaSurface, shouldMute, moonlightSessionId)
+                    && shouldAbortOnVideoSourceSetupFailure()) {
+                BOOST_LOG(error) << "Moonlight video source setup failed; abort encoder start"sv;
+                stopVirtualDisplay(moonlightSessionId);
+                callJavaStreamingDebugInfo(env, buildDebugInfo("stopped", 0, 0, 0, 0, 0, 0, 0, 0));
+                callJavaLastMoonlightControlInputInfo(env, controlInputDebugInfo);
+                _aenv->DeleteLocalRef(javaSurface);
+                if (_attached && jvm != nullptr) jvm->DetachCurrentThread();
+                ANativeWindow_release(inputSurface);
+                AMediaCodec_delete(codec);
+                AMediaFormat_delete(format);
+                return;
+            }
+
+            status = AMediaCodec_start(codec);
+            if (status != AMEDIA_OK) {
+                BOOST_LOG(error) << "无法启动编码器，错误码: "sv << status;
+                _aenv->DeleteLocalRef(javaSurface);
+                if (_attached && jvm != nullptr) jvm->DetachCurrentThread();
+                ANativeWindow_release(inputSurface);
+                AMediaCodec_delete(codec);
+                AMediaFormat_delete(format);
+                return;
+            }
         }
         BOOST_LOG(info) << "MediaCodec 编码器已启动"sv;
         controlInputDebugInfo = input::collect_debug_summary();
@@ -1102,6 +1155,10 @@ namespace sunshine_callbacks {
         const double outputFrameBudgetMs = 1000.0 / std::max(1, encodeFrameRate);
         
         while (!shutdown_event->peek()) {
+            if (videoSourceSetupFailed.load(std::memory_order_acquire)) {
+                BOOST_LOG(error) << "Video source setup failed; stopping encoder loop"sv;
+                break;
+            }
             bool requested_idr_frame = false;
             if (idr_events->peek()) {
                 requested_idr_frame = true;
@@ -1287,7 +1344,8 @@ namespace sunshine_callbacks {
         AMediaFormat_delete(format);
         
         // 清理 Java Surface 引用
-        env->DeleteLocalRef(javaSurface);
+        _aenv->DeleteLocalRef(javaSurface);
+        if (_attached && jvm != nullptr) jvm->DetachCurrentThread();
     }
 
     void captureAudioLoop(void *channel_data, safe::mail_t mail, const audio::config_t& config) {

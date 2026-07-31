@@ -61,6 +61,9 @@ public class SunshineServer {
     private static final long MOONLIGHT_PROJECTION_START_TIMEOUT_MS = 15_000L;
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
     private static volatile long activeMoonlightSessionId;
+    private static volatile Thread videoSourceThread;
+    private static volatile Surface activeEncoderSurface;
+    private static volatile boolean videoSourceCancelled;
     private static Runnable autoScreenOffRunnable;
     private static final String MOONLIGHT_CONTROL_HINT =
             "按 Ctrl+Alt+Shift+C 打开光标\n如果不可操控，请在 Moonlight 切换一下控制模式";
@@ -145,6 +148,8 @@ public class SunshineServer {
     
     // 添加提交PIN码的native方法
     public static native void submitPin(String pin);
+
+    public static native void notifyVideoSourceFailure();
     
     
     // surface created by MediaCodec
@@ -171,12 +176,16 @@ public class SunshineServer {
             State.log("[SunshineServer] SunshineKeyboard.initialize failed (non-fatal): " + e.getMessage());
         }
 
-        if (!isAndroid10TntFixEnabled()) {
-            new Handler(Looper.getMainLooper()).post(() -> {
-                State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
-            });
-            return true;
-        }
+       if (!isAndroid10TntFixEnabled()) {
+           // API<28 no longer creates the encoder VD from this entry; native
+           // calls onVideoInputSurface instead. Keep a ProjectViaMoonlight
+           // fallback for any direct callers.
+           State.log("[SunshineVD] createVirtualDisplay on API<28: fallback to ProjectViaMoonlight");
+           new Handler(Looper.getMainLooper()).post(() -> {
+               State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, packetDuration, surface, shouldMutePhone, sessionId));
+           });
+           return true;
+       }
 
         CountDownLatch startupLatch = new CountDownLatch(1);
         AtomicBoolean startupSucceeded = new AtomicBoolean(false);
@@ -225,6 +234,124 @@ public class SunshineServer {
         }
         State.log("[ProjectViaMoonlight] projection startup result=" + startupSucceeded.get());
         return startupSucceeded.get();
+    }
+
+    public static void onVideoInputSurface(Surface surface, int width, int height, int frameRate, long sessionId) {
+        if (surface == null) {
+            State.log("[SunshineVD] onVideoInputSurface called with null surface");
+            return;
+        }
+        suppressPin = null;
+        activeMoonlightSessionId = sessionId;
+        scheduleAutoScreenOffForSession(sessionId);
+        SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
+        try {
+            SunshineMouse.initialize(width, height);
+        } catch (Throwable e) {
+            State.log("[SunshineServer] SunshineMouse.initialize failed (non-fatal): " + e.getMessage());
+        }
+        try {
+            SunshineKeyboard.initialize();
+        } catch (Throwable e) {
+            State.log("[SunshineServer] SunshineKeyboard.initialize failed (non-fatal): " + e.getMessage());
+        }
+
+        activeEncoderSurface = surface;
+        videoSourceCancelled = false;
+        Thread previous = videoSourceThread;
+        if (previous != null && previous.isAlive()) {
+            State.log("[SunshineVD] replacing previous video source worker");
+        }
+        Thread worker = new Thread(() -> startMoonlightVideoSource(surface, width, height, frameRate), "moonlight-video-source");
+        worker.setDaemon(true);
+        videoSourceThread = worker;
+        worker.start();
+    }
+
+    private static void startMoonlightVideoSource(Surface encoderSurface, int width, int height, int frameRate) {
+        Context context = State.getContext();
+        if (context == null) {
+            State.log("[SunshineVD] context is null before starting video source");
+            failMoonlightVideoSource("TNT 视频源启动失败: context is null");
+            return;
+        }
+        try {
+            if (!Pref.getSkipExternalActivity()) {
+                State.log("[SunshineVD] mirror mode: route to ProjectViaMoonlight");
+                MAIN_HANDLER.post(() -> {
+                    if (!videoSourceCancelled) {
+                        State.startNewJob(new ProjectViaMoonlight(width, height, frameRate, 0, encoderSurface, true, activeMoonlightSessionId));
+                    }
+                });
+                return;
+            }
+
+            State.log("[SunshineVD] TNT mode: ARctrl-style video source " + width + "x" + height + "@" + frameRate);
+            int dpi = Pref.getTntOverlayDpi();
+            if (!State.isUserServiceAlive()) {
+                State.ensureUserServiceBound();
+                long deadline = System.currentTimeMillis() + 5000;
+                while (!State.isUserServiceAlive() && System.currentTimeMillis() < deadline && !videoSourceCancelled) {
+                    Thread.sleep(100);
+                }
+            }
+            if (videoSourceCancelled) {
+                return;
+            }
+            if (!State.isUserServiceAlive()) {
+                failMoonlightVideoSource("TNT 视频源启动失败: UserService 不可用");
+                return;
+            }
+
+            // API<28: create the TNT virtual display directly on the encoder
+            // surface. Rebinding an ImageReader base later races with
+            // TntManagerService and tears down PC mode before frames start.
+            if (!TntDebugVirtualDisplayHelper.ensureVirtualDisplay(width, height, dpi, encoderSurface)) {
+                if (TntDebugVirtualDisplayHelper.isWhitelistRebootRequired()) {
+                    failMoonlightVideoSource("TNT 显示白名单已切换，需要重启手机后生效");
+                } else {
+                    failMoonlightVideoSource("TNT 视频源启动失败: encoder Surface 绑定虚拟屏失败");
+                }
+                return;
+            }
+            if (videoSourceCancelled) {
+                return;
+            }
+
+            TntDisplaySelector selector = new TntDisplaySelector();
+            boolean selected = TntDisplaySelector.hasSelectableExternalDisplay(context);
+            long deadline = System.currentTimeMillis() + 5000;
+            while (!selected && System.currentTimeMillis() < deadline && !videoSourceCancelled) {
+                Thread.sleep(100);
+                selected = TntDisplaySelector.hasSelectableExternalDisplay(context);
+            }
+            if (videoSourceCancelled) {
+                return;
+            }
+            if (!selected) {
+                selected = selector.ensureSelected();
+            }
+            if (!selected) {
+                failMoonlightVideoSource("TNT 视频源启动失败: TNT 显示未出现");
+                return;
+            }
+            selector.ensureSelected();
+            State.log("[SunshineVD] TNT encoder-surface virtual display active");
+            showMoonlightControlHint();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            State.log("[SunshineVD] video source worker interrupted");
+        } catch (Throwable t) {
+            State.log("[SunshineVD] video source failed: " + t.getClass().getSimpleName() + " " + t.getMessage());
+            failMoonlightVideoSource("TNT 视频源启动失败: " + (t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName()));
+        }
+    }
+
+    private static void failMoonlightVideoSource(String message) {
+        State.log("[SunshineVD] " + message);
+        showEncoderError(message);
+        notifyVideoSourceFailure();
+        stopVirtualDisplay();
     }
 
     private static boolean isAndroid10TntFixEnabled() {
@@ -364,6 +491,17 @@ public class SunshineServer {
         State.log("停止 Moonlight 投屏");
         cancelAutoScreenOffTimer();
         activeMoonlightSessionId = 0;
+        videoSourceCancelled = true;
+        Thread videoThread = videoSourceThread;
+        if (videoThread != null && videoThread != Thread.currentThread()) {
+            videoThread.interrupt();
+            try {
+                videoThread.join(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        videoSourceThread = null;
         SmartisanPerformanceHelper.updateStreamingBoost(false, "Moonlight session stopped");
         State.streamingDebugInfo.setValue("串流未启动");
         SunshineAudio.restoreVolume(State.getContext());
@@ -389,6 +527,18 @@ public class SunshineServer {
             }
         } else if (State.userService != null) {
             State.userService = null;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            TntDebugVirtualDisplayHelper.clearVirtualDisplay();
+        }
+        Surface encoderSurface = activeEncoderSurface;
+        activeEncoderSurface = null;
+        if (encoderSurface != null) {
+            try {
+                encoderSurface.release();
+            } catch (Throwable e) {
+                State.log("release encoder surface failed: " + e.getMessage());
+            }
         }
         if (Pref.getAutoCloseTntOnClientDisconnect()) {
             TntDisplayStarter.clearCurrentBackendAndResidual();

@@ -9,6 +9,8 @@ import android.os.Build;
 import android.view.Display;
 import android.util.DisplayMetrics;
 
+import android.view.Surface;
+
 import com.connect_screen.mirror.BuildConfig;
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
@@ -25,6 +27,7 @@ public final class TntDebugVirtualDisplayHelper {
     private static VirtualDisplay virtualDisplay;
     private static ImageReader imageReader;
     private static String currentConfig;
+    private static volatile boolean whitelistRebootRequired;
 
     private TntDebugVirtualDisplayHelper() {
     }
@@ -36,20 +39,30 @@ public final class TntDebugVirtualDisplayHelper {
                 Pref.getTntOverlayDpi());
     }
 
-    public static boolean ensureVirtualDisplay(int width, int height, int density) {
-        Context context = State.getContext();
-        if (context == null) {
-            State.showErrorStatus("Cannot create TNT debug virtual display without an active context");
+   public static boolean ensureVirtualDisplay(int width, int height, int density) {
+       return ensureVirtualDisplay(width, height, density, null);
+   }
+
+   /**
+    * Create or recreate the TNT virtual display with the given output Surface.
+    * Pass null to use an internal ImageReader (original behaviour).
+    * Pass an encoder Surface to have SurfaceFlinger render TNT frames directly to it.
+    */
+   public static boolean ensureVirtualDisplay(int width, int height, int density, Surface surface) {
+       Context context = State.getContext();
+       if (context == null) {
+           State.showErrorStatus("Cannot create TNT debug virtual display without an active context");
             return false;
         }
 
-        int safeWidth = normalizeWidth(width);
-        int safeHeight = normalizeHeight(height);
-        int safeDensity = normalizeDensity(density);
-        String nextConfig = buildConfig(safeWidth, safeHeight, safeDensity);
+       int safeWidth = normalizeWidth(width);
+       int safeHeight = normalizeHeight(height);
+       int safeDensity = normalizeDensity(density);
+       String nextConfig = buildConfig(safeWidth, safeHeight, safeDensity)
+               + (surface != null ? "-extsurf" : "");
 
-        synchronized (LOCK) {
-            if (virtualDisplay != null && nextConfig.equals(currentConfig)) {
+       synchronized (LOCK) {
+           if (virtualDisplay != null && nextConfig.equals(currentConfig)) {
                 State.log("[TNTDebugVD] virtual display already active: " + nextConfig);
                 State.refreshMainActivity();
                 return true;
@@ -82,8 +95,9 @@ public final class TntDebugVirtualDisplayHelper {
             if (!ensureSmartisanPcModeEnabled()) {
                 return false;
             }
-            ImageReader nextReader = null;
-            int[] flagCandidates = useAndroid10TntFix
+           ImageReader nextReader = null;
+           Surface surfaceForDisplay = null;
+           int[] flagCandidates = useAndroid10TntFix
                     ? new int[]{
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION
                             | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
@@ -98,42 +112,48 @@ public final class TntDebugVirtualDisplayHelper {
                             | DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY
             };
-            Throwable lastError = null;
-            for (int flags : flagCandidates) {
-                ImageReader candidateReader = ImageReader.newInstance(
-                        safeWidth,
-                        safeHeight,
-                        PixelFormat.RGBA_8888,
-                        2);
-                try {
-                    VirtualDisplay candidateDisplay = displayManager.createVirtualDisplay(
-                            DISPLAY_NAME,
-                            safeWidth,
-                            safeHeight,
-                            safeDensity,
-                            candidateReader.getSurface(),
-                            flags);
+           Throwable lastError = null;
+           for (int flags : flagCandidates) {
+               ImageReader candidateReader = null;
+               if (surface != null) {
+                   surfaceForDisplay = surface;
+               } else {
+                   candidateReader = ImageReader.newInstance(
+                           safeWidth,
+                           safeHeight,
+                           PixelFormat.RGBA_8888,
+                           2);
+                   surfaceForDisplay = candidateReader.getSurface();
+               }
+               try {
+                   VirtualDisplay candidateDisplay = displayManager.createVirtualDisplay(
+                           DISPLAY_NAME,
+                           safeWidth,
+                           safeHeight,
+                           safeDensity,
+                           surfaceForDisplay,
+                           flags);
                     if (candidateDisplay != null && candidateDisplay.getDisplay() != null) {
                         nextDisplay = candidateDisplay;
                         nextReader = candidateReader;
                         State.log("[TNTDebugVD] createVirtualDisplay succeeded with flags=" + flags);
-                        break;
-                    }
-                    candidateReader.close();
-                    State.log("[TNTDebugVD] createVirtualDisplay returned null with flags=" + flags);
-                } catch (Throwable e) {
-                    candidateReader.close();
-                    lastError = e;
-                    State.log("[TNTDebugVD] createVirtualDisplay attempt failed with flags="
+                       break;
+                   }
+                   if (candidateReader != null) candidateReader.close();
+                   State.log("[TNTDebugVD] createVirtualDisplay returned null with flags=" + flags);
+               } catch (Throwable e) {
+                   if (candidateReader != null) candidateReader.close();
+                   lastError = e;
+                   State.log("[TNTDebugVD] createVirtualDisplay attempt failed with flags="
                             + flags + ": " + e.getClass().getSimpleName() + " " + e.getMessage());
                 }
-            }
-            if (nextDisplay == null || nextReader == null) {
-                if (lastError != null) {
-                    State.log("[TNTDebugVD] no virtual display profile succeeded");
-                }
-                return false;
-            }
+           }
+           if (nextDisplay == null || (surface == null && nextReader == null)) {
+               if (lastError != null) {
+                   State.log("[TNTDebugVD] no virtual display profile succeeded");
+               }
+               return false;
+           }
 
             Display display = nextDisplay.getDisplay();
             synchronized (LOCK) {
@@ -285,7 +305,7 @@ public final class TntDebugVirtualDisplayHelper {
         return false;
     }
 
-    private static boolean ensureSmartisanPcModeEnabled() {
+   public static boolean ensureSmartisanPcModeEnabled() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             return true;
         }
@@ -294,6 +314,7 @@ public final class TntDebugVirtualDisplayHelper {
             return true;
         }
         try {
+            whitelistRebootRequired = false;
             String expectedPackageName = BuildConfig.APPLICATION_ID;
             String currentPackageName = firstNonEmptyLine(State.userService.executeShellCommand(
                     "getprop " + VIRTUAL_DISPLAY_PACKAGE_PROPERTY));
@@ -308,11 +329,37 @@ public final class TntDebugVirtualDisplayHelper {
             State.userService.executeShellCommand("settings put secure global_pc_mode_settings 1");
             State.userService.executeShellCommand("settings put secure pc_mode_enable 1");
             State.log("[TNTDebugVD] Smartisan PC mode enabled (pc_mode_enable=1)");
+            String bootCachedPackage = readBootCachedVirtualDisplayPackage();
+            if (!bootCachedPackage.isEmpty() && !expectedPackageName.equals(bootCachedPackage)) {
+                State.log("[TNTDebugVD] framework cached virtual display pkg=" + bootCachedPackage
+                        + " expected=" + expectedPackageName + "; reboot required");
+                State.showErrorStatus("TNT 显示白名单在系统启动时缓存，需要重启手机后生效");
+                whitelistRebootRequired = true;
+                return false;
+            }
             return true;
         } catch (Throwable e) {
             State.log("[TNTDebugVD] enable Smartisan PC mode failed: "
                     + e.getClass().getSimpleName() + " " + e.getMessage());
             return false;
+        }
+    }
+
+    public static boolean isWhitelistRebootRequired() {
+        return whitelistRebootRequired;
+    }
+
+    private static String readBootCachedVirtualDisplayPackage() {
+        try {
+            Class<?> clazz = Class.forName("android.app.SmtPCUtils");
+            java.lang.reflect.Field field = clazz.getDeclaredField("VIRTUAL_DISPLAY_PKG");
+            field.setAccessible(true);
+            Object value = field.get(null);
+            return value instanceof String ? (String) value : "";
+        } catch (Throwable e) {
+            State.log("[TNTDebugVD] read boot cached virtual display pkg failed: "
+                    + e.getClass().getSimpleName() + " " + e.getMessage());
+            return "";
         }
     }
 
@@ -389,6 +436,29 @@ public final class TntDebugVirtualDisplayHelper {
 
     private static String buildConfig(int width, int height, int density) {
         return width + "x" + height + "/" + density;
+    }
+
+
+    private static int findExistingWifiDisplayId(DisplayManager displayManager) {
+        try {
+            Display[] displays = displayManager.getDisplays();
+            for (Display display : displays) {
+                try {
+                    java.lang.reflect.Method getTypeMethod = Display.class.getMethod("getType");
+                    int type = (int) getTypeMethod.invoke(display);
+                    State.log("[TNTDebugVD] findExistingWifiDisplay: id=" + display.getDisplayId()
+                            + " name=" + display.getName() + " type=" + type);
+                    if (type == 3) { // Display.TYPE_WIFI
+                        return display.getDisplayId();
+                    }
+                } catch (Throwable e) {
+                    // ignore individual display check failure
+                }
+            }
+        } catch (Throwable e) {
+            State.log("[TNTDebugVD] findExistingWifiDisplay failed: " + e.getMessage());
+        }
+        return -1;
     }
 
     private static void dumpDisplays(DisplayManager displayManager, String reason) {

@@ -648,10 +648,30 @@ public class UserService extends IUserService.Stub  {
                 Thread.currentThread().interrupt();
             }
         }
-        screenshotMirrorSurface = null;
-    }
+       screenshotMirrorSurface = null;
+   }
 
-    private void runScreenshotMirrorLoop(
+   @Override
+   public int redirectDisplayToSurface(int displayId, Surface surface) throws RemoteException {
+       Ln.i("redirectDisplayToSurface: displayId=" + displayId + " surface=" + surface);
+       try {
+           IBinder token = SurfaceControl.getDisplayToken(displayId);
+           if (token == null) {
+               Ln.e("redirectDisplayToSurface: getDisplayToken(" + displayId + ") returned null");
+               return -1;
+           }
+           SurfaceControl.openTransaction();
+           SurfaceControl.setDisplaySurface(token, surface);
+           SurfaceControl.closeTransaction();
+           Ln.i("redirectDisplayToSurface: success, displayId=" + displayId);
+           return 0;
+       } catch (Exception e) {
+           Ln.e("redirectDisplayToSurface failed", e);
+           return -1;
+       }
+   }
+
+   private void runScreenshotMirrorLoop(
             IBinder displayToken,
             Rect sourceRect,
             Rect displayRect,
