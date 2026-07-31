@@ -89,6 +89,7 @@ public class SunshineServer {
             boolean disableBFrames,
             boolean realtimePriority,
             int fecPercent);
+    public static native void setEncoderAvcBaseline(boolean enabled);
 
     public static void setEncoderSettingsFromPreferences() {
         setEncoderSettings(
@@ -101,6 +102,7 @@ public class SunshineServer {
                 Pref.getEncoderDisableBFrames(),
                 Pref.getEncoderRealtimePriority(),
                 Pref.getStreamFecPercent());
+        setEncoderAvcBaseline(Pref.getEncoderAvcBaseline());
     }
     
     // 添加新的回调方法，当需要 PIN 码时被 C++ 代码调用
@@ -336,6 +338,12 @@ public class SunshineServer {
                 return;
             }
             selector.ensureSelected();
+            try {
+                SunshineMouse.initialize(width, height);
+                SunshineKeyboard.initialize();
+            } catch (Throwable t) {
+                State.log("[SunshineVD] input re-init failed: " + t.getClass().getSimpleName() + " " + t.getMessage());
+            }
             State.log("[SunshineVD] TNT encoder-surface virtual display active");
             showMoonlightControlHint();
         } catch (InterruptedException e) {

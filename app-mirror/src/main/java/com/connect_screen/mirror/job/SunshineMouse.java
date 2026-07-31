@@ -50,6 +50,7 @@ public class SunshineMouse {
     private static volatile ExternalDisplayFramePacer externalDisplayFramePacer;
     private static volatile long externalDisplayFramePacerSessionId;
     private static IInputManager inputManager;
+    private static Method injectInputEventOtherScreensMethod;
     private static float defaultDisplayWidth;
     private static float defaultDisplayHeight;
     // screenWidth * screenHeight always in landscape mode
@@ -669,6 +670,31 @@ public class SunshineMouse {
         return State.externalControlDisplayId > 0 ? State.externalControlDisplayId : State.externalDisplayId;
     }
 
+    private static boolean forwardEventToDisplay(MotionEvent event, int displayId) {
+        if (inputManager == null || android.os.Build.VERSION.SDK_INT >= 28) {
+            return false;
+        }
+        try {
+            if (injectInputEventOtherScreensMethod == null) {
+                injectInputEventOtherScreensMethod = IInputManager.class.getMethod(
+                        "injectInputEventOtherScreens", android.view.InputEvent.class, int.class);
+            }
+            Boolean accepted = (Boolean) injectInputEventOtherScreensMethod.invoke(inputManager, event, displayId);
+            if (!Boolean.TRUE.equals(accepted)) {
+                Log.w(TAG, "injectInputEventOtherScreens rejected event for displayId=" + displayId);
+            }
+            return Boolean.TRUE.equals(accepted);
+        } catch (Throwable t) {
+            Throwable cause = t;
+            while (cause instanceof java.lang.reflect.InvocationTargetException && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            Log.w(TAG, "injectInputEventOtherScreens failed for displayId=" + displayId + ": "
+                    + cause.getClass().getSimpleName() + " " + cause.getMessage());
+            return false;
+        }
+    }
+
     private static boolean setEventDisplayId(MotionEvent event, int displayId) {
         if (displayId < 0) {
             return false;
@@ -923,6 +949,18 @@ public class SunshineMouse {
         }
         int targetDisplayId = getTargetDisplayId();
         if (inputManager != null) {
+            if (targetDisplayId != Display.DEFAULT_DISPLAY
+                    && android.os.Build.VERSION.SDK_INT < 28
+                    && forwardEventToDisplay(event, targetDisplayId)) {
+                if (lastFocusedDisplayId != targetDisplayId) {
+                    TouchpadActivity.setFocus(inputManager, targetDisplayId);
+                    lastFocusedDisplayId = targetDisplayId;
+                }
+                if (DEBUG_INPUT_EVENTS) {
+                    Log.d(TAG, prefix + " (forwarder): " + event);
+                }
+                return;
+            }
             if (!setEventDisplayId(event, targetDisplayId)) {
                 return;
             }

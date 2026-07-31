@@ -47,6 +47,7 @@ public class Pref {
     public static final String KEY_ENCODER_REALTIME_PRIORITY = "encoder_realtime_priority";
     public static final String KEY_ENCODER_DYNAMIC_FRAME_RATE = "encoder_dynamic_frame_rate";
     public static final String KEY_STREAM_FEC_PERCENT = "stream_fec_percent";
+    public static final String KEY_ENCODER_AVC_BASELINE = "encoder_avc_baseline";
     public static final String KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete";
     public static final int ENCODER_CODEC_H264 = 0;
     public static final int ENCODER_CODEC_H265 = 1;
@@ -210,6 +211,10 @@ public class Pref {
 
     public static boolean getEncoderRealtimePriority() {
         return getBoolean(KEY_ENCODER_REALTIME_PRIORITY, true);
+    }
+
+    public static boolean getEncoderAvcBaseline() {
+        return getBoolean(KEY_ENCODER_AVC_BASELINE, true);
     }
 
     public static boolean getEncoderDynamicFrameRate() {

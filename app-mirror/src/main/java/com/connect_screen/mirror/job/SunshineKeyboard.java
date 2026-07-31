@@ -11,6 +11,8 @@ import android.view.KeyEvent;
 import android.view.KeyEventHidden;
 import android.view.MotionEventHidden;
 
+import java.lang.reflect.Method;
+
 import com.connect_screen.mirror.Pref;
 import com.connect_screen.mirror.State;
 import com.connect_screen.mirror.TouchpadAccessibilityService;
@@ -101,6 +103,7 @@ public class SunshineKeyboard {
     public static final byte MODIFIER_ALT = 0x04;
     public static final byte MODIFIER_META = 0x08;
     private static IInputManager inputManager;
+    private static Method injectInputEventOtherScreensMethod;
     private static boolean singleAppMode;
     private static boolean externalMirrorMode;
     private static int externalMirrorDisplayId = Display.DEFAULT_DISPLAY;
@@ -159,6 +162,31 @@ public class SunshineKeyboard {
         lastFocusedDisplayId = Integer.MIN_VALUE;
     }
 
+    private static boolean forwardEventToDisplay(KeyEvent event, int displayId) {
+        if (inputManager == null || android.os.Build.VERSION.SDK_INT >= 28) {
+            return false;
+        }
+        try {
+            if (injectInputEventOtherScreensMethod == null) {
+                injectInputEventOtherScreensMethod = IInputManager.class.getMethod(
+                        "injectInputEventOtherScreens", android.view.InputEvent.class, int.class);
+            }
+            Boolean accepted = (Boolean) injectInputEventOtherScreensMethod.invoke(inputManager, event, displayId);
+            if (!Boolean.TRUE.equals(accepted)) {
+                Log.w(TAG, "injectInputEventOtherScreens rejected event for displayId=" + displayId);
+            }
+            return Boolean.TRUE.equals(accepted);
+        } catch (Throwable t) {
+            Throwable cause = t;
+            while (cause instanceof java.lang.reflect.InvocationTargetException && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            Log.w(TAG, "injectInputEventOtherScreens failed for displayId=" + displayId + ": "
+                    + cause.getClass().getSimpleName() + " " + cause.getMessage());
+            return false;
+        }
+    }
+
     public static void handleKeyboardEvent(int modcode, boolean release, int _notUsed) {
         if(inputManager == null) {
             return;
@@ -176,6 +204,18 @@ public class SunshineKeyboard {
                 InputDevice.SOURCE_KEYBOARD);
         int targetDisplayId = getTargetDisplayId();
         if (targetDisplayId < 0) {
+            return;
+        }
+        if (targetDisplayId != Display.DEFAULT_DISPLAY
+                && android.os.Build.VERSION.SDK_INT < 28
+                && forwardEventToDisplay(keyEvent, targetDisplayId)) {
+            if (lastFocusedDisplayId != targetDisplayId) {
+                TouchpadActivity.setFocus(inputManager, targetDisplayId);
+                lastFocusedDisplayId = targetDisplayId;
+            }
+            if (DEBUG_INPUT_EVENTS) {
+                Log.d(TAG, "handleKeyboardEvent (forwarder): " + modcode + " translated to " + keyEvent);
+            }
             return;
         }
         if (targetDisplayId != Display.DEFAULT_DISPLAY) {

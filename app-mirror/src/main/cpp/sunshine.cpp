@@ -29,6 +29,39 @@
 
 using namespace std::literals;
 
+static void logHexBytes(const char *tag, const uint8_t *data, size_t size) {
+    size_t n = std::min<size_t>(size, 64);
+    std::ostringstream out;
+    out << tag << " hex(" << size << "):";
+    for (size_t i = 0; i < n; ++i) {
+        out << ' ' << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    }
+    BOOST_LOG(info) << out.str();
+}
+
+static void patchH264SpsConstrainedBaseline(std::vector<uint8_t> &data) {
+    // Annex-B CSD normally starts with 00 00 00 01 67 (SPS NAL). Qualcomm's
+    // AVC encoder emits plain Baseline here, which FFmpeg's D3D11VA/DXVA2
+    // hwaccel rejects; Constrained Baseline is the compatible superset.
+    size_t prefix = 0;
+    if (data.size() >= 4 && data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1) {
+        prefix = 4;
+    } else if (data.size() >= 3 && data[0] == 0 && data[1] == 0 && data[2] == 1) {
+        prefix = 3;
+    }
+    if (prefix == 0 || data.size() < prefix + 3) {
+        return;
+    }
+    if ((data[prefix] & 0x1f) != 7 || data[prefix + 1] != 66) {
+        return;
+    }
+    uint8_t &constraints = data[prefix + 2];
+    if ((constraints & 0x40) == 0) {
+        constraints |= 0x40;
+        BOOST_LOG(info) << "Patched H.264 SPS to Constrained Baseline"sv;
+    }
+}
+
 extern "C" {
 
 static std::unique_ptr<logging::deinit_t> deinit;
@@ -52,6 +85,7 @@ static std::atomic_int encoderMaxFps {60};
 static std::atomic_bool encoderLowLatency {true};
 static std::atomic_bool encoderDisableBFrames {true};
 static std::atomic_bool encoderRealtimePriority {true};
+static std::atomic_bool encoderAvcBaselineCompatibility {true};
 static std::atomic_int streamFecPercent {0};
 static std::string runtimePkeyPath;
 static std::string runtimeCertPath;
@@ -313,6 +347,13 @@ Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderSettings(
                     << encoderDisableBFrames.load() << " realtimePriority="sv
                     << encoderRealtimePriority.load() << " fec="sv
                     << streamFecPercent.load() << "%";
+}
+
+JNIEXPORT void JNICALL
+Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderAvcBaseline(JNIEnv *env, jclass clazz, jboolean enabled) {
+    encoderAvcBaselineCompatibility = enabled == JNI_TRUE;
+    BOOST_LOG(info) << "Encoder AVC baseline compatibility="sv
+                    << encoderAvcBaselineCompatibility.load();
 }
 
 static void callJavaStreamingDebugInfo(JNIEnv *env, const std::string &info) {
@@ -877,6 +918,16 @@ namespace sunshine_callbacks {
         }
 #endif
 
+#if __ANDROID_API__ < 28
+        // Qualcomm's AVC encoder defaults to a profile that some Windows
+        // hardware decoders reject; force Baseline + Level 4.2 for compatibility.
+        if (config.videoFormat == 0) {
+            const int avcProfile = encoderAvcBaselineCompatibility.load() ? 1 : 0x08;
+            AMediaFormat_setInt32(format, "profile", avcProfile);
+            AMediaFormat_setInt32(format, "level", 0x2000); // AVCLevel42
+        }
+#endif
+
         int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
 #if __ANDROID_API__ >= 28
         // 设置色彩空间
@@ -1222,6 +1273,8 @@ namespace sunshine_callbacks {
                         
                         // 直接保存整个配置数据
                         codecConfigData.assign(payload, payload + bufferSize);
+                        patchH264SpsConstrainedBaseline(codecConfigData);
+                        logHexBytes("AVC_CSD", codecConfigData.data(), codecConfigData.size());
                         BOOST_LOG(info) << "保存完整的编解码器配置数据，大小: "sv << codecConfigData.size();
                     } else {
                         // 这是正常的编码帧
@@ -1246,6 +1299,7 @@ namespace sunshine_callbacks {
                             // 对于关键帧，需要在数据前附加编解码器配置数据
                             if (!codecConfigData.empty()) {
                                 emittedFrameBytes = codecConfigData.size() + bufferSize;
+                                logHexBytes("AVC_KEY", payload, std::min<size_t>(bufferSize, 32));
                                 BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << emittedFrameBytes;
                                 stream::postFrame(codecConfigData.data(), codecConfigData.size(), payload, bufferSize, frameIndex, true, channel_data);
                             } else {
