@@ -21,6 +21,8 @@ public class SunshineAudio {
             new java.util.concurrent.atomic.AtomicBoolean(false);
     private static volatile Thread remoteSubmixThread;
     private static volatile boolean remoteSubmixStopRequested;
+    private static int savedMusicVolume = -1;
+    private static boolean wasMusicMuted;
     public static void startClientAudioCapture(Context context, int packetDuration, boolean shouldMutePhone) {
         boolean started;
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
@@ -33,7 +35,10 @@ public class SunshineAudio {
             State.log("Moonlight 音频捕获未启动，继续视频串流");
             return;
         }
-        if (shouldMutePhone) {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            ensureRemoteSubmixVolume(context);
+            State.log("8.1 音频已路由到 remote_submix，本机扬声器不发声");
+        } else if (shouldMutePhone) {
             mutePhoneSpeaker(context);
         } else {
             State.log("客户端请求保留手机端播放，不静音手机扬声器");
@@ -232,8 +237,40 @@ public class SunshineAudio {
         }
     }
 
+    private static void ensureRemoteSubmixVolume(Context context) {
+        if (context == null) {
+            return;
+        }
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager == null) {
+            return;
+        }
+        savedMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        wasMusicMuted = audioManager.isStreamMute(AudioManager.STREAM_MUSIC);
+        if (savedMusicVolume <= 0 || wasMusicMuted) {
+            int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int target = Math.max(1, (int) (maxVolume * 0.6f));
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0);
+            State.log("8.1 remote_submix 音量从 " + savedMusicVolume + " 调整到 " + target);
+        } else {
+            State.log("8.1 remote_submix 音量保持 " + savedMusicVolume);
+        }
+    }
+
     public static void restoreVolume(Context context) {
         stopRemoteSubmixAudio();
+        if (savedMusicVolume >= 0 && context != null) {
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager != null) {
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, savedMusicVolume, 0);
+                if (wasMusicMuted) {
+                    audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+                }
+                State.log("恢复媒体音量到 " + savedMusicVolume + " muted=" + wasMusicMuted);
+            }
+            savedMusicVolume = -1;
+            wasMusicMuted = false;
+        }
         if (isMuted && context != null) {
             State.log("恢复音量");
             isMuted = false;
