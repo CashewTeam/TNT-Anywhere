@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.9.1
+
+本次更新主要新增 Android 8.1（坚果 Pro2S）适配，并修复 SmartisanOS 8.1 下 Moonlight 黑屏、无声和键鼠注入问题。
+
+### 新增
+
+- 支持 Android 8.1 / SmartisanOS 8.1，minSdk 降至 27。
+- 新增 LSPosed 模块，绕过 SmartisanOS 虚拟显示包白名单限制。
+- Android 8.1 使用 `REMOTE_SUBMIX` 采集系统音频，保持媒体音量非零。
+- Android 8.1 外接屏键鼠注入支持。
+
+### 修复
+
+- 修复 SmartisanOS 8.1 下 Moonlight 黑屏问题。
+- 修复 PC 端 Moonlight 硬解黑屏：H.264 SPS 改写为 Constrained Baseline。
+- 修复 Android 8.1 截图镜像取错 display token 的问题。
+
 ## v0.8.2
 
 本次更新主要重构了 Moonlight 音频捕获链路，改善客户端无声音问题。

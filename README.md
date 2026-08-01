@@ -60,13 +60,15 @@
 
 ## 兼容性说明
 
-当前 `v0.9.0` 已在以下环境完成实机测试：
+当前 `v0.9.1` 已在以下环境完成实机测试：
 
 - **坚果 R2（主线）**
   - SmartisanOS 8.5.3（Android 11）
   - SmartisanOS 8.1.4（Android 10）
 - **坚果 Pro3（分支）**
   - SmartisanOS 8.0.4（Android 10）
+- **坚果 Pro2S（新增）**
+  - SmartisanOS 8.1（Android 8.1）
 
 其它 Smartisan / 锤子设备版本目前暂未完成适配或验证，现阶段不能保证可直接使用。
 

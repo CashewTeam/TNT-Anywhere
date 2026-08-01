@@ -40,6 +40,11 @@ app-mirror/src/main/assets/cakey.pem
 /scrcpy-master/
 /app-mirror/src/main/cpp/arctrl_video/
 
+# Local Xposed stubs used to build the tracked stub jar
+/app-mirror/libs/XposedBridgeApi-82.jar
+/app-mirror/libs/xposed-stubs/
+/app-mirror/libs/xposed-stubs-classes/
+
 # Local Gradle cache and reverse-engineering scratch files
 /.gradle-cache/
 /analysis/
