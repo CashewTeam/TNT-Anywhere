@@ -484,7 +484,8 @@ public class SunshineService extends Service {
         try {
             android.media.MediaCodecList codecList = new android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS);
             for (android.media.MediaCodecInfo codecInfo : codecList.getCodecInfos()) {
-                if (!codecInfo.isHardwareAccelerated()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                        && !codecInfo.isHardwareAccelerated()) {
                     continue;
                 }
                 if (!codecInfo.isEncoder()) {
@@ -500,7 +501,7 @@ public class SunshineService extends Service {
             SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H264);
             State.log("Device does not support H.265/HEVC encoding, falling back to H.264/AVC");
             return false;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             SunshineServer.setVideoCodec(Pref.ENCODER_CODEC_H264);
             State.log("Failed to probe H.265 support, falling back to H.264/AVC: " + e.getMessage());
             return false;

@@ -5,10 +5,16 @@ plugins {
 
 def audioLoopbackAssetsDir = file("$buildDir/generated/audioLoopbackAssets")
 def audioLoopbackHelper = file("$audioLoopbackAssetsDir/audio_loopback_helper_arm64")
-def ndkHostTag = System.getProperty("os.name").toLowerCase().contains("mac")
+def osName = System.getProperty("os.name").toLowerCase()
+def ndkHostTag = osName.contains("mac")
         ? "darwin-x86_64"
-        : "linux-x86_64"
-def audioLoopbackCompiler = file("${android.sdkDirectory}/ndk/28.0.13004108/toolchains/llvm/prebuilt/${ndkHostTag}/bin/aarch64-linux-android27-clang++")
+        : osName.contains("win")
+                ? "windows-x86_64"
+                : "linux-x86_64"
+def audioLoopbackCompilerName = osName.contains("win")
+        ? "aarch64-linux-android27-clang++.cmd"
+        : "aarch64-linux-android27-clang++"
+def audioLoopbackCompiler = file("${android.sdkDirectory}/ndk/28.0.13004108/toolchains/llvm/prebuilt/${ndkHostTag}/bin/${audioLoopbackCompilerName}")
 
 tasks.register("buildAudioLoopbackHelper", Exec) {
     inputs.file("src/main/cpp/audio_loopback_helper.cpp")
