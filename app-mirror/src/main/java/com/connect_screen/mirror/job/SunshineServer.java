@@ -420,6 +420,7 @@ public class SunshineServer {
     }
 
     public static void showMoonlightControlHint() {
+        State.refreshHomeConnectionUi();
         new Handler(Looper.getMainLooper()).post(() -> {
             Context context = State.getContext();
             if (context == null) {

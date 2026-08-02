@@ -7,6 +7,7 @@ import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.opengl.EGLSurface;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.RemoteException;
@@ -296,16 +297,20 @@ public class AutoRotateAndScaleForMoonlight {
             State.log("AutoRotateAndScaleForMoonlight 输入 Surface 无效");
             return false;
         }
-        if (!State.isUserServiceAlive()) {
-            State.showErrorStatus("Mirror mode lost Shizuku user service while updating auto-rotate mirror");
-            return false;
-        }
         if (!recreate
                 && activeInputSurface == targetSurface
                 && activeInputWidth == targetWidth
                 && activeInputHeight == targetHeight) {
             isLandscape = nextLandscape;
             return true;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return configureMediaProjectionMirrorSource(
+                    nextLandscape, targetSurface, targetWidth, targetHeight);
+        }
+        if (!State.isUserServiceAlive()) {
+            State.showErrorStatus("Mirror mode lost Shizuku user service while updating auto-rotate mirror");
+            return false;
         }
         try {
             if (recreate) {
@@ -334,6 +339,55 @@ public class AutoRotateAndScaleForMoonlight {
             State.log("AutoRotateAndScaleForMoonlight createExternalMirror failed: " + e.getMessage());
             State.userService = null;
             State.showErrorStatus("Mirror mode lost Shizuku user service while updating auto-rotate mirror");
+            return false;
+        }
+    }
+
+    private boolean configureMediaProjectionMirrorSource(
+            boolean nextLandscape, Surface targetSurface, int targetWidth, int targetHeight) {
+        android.media.projection.MediaProjection mediaProjection = State.getMediaProjection();
+        if (mediaProjection == null) {
+            State.showErrorStatus("Mirror mode needs MediaProjection permission to update auto-rotate mirror");
+            return false;
+        }
+        try {
+            if (State.mirrorVirtualDisplay == null) {
+                State.mirrorVirtualDisplay = mediaProjection.createVirtualDisplay(
+                        mirrorName + "-mediaprojection",
+                        targetWidth,
+                        targetHeight,
+                        160,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
+                        targetSurface,
+                        null,
+                        renderHandler);
+                if (State.mirrorVirtualDisplay == null || State.mirrorVirtualDisplay.getDisplay() == null) {
+                    if (State.mirrorVirtualDisplay != null) {
+                        State.mirrorVirtualDisplay.release();
+                        State.mirrorVirtualDisplay = null;
+                    }
+                    State.showErrorStatus(failureMessage);
+                    return false;
+                }
+                State.log("AutoRotateAndScaleForMoonlight API<28 MediaProjection mirror created, id="
+                        + State.mirrorVirtualDisplay.getDisplay().getDisplayId());
+            } else {
+                State.mirrorVirtualDisplay.resize(targetWidth, targetHeight, 160);
+                State.mirrorVirtualDisplay.setSurface(targetSurface);
+            }
+            isLandscape = nextLandscape;
+            activeInputSurface = targetSurface;
+            activeInputWidth = targetWidth;
+            activeInputHeight = targetHeight;
+            State.lastSingleAppDisplay = mirrorDisplayId;
+            SunshineServer.showMoonlightControlHint();
+            State.log("AutoRotateAndScaleForMoonlight API<28 MediaProjection source updated, landscape="
+                    + nextLandscape + " size=" + targetWidth + "x" + targetHeight);
+            return true;
+        } catch (RuntimeException e) {
+            State.log("AutoRotateAndScaleForMoonlight API<28 MediaProjection update failed: "
+                    + e.getClass().getSimpleName() + " " + e.getMessage());
+            State.showErrorStatus(failureMessage);
             return false;
         }
     }

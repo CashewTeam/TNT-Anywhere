@@ -353,6 +353,13 @@ public class MirrorMainActivity extends AppCompatActivity implements IMainActivi
         }
     }
 
+    public void refreshHomeConnectionUi() {
+        captureHomeFragment();
+        if (homePageFragment != null) {
+            homePageFragment.updateUiState(State.uiState.getValue());
+        }
+    }
+
     private void updateUI(MirrorUiState state) {
         captureHomeFragment();
         if (homePageFragment != null) {

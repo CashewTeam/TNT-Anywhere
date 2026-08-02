@@ -248,8 +248,8 @@ public class ProjectViaMoonlight implements Job {
     }
 
     private boolean mirrorPrimaryDisplay(int width, int height, Surface surface) throws YieldException {
-        if (Pref.getAutoRotate() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            if (isAndroid10TntFixEnabled() && !State.isUserServiceAlive()) {
+        if (Pref.getAutoRotate()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !State.isUserServiceAlive()) {
                 waitForUserService("[MirrorPrimaryDisplay] userService unavailable, rebind before auto-rotate mirror");
             }
             State.log("[MirrorPrimaryDisplay] auto-rotate enabled, use GL mirror pipeline");
