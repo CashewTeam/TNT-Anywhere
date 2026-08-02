@@ -75,12 +75,12 @@
   - SmartisanOS 8.1.4（Android 10）
 - **坚果 Pro3（分支）**
   - SmartisanOS 8.0.4（Android 10）
-- **坚果 R1 / Pro2S（Android 8.1 适配）**
+- **坚果 R1 / Pro2S（主线）**
   - SmartisanOS 8.1（Android 8.1）
   - 无 Root：音频使用 `audio_loopback`；无真实 TNT 显示器时回退手机镜像。
   - Root：需要启用本项目提供的 Xposed/LSPosed 模块，才能使用无头 TNT；音频使用 `REMOTE_SUBMIX`。
 
-其它 Smartisan / 锤子设备版本目前暂未完成适配或验证，现阶段不能保证可直接使用。
+Smartisan 4 台 TNT 设备现已全部完成适配（除了Pro3 安卓9），感谢@DeadWaveWave 与@KanzakiK 提交的 PR 贡献！
 
 ### Android 8.1 使用限制
 
