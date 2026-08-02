@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.4
+
+### LSPosed 模块
+
+- Xposed hook 仅在 Android 8.1（API 27）的 `android` 进程中启用。
+- 模块介绍改为中文，并明确仅适用于坚果 R1 / 坚果 Pro2S。
+
 ## v0.9.3
 
 完善编码设置页与 native 编码参数的连接，默认值沿用当前 Android 8.1 固定配置。

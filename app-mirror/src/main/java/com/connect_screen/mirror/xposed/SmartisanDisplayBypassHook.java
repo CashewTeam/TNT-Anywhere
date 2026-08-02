@@ -1,5 +1,7 @@
 package com.connect_screen.mirror.xposed;
 
+import android.os.Build;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -11,19 +13,17 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * Xposed hook that bypasses SmartisanOS virtual display package whitelist.
+ * 仅用于坚果 R1 / 坚果 Pro2S 的 SmartisanOS 8.1 虚拟显示白名单绕过模块。
  *
- * On Android 8.1 (API 27), SmartisanOS caches persist.sys.virtual_display_pkg
- * into a static field at boot. Only one package name can be whitelisted, so
- * switching between apps (e.g. LeBo and TNT Anywhere) requires a reboot.
- *
- * This hook intercepts SmtPCUtils.isValidExtDisplayType() and returns true
- * for type==5 (VIRTUAL) displays from any whitelisted package, eliminating
- * the need to change the property or reboot.
+ * Android 8.1（API 27）的 SmartisanOS 会在开机时缓存
+ * persist.sys.virtual_display_pkg，只允许一个包名通过虚拟显示校验。
+ * 本 hook 仅在 Android 8.1 的 android 进程中拦截该校验，允许 TNT Anywhere
+ * 和无线投屏包创建虚拟显示。其他 Android 版本不会启用此 hook。
  */
 public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "TNT-Anywhere-Xposed";
+    private static final int TARGET_ANDROID_API = Build.VERSION_CODES.O_MR1;
 
     private static final String CLASS_SMT_PC_UTILS = "android.app.SmtPCUtils";
 
@@ -40,6 +40,10 @@ public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
+        if (Build.VERSION.SDK_INT != TARGET_ANDROID_API
+                || !"android".equals(lpparam.packageName)) {
+            return;
+        }
         hookIsValidExtDisplayType(lpparam);
     }
 
@@ -70,4 +74,3 @@ public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
         }
     }
 }
-
