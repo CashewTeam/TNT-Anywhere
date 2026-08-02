@@ -16,6 +16,20 @@ public final class TntDisplaySelector {
         return selectForCurrentMode(State.getContext(), true);
     }
 
+    public boolean ensureExistingExternalSelected() {
+        Context context = State.getContext();
+        if (context == null) {
+            return false;
+        }
+        DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+        if (displayManager == null) {
+            return false;
+        }
+        int displayId = findLargestPhysicalExternalDisplayId(displayManager);
+        return displayId > Display.DEFAULT_DISPLAY
+                && selectDisplay(context, displayId, false, "Existing TNT");
+    }
+
     public static boolean selectForCurrentMode(Context context, boolean showError) {
         if (Pref.getSkipExternalActivity()) {
             return selectLargestDisplay(context, showError);

@@ -307,9 +307,38 @@ public class SunshineServer {
                 return;
             }
 
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1) {
+                final boolean rooted;
+                try {
+                    rooted = State.userService.isRooted();
+                } catch (RemoteException e) {
+                    State.userService = null;
+                    failMoonlightVideoSource("TNT 视频源启动失败: 无法读取 Root 状态");
+                    return;
+                }
+                SunshineAudio.setAndroid81Rooted(rooted);
+                if (!rooted) {
+                    State.log("[SunshineVD] 8.1 non-root: do not create headless TNT display; select existing TNT or mirror display 0");
+                    MAIN_HANDLER.post(() -> {
+                        if (!videoSourceCancelled) {
+                            State.startNewJob(new ProjectViaMoonlight(
+                                    width,
+                                    height,
+                                    frameRate,
+                                    0,
+                                    encoderSurface,
+                                    true,
+                                    activeMoonlightSessionId));
+                        }
+                    });
+                    return;
+                }
+                State.log("[SunshineVD] 8.1 root: create headless TNT display");
+            }
+
             if (Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1
                     && TntDisplaySelector.hasPhysicalExternalDisplay(context)) {
-                State.log("[SunshineVD] 8.1 检测到已启动的真实 TNT 外接屏，直接截图镜像到编码器");
+                State.log("[SunshineVD] 8.1 root detected an existing TNT external display; mirror it directly");
                 MAIN_HANDLER.post(() -> {
                     if (!videoSourceCancelled) {
                         State.startNewJob(new ProjectViaMoonlight(

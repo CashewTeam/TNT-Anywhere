@@ -193,7 +193,7 @@ public class ProjectViaMoonlight implements Job {
                 State.showErrorStatus("TNT mode could not start the headless TNT display");
                 return;
             }
-        } else if (tntMode && !tntDisplaySelector.ensureSelected()) {
+        } else if (tntMode && !tntDisplaySelector.ensureExistingExternalSelected()) {
             State.log("[ProjectViaMoonlight] Android 8.1 has no existing TNT display without root; fall back to display 0 mirror");
             tntMode = false;
             State.externalDisplayId = Display.DEFAULT_DISPLAY;
