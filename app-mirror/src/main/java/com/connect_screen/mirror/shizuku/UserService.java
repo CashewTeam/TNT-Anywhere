@@ -1,5 +1,6 @@
 package com.connect_screen.mirror.shizuku;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -9,6 +10,9 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.display.IDisplayManager;
 import android.hardware.display.VirtualDisplay;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -35,6 +39,7 @@ import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
+import com.connect_screen.mirror.job.AndroidVersions;
 import com.connect_screen.mirror.BuildConfig;
 
 import rikka.shizuku.SystemServiceHelper;
@@ -50,6 +55,7 @@ public class UserService extends IUserService.Stub  {
     private volatile DataInputStream audioLoopbackStream;
     private volatile File audioLoopbackHelperFile;
     private byte[] audioPcmBuffer;
+    private AudioRecord remoteSubmixAudioRecord;
     private VirtualDisplay mirrorVirtualDisplay;
     private IBinder mirrorExternalToken;
     private volatile boolean screenshotMirrorRunning;
@@ -80,6 +86,7 @@ public class UserService extends IUserService.Stub  {
         }
         setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
         stopAudioLoopbackProcess();
+        stopRemoteSubmixAudioRecord();
         System.exit(0);
     }
 
@@ -319,6 +326,10 @@ public class UserService extends IUserService.Stub  {
     @Override
     public int readAudio(float[] result) throws RemoteException {
         try {
+            AudioRecord remoteSubmix = remoteSubmixAudioRecord;
+            if (remoteSubmix != null) {
+                return remoteSubmix.read(result, 0, result.length, AudioRecord.READ_BLOCKING);
+            }
             DataInputStream stream = audioLoopbackStream;
             if (stream == null) {
                 return 0;
@@ -347,6 +358,9 @@ public class UserService extends IUserService.Stub  {
 
     @Override
     public boolean startRecordingAudio() throws RemoteException {
+        if (android.os.Process.myUid() == 0) {
+            return startRemoteSubmixAudioRecord();
+        }
         try {
             if (audioLoopbackProcess != null && audioLoopbackProcess.isAlive()
                     && audioLoopbackStream != null) {
@@ -396,11 +410,100 @@ public class UserService extends IUserService.Stub  {
 
     @Override
     public boolean stopRecordingAudio() throws RemoteException {
+        if (android.os.Process.myUid() == 0) {
+            stopRemoteSubmixAudioRecord();
+            return true;
+        }
         try {
             stopAudioLoopbackProcess();
             return true;
         } catch(Throwable e) {
             Ln.e("failed to stop recording audio", e);
+            return false;
+        }
+    }
+
+    private boolean startRemoteSubmixAudioRecord() {
+        try {
+            if (remoteSubmixAudioRecord != null) {
+                return true;
+            }
+            AudioRecord audioRecord = createRemoteSubmixAudioRecord();
+            if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                Ln.e("REMOTE_SUBMIX AudioRecord not initialized state=" + audioRecord.getState());
+                audioRecord.release();
+                return false;
+            }
+            audioRecord.startRecording();
+            if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                Ln.e("REMOTE_SUBMIX AudioRecord failed to start state=" + audioRecord.getRecordingState());
+                audioRecord.release();
+                return false;
+            }
+            remoteSubmixAudioRecord = audioRecord;
+            Ln.i("REMOTE_SUBMIX AudioRecord started");
+            return true;
+        } catch (Throwable e) {
+            Ln.e("failed to start REMOTE_SUBMIX AudioRecord", e);
+            return false;
+        }
+    }
+
+    private void stopRemoteSubmixAudioRecord() {
+        AudioRecord audioRecord = remoteSubmixAudioRecord;
+        remoteSubmixAudioRecord = null;
+        if (audioRecord == null) {
+            return;
+        }
+        try {
+            audioRecord.stop();
+        } catch (IllegalStateException ignored) {
+        }
+        audioRecord.release();
+    }
+
+    @SuppressLint({"WrongConstant", "MissingPermission"})
+    private AudioRecord createRemoteSubmixAudioRecord() {
+        AudioRecord.Builder builder = new AudioRecord.Builder();
+        if (Build.VERSION.SDK_INT >= AndroidVersions.API_31_ANDROID_12) {
+            builder.setContext(context);
+        }
+        int sampleRate = 48000;
+        int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
+        int audioEncoding = AudioFormat.ENCODING_PCM_FLOAT;
+        builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
+        builder.setAudioFormat(new AudioFormat.Builder()
+                .setEncoding(audioEncoding)
+                .setSampleRate(sampleRate)
+                .setChannelMask(channelConfig)
+                .build());
+        int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioEncoding);
+        if (minBufferSize > 0) {
+            builder.setBufferSizeInBytes(minBufferSize * 2);
+        }
+        return builder.build();
+    }
+
+    @Override
+    public boolean forceTntAudioRoute(boolean enabled) throws RemoteException {
+        if (android.os.Process.myUid() != 0) {
+            Ln.e("REMOTE_SUBMIX route requires root UserService");
+            return false;
+        }
+        try {
+            Class<?> audioSystem = Class.forName("android.media.AudioSystem");
+            Method setDeviceConnectionState = audioSystem.getMethod(
+                    "setDeviceConnectionState", int.class, int.class, String.class, String.class);
+            Method setForceUse = audioSystem.getMethod("setForceUse", int.class, int.class);
+            int deviceState = enabled ? 1 : 0;
+            int force = enabled ? 0x22 : 0;
+            int route = (Integer) setDeviceConnectionState.invoke(
+                    null, 0x8000, deviceState, "", "remote_submix");
+            int forceResult = (Integer) setForceUse.invoke(null, 1, force);
+            Ln.i("REMOTE_SUBMIX route enabled=" + enabled + " device=" + route + " force=" + forceResult);
+            return route == 0 && forceResult == 0;
+        } catch (Throwable e) {
+            Ln.e("failed to change REMOTE_SUBMIX route", e);
             return false;
         }
     }

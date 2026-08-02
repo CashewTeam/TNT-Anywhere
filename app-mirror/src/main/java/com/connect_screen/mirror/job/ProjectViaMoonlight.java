@@ -56,6 +56,10 @@ public class ProjectViaMoonlight implements Job {
         }
 
         if (!isAndroid10TntFixEnabled()) {
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1) {
+                startAndroid81Projection(context);
+                return;
+            }
             startDefaultProjection(context);
             return;
         }
@@ -161,6 +165,52 @@ public class ProjectViaMoonlight implements Job {
                 ? "Moonlight audio route requests phone speaker mute; audio capture is driven by native audio thread"
                 : "Moonlight audio route keeps phone speaker enabled; audio capture is driven by native audio thread");
         reportStartup(true);
+    }
+
+    private void startAndroid81Projection(Context context) throws YieldException {
+        boolean tntMode = Pref.getSkipExternalActivity();
+        if (!ShizukuUtils.hasPermission()) {
+            State.showErrorStatus("Android 8.1 mirror needs Shizuku permission");
+            return;
+        }
+        if (!State.isUserServiceAlive()) {
+            waitForUserService("[ProjectViaMoonlight] userService unavailable before Android 8.1 root check");
+        }
+
+        final boolean rooted;
+        try {
+            rooted = State.userService.isRooted();
+        } catch (RemoteException e) {
+            State.userService = null;
+            waitForUserService("[ProjectViaMoonlight] Android 8.1 root check failed; rebind UserService");
+            return;
+        }
+        SunshineAudio.setAndroid81Rooted(rooted);
+        State.log("[ProjectViaMoonlight] Android 8.1 root=" + rooted);
+
+        if (tntMode && rooted) {
+            if (!ensureTntDisplayStartedForClient(context) || !tntDisplaySelector.ensureSelected()) {
+                State.showErrorStatus("TNT mode could not start the headless TNT display");
+                return;
+            }
+        } else if (tntMode && !tntDisplaySelector.ensureSelected()) {
+            State.log("[ProjectViaMoonlight] Android 8.1 has no existing TNT display without root; fall back to display 0 mirror");
+            tntMode = false;
+            State.externalDisplayId = Display.DEFAULT_DISPLAY;
+            State.externalControlDisplayId = Display.DEFAULT_DISPLAY;
+        }
+
+        SunshineMouse.initialize(width, height);
+        SunshineKeyboard.initialize();
+        if (tntMode) {
+            State.log("[MirrorExternal] Android 8.1 start external mirror displayId="
+                    + State.externalDisplayId + " root=" + rooted);
+            mirrorExternalDisplay(width, height, surface);
+        } else {
+            releaseStaleAppMirrorState();
+            State.log("[MirrorPrimary] Android 8.1 start display 0 mirror root=" + rooted);
+            mirrorPrimaryDisplay(width, height, surface);
+        }
     }
 
     private boolean ensureTntDisplayStartedForClient(Context context) throws YieldException {

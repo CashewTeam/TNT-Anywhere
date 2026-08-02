@@ -30,8 +30,8 @@ android {
         applicationId "com.smartisanos.tntanywhere"
         minSdk 27
         targetSdk 34
-        versionCode 112
-        versionName "0.9.9"
+        versionCode 113
+        versionName "0.9.10"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -77,7 +77,8 @@ android {
 }
 
 tasks.configureEach { task ->
-    if (task.name.startsWith("merge") && task.name.endsWith("Assets")) {
+    if ((task.name.startsWith("merge") && task.name.endsWith("Assets"))
+            || task.name in ["generateReleaseLintVitalReportModel", "lintVitalAnalyzeRelease"]) {
         task.dependsOn("buildAudioLoopbackHelper")
     }
 }

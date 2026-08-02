@@ -30,6 +30,11 @@ public class SunshineAudio {
     private static volatile boolean oemLoopbackStopRequested;
     private static final java.util.concurrent.atomic.AtomicBoolean oemScreenrecordRouteEnabled =
             new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static volatile boolean android81Rooted;
+
+    public static void setAndroid81Rooted(boolean rooted) {
+        android81Rooted = rooted;
+    }
 
     private static boolean isAndroid81OemLoopback() {
         return Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1;
@@ -38,7 +43,9 @@ public class SunshineAudio {
     public static void startClientAudioCapture(Context context, int packetDuration, boolean shouldMutePhone) {
         boolean started;
         if (isAndroid81OemLoopback()) {
-            started = startOemLoopbackAudioCapture(context, packetDuration);
+            started = android81Rooted
+                    ? startRemoteSubmixAudioCapture(packetDuration)
+                    : startOemLoopbackAudioCapture(context, packetDuration);
         } else {
             started = startAudioUseNormalPermission(context, packetDuration);
         }
@@ -48,7 +55,15 @@ public class SunshineAudio {
             return;
         }
         if (isAndroid81OemLoopback()) {
-            State.log("8.1 Smartisan 系统音频捕获已启动");
+            if (android81Rooted) {
+                if (shouldMutePhone) {
+                    mutePhoneSpeaker(context);
+                } else {
+                    State.log("8.1 REMOTE_SUBMIX keeps phone speaker enabled at client request");
+                }
+            } else {
+                State.log("8.1 audio_loopback capture started; phone speaker remains enabled");
+            }
         } else if (shouldMutePhone) {
             mutePhoneSpeaker(context);
         } else {
@@ -201,6 +216,7 @@ public class SunshineAudio {
         if (!oemLoopbackActive.compareAndSet(false, true)) {
             return true;
         }
+        oemLoopbackRecordingStarted.set(true);
         int framesPerPacket = Math.max(1, (int) (48000 * packetDuration / 1000.0f));
         float[] buffer = new float[framesPerPacket * 2];
         Thread thread = new Thread(() -> {
@@ -238,6 +254,59 @@ public class SunshineAudio {
         return true;
     }
 
+    private static boolean startRemoteSubmixAudioCapture(int packetDuration) {
+        if (!State.isUserServiceAlive()) {
+            State.log("8.1 REMOTE_SUBMIX needs a root UserService");
+            return false;
+        }
+        try {
+            if (!State.userService.forceTntAudioRoute(true)) {
+                State.log("8.1 REMOTE_SUBMIX route setup failed");
+                return false;
+            }
+            if (!State.userService.startRecordingAudio()) {
+                State.log("8.1 REMOTE_SUBMIX AudioRecord failed to start");
+                State.userService.forceTntAudioRoute(false);
+                return false;
+            }
+        } catch (Throwable e) {
+            State.log("8.1 REMOTE_SUBMIX start failed: "
+                    + e.getClass().getSimpleName() + " " + e.getMessage());
+            return false;
+        }
+
+        oemLoopbackStopRequested = false;
+        if (!oemLoopbackActive.compareAndSet(false, true)) {
+            return true;
+        }
+        int framesPerPacket = Math.max(1, (int) (48000 * packetDuration / 1000.0f));
+        float[] buffer = new float[framesPerPacket * 2];
+        Thread thread = new Thread(() -> {
+            while (oemLoopbackActive.get() && !oemLoopbackStopRequested) {
+                try {
+                    int n = State.userService.readAudio(buffer);
+                    if (n > 0) {
+                        SunshineServer.pushAudioSamples(buffer, n);
+                    } else if (n < 0) {
+                        State.log("8.1 REMOTE_SUBMIX readAudio returned " + n);
+                        break;
+                    }
+                } catch (Throwable e) {
+                    State.log("8.1 REMOTE_SUBMIX read failed: "
+                            + e.getClass().getSimpleName() + " " + e.getMessage());
+                    break;
+                }
+            }
+            oemLoopbackActive.set(false);
+            State.log("8.1 REMOTE_SUBMIX reader stopped");
+        }, "moonlight-audio-submix");
+        thread.setDaemon(true);
+        oemLoopbackThread = thread;
+        thread.start();
+        State.log("8.1 REMOTE_SUBMIX capture started");
+        return true;
+    }
+
     public static void stopOemLoopbackAudio() {
         if (!isAndroid81OemLoopback()) {
             return;
@@ -253,6 +322,9 @@ public class SunshineAudio {
             if (State.userService != null) {
                 if (recordingStarted) {
                     State.userService.stopRecordingAudio();
+                }
+                if (android81Rooted) {
+                    State.userService.forceTntAudioRoute(false);
                 }
             }
         } catch (Throwable e) {
