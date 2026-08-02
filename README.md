@@ -6,6 +6,7 @@
 - [TNT 启动流程逆向记录 TNT_ACTIVATION_INVESTIGATION.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/TNT_ACTIVATION_INVESTIGATION.md)
 - [TNT Overlay 调试说明 TNT_OVERLAY_DISPLAY_DEBUG_GUIDE.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/TNT_OVERLAY_DISPLAY_DEBUG_GUIDE.md)
 - [SmartisanOS 私有 API 与状态检测汇总 SMARTISANOS_PRIVATE_API_SUMMARY.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/SMARTISANOS_PRIVATE_API_SUMMARY.md)
+- [坚果 Pro2S / Android 8.1 适配与分流策略 TNT_ANYWHERE_NUT_PRO2S_ADAPTATION.md](https://github.com/CashewTeam/TNT-Anywhere/blob/codex-moonlight-mirroring-fix/TNT_ANYWHERE_NUT_PRO2S_ADAPTATION.md)
 
 ## 项目简介
 
@@ -20,7 +21,7 @@
 1. 让 `TNT` 桌面不再只能依赖原本那套有限的官方接入方式。
 2. 让 `Smartisan OS` 设备可以把手机主屏或 `TNT` 屏幕稳定串流到 `Moonlight` 客户端。
 3. 让远端客户端不只是“看到画面”，还可以把键鼠、触摸等输入回注到手机或 `TNT` 显示。
-4. 在尽量免 Root 的前提下，把 `TNT` 启动、分辨率适配、自动开关等能力做成一条可用链路。
+4. 根据 Android 版本和系统权限能力，选择可用的 `TNT` 启动、镜像、分辨率适配和自动开关链路。
 
 ## 功能说明
 
@@ -34,6 +35,8 @@
 2. `TNT` 启动与串流联动
    - 支持通过 Android 11 原生 `VirtualDisplay` 方式启动 `TNT`，作为当前默认方案。
    - 支持在用户开启“串流 TNT 屏幕”后，于客户端连接时自动启动 `TNT`。
+   - Android 8.1 在 Root + Xposed 模块条件下支持无头启动 TNT。
+   - Android 8.1 无 Root 时不创建无头 TNT：已有真实外接/TNT 显示器则串流该显示器，否则自动回退到手机镜像模式。
    - 支持在客户端断开连接或服务停止时自动关闭 `TNT`。
    - 保留旧版 overlay / Root 方案作为备用启动方式。
 
@@ -45,7 +48,12 @@
    - 通过 `Shizuku` 间接获得 `ADB` 级别能力。
    - 调用隐藏 API / 系统服务完成虚拟显示创建、显示旋转、输入绑定、屏幕电源控制等动作。
 
-5. 输入回流
+5. 分版本音频采集
+   - Android 8.1 无 Root 使用 Smartisan `audio_loopback`，不静音手机扬声器。
+   - Android 8.1 Root 使用 `REMOTE_SUBMIX`，可按客户端请求静音手机。
+   - Android 9 及以上继续使用原生 `AudioPlaybackCapture` 链路。
+
+6. 输入回流
    - 将 `Moonlight` 客户端发来的输入事件映射回 Android 设备。
    - 包括触摸、鼠标、键盘等输入通道。
 
@@ -60,17 +68,25 @@
 
 ## 兼容性说明
 
-当前 `v0.9.1` 已在以下环境完成实机测试：
+当前代码已按以下环境进行适配和验证：
 
 - **坚果 R2（主线）**
   - SmartisanOS 8.5.3（Android 11）
   - SmartisanOS 8.1.4（Android 10）
 - **坚果 Pro3（分支）**
   - SmartisanOS 8.0.4（Android 10）
-- **坚果 Pro2S（新增）**
+- **坚果 R1 / Pro2S（Android 8.1 适配）**
   - SmartisanOS 8.1（Android 8.1）
+  - 无 Root：音频使用 `audio_loopback`；无真实 TNT 显示器时回退手机镜像。
+  - Root：需要启用本项目提供的 Xposed/LSPosed 模块，才能使用无头 TNT；音频使用 `REMOTE_SUBMIX`。
 
 其它 Smartisan / 锤子设备版本目前暂未完成适配或验证，现阶段不能保证可直接使用。
+
+### Android 8.1 使用限制
+
+Android 8.1 的 Smartisan TNT 显示识别依赖系统私有规则。无头启动不是普通 App 权限可以完成的操作，需要 Root 环境激活 Xposed/LSPosed 模块。模块只修改 SmartisanOS PC 模式的显示包名判断；模块文案和作用域明确限制为坚果 R1 / Pro2S 的 Android 8.1 系统。
+
+如果设备没有 Root 或没有启用模块，App 仍可使用镜像模式：检测到真实 TNT/外接显示器时镜像该显示器，检测不到时镜像手机主屏。`tntanywhere.base.display` 是 App 的基础虚拟显示器，不属于“已有真实 TNT 显示器”，不会作为无 Root 回退条件。
 
 ## 总体架构
 
@@ -121,11 +137,14 @@
 
 - `TntDebugVirtualDisplayHelper`
   - 当前默认的 `TNT` 启动辅助类。
-  - 负责使用 Android 11 原生 `VirtualDisplay` 路径创建 `TNT` 基础显示。
+  - 负责 Root 链路使用 Android 原生 `VirtualDisplay` 路径创建 `TNT` 基础显示。
 
 - `UserService`
   - `Shizuku` 绑定后的系统服务实现。
-  - 提供创建显示、外接显示器镜像、屏幕电源控制、音频读取等能力。
+  - 提供创建显示、外接显示器镜像、屏幕电源控制、Root 状态检测和分版本音频读取等能力。
+
+- `SunshineAudio`
+  - 按 Android 版本和 Root 状态选择 `audio_loopback`、`REMOTE_SUBMIX` 或 `AudioPlaybackCapture`。
 
 - `CreateVirtualDisplay`
   - 统一创建虚拟显示的工具类。
@@ -159,18 +178,19 @@
 2. `SunshineServer` 在 native 层完成会话建立。
 3. 进入 `ProjectViaMoonlight` 任务。
 
-### 3. 选择镜像模式
+### 3. 按版本和权限选择显示链路
 
-项目会根据配置和设备状态分成两条路径：
+项目不会把 Android 8.1 与 Android 10/11 共用同一条 TNT 创建路径：
 
-1. 本机镜像模式
-   - 创建虚拟显示。
-   - 把手机主屏内容编码后发送给客户端。
+| 环境 | TNT 显示策略 | 音频策略 | 手机扬声器 |
+|------|--------------|----------|------------|
+| Android 8.1 + Root + Xposed/LSPosed | 创建并使用无头 TNT | `REMOTE_SUBMIX` | 按客户端请求静音或保留 |
+| Android 8.1 + 无 Root | 仅选择真实已有 TNT/外接显示器；没有则镜像手机主屏 | `audio_loopback` | 始终保持播放 |
+| Android 9 及以上 | 沿用主线 TNT / 镜像链路 | `AudioPlaybackCapture` | 按现有主线策略处理 |
 
-2. `TNT` 串流模式
-   - 检查当前是否已有可用 `TNT` / 外部显示。
-   - 如未启动，则按配置自动创建 `TNT` 基础显示。
-   - 如开启“适应客户端分辨率”，优先采用客户端请求分辨率。
+Android 8.1 无 Root 的实际入口在 `SunshineServer`：它先通过 `UserService.isRooted()` 判断权限，禁止创建 `tntanywhere.base.display`，再把任务交给 `ProjectViaMoonlight` 选择真实外接显示器或回退到 display 0。Root 才会进入 `TntDebugVirtualDisplayHelper` 的无头 TNT 创建流程。
+
+“适应客户端分辨率”只影响允许创建 TNT 基础显示的链路；无 Root 且没有真实 TNT 显示器时，回退镜像使用客户端请求的编码尺寸。
 
 ### 4. 采集、编码、发送
 
@@ -191,8 +211,9 @@
 1. `TNT Anywhere` 的核心不是“纯应用层投屏”，而是“应用层 + 系统权限 + native 串流”的混合架构。
 2. `Shizuku` 是系统能力的开关，没有它，很多显示和输入操作会降级或失败。
 3. `Moonlight` 只是客户端协议名，服务端实际上是 Android 端自己实现的一套 Sunshine 风格串流服务。
-4. 当前默认 `TNT` 启动方案已经可以在目标设备上实现免 Root 激活，但仍保留旧 overlay / Root 路线作为备用调试能力。
-5. 视频链路最敏感的部分是：
+4. Android 10/11 沿用主线显示链路；Android 8.1 明确按 Root 状态分流：Root + Xposed/LSPosed 才能无头启动 TNT，无 Root 只能使用已有 TNT 显示器或镜像回退。
+5. Android 8.1 的音频链路也按 Root 分流：无 Root 使用 `audio_loopback` 且不静音手机，Root 使用 `REMOTE_SUBMIX` 并支持客户端静音请求。
+6. 视频链路最敏感的部分是：
    - 虚拟显示是否创建成功
    - `TNT` 是否被系统正确激活
    - 编码器是否启动成功
@@ -211,7 +232,7 @@
   - Java 到 native 的桥接层。
 
 - `app-mirror/src/main/java/com/connect_screen/mirror/job/TntDebugVirtualDisplayHelper.java`
-  - 当前默认 `TNT` 启动辅助实现。
+  - Root 链路的 `TNT` 无头启动辅助实现。
 
 - `app-mirror/src/main/java/com/connect_screen/mirror/shizuku/UserService.java`
   - Shizuku 系统服务实现。
@@ -222,9 +243,12 @@
 - `app-mirror/src/main/java/com/connect_screen/mirror/job/CreateVirtualDisplay.java`
   - 虚拟显示创建工具。
 
+- `app-mirror/src/main/java/com/connect_screen/mirror/job/SunshineAudio.java`
+  - Android 8.1 Root/无 Root 音频分流和高版本音频捕获。
+
 ## 简短结论
 
-`TNT Anywhere` 的本质，是把 Android 设备当成一个可被 `Moonlight` 连接的 `TNT` / 手机串流主机：用 `Shizuku` 提供系统权限，用 `VirtualDisplay` / `MediaCodec` 获取画面，用 native Sunshine 风格协议把画面送出去，再把输入送回来，并补上 `Smartisan OS` 当年没有真正完成的 `TNT Anywhere` 使用体验。
+`TNT Anywhere` 的本质，是把 Android 设备当成一个可被 `Moonlight` 连接的 `TNT` / 手机串流主机：用 `Shizuku` 提供系统能力，用 `VirtualDisplay` / `MediaCodec` 获取画面，用 native Sunshine 风格协议把画面送出去，再把输入送回来。Android 8.1 通过 Root + Xposed/LSPosed 支持无头 TNT；无 Root 则保持可用的音频和手机镜像回退链路。
 
 ## 原项目简介
 
