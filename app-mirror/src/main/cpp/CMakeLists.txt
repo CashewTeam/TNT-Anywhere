@@ -51,4 +51,4 @@ target_link_libraries(
         crypto
         simple-web-server
         ${Boost_LIBRARIES}
-) 
+)

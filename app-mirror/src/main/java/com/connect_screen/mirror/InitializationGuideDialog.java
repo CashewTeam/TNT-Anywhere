@@ -67,6 +67,16 @@ public final class InitializationGuideDialog {
         warning.setLineSpacing(dp(2), 1.0f);
         content.addView(warning, matchWrapParams());
 
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1) {
+            TextView xposedWarning = new TextView(activity);
+            xposedWarning.setText("Android 8.1 专属提示：坚果 R1 / 坚果 Pro2S 无头启动 TNT 需要在 LSPosed 中启用 TNT Anywhere Xposed 模块，并勾选 android 作用域。未启用模块时，系统虚拟显示白名单无法绕过。\n\n该模块仅适用于 Android 8.1。其他 Android 版本不需要启用此模块。");
+            xposedWarning.setTextColor(0xFF8A4B08);
+            xposedWarning.setTextSize(14);
+            xposedWarning.setLineSpacing(dp(2), 1.0f);
+            xposedWarning.setPadding(0, dp(12), 0, 0);
+            content.addView(xposedWarning, matchWrapParams());
+        }
+
         content.addView(createStatusRow(
                 "Shizuku 权限",
                 "用于创建/管理虚拟显示、获取屏幕画面、注入控制事件和执行系统级电源控制。",

@@ -22,7 +22,7 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
-     android:requestLegacyExternalStorage="true"
+        android:requestLegacyExternalStorage="true"
         android:allowBackup="true"
         android:icon="@drawable/ic_tnt_anywhere_foreground"
         android:label="@string/app_name"
@@ -36,7 +36,7 @@
             android:value="true"/>
         <meta-data
             android:name="xposeddescription"
-            android:value="SmartisanOS 8.1 虚拟显示白名单绕过模块，仅适用于坚果 R1 / 坚果 Pro2S"/>
+            android:value="SmartisanOS 8.1 PC 模式虚拟显示包名判断模块，仅适用于坚果 R1 / 坚果 Pro2S"/>
         <meta-data
             android:name="xposedminversion"
             android:value="82"/>
@@ -176,4 +176,3 @@
         </intent>
     </queries>
 </manifest>
-

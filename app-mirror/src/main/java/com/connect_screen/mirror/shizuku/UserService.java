@@ -1,6 +1,5 @@
 package com.connect_screen.mirror.shizuku;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -10,9 +9,6 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.hardware.display.IDisplayManager;
 import android.hardware.display.VirtualDisplay;
-import android.media.AudioFormat;
-import android.media.AudioRecord;
-import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -21,15 +17,23 @@ import android.os.RemoteException;
 import android.view.Display;
 import android.view.Surface;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import androidx.annotation.Keep;
 import androidx.annotation.Nullable;
 
-import com.connect_screen.mirror.job.AndroidVersions;
 import com.connect_screen.mirror.job.CreateVirtualDisplay;
 import com.connect_screen.mirror.BuildConfig;
 
@@ -42,8 +46,10 @@ public class UserService extends IUserService.Stub  {
     private boolean listenVolumeKey = false;
     private Process listenVolumeKeyProcess;
     private Thread volumeKeyThread;
-    private AudioRecord audioRecord;
-    private float[] buffer;
+    private volatile Process audioLoopbackProcess;
+    private volatile DataInputStream audioLoopbackStream;
+    private volatile File audioLoopbackHelperFile;
+    private byte[] audioPcmBuffer;
     private VirtualDisplay mirrorVirtualDisplay;
     private IBinder mirrorExternalToken;
     private volatile boolean screenshotMirrorRunning;
@@ -73,9 +79,7 @@ public class UserService extends IUserService.Stub  {
             // local binder call; ignore
         }
         setScreenPower(SurfaceControl.POWER_MODE_NORMAL);
-        if (audioRecord != null) {
-            audioRecord.stop();
-        }
+        stopAudioLoopbackProcess();
         System.exit(0);
     }
 
@@ -315,43 +319,77 @@ public class UserService extends IUserService.Stub  {
     @Override
     public int readAudio(float[] result) throws RemoteException {
         try {
-            if (audioRecord == null) {
+            DataInputStream stream = audioLoopbackStream;
+            if (stream == null) {
                 return 0;
             }
-            return audioRecord.read(result, 0, result.length, AudioRecord.READ_BLOCKING);
+            int byteCount = result.length * 2;
+            if (audioPcmBuffer == null || audioPcmBuffer.length < byteCount) {
+                audioPcmBuffer = new byte[byteCount];
+            }
+            stream.readFully(audioPcmBuffer, 0, byteCount);
+            for (int i = 0; i < result.length; i++) {
+                int low = audioPcmBuffer[i * 2] & 0xff;
+                int high = audioPcmBuffer[i * 2 + 1];
+                result[i] = (short) (low | (high << 8)) / 32768.0f;
+            }
+            return result.length;
+        } catch (EOFException e) {
+            Ln.e("audio_loopback helper ended", e);
+            stopAudioLoopbackProcess();
+            return -1;
         } catch(Throwable e) {
             Ln.e("failed to read audio", e);
-            return 0;
+            stopAudioLoopbackProcess();
+            return -1;
         }
     }
 
     @Override
     public boolean startRecordingAudio() throws RemoteException {
         try {
-            if (audioRecord == null) {
-                Ln.d("before start recording");
-                audioRecord = createAudioRecord();
-                if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
-                    Ln.e("REMOTE_SUBMIX AudioRecord not initialized state=" + audioRecord.getState());
-                    audioRecord.release();
-                    audioRecord = null;
-                    return false;
-                }
-                audioRecord.startRecording();
-                if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
-                    Ln.e("REMOTE_SUBMIX AudioRecord failed to start state=" + audioRecord.getRecordingState());
-                    audioRecord.stop();
-                    audioRecord.release();
-                    audioRecord = null;
-                    return false;
-                }
-                Ln.d("started recording");
-                return true;
-            } else {
+            if (audioLoopbackProcess != null && audioLoopbackProcess.isAlive()
+                    && audioLoopbackStream != null) {
                 return true;
             }
+            if (context == null || !android.os.Process.is64Bit()) {
+                Ln.e("Smartisan audio_loopback requires a 64-bit UserService context");
+                return false;
+            }
+            File helper = extractAudioLoopbackHelper();
+            Process process = new ProcessBuilder(helper.getAbsolutePath()).start();
+            DataInputStream stream = new DataInputStream(
+                    new BufferedInputStream(process.getInputStream()));
+            byte[] ready = new byte[4];
+            try {
+                stream.readFully(ready);
+            } catch (EOFException e) {
+                int exitCode = process.waitFor();
+                Ln.e("audio_loopback helper failed exit=" + exitCode
+                        + " error=" + readProcessError(process));
+                stream.close();
+                if (!helper.delete()) {
+                    Ln.e("failed to delete audio_loopback helper " + helper);
+                }
+                return false;
+            }
+            if (!Arrays.equals(ready, new byte[]{'T', 'N', 'T', '1'})) {
+                process.destroy();
+                stream.close();
+                if (!helper.delete()) {
+                    Ln.e("failed to delete audio_loopback helper " + helper);
+                }
+                Ln.e("audio_loopback helper returned an invalid handshake");
+                return false;
+            }
+            audioLoopbackProcess = process;
+            audioLoopbackStream = stream;
+            audioLoopbackHelperFile = helper;
+            Ln.i("Smartisan audio_loopback helper started");
+            return true;
         } catch(Throwable e) {
             Ln.e("failed to start recording audio", e);
+            stopAudioLoopbackProcess();
             return false;
         }
     }
@@ -359,50 +397,62 @@ public class UserService extends IUserService.Stub  {
     @Override
     public boolean stopRecordingAudio() throws RemoteException {
         try {
-            if (audioRecord == null) {
-                return true;
-            } else {
-                audioRecord.stop();
-                audioRecord = null;
-                return true;
-            }
+            stopAudioLoopbackProcess();
+            return true;
         } catch(Throwable e) {
             Ln.e("failed to stop recording audio", e);
             return false;
         }
     }
 
-    @Override
-    public boolean forceTntAudioRoute(boolean enabled) throws RemoteException {
-        Ln.i("forceTntAudioRoute: enabled=" + enabled);
-        try {
-            Class<?> audioSystemClass = Class.forName("android.media.AudioSystem");
-            java.lang.reflect.Method setDeviceConnectionState = audioSystemClass.getMethod(
-                    "setDeviceConnectionState", int.class, int.class, String.class, String.class);
-            java.lang.reflect.Method setForceUse = audioSystemClass.getMethod(
-                    "setForceUse", int.class, int.class);
-            final int deviceOutRemoteSubmix = 0x8000;
-            final int deviceStateAvailable = 1;
-            final int deviceStateUnavailable = 0;
-            final int forceMedia = 1;
-            final int forceTnt = 0x22;
-            final int forceNone = 0;
-            if (enabled) {
-                int rcDevice = (Integer) setDeviceConnectionState.invoke(
-                        null, deviceOutRemoteSubmix, deviceStateAvailable, "", "remote_submix");
-                int rcForce = (Integer) setForceUse.invoke(null, forceMedia, forceTnt);
-                Ln.i("forceTntAudioRoute: device=" + rcDevice + " force=" + rcForce);
-                return rcDevice == 0 && rcForce == 0;
+    private File extractAudioLoopbackHelper() throws Exception {
+        File helper = new File("/data/local/tmp/tntanywhere-audio-loopback-"
+                + BuildConfig.VERSION_CODE + "-" + android.os.Process.myPid());
+        try (InputStream input = context.getAssets().open("audio_loopback_helper_arm64");
+             FileOutputStream output = new FileOutputStream(helper, false)) {
+            byte[] copyBuffer = new byte[8192];
+            int count;
+            while ((count = input.read(copyBuffer)) != -1) {
+                output.write(copyBuffer, 0, count);
             }
-            int rcForce = (Integer) setForceUse.invoke(null, forceMedia, forceNone);
-            int rcDevice = (Integer) setDeviceConnectionState.invoke(
-                    null, deviceOutRemoteSubmix, deviceStateUnavailable, "", "remote_submix");
-            Ln.i("forceTntAudioRoute restore: force=" + rcForce + " device=" + rcDevice);
-            return rcForce == 0 && rcDevice == 0;
-        } catch (Throwable e) {
-            Ln.e("forceTntAudioRoute failed", e);
-            return false;
         }
+        if (!helper.setExecutable(true, true)) {
+            throw new IllegalStateException("Cannot make audio_loopback helper executable");
+        }
+        return helper;
+    }
+
+    private void stopAudioLoopbackProcess() {
+        DataInputStream stream = audioLoopbackStream;
+        Process process = audioLoopbackProcess;
+        File helper = audioLoopbackHelperFile;
+        audioLoopbackStream = null;
+        audioLoopbackProcess = null;
+        audioLoopbackHelperFile = null;
+        if (process != null) {
+            process.destroy();
+        }
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (Exception e) {
+                Ln.e("failed to close audio_loopback stream", e);
+            }
+        }
+        if (helper != null && helper.exists() && !helper.delete()) {
+            Ln.e("failed to delete audio_loopback helper " + helper);
+        }
+    }
+
+    private String readProcessError(Process process) throws Exception {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+        StringBuilder error = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (error.length() > 0) error.append(' ');
+            error.append(line);
+        }
+        return error.toString();
     }
 
     @Override
@@ -855,28 +905,4 @@ public class UserService extends IUserService.Stub  {
         }
     }
 
-    @SuppressLint({"WrongConstant", "MissingPermission"})
-    private AudioRecord createAudioRecord() {
-        AudioRecord.Builder builder = new AudioRecord.Builder();
-        if (Build.VERSION.SDK_INT >= AndroidVersions.API_31_ANDROID_12) {
-            // On older APIs, Workarounds.fillAppInfo() must be called beforehand
-            builder.setContext(context);
-        }
-        builder.setAudioSource(MediaRecorder.AudioSource.REMOTE_SUBMIX);
-        int sampleRate = 48000; // 涓庢偍鐨凮pus閰嶇疆鍖归厤
-        int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
-        int audioEncoding = AudioFormat.ENCODING_PCM_FLOAT;
-        AudioFormat audioFormat = new AudioFormat.Builder()
-                .setEncoding(audioEncoding)
-                .setSampleRate(sampleRate)
-                .setChannelMask(channelConfig)
-                .build();
-        builder.setAudioFormat(audioFormat);
-        int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioEncoding);
-        if (minBufferSize > 0) {
-            // This buffer size does not impact latency
-            builder.setBufferSizeInBytes(2 * minBufferSize);
-        }
-        return builder.build();
-    }
 }

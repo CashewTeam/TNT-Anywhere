@@ -3,6 +3,25 @@ plugins {
     id 'dev.rikka.tools.refine'
 }
 
+def audioLoopbackAssetsDir = file("$buildDir/generated/audioLoopbackAssets")
+def audioLoopbackHelper = file("$audioLoopbackAssetsDir/audio_loopback_helper_arm64")
+def ndkHostTag = System.getProperty("os.name").toLowerCase().contains("mac")
+        ? "darwin-x86_64"
+        : "linux-x86_64"
+def audioLoopbackCompiler = file("${android.sdkDirectory}/ndk/28.0.13004108/toolchains/llvm/prebuilt/${ndkHostTag}/bin/aarch64-linux-android27-clang++")
+
+tasks.register("buildAudioLoopbackHelper", Exec) {
+    inputs.file("src/main/cpp/audio_loopback_helper.cpp")
+    inputs.file(audioLoopbackCompiler)
+    outputs.file(audioLoopbackHelper)
+    doFirst {
+        audioLoopbackAssetsDir.mkdirs()
+    }
+    commandLine audioLoopbackCompiler,
+            "-std=c++17", "-O2", "-fPIE", "-pie", "-static-libstdc++",
+            "src/main/cpp/audio_loopback_helper.cpp", "-ldl", "-o", audioLoopbackHelper
+}
+
 android {
     namespace 'com.connect_screen.mirror'
     compileSdk 34
@@ -11,8 +30,8 @@ android {
         applicationId "com.smartisanos.tntanywhere"
         minSdk 27
         targetSdk 34
-        versionCode 108
-        versionName "0.9.5"
+        versionCode 110
+        versionName "0.9.7"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -39,6 +58,10 @@ android {
         aidl true
         buildConfig true
     }
+
+    sourceSets {
+        main.assets.srcDir(audioLoopbackAssetsDir)
+    }
     
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -50,6 +73,12 @@ android {
             path "src/main/cpp/CMakeLists.txt"
             version "3.31.6"
         }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith("merge") && task.name.endsWith("Assets")) {
+        task.dependsOn("buildAudioLoopbackHelper")
     }
 }
 

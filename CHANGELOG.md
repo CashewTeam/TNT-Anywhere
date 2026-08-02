@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.9.7
+
+### Android 8.1 TNT 串流
+
+- 已有真实 TNT 外接屏时，直接截图镜像该屏幕到编码器，不再创建并选中无内容的 `tntanywhere.base.display`。
+- 8.1 显示选择优先使用真实外接屏，避免 `base.display` 覆盖已启动 TNT 的画面源。
+
+### 音频
+
+- Android 8.1 由 Shizuku shell 原生 helper 调用 Smartisan `audio_loopback` 系统服务，避开应用 linker namespace 限制，不依赖 Root 或 Xposed 权限 Hook。
+
+### 状态显示
+
+- Moonlight 会话建立和结束时立即刷新主页，正确显示“已连接”与“等待连接”。
+
+### LSPosed 模块
+
+- 模块仅修改 SmartisanOS PC 模式的虚拟显示包名判断，不处理系统音频权限。
+
+## v0.9.6
+
+### 初始化向导
+
+- Android 8.1 设备打开启动向导时，提示坚果 R1 / 坚果 Pro2S 无头启动 TNT 需要启用 LSPosed Xposed 模块。
+- 提示模块仅适用于 Android 8.1，其他 Android 版本无需启用。
+
 ## v0.9.5
 
 ### 音频

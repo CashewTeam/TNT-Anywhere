@@ -13,12 +13,12 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * 仅用于坚果 R1 / 坚果 Pro2S 的 SmartisanOS 8.1 虚拟显示白名单绕过模块。
+ * 仅用于坚果 R1 / 坚果 Pro2S 的 SmartisanOS 8.1 PC 模式包名判断模块。
  *
  * Android 8.1（API 27）的 SmartisanOS 会在开机时缓存
  * persist.sys.virtual_display_pkg，只允许一个包名通过虚拟显示校验。
- * 本 hook 仅在 Android 8.1 的 android 进程中拦截该校验，允许 TNT Anywhere
- * 和无线投屏包创建虚拟显示。其他 Android 版本不会启用此 hook。
+ * 本 hook 只在 Android 8.1 的 android 进程中修改该包名判断，允许 TNT Anywhere
+ * 和系统无线投屏包通过校验。其他 Android 版本不会启用此 hook。
  */
 public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
 
@@ -26,6 +26,10 @@ public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
     private static final int TARGET_ANDROID_API = Build.VERSION_CODES.O_MR1;
 
     private static final String CLASS_SMT_PC_UTILS = "android.app.SmtPCUtils";
+    private static final Set<String> SUPPORTED_DEVICE_CODES = new HashSet<>(Arrays.asList(
+            "odin",
+            "ocean"
+    ));
 
     /**
      * Packages allowed to create type==5 (VIRTUAL) displays that pass
@@ -41,7 +45,8 @@ public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (Build.VERSION.SDK_INT != TARGET_ANDROID_API
-                || !"android".equals(lpparam.packageName)) {
+                || !"android".equals(lpparam.packageName)
+                || !SUPPORTED_DEVICE_CODES.contains(Build.DEVICE)) {
             return;
         }
         hookIsValidExtDisplayType(lpparam);
@@ -73,4 +78,5 @@ public class SmartisanDisplayBypassHook implements IXposedHookLoadPackage {
             XposedBridge.log(TAG + ": hook failed - " + t.getMessage());
         }
     }
+
 }

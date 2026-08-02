@@ -159,6 +159,7 @@ public class SunshineServer {
     public static boolean createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         suppressPin = null;
         activeMoonlightSessionId = sessionId;
+        State.refreshMainActivity();
         scheduleAutoScreenOffForSession(sessionId);
         SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         Context context = State.getContext();
@@ -245,6 +246,7 @@ public class SunshineServer {
         }
         suppressPin = null;
         activeMoonlightSessionId = sessionId;
+        State.refreshMainActivity();
         scheduleAutoScreenOffForSession(sessionId);
         SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         try {
@@ -302,6 +304,24 @@ public class SunshineServer {
             }
             if (!State.isUserServiceAlive()) {
                 failMoonlightVideoSource("TNT 视频源启动失败: UserService 不可用");
+                return;
+            }
+
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.O_MR1
+                    && TntDisplaySelector.hasPhysicalExternalDisplay(context)) {
+                State.log("[SunshineVD] 8.1 检测到已启动的真实 TNT 外接屏，直接截图镜像到编码器");
+                MAIN_HANDLER.post(() -> {
+                    if (!videoSourceCancelled) {
+                        State.startNewJob(new ProjectViaMoonlight(
+                                width,
+                                height,
+                                frameRate,
+                                0,
+                                encoderSurface,
+                                true,
+                                activeMoonlightSessionId));
+                    }
+                });
                 return;
             }
 
@@ -499,6 +519,7 @@ public class SunshineServer {
         State.log("停止 Moonlight 投屏");
         cancelAutoScreenOffTimer();
         activeMoonlightSessionId = 0;
+        State.refreshMainActivity();
         videoSourceCancelled = true;
         Thread videoThread = videoSourceThread;
         if (videoThread != null && videoThread != Thread.currentThread()) {

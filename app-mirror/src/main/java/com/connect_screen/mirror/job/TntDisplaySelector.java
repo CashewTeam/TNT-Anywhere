@@ -152,6 +152,10 @@ public final class TntDisplaySelector {
 
     private static int findLargestSelectableDisplayId(DisplayManager displayManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            int physicalDisplayId = findLargestPhysicalExternalDisplayId(displayManager);
+            if (physicalDisplayId > Display.DEFAULT_DISPLAY) {
+                return physicalDisplayId;
+            }
             int baseDisplayId = findSmartisanBaseDisplayId(displayManager);
             if (baseDisplayId > Display.DEFAULT_DISPLAY) {
                 return baseDisplayId;
