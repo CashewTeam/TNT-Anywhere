@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.5
+
+### 音频
+
+- `REMOTE_SUBMIX` 音频链路严格限制为 Android 8.1（API 27）。
+- Android 9 及以上版本继续使用原生 `AudioPlaybackCapture` 链路。
+- 高版本清理串流时不再修改 `REMOTE_SUBMIX` 全局路由。
+- Android 8.1 路由建立失败时停止录音，不再继续使用可能无声的录音链路。
+
 ## v0.9.4
 
 ### LSPosed 模块
