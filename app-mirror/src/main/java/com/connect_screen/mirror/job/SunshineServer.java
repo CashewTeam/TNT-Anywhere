@@ -89,7 +89,7 @@ public class SunshineServer {
             boolean disableBFrames,
             boolean realtimePriority,
             int fecPercent);
-    public static native void setEncoderAvcBaseline(boolean enabled);
+    public static native void setEncoderAvcSettings(int profile, int level);
 
     public static void setEncoderSettingsFromPreferences() {
         setEncoderSettings(
@@ -102,7 +102,7 @@ public class SunshineServer {
                 Pref.getEncoderDisableBFrames(),
                 Pref.getEncoderRealtimePriority(),
                 Pref.getStreamFecPercent());
-        setEncoderAvcBaseline(Pref.getEncoderAvcBaseline());
+        setEncoderAvcSettings(Pref.getEncoderAvcProfile(), Pref.getEncoderAvcLevel());
     }
     
     // 添加新的回调方法，当需要 PIN 码时被 C++ 代码调用

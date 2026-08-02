@@ -42,6 +42,15 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     private static final String MANUAL_INPUT_LABEL = "Manual input";
     private static final int[] ENCODER_CODEC_VALUES = new int[]{Pref.ENCODER_CODEC_H264, Pref.ENCODER_CODEC_H265};
     private static final int[] ENCODER_BITRATE_MODE_VALUES = new int[]{2, 1, 0};
+    private static final int[] ENCODER_AVC_PROFILE_VALUES = new int[]{
+            Pref.ENCODER_AVC_PROFILE_BASELINE,
+            Pref.ENCODER_AVC_PROFILE_HIGH
+    };
+    private static final int[] ENCODER_AVC_LEVEL_VALUES = new int[]{
+            Pref.ENCODER_AVC_LEVEL_42,
+            Pref.ENCODER_AVC_LEVEL_51,
+            Pref.ENCODER_AVC_LEVEL_52
+    };
     private static final TntOverlayPreset[] TNT_OVERLAY_PRESETS = new TntOverlayPreset[]{
             new TntOverlayPreset("Default 1080P (1920 x 1080 / 216dpi)", 1920, 1080, 216, false),
             new TntOverlayPreset("4K (3840 x 2160 / 320dpi)", 3840, 2160, 320, false),
@@ -85,6 +94,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
     private EditText streamFecPercentEditText;
     private Spinner encoderCodecSpinner;
     private Spinner encoderBitrateModeSpinner;
+    private Spinner encoderAvcProfileSpinner;
+    private Spinner encoderAvcLevelSpinner;
     private SwitchCompat encoderLowLatencyCheckbox;
     private SwitchCompat encoderDisableBFramesCheckbox;
     private SwitchCompat encoderRealtimePriorityCheckbox;
@@ -639,6 +650,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         streamFecPercentEditText = findViewById(R.id.streamFecPercentEditText);
         encoderCodecSpinner = findViewById(R.id.encoderCodecSpinner);
         encoderBitrateModeSpinner = findViewById(R.id.encoderBitrateModeSpinner);
+        encoderAvcProfileSpinner = findViewById(R.id.encoderAvcProfileSpinner);
+        encoderAvcLevelSpinner = findViewById(R.id.encoderAvcLevelSpinner);
         encoderLowLatencyCheckbox = findViewById(R.id.encoderLowLatencyCheckbox);
         encoderDisableBFramesCheckbox = findViewById(R.id.encoderDisableBFramesCheckbox);
         encoderRealtimePriorityCheckbox = findViewById(R.id.encoderRealtimePriorityCheckbox);
@@ -673,6 +686,20 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         bitrateModeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         encoderBitrateModeSpinner.setAdapter(bitrateModeAdapter);
 
+        ArrayAdapter<String> avcProfileAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"Baseline（兼容性）", "High（更高质量）"});
+        avcProfileAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        encoderAvcProfileSpinner.setAdapter(avcProfileAdapter);
+
+        ArrayAdapter<String> avcLevelAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"Level 4.2", "Level 5.1", "Level 5.2"});
+        avcLevelAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        encoderAvcLevelSpinner.setAdapter(avcLevelAdapter);
+
         loadEncoderSettingsIntoViews();
 
         Button saveEncoderSettingsButton = findViewById(R.id.saveEncoderSettingsButton);
@@ -689,6 +716,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                     .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, 100)
                     .putInt(Pref.KEY_ENCODER_CODEC, Pref.ENCODER_CODEC_H264)
                     .putInt(Pref.KEY_ENCODER_BITRATE_MODE, 2)
+                    .putBoolean(Pref.KEY_ENCODER_AVC_BASELINE, true)
+                    .putInt(Pref.KEY_ENCODER_AVC_LEVEL, Pref.ENCODER_AVC_LEVEL_42)
                     .putInt(Pref.KEY_ENCODER_COMPLEXITY, 5)
                     .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, 3)
                     .putInt(Pref.KEY_ENCODER_MAX_FPS, 60)
@@ -731,6 +760,8 @@ public class MirrorSettingsActivity extends AppCompatActivity {
                 break;
             }
         }
+        selectValue(encoderAvcProfileSpinner, ENCODER_AVC_PROFILE_VALUES, Pref.getEncoderAvcProfile());
+        selectValue(encoderAvcLevelSpinner, ENCODER_AVC_LEVEL_VALUES, Pref.getEncoderAvcLevel());
         updateEncoderSettingsText();
     }
 
@@ -743,10 +774,18 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         int bitrateMode = ENCODER_BITRATE_MODE_VALUES[Math.max(
                 0,
                 Math.min(ENCODER_BITRATE_MODE_VALUES.length - 1, bitrateModeIndex))];
+        int avcProfileIndex = encoderAvcProfileSpinner.getSelectedItemPosition();
+        int avcLevelIndex = encoderAvcLevelSpinner.getSelectedItemPosition();
+        int avcProfile = ENCODER_AVC_PROFILE_VALUES[Math.max(0, Math.min(
+                ENCODER_AVC_PROFILE_VALUES.length - 1, avcProfileIndex))];
+        int avcLevel = ENCODER_AVC_LEVEL_VALUES[Math.max(0, Math.min(
+                ENCODER_AVC_LEVEL_VALUES.length - 1, avcLevelIndex))];
         preferences.edit()
                 .putInt(Pref.KEY_ENCODER_CODEC, codec)
                 .putInt(Pref.KEY_ENCODER_BITRATE_PERCENT, parseClampedInt(encoderBitratePercentEditText, 100, 25, 200))
                 .putInt(Pref.KEY_ENCODER_BITRATE_MODE, bitrateMode)
+                .putBoolean(Pref.KEY_ENCODER_AVC_BASELINE, avcProfile == Pref.ENCODER_AVC_PROFILE_BASELINE)
+                .putInt(Pref.KEY_ENCODER_AVC_LEVEL, avcLevel)
                 .putInt(Pref.KEY_ENCODER_COMPLEXITY, parseClampedInt(encoderComplexityEditText, 5, 0, 10))
                 .putInt(Pref.KEY_ENCODER_I_FRAME_INTERVAL, parseClampedInt(encoderIFrameIntervalEditText, 3, 1, 10))
                 .putInt(Pref.KEY_ENCODER_MAX_FPS, parseClampedInt(encoderMaxFpsEditText, 60, 1, 240))
@@ -768,6 +807,15 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
     }
 
+    private void selectValue(Spinner spinner, int[] values, int target) {
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == target) {
+                spinner.setSelection(i);
+                return;
+            }
+        }
+    }
+
     private void updateEncoderSettingsText() {
         String codecName = Pref.getEncoderCodec() == Pref.ENCODER_CODEC_H264 ? "H.264" : "H.265";
         String modeName;
@@ -785,8 +833,12 @@ public class MirrorSettingsActivity extends AppCompatActivity {
         }
         String text = String.format(
                 Locale.US,
-                "Codec %s | Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | Frame %s | FEC %d%%",
+                "Codec %s | AVC %s/L%s | Bitrate %d%% | Mode %s | Complexity %d | I-frame %ds | Max FPS %d | Frame %s | FEC %d%%",
                 codecName,
+                Pref.getEncoderAvcProfile() == Pref.ENCODER_AVC_PROFILE_BASELINE ? "Baseline" : "High",
+                Pref.getEncoderAvcLevel() == Pref.ENCODER_AVC_LEVEL_42
+                        ? "4.2"
+                        : Pref.getEncoderAvcLevel() == Pref.ENCODER_AVC_LEVEL_51 ? "5.1" : "5.2",
                 Pref.getEncoderBitratePercent(),
                 modeName,
                 Pref.getEncoderComplexity(),

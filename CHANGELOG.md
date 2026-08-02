@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.9.3
+
+完善编码设置页与 native 编码参数的连接，默认值沿用当前 Android 8.1 固定配置。
+
+### 编码设置
+
+- 新增 H.264 Profile（Baseline/High）和 Level（4.2/5.1/5.2）手动配置。
+- 码率模式、复杂度、低延迟、实时优先级等设置现在会写入 `MediaFormat`。
+- 启动服务和恢复默认时统一使用设置页显示的默认编码参数。
+
+## v0.9.2
+
+本版本用于 Smartisan R2 Android 11 手动测试，暂时统一使用 Android 8.1 的视频编码参数配置。
+
+### 编码
+
+- 高版本沿用 Android 8.1 的 H.264 profile/level、关键帧、B 帧和色彩元数据配置行为。
+- 移除高版本额外的 API 28+ 编码参数，便于验证 Android 8.1 编码配置在 Smartisan R2 上的可用性。
+
 ## v0.9.1
 
 本次更新主要新增 Android 8.1（坚果 Pro2S）适配，并修复 SmartisanOS 8.1 下 Moonlight 黑屏、无声和键鼠注入问题。

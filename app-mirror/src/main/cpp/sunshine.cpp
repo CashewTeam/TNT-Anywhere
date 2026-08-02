@@ -80,12 +80,13 @@ static std::atomic_bool videoSourceSetupFailed {false};
 static std::atomic_int encoderBitratePercent {100};
 static std::atomic_int encoderBitrateMode {2};
 static std::atomic_int encoderComplexity {5};
-static std::atomic_int encoderIFrameInterval {1};
+static std::atomic_int encoderIFrameInterval {3};
 static std::atomic_int encoderMaxFps {60};
 static std::atomic_bool encoderLowLatency {true};
 static std::atomic_bool encoderDisableBFrames {true};
 static std::atomic_bool encoderRealtimePriority {true};
-static std::atomic_bool encoderAvcBaselineCompatibility {true};
+static std::atomic_int encoderAvcProfile {1};
+static std::atomic_int encoderAvcLevel {0x2000};
 static std::atomic_int streamFecPercent {0};
 static std::string runtimePkeyPath;
 static std::string runtimeCertPath;
@@ -350,10 +351,25 @@ Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderSettings(
 }
 
 JNIEXPORT void JNICALL
-Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderAvcBaseline(JNIEnv *env, jclass clazz, jboolean enabled) {
-    encoderAvcBaselineCompatibility = enabled == JNI_TRUE;
-    BOOST_LOG(info) << "Encoder AVC baseline compatibility="sv
-                    << encoderAvcBaselineCompatibility.load();
+Java_com_connect_1screen_mirror_job_SunshineServer_setEncoderAvcSettings(
+        JNIEnv *env,
+        jclass clazz,
+        jint profile,
+        jint level) {
+    encoderAvcProfile = profile == 1 ? 1 : 0x08;
+    switch (level) {
+        case 0x2000:
+        case 0x8000:
+        case 0x10000:
+            encoderAvcLevel = level;
+            break;
+        default:
+            encoderAvcLevel = 0x2000;
+            break;
+    }
+    BOOST_LOG(info) << "Encoder AVC settings updated: profile="sv
+                    << encoderAvcProfile.load() << " level="sv
+                    << encoderAvcLevel.load();
 }
 
 static void callJavaStreamingDebugInfo(JNIEnv *env, const std::string &info) {
@@ -854,121 +870,46 @@ namespace sunshine_callbacks {
         const auto configuredLowLatency = encoderLowLatency.load();
         const auto configuredDisableBFrames = encoderDisableBFrames.load();
         const auto configuredRealtimePriority = encoderRealtimePriority.load();
+        const auto configuredAvcProfile = encoderAvcProfile.load();
+        const auto configuredAvcLevel = encoderAvcLevel.load();
         const auto configuredEncoderPriority = configuredRealtimePriority ? 0 : 1;
-        const auto avcMacroblocksPerFrame =
-                ((config.width + 15) / 16) * ((config.height + 15) / 16);
-        const auto avcMacroblocksPerSecond = avcMacroblocksPerFrame * encodeFrameRate;
-        int32_t configuredAvcLevel = 0;
         config::stream.fec_percentage = streamFecPercent.load();
         // 基本配置保持不变
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, config.height);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, configuredBitrateKbps * 1000);
-#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
-#endif
-#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "priority", configuredEncoderPriority);
-#endif
-#if __ANDROID_API__ >= 28
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
-#endif
+        AMediaFormat_setInt32(format, "operating-rate", encodeFrameRate);
+        AMediaFormat_setInt32(format, "capture-rate", encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
-#if __ANDROID_API__ >= 28
         AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
-#endif
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, configuredIFrameInterval); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
-#if __ANDROID_API__ >= 28
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, configuredComplexity);
-#endif
+        AMediaFormat_setInt32(format, "complexity", configuredComplexity);
         if (configuredLowLatency) {
-#if __ANDROID_API__ >= 28
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
-#endif
-#if __ANDROID_API__ >= 28
+            AMediaFormat_setInt32(format, "latency", 0);
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
-#endif
         }
         if (configuredDisableBFrames) {
             AMediaFormat_setInt32(format, "max-bframes", 0);
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-bframes.num-bframes", 0);
         }
 
-#if __ANDROID_API__ >= 28
-        // 设置编码配置
-        if (config.videoFormat == 1) {
-            if (colorspace.bit_depth == 10) {
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 2); // HEVCProfileMain10
-            } else {
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 1); // HEVCProfileMain
-            }
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 65536); // HEVCMainTierLevel51
-        } else {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
-            if (avcMacroblocksPerSecond > 983040) {
-                configuredAvcLevel = 0x10000; // AVCLevel52
-            } else if (avcMacroblocksPerSecond > 522240) {
-                configuredAvcLevel = 0x8000; // AVCLevel51
-            } else {
-                configuredAvcLevel = 0x2000; // AVCLevel42
-            }
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, configuredAvcLevel);
-        }
-#endif
-
-#if __ANDROID_API__ < 28
-        // Qualcomm's AVC encoder defaults to a profile that some Windows
-        // hardware decoders reject; force Baseline + Level 4.2 for compatibility.
+        // 默认值沿用 Android 8.1 配置，profile 和 level 由设置页控制。
         if (config.videoFormat == 0) {
-            const int avcProfile = encoderAvcBaselineCompatibility.load() ? 1 : 0x08;
-            AMediaFormat_setInt32(format, "profile", avcProfile);
-            AMediaFormat_setInt32(format, "level", 0x2000); // AVCLevel42
+            AMediaFormat_setInt32(format, "profile", configuredAvcProfile);
+            AMediaFormat_setInt32(format, "level", configuredAvcLevel);
         }
-#endif
 
         int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
-#if __ANDROID_API__ >= 28
-        // 设置色彩空间
-        switch (colorspace.colorspace) {
-            case video::colorspace_e::rec601:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 4); // COLOR_STANDARD_BT601_NTSC
-                break;
-            case video::colorspace_e::rec709:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 1); // COLOR_STANDARD_BT709
-                break;
-            case video::colorspace_e::bt2020:
-            case video::colorspace_e::bt2020sdr:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 6); // COLOR_STANDARD_BT2020
-                break;
-        }
-
-        // 设置色彩范围
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 
-            colorspace.full_range ? 1 : 2); // 1=FULL, 2=LIMITED
-
-        // 设置位深度
-        if (isHdr) {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 6); // COLOR_TRANSFER_ST2084
-        } else {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 3); // COLOR_TRANSFER_SDR_VIDEO
-        }
-
-        // 打印最终的媒体格式颜色配置
-        int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, &colorStandard);
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, &colorRange);
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, &colorTransfer);
-        
-        BOOST_LOG(info) << "最终媒体格式颜色配置:"sv;
-        BOOST_LOG(info) << "  - COLOR_STANDARD: "sv << colorStandard;
-        BOOST_LOG(info) << "  - COLOR_RANGE: "sv << colorRange << (colorRange == 1 ? " (FULL)" : " (LIMITED)");
-        BOOST_LOG(info) << "  - COLOR_TRANSFER: "sv << colorTransfer;
-#else
         (void)isHdr;
-        BOOST_LOG(info) << "色彩配置仅适用于 API 28+，Android 8.1 上跳过"sv;
-#endif
+        BOOST_LOG(info) << "编码参数: profile="sv << configuredAvcProfile
+                        << " level="sv << configuredAvcLevel
+                        << " bitrateMode="sv << configuredBitrateMode
+                        << " complexity="sv << configuredComplexity
+                        << " lowLatency="sv << configuredLowLatency
+                        << " realtimePriority="sv << configuredRealtimePriority;
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
@@ -976,14 +917,10 @@ namespace sunshine_callbacks {
             // 创建编码器
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1920);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 1080);
-#if __ANDROID_API__ >= 28
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
-#endif
+            AMediaFormat_setInt32(format, "operating-rate", encodeFrameRate);
+            AMediaFormat_setInt32(format, "capture-rate", encodeFrameRate);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
-    #if __ANDROID_API__ >= 28
-        AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
-#endif
+            AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
             codec = AMediaCodec_createEncoderByType("video/avc");
         }
         if (!codec) {
@@ -1693,8 +1630,3 @@ namespace sunshine_callbacks {
         }
     }
 }
-#if __ANDROID_API__ >= 28
-#if __ANDROID_API__ >= 28
-        AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
-#endif
-#endif
