@@ -86,6 +86,7 @@ public class SunshineServer {
             boolean disableBFrames,
             boolean realtimePriority,
             int fecPercent);
+    public static native void setEncoderAvcSettings(int profile, int level);
 
     public static void setEncoderSettingsFromPreferences() {
         setEncoderSettings(
@@ -98,6 +99,7 @@ public class SunshineServer {
                 Pref.getEncoderDisableBFrames(),
                 Pref.getEncoderRealtimePriority(),
                 Pref.getStreamFecPercent());
+        setEncoderAvcSettings(Pref.getEncoderAvcProfile(), Pref.getEncoderAvcLevel());
     }
     
     // 添加新的回调方法，当需要 PIN 码时被 C++ 代码调用
@@ -152,6 +154,7 @@ public class SunshineServer {
     public static boolean createVirtualDisplay(int width, int height, int frameRate, int packetDuration, Surface surface, boolean shouldMutePhone, long sessionId) {
         suppressPin = null;
         activeMoonlightSessionId = sessionId;
+        State.refreshMainActivity();
         scheduleAutoScreenOffForSession(sessionId);
         SmartisanPerformanceHelper.updateStreamingBoost(true, "Moonlight session starting");
         Context context = State.getContext();
@@ -257,6 +260,7 @@ public class SunshineServer {
     }
 
     public static void showMoonlightControlHint() {
+        State.refreshHomeConnectionUi();
         new Handler(Looper.getMainLooper()).post(() -> {
             Context context = State.getContext();
             if (context == null) {
@@ -356,6 +360,7 @@ public class SunshineServer {
         State.log("停止 Moonlight 投屏");
         cancelAutoScreenOffTimer();
         activeMoonlightSessionId = 0;
+        State.refreshMainActivity();
         SmartisanPerformanceHelper.updateStreamingBoost(false, "Moonlight session stopped");
         State.streamingDebugInfo.setValue("串流未启动");
         SunshineAudio.restoreVolume(State.getContext());

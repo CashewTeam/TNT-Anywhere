@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 #include "logging.h"
 #include "config.h"
 #include "nvhttp.h"
@@ -28,6 +29,39 @@
 #include <boost/endian/buffers.hpp>
 
 using namespace std::literals;
+
+static void logHexBytes(const char *tag, const uint8_t *data, size_t size) {
+    size_t n = std::min<size_t>(size, 64);
+    std::ostringstream out;
+    out << tag << " hex(" << size << "):";
+    for (size_t i = 0; i < n; ++i) {
+        out << ' ' << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    }
+    BOOST_LOG(info) << out.str();
+}
+
+static void patchH264SpsConstrainedBaseline(std::vector<uint8_t> &data) {
+    // Annex-B CSD normally starts with 00 00 00 01 67 (SPS NAL). Qualcomm's
+    // AVC encoder emits plain Baseline here, which FFmpeg's D3D11VA/DXVA2
+    // hwaccel rejects; Constrained Baseline is the compatible superset.
+    size_t prefix = 0;
+    if (data.size() >= 4 && data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1) {
+        prefix = 4;
+    } else if (data.size() >= 3 && data[0] == 0 && data[1] == 0 && data[2] == 1) {
+        prefix = 3;
+    }
+    if (prefix == 0 || data.size() < prefix + 3) {
+        return;
+    }
+    if ((data[prefix] & 0x1f) != 7 || data[prefix + 1] != 66) {
+        return;
+    }
+    uint8_t &constraints = data[prefix + 2];
+    if ((constraints & 0x40) == 0) {
+        constraints |= 0x40;
+        BOOST_LOG(info) << "Patched H.264 SPS to Constrained Baseline"sv;
+    }
+}
 
 extern "C" {
 
@@ -51,6 +85,8 @@ static std::atomic_int encoderMaxFps {60};
 static std::atomic_bool encoderLowLatency {true};
 static std::atomic_bool encoderDisableBFrames {true};
 static std::atomic_bool encoderRealtimePriority {true};
+static std::atomic_int encoderAvcProfile {1};
+static std::atomic_int encoderAvcLevel {0x2000};
 static std::atomic_int streamFecPercent {0};
 static std::string runtimePkeyPath;
 static std::string runtimeCertPath;
@@ -312,6 +348,28 @@ Java_com_easycast_source_job_SunshineServer_setEncoderSettings(
                     << encoderDisableBFrames.load() << " realtimePriority="sv
                     << encoderRealtimePriority.load() << " fec="sv
                     << streamFecPercent.load() << "%";
+}
+
+JNIEXPORT void JNICALL
+Java_com_easycast_source_job_SunshineServer_setEncoderAvcSettings(
+        JNIEnv *env,
+        jclass clazz,
+        jint profile,
+        jint level) {
+    encoderAvcProfile = profile == 1 ? 1 : 0x08;
+    switch (level) {
+        case 0x2000:
+        case 0x8000:
+        case 0x10000:
+            encoderAvcLevel = level;
+            break;
+        default:
+            encoderAvcLevel = 0x2000;
+            break;
+    }
+    BOOST_LOG(info) << "Encoder AVC settings updated: profile="sv
+                    << encoderAvcProfile.load() << " level="sv
+                    << encoderAvcLevel.load();
 }
 
 static void callJavaStreamingDebugInfo(JNIEnv *env, const std::string &info) {
@@ -773,11 +831,9 @@ namespace sunshine_callbacks {
         const auto configuredLowLatency = encoderLowLatency.load();
         const auto configuredDisableBFrames = encoderDisableBFrames.load();
         const auto configuredRealtimePriority = encoderRealtimePriority.load();
+        const auto configuredAvcProfile = encoderAvcProfile.load();
+        const auto configuredAvcLevel = encoderAvcLevel.load();
         const auto configuredEncoderPriority = configuredRealtimePriority ? 0 : 1;
-        const auto avcMacroblocksPerFrame =
-                ((config.width + 15) / 16) * ((config.height + 15) / 16);
-        const auto avcMacroblocksPerSecond = avcMacroblocksPerFrame * encodeFrameRate;
-        int32_t configuredAvcLevel = 0;
         config::stream.fec_percentage = streamFecPercent.load();
         // 基本配置保持不变
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, config.width);
@@ -785,15 +841,15 @@ namespace sunshine_callbacks {
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_BIT_RATE, configuredBitrateKbps * 1000);
         AMediaFormat_setInt32(format, "bitrate-mode", configuredBitrateMode);
         AMediaFormat_setInt32(format, "priority", configuredEncoderPriority);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
+        AMediaFormat_setInt32(format, "operating-rate", encodeFrameRate);
+        AMediaFormat_setInt32(format, "capture-rate", encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
         AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_I_FRAME_INTERVAL, configuredIFrameInterval); // 关键帧间隔(秒)
         AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 2130708361); // COLOR_FormatSurface
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COMPLEXITY, configuredComplexity);
+        AMediaFormat_setInt32(format, "complexity", configuredComplexity);
         if (configuredLowLatency) {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LATENCY, 0); // 最低延迟
+            AMediaFormat_setInt32(format, "latency", 0);
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-low-latency.enable", 1);
         }
         if (configuredDisableBFrames) {
@@ -801,61 +857,20 @@ namespace sunshine_callbacks {
             AMediaFormat_setInt32(format, "vendor.qti-ext-enc-bframes.num-bframes", 0);
         }
 
-        // 设置编码配置
-        if (config.videoFormat == 1) {
-            if (colorspace.bit_depth == 10) {
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 2); // HEVCProfileMain10
-            } else {
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 1); // HEVCProfileMain
-            }
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, 65536); // HEVCMainTierLevel51
-        } else {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PROFILE, 0x08); // HIGH profile
-            if (avcMacroblocksPerSecond > 983040) {
-                configuredAvcLevel = 0x10000; // AVCLevel52
-            } else if (avcMacroblocksPerSecond > 522240) {
-                configuredAvcLevel = 0x8000; // AVCLevel51
-            } else {
-                configuredAvcLevel = 0x2000; // AVCLevel42
-            }
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_LEVEL, configuredAvcLevel);
+        // 默认值沿用 Android 8.1 配置，profile 和 level 由设置页控制。
+        if (config.videoFormat == 0) {
+            AMediaFormat_setInt32(format, "profile", configuredAvcProfile);
+            AMediaFormat_setInt32(format, "level", configuredAvcLevel);
         }
 
-        // 设置色彩空间
-        switch (colorspace.colorspace) {
-            case video::colorspace_e::rec601:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 4); // COLOR_STANDARD_BT601_NTSC
-                break;
-            case video::colorspace_e::rec709:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 1); // COLOR_STANDARD_BT709
-                break;
-            case video::colorspace_e::bt2020:
-            case video::colorspace_e::bt2020sdr:
-                AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, 6); // COLOR_STANDARD_BT2020
-                break;
-        }
-
-        // 设置色彩范围
-        AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, 
-            colorspace.full_range ? 1 : 2); // 1=FULL, 2=LIMITED
-
-        // 设置位深度
-        if (isHdr) {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 6); // COLOR_TRANSFER_ST2084
-        } else {
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, 3); // COLOR_TRANSFER_SDR_VIDEO
-        }
-
-        // 打印最终的媒体格式颜色配置
         int32_t colorStandard = 0, colorRange = 0, colorTransfer = 0;
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_STANDARD, &colorStandard);
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_RANGE, &colorRange);
-        AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_TRANSFER, &colorTransfer);
-        
-        BOOST_LOG(info) << "最终媒体格式颜色配置:"sv;
-        BOOST_LOG(info) << "  - COLOR_STANDARD: "sv << colorStandard;
-        BOOST_LOG(info) << "  - COLOR_RANGE: "sv << colorRange << (colorRange == 1 ? " (FULL)" : " (LIMITED)");
-        BOOST_LOG(info) << "  - COLOR_TRANSFER: "sv << colorTransfer;
+        (void)isHdr;
+        BOOST_LOG(info) << "编码参数: profile="sv << configuredAvcProfile
+                        << " level="sv << configuredAvcLevel
+                        << " bitrateMode="sv << configuredBitrateMode
+                        << " complexity="sv << configuredComplexity
+                        << " lowLatency="sv << configuredLowLatency
+                        << " realtimePriority="sv << configuredRealtimePriority;
 
         // 创建编码器
         AMediaCodec *codec = AMediaCodec_createEncoderByType(config.videoFormat == 1 ? "video/hevc" : "video/avc");
@@ -863,8 +878,8 @@ namespace sunshine_callbacks {
             // 创建编码器
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1920);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 1080);
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_OPERATING_RATE, encodeFrameRate);
-            AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_CAPTURE_RATE, encodeFrameRate);
+            AMediaFormat_setInt32(format, "operating-rate", encodeFrameRate);
+            AMediaFormat_setInt32(format, "capture-rate", encodeFrameRate);
             AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_FRAME_RATE, encodeFrameRate);
             AMediaFormat_setInt32(format, "max-fps-to-encoder", encodeFrameRate);
             codec = AMediaCodec_createEncoderByType("video/avc");
@@ -1125,10 +1140,13 @@ namespace sunshine_callbacks {
                         
                         // 直接保存整个配置数据
                         codecConfigData.assign(payload, payload + bufferSize);
+                        patchH264SpsConstrainedBaseline(codecConfigData);
+                        logHexBytes("AVC_CSD", codecConfigData.data(), codecConfigData.size());
                         BOOST_LOG(info) << "保存完整的编解码器配置数据，大小: "sv << codecConfigData.size();
                     } else {
                         // 这是正常的编码帧
                         bool isKeyFrame = (bufferInfo.flags & AMEDIACODEC_BUFFER_FLAG_KEY_FRAME) != 0;
+                        BOOST_LOG(info) << "Frame #"sv << frameIndex << " size="sv << bufferSize << " flags="sv << bufferInfo.flags << " keyframe="sv << isKeyFrame;
                         BOOST_LOG(verbose) << "收到" << (isKeyFrame ? "关键帧" : "普通帧") << "，大小: "sv << bufferSize;
                         frameIndex++;
                         auto encodedFrameAt = std::chrono::steady_clock::now();
@@ -1148,6 +1166,7 @@ namespace sunshine_callbacks {
                             // 对于关键帧，需要在数据前附加编解码器配置数据
                             if (!codecConfigData.empty()) {
                                 emittedFrameBytes = codecConfigData.size() + bufferSize;
+                                logHexBytes("AVC_KEY", payload, std::min<size_t>(bufferSize, 32));
                                 BOOST_LOG(verbose) << "发送关键帧(带配置数据)，总大小: "sv << emittedFrameBytes;
                                 stream::postFrame(codecConfigData.data(), codecConfigData.size(), payload, bufferSize, frameIndex, true, channel_data);
                             } else {

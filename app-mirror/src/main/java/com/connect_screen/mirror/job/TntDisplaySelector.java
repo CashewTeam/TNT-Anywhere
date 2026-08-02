@@ -85,7 +85,9 @@ public final class TntDisplaySelector {
         int largestDisplayId = findLargestDisplayId(displayManager);
         int displayId = findLargestSelectableDisplayId(displayManager);
         if (displayId <= Display.DEFAULT_DISPLAY) {
-            if (showError) {
+            // Display 0 may be the only valid fallback while the TNT base wrapper is filtered.
+            boolean isDisplay0OnlyFallback = displayId == Display.DEFAULT_DISPLAY && largestDisplayId > Display.DEFAULT_DISPLAY;
+            if (showError && !isDisplay0OnlyFallback) {
                 State.showErrorStatus("TNT mode did not find a selectable external display. Wait for TNT to start, then reconnect Moonlight.");
             }
             State.log("[DisplaySelect] TNT mode found no selectable external display, selected="

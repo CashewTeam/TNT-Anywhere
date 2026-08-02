@@ -47,9 +47,16 @@ public class Pref {
     public static final String KEY_ENCODER_REALTIME_PRIORITY = "encoder_realtime_priority";
     public static final String KEY_ENCODER_DYNAMIC_FRAME_RATE = "encoder_dynamic_frame_rate";
     public static final String KEY_STREAM_FEC_PERCENT = "stream_fec_percent";
+    public static final String KEY_ENCODER_AVC_BASELINE = "encoder_avc_baseline";
+    public static final String KEY_ENCODER_AVC_LEVEL = "encoder_avc_level";
     public static final String KEY_INITIAL_SETUP_COMPLETE = "initial_setup_complete";
     public static final int ENCODER_CODEC_H264 = 0;
     public static final int ENCODER_CODEC_H265 = 1;
+    public static final int ENCODER_AVC_PROFILE_BASELINE = 1;
+    public static final int ENCODER_AVC_PROFILE_HIGH = 0x08;
+    public static final int ENCODER_AVC_LEVEL_42 = 0x2000;
+    public static final int ENCODER_AVC_LEVEL_51 = 0x8000;
+    public static final int ENCODER_AVC_LEVEL_52 = 0x10000;
     public static boolean doNotAutoStartMoonlight;
 
     public static boolean getAutoRotate() {
@@ -210,6 +217,20 @@ public class Pref {
 
     public static boolean getEncoderRealtimePriority() {
         return getBoolean(KEY_ENCODER_REALTIME_PRIORITY, true);
+    }
+
+    public static boolean getEncoderAvcBaseline() {
+        return getBoolean(KEY_ENCODER_AVC_BASELINE, true);
+    }
+
+    public static int getEncoderAvcProfile() {
+        return getEncoderAvcBaseline()
+                ? ENCODER_AVC_PROFILE_BASELINE
+                : ENCODER_AVC_PROFILE_HIGH;
+    }
+
+    public static int getEncoderAvcLevel() {
+        return getInt(KEY_ENCODER_AVC_LEVEL, ENCODER_AVC_LEVEL_42);
     }
 
     public static boolean getEncoderDynamicFrameRate() {

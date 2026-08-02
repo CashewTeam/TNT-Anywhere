@@ -39,10 +39,7 @@ public class MirrorDisplayMonitor {
             public void onDisplayAdded(int displayId) {
                 State.log("新增显示器，displayId: " + displayId);
                 Display display = displayManager.getDisplay(displayId);
-                if (display != null) {
-                    handleNewDisplay(display);
-                }
-                if (Pref.getSkipExternalActivity()) {
+                if (display == null || !handleNewDisplay(display) || Pref.getSkipExternalActivity()) {
                     return;
                 }
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -80,42 +77,43 @@ public class MirrorDisplayMonitor {
         }, null);
     }
 
-    private static void handleNewDisplay(Display display) {
+    private static boolean handleNewDisplay(Display display) {
         if (display.getDisplayId() == Display.DEFAULT_DISPLAY) {
-            return;
+            return false;
         }
         if (display.getDisplayId() == State.getDisplaylinkVirtualDisplayId()) {
-            return;
+            return false;
         }
         if (display.getDisplayId() == State.getMirrorVirtualDisplayId()) {
-            return;
+            return false;
         }
         if ("Moonlight".equals(display.getName())) {
-            return;
+            return false;
         }
         if ("DisplayLink".equals(display.getName())) {
-            return;
+            return false;
         }
         if ("Mirror".equals(display.getName())) {
-            return;
+            return false;
         }
         if (CreateVirtualDisplay.isCreating) {
-            return;
+            return false;
         }
         Context context = State.getContext();
         if (context == null) {
-            return;
+            return false;
         }
         if (Pref.getSkipExternalActivity()) {
-            return;
+            return false;
         }
         if (SunshineService.getLifecycleState() != SunshineService.LifecycleState.STOPPED) {
             State.log("SunshineService 运行期间忽略新增显示器，避免触发旧镜像链路创建 App 虚拟显示: id="
                     + display.getDisplayId() + " name=" + display.getName());
-            return;
+            return false;
         }
         State.startNewJob(new ProjectViaMirror(display));
         handleDisableUsbAudio(context);
+        return true;
     }
 
     private static void handleDisableUsbAudio(Context context) {

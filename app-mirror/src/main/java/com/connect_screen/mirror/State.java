@@ -246,11 +246,22 @@ public class State {
         }
     }
 
+    public static void refreshHomeConnectionUi() {
+        MirrorMainActivity mirrorMainActivity = currentActivity.get();
+        if (mirrorMainActivity != null) {
+            mirrorMainActivity.runOnUiThread(mirrorMainActivity::refreshHomeConnectionUi);
+        }
+    }
+
     public static void showErrorStatus(String msg) {
         State.log(msg);
         MirrorUiState newUiState = new MirrorUiState();
         newUiState.errorStatusText = msg;
-        State.uiState.setValue(newUiState);
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            State.uiState.setValue(newUiState);
+        } else {
+            State.uiState.postValue(newUiState);
+        }
     }
 
     public static Context getContext() {

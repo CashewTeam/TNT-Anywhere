@@ -520,6 +520,30 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:text="H.264 Profile"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/encoderAvcProfileSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="H.264 Level"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/encoderAvcLevelSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:text="码率比例（25-200）"
                 android:textSize="14sp" />
 

@@ -95,6 +95,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="42dp" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="H.264 Profile"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="12sp" />
+
+            <Spinner
+                android:id="@+id/encoderAvcProfileSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="42dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="H.264 Level"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="12sp" />
+
+            <Spinner
+                android:id="@+id/encoderAvcLevelSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="42dp" />
+
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="42dp"
